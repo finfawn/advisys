@@ -13,21 +13,33 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* --- App overrides for full-width landing hero --- */
+html, body, #root {
+  width: 100%;
+  height: 100%;
 }
 
 body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
+  display: block;
+  place-items: initial;
   min-height: 100vh;
+  margin: 0;
+  background: #e2e1ef;
+  color: #212529;
+  overflow-x: hidden;
+}
+
+#root {
+  width: 100%;
+}
+
+a {
+  font-weight: 500;
+  color: inherit;
+  text-decoration: inherit;
+}
+a:hover {
+  color: #747bff;
 }
 
 h1 {
@@ -42,9 +54,10 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: #f8f9fa;
   cursor: pointer;
   transition: border-color 0.25s;
+  color: #212529;
 }
 button:hover {
   border-color: #646cff;
@@ -64,5 +77,76 @@ button:focus-visible {
   }
   button {
     background-color: #f9f9f9;
+  }
+}
+
+/* Brand title font */
+.brand-title {
+  font-family: "Lexend", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Colorize the 'Sys' part */
+.brand-sys {
+  color: #5285c9; /* slightly dark blue */
+  transition: color 200ms ease;
+}
+
+/* ===== Navbar sizing + scroll behavior ===== */
+.app-navbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
+  background: #f9f9f9;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+  padding-block: 16px; /* equal top & bottom spacing */
+  --logo-size: 70px;
+  --brand-gap: 12px;          /* fixed visual gap between logo and text */
+  --brand-font-size: 2.5rem;  /* base brand title size */
+  --cta-px: 14px;             /* base CTA horizontal padding */
+  --cta-py: 8px;              /* base CTA vertical padding */
+  --cta-font: 1rem;           /* base CTA font size */
+  transition: padding-block 200ms ease, box-shadow 200ms ease, --logo-size 200ms ease;
+  z-index: 1030; /* sit above content while sticky/fixed */
+}
+.app-navbar.scrolled {
+  padding-block: 4px;  /* shrink more on scroll */
+  --logo-size: 40px; /* make the actual logo smaller (affects layout height) */
+  --brand-font-size: 1.75rem; /* shrink real font-size so spacing remains consistent */
+  --cta-px: 10px;             /* smaller CTA padding when scrolled */
+  --cta-py: 4px;
+  --cta-font: 0.9rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+.app-navbar .logo {
+  display: block; /* remove baseline descender gap that looks like extra bottom margin */
+  width: var(--logo-size);
+  height: var(--logo-size);
+  transition: width 200ms ease, height 200ms ease;
+}
+.app-navbar .brand-group { 
+  gap: var(--brand-gap); 
+}
+.app-navbar .brand-title {
+  font-size: var(--brand-font-size);
+  transition: font-size 200ms ease;
+}
+.app-navbar .nav-cta {
+  padding: var(--cta-py) var(--cta-px);
+  font-size: var(--cta-font);
+  line-height: 1.2;
+  transition: padding 200ms ease, font-size 200ms ease;
+}
+
+.page-content {
+  /* Reserve space for the fixed navbar */
+  padding-top: 96px; /* adjust if your navbar height changes */
+}
+@media (max-width: 576px) {
+  .page-content {
+    padding-top: 80px;
   }
 }
