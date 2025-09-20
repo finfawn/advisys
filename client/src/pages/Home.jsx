@@ -28,7 +28,7 @@ function Home() {
           </div>
 
           {/* CTA placeholder */}
-          <Button variant="dark" className="rounded-pill nav-cta">Login</Button>
+          <Button className="nav-cta">Login / Signup</Button>
         </Container>
       </div>
 
@@ -93,7 +93,7 @@ function Home() {
                 <div className="feature-card h-100">
                   <div className="icon-wrap"><BsBarChart /></div>
                   <div className="feature-title">Analytics & Reports</div>
-                  <div className="feature-text">Track activities across faculty and departments.</div>
+                  <div className="feature-text">Access consultation trends and reports.</div>
                 </div>
               </Col>
             </Row>
