@@ -86,7 +86,7 @@
 .hero-carousel .carousel-control-prev,
 .hero-carousel .carousel-control-next {
   filter: invert(1) grayscale(1) contrast(1.25);
-  opacity: 0.9;
+  opacity: 0.4;
 }
 .hero-carousel .carousel-control-prev:hover,
 .hero-carousel .carousel-control-next:hover {
@@ -271,3 +271,111 @@
 @media (max-width: 576px) {
   .page-content { padding-top: 80px; }
 }
+
+/* ===== Home brand title styles (scoped) ===== */
+.brand-title {
+  font-family: "Lexend", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  font-weight: 600;
+  letter-spacing: 0.2px;
+}
+
+/* Colorize the 'Sys' part in the brand */
+.brand-sys {
+  color: #5285c9; /* slightly dark blue */
+  transition: color 200ms ease;
+}
+
+/* ===== Glassy Registration Modal ===== */
+.glass-modal {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+}
+.glass-modal .modal-header .modal-title { letter-spacing: -0.2px; }
+.glass-modal .form-control {
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.glass-modal .form-control:focus {
+  box-shadow: 0 0 0 0.25rem rgba(82, 133, 201, 0.25);
+  border-color: #5285c9;
+}
+.glass-modal .btn-primary {
+  background: linear-gradient(135deg, #5f8fd8, #3a6bb8);
+  border: none;
+  box-shadow: 0 10px 24px rgba(58, 107, 184, 0.25);
+}
+.glass-modal .btn-primary:hover { filter: brightness(0.98); }
+
+/* Fix Bootstrap fade-less manual modal display */
+.modal.show.d-block { overflow-y: auto; }
+
+@media (max-width: 576px) {
+  .modal-dialog { margin: 1rem; }
+}
+
+/* ===== Auth Card (two-section) ===== */
+.auth-card {
+  overflow: hidden;
+  position: relative;
+}
+.auth-left {
+  background: radial-gradient(140% 140% at 0% 0%, rgba(198,213,255,0.55) 0%, rgba(255,255,255,0.0) 60%),
+              rgba(255,255,255,0.35);
+  border-right: 1px solid rgba(0,0,0,0.06);
+}
+@media (max-width: 767.98px) {
+  .auth-left { border-right: none; border-bottom: 1px solid rgba(0,0,0,0.06); }
+}
+.auth-right { position: relative; }
+
+/* Panels container controls height via inline style; animate height for smooth switch */
+.auth-panels {
+  position: relative;
+  overflow: hidden;
+  transition: height 250ms ease;
+}
+.auth-panel {
+  position: absolute;
+  inset: 0;
+  transition: transform 320ms ease, opacity 320ms ease;
+}
+/* Default (register visible) */
+.auth-panels.show-register .auth-panel.register { transform: translateX(0); opacity: 1; pointer-events: auto; }
+.auth-panels.show-register .auth-panel.login { transform: translateX(24px); opacity: 0; pointer-events: none; }
+/* Login visible */
+.auth-panels.show-login .auth-panel.register { transform: translateX(-24px); opacity: 0; pointer-events: none; }
+.auth-panels.show-login .auth-panel.login { transform: translateX(0); opacity: 1; pointer-events: auto; }
+
+/* Minor link and divider styling */
+.auth-card a { color: #3a6bb8; text-decoration: none; }
+.auth-card a:hover { text-decoration: underline; }
+
+/* ===== Line style inputs (for Register form) ===== */
+.line-form .form-control,
+.line-form .form-select {
+  background: transparent;
+  border: none;
+  border-bottom: 1.6px solid rgba(16, 24, 40, 0.25);
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+  box-shadow: none;
+}
+.line-form .form-control:focus,
+.line-form .form-select:focus {
+  box-shadow: none;
+  border-bottom-color: #5285c9;
+}
+/* Invalid underline color */
+.line-form .form-control.is-invalid,
+.line-form .form-select.is-invalid { border-bottom-color: #dc3545; }
+
+/* Make invalid feedback align tight under the line */
+.line-form .invalid-feedback { margin-top: 6px; }
+
+/* Reduce bottom margin between stacked fields for a cleaner look */
+.line-form .mb-3 { margin-bottom: 1rem !important; }

@@ -14,7 +14,7 @@
 
   /* Brand palette */
   --brand-blue: #5285c9;       /* matches .brand-sys */
-  --brand-blue-dark: #164078;  /* dark blue used in shadows/banners */
+  --brand-blue-dark: #306bb8;  /* dark blue used in shadows/banners */
 }
 
 /* --- App overrides for full-width landing hero --- */
@@ -64,7 +64,7 @@ button {
   color: #212529;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: #434ac5;
 }
 button:focus,
 button:focus-visible {
@@ -82,17 +82,4 @@ button:focus-visible {
   button {
     background-color: #f9f9f9;
   }
-}
-
-/* Brand title font */
-.brand-title {
-  font-family: "Lexend", system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  font-weight: 600;
-  letter-spacing: 0.2px;
-}
-
-/* Colorize the 'Sys' part */
-.brand-sys {
-  color: #5285c9; /* slightly dark blue */
-  transition: color 200ms ease;
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { Container, Row, Col, Button, Badge, Carousel } from "react-bootstrap";
 import { FaPlay, FaArrowRight, FaRegCircle } from "react-icons/fa";
 import { BsCalendarCheck, BsPeople, BsFileEarmarkText, BsBarChart, BsClock, BsPersonCircle } from "react-icons/bs";
@@ -7,6 +7,89 @@ import "./Home.css";
 
 function Home() {
   const [scrolled, setScrolled] = useState(false);
+  const [showRegister, setShowRegister] = useState(false);
+  const [authMode, setAuthMode] = useState("register"); // "register" | "login"
+  const [role, setRole] = useState("student");
+  const [form, setForm] = useState({
+    firstName: "",
+    lastName: "",
+    email: "",
+    password: "",
+    program: "Bachelor of Science in Information Technology",
+    department: "College of Information Technology",
+  });
+  const [errors, setErrors] = useState({});
+
+  // Refs to smoothly adjust container height during panel slide
+  const registerRef = useRef(null);
+  const loginRef = useRef(null);
+  const [panelHeight, setPanelHeight] = useState("auto");
+
+  const measureHeight = () => {
+    const el = authMode === "register" ? registerRef.current : loginRef.current;
+    if (el) setPanelHeight(el.scrollHeight + "px");
+  };
+
+  useEffect(() => {
+    measureHeight();
+  }, [authMode, showRegister]);
+
+  const validate = () => {
+    const e = {};
+    if (authMode === "register") {
+      if (!form.firstName.trim()) e.firstName = "First name is required";
+      if (!form.lastName.trim()) e.lastName = "Last name is required";
+      if (!form.email.trim()) e.email = "Email is required";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
+      if (!form.password) e.password = "Password is required";
+      else if (form.password.length < 6) e.password = "Minimum 6 characters";
+      if (role === "student" && !form.program.trim()) e.program = "Program is required";
+      if (role === "advisor" && !form.department.trim()) e.department = "Department is required";
+    } else {
+      // login validation
+      if (!form.email.trim()) e.email = "Email is required";
+      else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = "Enter a valid email";
+      if (!form.password) e.password = "Password is required";
+    }
+    setErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  const onChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const onRoleChange = (nextRole) => {
+    setRole(nextRole);
+    setForm((prev) => ({
+      ...prev,
+      program: nextRole === "student" ? (prev.program || "Bachelor of Science in Information Technology") : prev.program,
+      department: nextRole === "advisor" ? (prev.department || "College of Information Technology") : prev.department,
+    }));
+  };
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    if (!validate()) return;
+    if (authMode === "register") {
+      const payload = {
+        role,
+        firstName: form.firstName.trim(),
+        lastName: form.lastName.trim(),
+        email: form.email.trim(),
+        password: form.password,
+        extra: role === "student" ? { program: form.program.trim() } : { department: form.department.trim() },
+      };
+      // eslint-disable-next-line no-console
+      console.log("Register submit:", payload);
+    } else {
+      const payload = { email: form.email.trim(), password: form.password };
+      // eslint-disable-next-line no-console
+      console.log("Login submit:", payload);
+    }
+    setShowRegister(false);
+  };
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 10);
@@ -28,7 +111,7 @@ function Home() {
           </div>
 
           {/* CTA placeholder */}
-          <Button className="nav-cta">Login / Signup</Button>
+          <Button className="nav-cta" onClick={() => { setAuthMode("register"); setShowRegister(true); }}>Login / Signup</Button>
         </Container>
       </div>
 
@@ -56,7 +139,7 @@ function Home() {
                         AdviSys is a web‑based academic consultation management system designed to simplify the
                         process of scheduling, managing, and documenting student–faculty consultations.
                       </p>
-                      <a href="/login" className="btn btn-light rounded-pill banner-cta-btn">Get Started</a>
+                      <Button variant="light" className="rounded-pill banner-cta-btn" onClick={() => { setAuthMode("register"); setShowRegister(true); }}>Get Started</Button>
                     </Col>
                   </Row>
                 </Container>
@@ -152,6 +235,132 @@ function Home() {
             </div>
           </Container>
         </footer>
+      </div>
+
+      {/* Auth Modal (Register/Login with sliding panel) */}
+      <div className={`modal fade ${showRegister ? "show d-block" : ""}`} tabIndex="-1" role="dialog" aria-modal={showRegister} style={{ background: showRegister ? "rgba(0,0,0,0.35)" : "transparent" }}>
+        <div className="modal-dialog modal-dialog-centered modal-lg" role="document">
+          <div className="modal-content glass-modal auth-card">
+            <button type="button" className="btn-close position-absolute end-0 m-3 z-1" aria-label="Close" onClick={() => setShowRegister(false)}></button>
+            <div className="row g-0">
+              {/* Left info section */}
+              <div className="col-12 col-md-5 auth-left d-flex flex-column justify-content-center p-4 p-md-5">
+                <div className="d-flex align-items-center gap-2 mb-3">
+                  <img src={Logo} alt="AdviSys" width={40} height={40} style={{ borderRadius: "8px" }} />
+                  <div className="fs-5 fw-semibold">advi<span className="brand-sys">Sys</span></div>
+                </div>
+                <h5 className="fw-bold mb-2">Welcome to AdviSys</h5>
+                <p className="text-muted mb-0">Manage academic consultations with ease. Schedule, track, and collaborate seamlessly.</p>
+              </div>
+
+              {/* Right sliding panel section */}
+              <div className="col-12 col-md-7 auth-right p-4 p-md-5">
+                <div className={`auth-panels ${authMode === "login" ? "show-login" : "show-register"}`} style={{ height: panelHeight }}>
+                  {/* Register Panel */}
+                  <div className="auth-panel register" ref={registerRef}>
+                    <h5 className="fw-semibold mb-3">Create your account</h5>
+                    <form onSubmit={onSubmit} noValidate className="line-form">
+                      {/* Role first */}
+                      <div className="mb-3">
+                        <label htmlFor="role" className="form-label">Sign up as</label>
+                        <select id="role" name="role" className="form-select" value={role} onChange={(e) => onRoleChange(e.target.value)}>
+                          <option value="student">Student</option>
+                          <option value="advisor">Advisor</option>
+                        </select>
+                      </div>
+
+                      {/* Name fields side-by-side on md+ */}
+                      <div className="row g-3">
+                        <div className="col-12 col-md-6">
+                          <label htmlFor="firstName" className="form-label">First Name</label>
+                          <input type="text" className={`form-control ${errors.firstName ? "is-invalid" : ""}`} id="firstName" name="firstName" value={form.firstName} onChange={onChange} placeholder="e.g. Jane" />
+                          {errors.firstName && <div className="invalid-feedback">{errors.firstName}</div>}
+                        </div>
+                        <div className="col-12 col-md-6">
+                          <label htmlFor="lastName" className="form-label">Last Name</label>
+                          <input type="text" className={`form-control ${errors.lastName ? "is-invalid" : ""}`} id="lastName" name="lastName" value={form.lastName} onChange={onChange} placeholder="e.g. Dela Cruz" />
+                          {errors.lastName && <div className="invalid-feedback">{errors.lastName}</div>}
+                        </div>
+                      </div>
+
+                      {/* Email */}
+                      <div className="mb-3 mt-1">
+                        <label htmlFor="email" className="form-label">Email</label>
+                        <input type="email" className={`form-control ${errors.email ? "is-invalid" : ""}`} id="email" name="email" value={form.email} onChange={onChange} placeholder="you@example.com" />
+                        {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                      </div>
+
+                      {/* Password */}
+                      <div className="mb-3">
+                        <label htmlFor="password" className="form-label">Password</label>
+                        <input type="password" className={`form-control ${errors.password ? "is-invalid" : ""}`} id="password" name="password" value={form.password} onChange={onChange} placeholder="••••••" />
+                        {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                      </div>
+
+                      {/* Program/Department dropdown based on role */}
+                      {role === "student" ? (
+                        <div className="mb-3">
+                          <label htmlFor="program" className="form-label">Program</label>
+                          <select id="program" name="program" className="form-select" value={form.program} onChange={onChange}>
+                            <option>Bachelor of Science in Information Technology</option>
+                            <option>BS Computer Science</option>
+                            <option>BS Information Systems</option>
+                            <option>BS Software Engineering</option>
+                          </select>
+                          {errors.program && <div className="invalid-feedback">{errors.program}</div>}
+                        </div>
+                      ) : (
+                        <div className="mb-3">
+                          <label htmlFor="department" className="form-label">Department</label>
+                          <select id="department" name="department" className="form-select" value={form.department} onChange={onChange}>
+                            <option>College of Information Technology</option>
+                            <option>College of Engineering</option>
+                            <option>College of Science</option>
+                            <option>College of Business</option>
+                          </select>
+                          {errors.department && <div className="invalid-feedback">{errors.department}</div>}
+                        </div>
+                      )}
+
+                      <div className="d-grid mt-4">
+                        <button type="submit" className="btn btn-primary rounded-pill py-2">Register</button>
+                      </div>
+                      <div className="text-center mt-3 small">
+                        Already have an account? <button type="button" className="btn btn-link p-0 align-baseline fw-semibold" onClick={() => { setAuthMode("login"); }}>Login</button>
+                      </div>
+                    </form>
+                  </div>
+
+                  {/* Login Panel */}
+                  <div className="auth-panel login" ref={loginRef}>
+                    <h5 className="fw-semibold mb-3">Welcome back</h5>
+                    <form onSubmit={onSubmit} noValidate>
+                      <div className="mb-3">
+                        <label htmlFor="loginEmail" className="form-label">Email</label>
+                        <input type="email" className={`form-control ${errors.email ? "is-invalid" : ""}`} id="loginEmail" name="email" value={form.email} onChange={onChange} placeholder="you@example.com" />
+                        {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                      </div>
+                      <div className="mb-2">
+                        <label htmlFor="loginPassword" className="form-label">Password</label>
+                        <input type="password" className={`form-control ${errors.password ? "is-invalid" : ""}`} id="loginPassword" name="password" value={form.password} onChange={onChange} placeholder="••••••" />
+                        {errors.password && <div className="invalid-feedback">{errors.password}</div>}
+                      </div>
+                      <div className="d-flex justify-content-end mb-3">
+                        <a href="#" className="small">Forgot password?</a>
+                      </div>
+                      <div className="d-grid">
+                        <button type="submit" className="btn btn-primary rounded-pill py-2">Login</button>
+                      </div>
+                      <div className="text-center mt-3 small">
+                        Don&apos;t have an account? <button type="button" className="btn btn-link p-0 align-baseline fw-semibold" onClick={() => { setAuthMode("register"); }}>Register</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </>
   );
