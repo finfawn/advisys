@@ -10,14 +10,15 @@ function Home() {
   const [showRegister, setShowRegister] = useState(false);
   const [authMode, setAuthMode] = useState("register"); // "register" | "login"
   const [role, setRole] = useState("student");
-  const [form, setForm] = useState({
+  const initialForm = {
     firstName: "",
     lastName: "",
     email: "",
     password: "",
     program: "Bachelor of Science in Information Technology",
     department: "College of Information Technology",
-  });
+  };
+  const [form, setForm] = useState(initialForm);
   const [errors, setErrors] = useState({});
 
   // Refs to smoothly adjust container height during panel slide
@@ -33,6 +34,33 @@ function Home() {
   useEffect(() => {
     measureHeight();
   }, [authMode, showRegister]);
+
+  // Recalculate height when form content/validation messages change so nothing gets clipped
+  useEffect(() => {
+    const raf = requestAnimationFrame(measureHeight);
+    return () => cancelAnimationFrame(raf);
+  }, [role, errors, form.firstName, form.lastName, form.email, form.password, form.program, form.department]);
+
+  // Clear errors whenever switching between Register/Login so warnings don't bleed over
+  useEffect(() => {
+    setErrors({});
+    // Also clear shared credentials when switching panels
+    setForm((prev) => ({ ...prev, email: "", password: "" }));
+  }, [authMode]);
+
+  // When modal closes, reset everything; when opening, clear previous warnings
+  useEffect(() => {
+    if (showRegister) {
+      // opening: just clear warnings so you start clean visually
+      setErrors({});
+    } else {
+      // closing: reset form fields and role so reopening starts fresh
+      setRole("student");
+      setForm(initialForm);
+      setErrors({});
+      setAuthMode("register");
+    }
+  }, [showRegister]);
 
   const validate = () => {
     const e = {};
@@ -88,7 +116,7 @@ function Home() {
       // eslint-disable-next-line no-console
       console.log("Login submit:", payload);
     }
-    setShowRegister(false);
+    // Keep modal open after submit so you can review; remove this comment if you want to auto-close.
   };
 
   useEffect(() => {
@@ -260,8 +288,8 @@ function Home() {
                   <div className="auth-panel register" ref={registerRef}>
                     <h5 className="fw-semibold mb-3">Create your account</h5>
                     <form onSubmit={onSubmit} noValidate className="line-form">
-                      {/* Role first */}
-                      <div className="mb-3">
+                      {/* Section: Role */}
+                      <div className="form-section">
                         <label htmlFor="role" className="form-label">Sign up as</label>
                         <select id="role" name="role" className="form-select" value={role} onChange={(e) => onRoleChange(e.target.value)}>
                           <option value="student">Student</option>
@@ -269,58 +297,57 @@ function Home() {
                         </select>
                       </div>
 
-                      {/* Name fields side-by-side on md+ */}
-                      <div className="row g-3">
-                        <div className="col-12 col-md-6">
-                          <label htmlFor="firstName" className="form-label">First Name</label>
-                          <input type="text" className={`form-control ${errors.firstName ? "is-invalid" : ""}`} id="firstName" name="firstName" value={form.firstName} onChange={onChange} placeholder="e.g. Jane" />
-                          {errors.firstName && <div className="invalid-feedback">{errors.firstName}</div>}
+                      {/* Section: Identity & access */}
+                      <div className="form-section">
+                        {/* Name fields side-by-side on md+ */}
+                        <div className="row g-3">
+                          <div className="col-12 col-md-6">
+                            <label htmlFor="firstName" className="form-label visually-hidden">First Name</label>
+                            <input type="text" className={`form-control ${errors.firstName ? "is-invalid" : ""}`} id="firstName" name="firstName" value={form.firstName} onChange={onChange} placeholder="First Name" />
+                            {errors.firstName && <div className="invalid-feedback">{errors.firstName}</div>}
+                          </div>
+                          <div className="col-12 col-md-6">
+                            <label htmlFor="lastName" className="form-label visually-hidden">Last Name</label>
+                            <input type="text" className={`form-control ${errors.lastName ? "is-invalid" : ""}`} id="lastName" name="lastName" value={form.lastName} onChange={onChange} placeholder="Last Name" />
+                            {errors.lastName && <div className="invalid-feedback">{errors.lastName}</div>}
+                          </div>
                         </div>
-                        <div className="col-12 col-md-6">
-                          <label htmlFor="lastName" className="form-label">Last Name</label>
-                          <input type="text" className={`form-control ${errors.lastName ? "is-invalid" : ""}`} id="lastName" name="lastName" value={form.lastName} onChange={onChange} placeholder="e.g. Dela Cruz" />
-                          {errors.lastName && <div className="invalid-feedback">{errors.lastName}</div>}
+
+                        {/* Email */}
+                        <div className="mt-3 mb-3">
+                          <label htmlFor="email" className="form-label visually-hidden">Email</label>
+                          <input type="email" className={`form-control ${errors.email ? "is-invalid" : ""}`} id="email" name="email" value={form.email} onChange={onChange} placeholder="Email" />
+                          {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                        </div>
+
+                        {/* Password */}
+                        <div className="mb-0">
+                          <label htmlFor="password" className="form-label visually-hidden">Password</label>
+                          <input type="password" className={`form-control ${errors.password ? "is-invalid" : ""}`} id="password" name="password" value={form.password} onChange={onChange} placeholder="Password" />
+                          {errors.password && <div className="invalid-feedback">{errors.password}</div>}
                         </div>
                       </div>
 
-                      {/* Email */}
-                      <div className="mb-3 mt-1">
-                        <label htmlFor="email" className="form-label">Email</label>
-                        <input type="email" className={`form-control ${errors.email ? "is-invalid" : ""}`} id="email" name="email" value={form.email} onChange={onChange} placeholder="you@example.com" />
-                        {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                      {/* Section: Program / Department */}
+                      <div className="form-section">
+                        {role === "student" ? (
+                          <div className="mb-0">
+                            <label htmlFor="program" className="form-label">Program</label>
+                            <select id="program" name="program" className="form-select" value={form.program} onChange={onChange}>
+                              <option>Bachelor of Science in Information Technology</option>
+                            </select>
+                            {errors.program && <div className="invalid-feedback">{errors.program}</div>}
+                          </div>
+                        ) : (
+                          <div className="mb-0">
+                            <label htmlFor="department" className="form-label">Department</label>
+                            <select id="department" name="department" className="form-select" value={form.department} onChange={onChange}>
+                              <option>College of Information Technology</option>
+                            </select>
+                            {errors.department && <div className="invalid-feedback">{errors.department}</div>}
+                          </div>
+                        )}
                       </div>
-
-                      {/* Password */}
-                      <div className="mb-3">
-                        <label htmlFor="password" className="form-label">Password</label>
-                        <input type="password" className={`form-control ${errors.password ? "is-invalid" : ""}`} id="password" name="password" value={form.password} onChange={onChange} placeholder="••••••" />
-                        {errors.password && <div className="invalid-feedback">{errors.password}</div>}
-                      </div>
-
-                      {/* Program/Department dropdown based on role */}
-                      {role === "student" ? (
-                        <div className="mb-3">
-                          <label htmlFor="program" className="form-label">Program</label>
-                          <select id="program" name="program" className="form-select" value={form.program} onChange={onChange}>
-                            <option>Bachelor of Science in Information Technology</option>
-                            <option>BS Computer Science</option>
-                            <option>BS Information Systems</option>
-                            <option>BS Software Engineering</option>
-                          </select>
-                          {errors.program && <div className="invalid-feedback">{errors.program}</div>}
-                        </div>
-                      ) : (
-                        <div className="mb-3">
-                          <label htmlFor="department" className="form-label">Department</label>
-                          <select id="department" name="department" className="form-select" value={form.department} onChange={onChange}>
-                            <option>College of Information Technology</option>
-                            <option>College of Engineering</option>
-                            <option>College of Science</option>
-                            <option>College of Business</option>
-                          </select>
-                          {errors.department && <div className="invalid-feedback">{errors.department}</div>}
-                        </div>
-                      )}
 
                       <div className="d-grid mt-4">
                         <button type="submit" className="btn btn-primary rounded-pill py-2">Register</button>
@@ -334,15 +361,15 @@ function Home() {
                   {/* Login Panel */}
                   <div className="auth-panel login" ref={loginRef}>
                     <h5 className="fw-semibold mb-3">Welcome back</h5>
-                    <form onSubmit={onSubmit} noValidate>
+                    <form onSubmit={onSubmit} noValidate className="line-form">
                       <div className="mb-3">
-                        <label htmlFor="loginEmail" className="form-label">Email</label>
-                        <input type="email" className={`form-control ${errors.email ? "is-invalid" : ""}`} id="loginEmail" name="email" value={form.email} onChange={onChange} placeholder="you@example.com" />
+                        <label htmlFor="loginEmail" className="form-label visually-hidden">Email</label>
+                        <input type="email" className={`form-control ${errors.email ? "is-invalid" : ""}`} id="loginEmail" name="email" value={form.email} onChange={onChange} placeholder="Email" />
                         {errors.email && <div className="invalid-feedback">{errors.email}</div>}
                       </div>
                       <div className="mb-2">
-                        <label htmlFor="loginPassword" className="form-label">Password</label>
-                        <input type="password" className={`form-control ${errors.password ? "is-invalid" : ""}`} id="loginPassword" name="password" value={form.password} onChange={onChange} placeholder="••••••" />
+                        <label htmlFor="loginPassword" className="form-label visually-hidden">Password</label>
+                        <input type="password" className={`form-control ${errors.password ? "is-invalid" : ""}`} id="loginPassword" name="password" value={form.password} onChange={onChange} placeholder="Password" />
                         {errors.password && <div className="invalid-feedback">{errors.password}</div>}
                       </div>
                       <div className="d-flex justify-content-end mb-3">
