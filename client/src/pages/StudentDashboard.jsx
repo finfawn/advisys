@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "react-bootstrap";
-import { BsSearch, BsGrid, BsCalendarCheck, BsPeople, BsBoxArrowRight, BsChevronRight, BsPersonCircle, BsBell } from "react-icons/bs";
+import { BsSearch, BsGrid, BsCalendarCheck, BsPeople, BsBoxArrowRight, BsChevronRight, BsChevronLeft, BsPersonCircle, BsBell } from "react-icons/bs";
 import Logo from "../assets/logo.png";
 import "./StudentDashboard.css";
 
@@ -45,11 +45,11 @@ export default function StudentDashboard() {
         </div>
 
         <div className="tb-right">
-          <span className="greeting d-none d-md-inline">Hi, <strong>Student name</strong></span>
           <button className="icon-plain" aria-label="Notifications"><BsBell /></button>
           <div className="avatar small" aria-hidden>
             <BsPersonCircle />
           </div>
+          <span className="user-name d-none d-md-inline">Student name</span>
         </div>
       </header>
 
@@ -76,65 +76,81 @@ export default function StudentDashboard() {
 
         {/* Content */}
         <main className="dash-main">
-          <div className="row g-3">
+          <div className="row g-3 align-items-stretch">
             {/* Left column (display/banner) */}
             <div className="col-12 col-lg-8">
-              <section className="banner-card">
-                {/* Carousel logic */}
+              <section className="hero-wrap h-100">
+                <div className="hero-decor" aria-hidden />
                 {(() => {
                   const slides = [
                     {
-                      title: "Book a consultation",
+                      title: "Book a Consultation",
                       sub: "Reserve a slot and meet with your faculty advisor.",
-                      cta: "Book a consultation",
+                      cta: "Book Now",
+                      Icon: BsCalendarCheck,
                     },
                     {
-                      title: "Track your appointments",
-                      sub: "Stay on top of upcoming sessions at a glance.",
-                      cta: "View schedule",
+                      title: "Manage Appointments",
+                      sub: "Review upcoming and past sessions in one place.",
+                      cta: "View Appointments",
+                      Icon: BsCalendarCheck,
                     },
                     {
-                      title: "Discover faculties",
-                      sub: "Find the right advisor by expertise and availability.",
-                      cta: "Browse faculties",
+                      title: "Explore Faculty Advisors",
+                      sub: "Browse profiles to find the right mentor for you.",
+                      cta: "Browse Faculty",
+                      Icon: BsPeople,
                     },
                   ];
-
                   const [active, setActive] = useState(0);
-
                   useEffect(() => {
-                    const id = setInterval(() => {
-                      setActive((i) => (i + 1) % slides.length);
-                    }, 5000);
+                    const id = setInterval(() => setActive((i) => (i + 1) % slides.length), 5000);
                     return () => clearInterval(id);
                   }, []);
-
+                  const CurrentIcon = slides[active].Icon;
+                  const goPrev = () => setActive((i) => (i - 1 + slides.length) % slides.length);
+                  const goNext = () => setActive((i) => (i + 1) % slides.length);
                   return (
                     <>
-                      <div className="banner-surface">
-                        <div className="banner-slides">
-                          {slides.map((s, i) => (
-                            <div key={i} className={`banner-slide ${i === active ? "active" : ""}`}>
-                              <div className="banner-inner">
-                                <h3>{s.title}</h3>
-                                <p className="banner-sub">{s.sub}</p>
-                                <Button variant="secondary" size="lg">{s.cta}</Button>
-                              </div>
-                            </div>
-                          ))}
+                      <div className="glass-card h-100">
+                        <div className="gc-media" aria-hidden>
+                          <div className="gc-icon neutral">
+                            <CurrentIcon />
+                          </div>
                         </div>
-                      </div>
-                      <div className="banner-dots" role="tablist" aria-label="Hero slides">
-                        {slides.map((_, i) => (
-                          <button
-                            key={i}
-                            className={`dot ${i === active ? "active" : ""}`}
-                            role="tab"
-                            aria-selected={i === active}
-                            aria-label={`Slide ${i + 1}`}
-                            onClick={() => setActive(i)}
-                          />
-                        ))}
+                        <div className="gc-content">
+                          <div className="gc-slides">
+                            {slides.map((s, i) => (
+                              <div key={i} className={`gc-slide ${i === active ? "active" : ""}`}>
+                                <h3 className="gc-title">{s.title}</h3>
+                                <p className="gc-sub">{s.sub}</p>
+                              </div>
+                            ))}
+                          </div>
+                          <div className="gc-actions">
+                            <Button size="lg" className="btn-gradient">{slides[active].cta}</Button>
+                          </div>
+                        </div>
+                        <div className="gc-arrows" aria-hidden>
+                          <button className="gc-arrow prev" aria-label="Previous slide" onClick={goPrev}>
+                            <BsChevronLeft />
+                          </button>
+                          <button className="gc-arrow next" aria-label="Next slide" onClick={goNext}>
+                            <BsChevronRight />
+                          </button>
+                          <div className="gc-dots" role="tablist" aria-label="Hero slides">
+                            {slides.map((_, i) => (
+                              <button
+                                key={i}
+                                className={`dot ${i === active ? "active" : ""}`}
+                                role="tab"
+                                aria-selected={i === active}
+                                aria-label={`Slide ${i + 1}`}
+                                onClick={() => setActive(i)}
+                              />
+                            ))}
+                          </div>
+                        </div>
                       </div>
                     </>
                   );
@@ -144,7 +160,7 @@ export default function StudentDashboard() {
 
             {/* Right column: Upcoming */}
             <div className="col-12 col-lg-4">
-              <aside className="upcoming">
+              <aside className="upcoming h-100">
                 <div className="up-header">Upcoming Consultations</div>
                 <ul className="up-list">
                   {[{day:"Fri", date:"14"},{day:"Sat", date:"15"},{day:"Sat", date:"15"},{day:"Sat", date:"15"}].map((d, i) => (

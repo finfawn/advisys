@@ -72,6 +72,7 @@
 
 .dash-topbar .tb-right { display: flex; align-items: center; gap: 10px; }
 .avatar.small { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #e6efff; color: #2d5bd1; }
+.user-name { font-weight: 600; color: #374151; }
 
 /* Body layout with animated sidebar width */
 .dash-body {
@@ -175,71 +176,105 @@
   flex-direction: column;
 }
 
-/* Display/banner surface (left column) */
-.banner-surface {
-  background: #e9eef7;
-  border: 2px solid #6aa1e3; /* blue outline similar to mockup */
-  border-radius: 14px;
-  min-height: clamp(240px, 36vh, 360px);
-  display: grid;
-  place-items: center;
+/* Hero redesigned */
+.hero-wrap {
   position: relative;
-}
-.banner-inner { text-align: center; padding: 16px; }
-.banner-inner h3 { margin: 0 0 8px; font-weight: 700; }
-.banner-inner .banner-sub { color: rgba(255,255,255,0.9); opacity: 0.9; margin-bottom: 12px; }
-
-/* Carousel slides */
-.banner-slides {
-  position: relative;
-  width: 100%;
+  min-height: 100%;
   height: 100%;
-}
-.banner-slide {
-  position: absolute;
-  inset: 0;
   display: grid;
   place-items: center;
-  opacity: 0;
-  transform: translateY(6px);
-  transition: opacity 420ms ease, transform 420ms ease;
-}
-.banner-slide.active {
-  opacity: 1;
-  transform: translateY(0);
-}
-
-/* Banner card (left column) */
-.banner-card {
-  background: linear-gradient(135deg, #8ba7f3 0%, #3981d4 40%, #475b94 100%);
-  color: #fff;
-  border-radius: 16px;
-  box-shadow: 0 10px 26px rgba(0,0,0,0.1);
-  overflow: hidden;
   margin-bottom: 16px;
 }
-.banner-media { padding: 24px; position: relative; }
-.banner-media .badge-pill { display: inline-block; background: rgba(255,255,255,0.15); color: #fff; border: 1px solid rgba(255,255,255,0.32); padding: 4px 10px; border-radius: 999px; font-weight: 600; font-size: 0.9rem; margin-bottom: 6px; }
-.banner-media h3 { margin: 0 0 4px; font-weight: 800; letter-spacing: 0.2px; }
-.banner-media p { margin: 0 0 12px; opacity: 0.92; }
-.banner-media .actions { display: flex; gap: 10px; flex-wrap: wrap; }
 
-.banner-card .btn.btn-secondary {
-  background: #3e5877; border-color: #3e5877; padding: 10px 18px; font-weight: 600;
+/* subtle gradient/wave decoration behind the card */
+.hero-decor {
+  position: absolute;
+  inset: 0;
+  background: none;
+  filter: none;
+  border-radius: 18px;
 }
-.banner-card .btn.btn-secondary:hover { background: #334b69; border-color: #334b69; }
 
-/* Dots under display (purely decorative) */
-.banner-dots { display: flex; gap: 8px; justify-content: center; padding: 10px 0 0; }
-.banner-dots .dot {
-  width: 10px; height: 10px;
-  border-radius: 50%;
-  background: rgba(255,255,255,0.65);
-  border: none;
-  padding: 0;
-  cursor: pointer;
+/* glassmorphism card */
+.glass-card {
+  position: relative;
+  width: 100%;
+  display: grid;
+  grid-template-columns: 160px 1fr;
+  gap: 16px;
+  align-items: center;
+  padding: 24px 24px 36px; /* extra bottom space for dots */
+  border-radius: 18px;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: none;
 }
-.banner-dots .dot.active { background: #fff; box-shadow: 0 0 0 2px rgba(255,255,255,0.6); }
+
+.gc-media { display: grid; place-items: center; }
+.gc-icon {
+  width: 108px; height: 108px;
+  border-radius: 24px;
+  display: grid; place-items: center;
+  background: #f3f5f9;
+  color: #374151;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.gc-icon svg { width: 56px; height: 56px; display: block; }
+
+.gc-content { text-align: left; }
+.gc-title { margin: 0 0 6px; font-weight: 800; font-size: clamp(1.25rem, 1.2rem + 1vw, 1.75rem); }
+.gc-sub { margin: 0 0 5px; color: #4b5563; }
+.gc-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+/* greeting removed */
+
+/* Carousel inside glass card: show one slide at a time */
+.gc-slides { position: relative; min-height: 80px; width: 100%; contain: layout paint; }
+.gc-slide { position: absolute; inset: 0; opacity: 0; transform: translateY(6px); transition: opacity 600ms ease-in-out, transform 600ms ease-in-out; will-change: opacity, transform; }
+.gc-slide.active { opacity: 1; transform: translateY(0); }
+/* Stagger inner content for smoother perception */
+.gc-slide .gc-title, .gc-slide .gc-sub { opacity: 0; transform: translateY(6px); transition: opacity 520ms ease, transform 520ms ease; }
+.gc-slide.active .gc-title, .gc-slide.active .gc-sub { opacity: 1; transform: translateY(0); }
+.gc-slide.active .gc-sub { transition-delay: 60ms; }
+.gc-dots { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; gap: 6px; justify-content: center; }
+.gc-dots .dot { width: 10px; height: 10px; border-radius: 999px; background: rgba(0,0,0,0.28); border: none; padding: 0; margin: 0; display: inline-block; line-height: 0; appearance: none; -webkit-appearance: none; box-shadow: none; min-width: 0; }
+.gc-dots .dot.active { background: rgba(0,0,0,0.45); }
+
+/* Arrow controls: bare icons on left/right */
+.gc-arrows { position: absolute; inset: 0; pointer-events: none; }
+.gc-arrow { pointer-events: auto; position: absolute; top: 50%; transform: translateY(-50%); background: none; border: none; color: #374151; cursor: pointer; padding: 0; line-height: 0; opacity: 0.5; transition: opacity 200ms ease; }
+.gc-arrow.prev { left: 10px; }
+.gc-arrow.next { right: 10px; }
+.gc-arrow:hover { opacity: 1; }
+.gc-arrow svg { width: 20px; height: 20px; }
+
+/* gradient primary button */
+.btn-gradient {
+  background: linear-gradient(90deg, #3b82f6 0%, #4f46e5 100%) !important;
+  border: none !important;
+  color: #fff !important;
+  padding: 10px 18px !important;
+  font-weight: 700 !important;
+  border-radius: 10px !important;
+  box-shadow: 0 6px 16px rgba(79,70,229,0.25);
+  transition: filter 220ms ease, box-shadow 220ms ease, transform 220ms ease;
+}
+.btn-gradient:hover { filter: brightness(0.98); box-shadow: 0 8px 20px rgba(79,70,229,0.32); }
+@media (prefers-reduced-motion: reduce) {
+  .gc-slide, .gc-slide .gc-title, .gc-slide .gc-sub, .gc-slide .gc-actions { transition: none; }
+  .btn-gradient { transition: none; }
+}
+
+/* Responsive: stack media above text on small screens */
+@media (max-width: 576px) {
+  .glass-card {
+    grid-template-columns: 1fr;
+    text-align: center;
+    padding: 20px;
+  }
+  .gc-content { text-align: center; }
+  .gc-icon { width: 96px; height: 96px; margin: 0 auto; }
+}
 
 /* Upcoming list (right column) */
 .upcoming {
