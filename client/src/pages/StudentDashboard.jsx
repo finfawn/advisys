@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "react-bootstrap";
-import { BsSearch, BsGrid, BsCalendarCheck, BsPeople, BsBoxArrowRight, BsChevronRight, BsChevronLeft, BsPersonCircle, BsBell } from "react-icons/bs";
+import { BsSearch, BsGrid, BsCalendarCheck, BsPeople, BsBoxArrowRight, BsChevronRight, BsChevronLeft, BsPersonCircle, BsBell, BsCheckCircle, BsClock } from "react-icons/bs";
+import { FaUserTie } from "react-icons/fa";
 import Logo from "../assets/logo.png";
 import "./StudentDashboard.css";
 
@@ -103,10 +104,12 @@ export default function StudentDashboard() {
                     },
                   ];
                   const [active, setActive] = useState(0);
+                  const [paused, setPaused] = useState(false);
                   useEffect(() => {
+                    if (paused) return;
                     const id = setInterval(() => setActive((i) => (i + 1) % slides.length), 5000);
                     return () => clearInterval(id);
-                  }, []);
+                  }, [paused]);
                   const CurrentIcon = slides[active].Icon;
                   const goPrev = () => setActive((i) => (i - 1 + slides.length) % slides.length);
                   const goNext = () => setActive((i) => (i + 1) % slides.length);
@@ -132,10 +135,10 @@ export default function StudentDashboard() {
                           </div>
                         </div>
                         <div className="gc-arrows" aria-hidden>
-                          <button className="gc-arrow prev" aria-label="Previous slide" onClick={goPrev}>
+                          <button className="gc-arrow prev" aria-label="Previous slide" onClick={goPrev} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
                             <BsChevronLeft />
                           </button>
-                          <button className="gc-arrow next" aria-label="Next slide" onClick={goNext}>
+                          <button className="gc-arrow next" aria-label="Next slide" onClick={goNext} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
                             <BsChevronRight />
                           </button>
                           <div className="gc-dots" role="tablist" aria-label="Hero slides">
@@ -180,6 +183,68 @@ export default function StudentDashboard() {
               </aside>
             </div>
           </div>
+          {/* Below main sections */}
+          <section className="dash-sections">
+          {/* Quick Stats */}
+          <div className="section-block">
+            <div className="stats-grid">
+              <div className="stat-card">
+                <div className="stat-icon"><BsCheckCircle /></div>
+                <div className="stat-body">
+                  <div className="stat-label">Completed Consultations</div>
+                  <div className="stat-value">12</div>
+                  <div className="stat-sub">Total sessions finished</div>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon"><BsClock /></div>
+                <div className="stat-body">
+                  <div className="stat-label">Hours Spent in Consultations</div>
+                  <div className="stat-value">15h</div>
+                  <div className="stat-sub">Cumulative consultation time</div>
+                </div>
+              </div>
+              <div className="stat-card">
+                <div className="stat-icon"><FaUserTie /></div>
+                <div className="stat-body">
+                  <div className="stat-label">Most Frequent Advisor</div>
+                  <div className="stat-value small">Dr. Santos, Prof. Cruz, Ms. Reyes</div>
+                  <div className="stat-sub">Booked the most</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Available Today - adapted from homepage */}
+            <div className="section-block">
+              <div className="section-panel">
+                <div className="section-head">
+                  <div className="section-title mb-0">Available Today</div>
+                  <a href="#" className="view-all-link">View All ▸</a>
+                </div>
+                <div className="available-fixed-grid">
+              {Array.from({ length: 2 }).map((_, idx) => (
+                <div className="advisor-card" key={idx}>
+                  <div className="advisor-head">
+                    <div className="advisor-avatar"><BsPersonCircle /></div>
+                    <div>
+                      <div className="advisor-name">Lorem Ipsum</div>
+                      <div className="advisor-role">Academic Title</div>
+                    </div>
+                  </div>
+                  <div className="advisor-status">Available</div>
+                  <div className="advisor-meta">
+                    <div>Tue, Thu</div>
+                    <div>10:00 AM–01:00 PM</div>
+                    <div>In-person/Online</div>
+                  </div>
+                  <Button variant="secondary" className="book-btn w-100 mt-auto">Book a consultation</Button>
+                </div>
+              ))}
+                </div>
+              </div>
+          </div>
+          </section>
         </main>
       </div>
     </div>

@@ -196,7 +196,7 @@
 }
 
 /* glassmorphism card */
-.glass-card {
+.hero-wrap .glass-card {
   position: relative;
   width: 100%;
   display: grid;
@@ -265,6 +265,56 @@
   .btn-gradient { transition: none; }
 }
 
+/* --- Sections below hero --- */
+.dash-sections { padding: 0; }
+.section-block { background: transparent; margin-top: 16px; }
+.section-title { font-weight: 700; margin-bottom: 10px; padding: 0 2px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
+.section-head .view-all-link { color: #2d5bd1; text-decoration: none; }
+.section-head .view-all-link:hover { text-decoration: underline; }
+/* Panel container to house Available Today */
+.section-panel { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; padding: 20px; box-shadow: none; }
+
+/* Quick Stats */
+.stats-grid { display: grid; grid-template-columns: 1fr; gap: 12px; }
+@media (min-width: 768px) { .stats-grid { grid-template-columns: repeat(3, 1fr); } }
+.stat-card {
+  display: grid; grid-template-columns: 48px 1fr; align-items: center; gap: 12px;
+  padding: 14px; border-radius: 12px; background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: none;
+  transition: border-color 160ms ease;
+}
+.stat-card:hover { border-color: rgba(0,0,0,0.12); }
+.stat-icon { width: 48px; height: 48px; border-radius: 12px; display: grid; place-items: center; background: #f3f5f9; color: #2d5bd1; border: 1px solid rgba(0,0,0,0.06); }
+.stat-body .stat-label { font-weight: 600; }
+.stat-body .stat-value { font-weight: 800; font-size: 1.25rem; }
+.stat-body .stat-sub { color: #6b7280; font-size: 0.9rem; }
+
+/* Available Today (fixed 4-slot grid) */
+.available-fixed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
+@media (max-width: 991.98px) { .available-fixed-grid { grid-template-columns: 1fr; } }
+.advisor-card { 
+  background: #fff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+  padding: 16px;
+  width: 100%;
+  height: 320px; /* increased by ~20px */
+  display: flex; flex-direction: column;
+  box-shadow: none;
+}
+.advisor-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.advisor-avatar { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 30% 30%, #cfe0ff, #a7c1ff); color: #2d5bd1; font-size: 28px; }
+.advisor-name { font-weight: 600; }
+.advisor-role { color: #6b7280; font-size: 0.9rem; }
+.advisor-status { display: inline-flex; align-items: center; align-self: flex-start; font-size: 0.75rem; background: #e8fff1; color: #16803c; border: 1px solid rgba(0,0,0,0.04); border-radius: 999px; padding: 4px 8px; margin-bottom: 8px; width: auto; }
+.advisor-meta { color: #6b7280; font-size: 0.9rem; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 8px; margin-top: 4px; }
+.advisor-card .book-btn { background: #3e5877; border-color: #3e5877; }
+
+/* On very small screens, let cards take full width */
+@media (max-width: 576px) { .advisor-card { height: auto; } }
+
 /* Responsive: stack media above text on small screens */
 @media (max-width: 576px) {
   .glass-card {
@@ -297,3 +347,25 @@
 @media (min-width: 992px) {
   .upcoming { min-height: 100%; }
 }
+
+.up-item .date .dow { font-size: 0.8rem; color: #d97706; }
+
+.up-item .date .dom { font-weight: 700; font-size: 1.1rem; }
+
+.up-item.em { background: #fff5f6; }
+
+.up-item .meta .faculty { font-weight: 600; }
+
+.up-item .meta .time { color: #6b7280; font-size: 0.9rem; }
+
+.up-item .go { display: grid; place-items: center; color: #9aa2b1; }
+
+
+
+@media (min-width: 992px) {
+
+  .upcoming { min-height: 100%; }
+
+}
+
+
