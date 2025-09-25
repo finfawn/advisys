@@ -1,0 +1,315 @@
+/* Auth Modal Styles - Scoped to avoid conflicts */
+
+.auth-modal-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+  backdrop-filter: blur(4px);
+  animation: authModalBackdropFadeIn 0.15s ease-out;
+}
+
+@keyframes authModalBackdropFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.auth-modal-container {
+  max-width: 800px;
+  width: 100%;
+  position: relative;
+  animation: authModalSlideIn 0.2s ease-out;
+}
+
+@keyframes authModalSlideIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95) translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+.auth-modal-content {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 16px;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.18);
+  overflow: hidden;
+  position: relative;
+}
+
+.auth-modal-close-btn {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  border-radius: 50%;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  z-index: 10;
+}
+
+.close-icon {
+  position: relative;
+  width: 16px;
+  height: 16px;
+}
+
+.close-icon::before,
+.close-icon::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 2px;
+  height: 16px;
+  background-color: #6b7280;
+  border-radius: 1px;
+  transform-origin: center;
+}
+
+.close-icon::before {
+  transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.close-icon::after {
+  transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+.auth-modal-close-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: scale(1.05);
+}
+
+.auth-modal-close-btn:hover .close-icon::before,
+.auth-modal-close-btn:hover .close-icon::after {
+  background-color: #374151;
+}
+
+.auth-modal-close-btn:focus {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Colorize the 'Sys' part in the brand */
+.brand-sys {
+  color: #5285c9; /* slightly dark blue */
+  transition: color 200ms ease;
+}
+
+/* Auth Card (two-section) */
+.auth-card {
+  overflow: hidden;
+  position: relative;
+}
+
+.auth-left {
+  background: radial-gradient(140% 140% at 0% 0%, rgba(198,213,255,0.55) 0%, rgba(255,255,255,0.0) 60%),
+              rgba(255,255,255,0.35);
+  border-right: 1px solid rgba(0,0,0,0.06);
+}
+
+@media (max-width: 767.98px) {
+  .auth-left { 
+    border-right: none; 
+    border-bottom: 1px solid rgba(0,0,0,0.06); 
+  }
+}
+
+.auth-right { 
+  position: relative; 
+  background: rgba(255,255,255,0.96); 
+}
+
+/* Panels container controls height via inline style; animate height for smooth switch */
+.auth-panels {
+  position: relative;
+  overflow: hidden;
+  transition: height 250ms ease;
+}
+
+.auth-panel {
+  position: absolute;
+  inset: 0;
+  transition: transform 320ms ease, opacity 320ms ease;
+}
+
+/* Default (register visible) */
+.auth-panels.show-register .auth-panel.register { 
+  transform: translateX(0); 
+  opacity: 1; 
+  pointer-events: auto; 
+}
+
+.auth-panels.show-register .auth-panel.login { 
+  transform: translateX(24px); 
+  opacity: 0; 
+  pointer-events: none; 
+}
+
+/* Login visible */
+.auth-panels.show-login .auth-panel.register { 
+  transform: translateX(-24px); 
+  opacity: 0; 
+  pointer-events: none; 
+}
+
+.auth-panels.show-login .auth-panel.login { 
+  transform: translateX(0); 
+  opacity: 1; 
+  pointer-events: auto; 
+}
+
+/* Minor link and divider styling */
+.auth-card a { 
+  color: #3a6bb8; 
+  text-decoration: none; 
+}
+
+.auth-card a:hover { 
+  text-decoration: underline; 
+}
+
+/* ===== Line style inputs (for Register form) ===== */
+.line-form .form-control,
+.line-form .form-select {
+  background: transparent;
+  border: none;
+  border-bottom: 1.6px solid rgba(16, 24, 40, 0.25);
+  border-radius: 0;
+  padding-left: 0;
+  padding-right: 0;
+  box-shadow: none;
+}
+
+.line-form .form-control:focus,
+.line-form .form-select:focus {
+  box-shadow: none;
+  border-bottom-color: #5285c9;
+}
+
+/* Invalid underline color */
+.line-form .form-control.is-invalid,
+.line-form .form-select.is-invalid { 
+  border-bottom-color: #dc3545; 
+}
+
+/* Make invalid feedback align tight under the line */
+.line-form .invalid-feedback { 
+  margin-top: 6px; 
+}
+
+/* Reduce bottom margin between stacked fields for a cleaner look */
+.line-form .mb-3 { 
+  margin-bottom: 1rem !important; 
+}
+
+/* Form sections spacing */
+.form-section {
+  margin-bottom: 1.5rem;
+}
+
+.form-section:last-child {
+  margin-bottom: 0;
+}
+
+/* Button styling */
+.auth-modal-content .btn-primary {
+  background: linear-gradient(135deg, #5f8fd8, #3a6bb8);
+  border: none;
+  box-shadow: 0 10px 24px rgba(58, 107, 184, 0.25);
+}
+
+.auth-modal-content .btn-primary:hover { 
+  filter: brightness(0.98); 
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .auth-modal-backdrop {
+    padding: 16px;
+  }
+  
+  .auth-modal-container {
+    max-width: none;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  .auth-modal-content {
+    background: rgba(31, 41, 55, 0.8);
+    border-color: rgba(75, 85, 99, 0.3);
+  }
+  
+  .auth-left {
+    background: radial-gradient(140% 140% at 0% 0%, rgba(59, 130, 246, 0.2) 0%, rgba(31, 41, 55, 0.0) 60%),
+                rgba(31, 41, 55, 0.6);
+  }
+  
+  .auth-right {
+    background: rgba(31, 41, 55, 0.9);
+  }
+  
+  .brand-sys {
+    color: #60a5fa;
+  }
+  
+  .auth-card a {
+    color: #60a5fa;
+  }
+  
+  .line-form .form-control,
+  .line-form .form-select {
+    color: #f9fafb;
+    border-bottom-color: rgba(156, 163, 175, 0.3);
+  }
+  
+  .line-form .form-control:focus,
+  .line-form .form-select:focus {
+    border-bottom-color: #60a5fa;
+  }
+  
+  .line-form .form-control::placeholder,
+  .line-form .form-select::placeholder {
+    color: #9ca3af;
+  }
+  
+  .close-icon::before,
+  .close-icon::after {
+    background-color: #9ca3af;
+  }
+  
+  .auth-modal-close-btn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: scale(1.05);
+  }
+  
+  .auth-modal-close-btn:hover .close-icon::before,
+  .auth-modal-close-btn:hover .close-icon::after {
+    background-color: #d1d5db;
+  }
+}

@@ -34,17 +34,17 @@ function LogoutModal({ isOpen, onClose, onConfirm }) {
 
   return (
     <div 
-      className="modal-backdrop" 
+      className="logout-modal-backdrop" 
       onClick={handleBackdropClick}
       role="dialog"
       aria-modal="true"
       aria-labelledby="logout-modal-title"
       aria-describedby="logout-modal-description"
     >
-      <div className="logout-modal">
+      <div className="logout-modal-container">
         {/* Close button */}
         <button 
-          className="modal-close-btn"
+          className="logout-modal-close-btn"
           onClick={onClose}
           aria-label="Close modal"
         >
@@ -52,28 +52,28 @@ function LogoutModal({ isOpen, onClose, onConfirm }) {
         </button>
 
         {/* Modal content */}
-        <div className="modal-content">
-          <div className="modal-icon">
+        <div className="logout-modal-content">
+          <div className="logout-modal-icon">
             <BsExclamationTriangle />
           </div>
           
-          <h2 id="logout-modal-title" className="modal-title">
+          <h2 id="logout-modal-title" className="logout-modal-title">
             Confirm Logout
           </h2>
           
-          <p id="logout-modal-description" className="modal-description">
+          <p id="logout-modal-description" className="logout-modal-description">
             Are you sure you want to logout? You'll need to sign in again to access your account.
           </p>
           
-          <div className="modal-actions">
+          <div className="logout-modal-actions">
             <button 
-              className="modal-btn modal-btn-cancel"
+              className="logout-modal-btn logout-modal-btn-cancel"
               onClick={onClose}
             >
               Cancel
             </button>
             <button 
-              className="modal-btn modal-btn-confirm"
+              className="logout-modal-btn logout-modal-btn-confirm"
               onClick={onConfirm}
             >
               Logout
