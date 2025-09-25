@@ -70,7 +70,7 @@ export default function StudentDashboard() {
         >
           <ul className="sb-list">
             <NavItem icon={BsGrid} label="Dashboard" collapsed={collapsed} active />
-            <NavItem icon={BsCalendarCheck} label="Consultations" collapsed={collapsed} />
+            <NavItem icon={BsCalendarCheck} label="My Consultations" collapsed={collapsed} />
             <NavItem icon={BsPeople} label="Faculties" collapsed={collapsed} />
             <div className="sb-sep" />
             <NavItem icon={BsBoxArrowRight} label="Logout" collapsed={collapsed} />
