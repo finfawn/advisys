@@ -1,0 +1,141 @@
+/* AdvisorCard Component Styles - Unified Glass Card Design */
+
+.advisor-card {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 20px;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.advisor-card-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.advisor-card-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #cfe0ff, #a7c1ff);
+  color: #2d5bd1;
+  font-size: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.advisor-card-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.advisor-card-name {
+  font-weight: 600;
+  font-size: 1rem;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.advisor-card-title {
+  color: #6b7280;
+  font-size: 0.9rem;
+  font-weight: 400;
+}
+
+.advisor-card-status {
+  margin-bottom: 12px;
+}
+
+.advisor-card-badge {
+  background: #e5f8ee;
+  color: #1a9b5b;
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  display: inline-block;
+}
+
+.advisor-card-meta {
+  color: #6b7280;
+  font-size: 0.9rem;
+  border-top: 1px solid rgba(0,0,0,0.08);
+  padding-top: 12px;
+  margin-top: 8px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.advisor-card-meta-icon {
+  color: #9ca3af;
+  font-size: 16px;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.advisor-card-meta-content {
+  flex: 1;
+}
+
+.advisor-card-meta-content > div {
+  margin-bottom: 2px;
+}
+
+.advisor-card-meta-content > div:last-child {
+  margin-bottom: 0;
+}
+
+.advisor-card-button {
+  background: #3e5877;
+  border-color: #3e5877;
+  color: white;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-weight: 600;
+  font-size: 0.9rem;
+  width: 100%;
+  margin-top: auto;
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.advisor-card-button:hover {
+  background: #334b69;
+  border-color: #334b69;
+  color: white;
+}
+
+.advisor-card-button:focus {
+  box-shadow: 0 0 0 3px rgba(62, 88, 119, 0.25);
+}
+
+/* Responsive adjustments */
+@media (max-width: 576px) {
+  .advisor-card {
+    padding: 16px;
+  }
+  
+  .advisor-card-avatar {
+    width: 40px;
+    height: 40px;
+    font-size: 22px;
+  }
+  
+  .advisor-card-name {
+    font-size: 0.95rem;
+  }
+  
+  .advisor-card-title {
+    font-size: 0.85rem;
+  }
+}

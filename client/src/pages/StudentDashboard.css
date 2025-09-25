@@ -5,74 +5,6 @@
   color: #1f2937;
 }
 
-/* Top bar */
-.dash-topbar {
-  position: sticky;
-  top: 0;
-  z-index: 1020;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-  padding: 10px 16px;
-  background: #ffffff;
-  border-bottom: 1px solid rgba(0,0,0,0.06);
-}
-.dash-topbar .tb-left { display: flex; align-items: center; gap: 12px; }
-.dash-topbar .brand { display: flex; align-items: center; gap: 10px; }
-.dash-topbar .brand-logo { width: 34px; height: 34px; border-radius: 8px; }
-.dash-topbar .brand-title { font-weight: 700; font-size: 1.125rem; }
-.dash-topbar .brand-sys { color: #5285c9; }
-.dash-topbar .greeting { color: #6b7280; margin-right: 6px; }
-
-.icon-btn, .ghost-btn {
-  display: grid;
-  place-items: center;
-  width: 36px; height: 36px;
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 10px;
-  background: #fff;
-  transition: background 180ms ease, border-color 180ms ease;
-}
-.icon-btn:hover, .ghost-btn:hover { background: #f3f6ff; }
-
-/* Plain icon button (no square outline) */
-.icon-plain {
-  display: grid;
-  place-items: center;
-  background: transparent;
-  border: none;
-  padding: 0;
-  width: auto;
-  height: auto;
-  color: #6b7280;
-  cursor: pointer;
-}
-.icon-plain:hover { color: #374151; }
-.icon-plain:focus { outline: 2px solid rgba(45,91,209,0.35); outline-offset: 2px; border-radius: 6px; }
-
-.dash-topbar .tb-center { flex: 1; display: flex; justify-content: center; }
-.search-box {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: min(680px, 100%);
-  background: #f3f5f9;
-  border: 1px solid rgba(0,0,0,0.06);
-  padding: 6px 8px;
-  border-radius: 999px;
-}
-.search-box input {
-  flex: 1;
-  border: none;
-  outline: none;
-  background: transparent;
-}
-.search-box .search-ic { color: #6b7280; }
-
-.dash-topbar .tb-right { display: flex; align-items: center; gap: 10px; }
-.avatar.small { width: 32px; height: 32px; border-radius: 50%; display: grid; place-items: center; background: #e6efff; color: #2d5bd1; }
-.user-name { font-weight: 600; color: #374151; }
 
 /* Body layout with animated sidebar width */
 .dash-body {
@@ -82,92 +14,6 @@
 }
 .dash-body.collapsed { grid-template-columns: 76px 1fr; }
 
-/* Sidebar with slide animation for content */
-.dash-sidebar {
-  position: sticky;
-  top: 60px; /* approx height of topbar */
-  align-self: start;
-  height: calc(100vh - 60px);
-  background: #f8fafc;
-  border-right: 1px solid rgba(0,0,0,0.06);
-  padding: 12px 10px;
-  overflow: hidden; /* hide text when sliding */
-  /* unified sizes for active icon background */
-  --sb-ico-bg: 2rem;
-  --sb-ico-radius: 10px;
-  /* fixed icon column width so icons don't move */
-  --sb-ico-col: 2rem;
-}
-.sb-list { list-style: none; margin: 0; padding: 0; }
-.sb-item { margin: 6px 0; }
-.sb-link { 
-  display: grid; 
-  grid-template-columns: var(--sb-ico-col) 1fr; /* fixed icon column + flexible label */
-  align-items: center; 
-  column-gap: 12px; 
-  padding: 10px 12px; 
-  border-radius: 10px; 
-  color: inherit; 
-  text-decoration: none;
-  font-size: 1rem; 
-  line-height: 1; 
-}
-.sb-icon {
-  display: grid;
-  place-items: center;
-  width: var(--sb-ico-col);
-  height: var(--sb-ico-col);
-  font-size: 1em;    /* ensure react-icons inherits this size */
-  flex: 0 0 auto;
-}
-.sb-icon svg {
-  width: 1em;
-  height: 1em;
-  display: block;    /* remove baseline gap */
-}
-.sb-text { 
-  white-space: nowrap; 
-  overflow: hidden;
-  display: inline-block;
-  max-width: 20ch;                 /* visible width when expanded */
-  transition: max-width 240ms ease, opacity 240ms ease, transform 240ms ease; 
-}
-.dash-body.collapsed .sb-text { 
-  max-width: 0; 
-  opacity: 0; 
-  transform: translateX(-4px);
-}
-.sb-item.active .sb-link {
-  background: transparent; /* remove full-width pill */
-  color: #2d5bd1;
-  font-weight: 600;
-}
-.sb-item.active .sb-icon {
-  background: #eaf1ff;
-  border: 1px solid rgba(45, 91, 209, .25);
-  width: var(--sb-ico-bg);
-  height: var(--sb-ico-bg);
-  border-radius: var(--sb-ico-radius);
-  transition: background 180ms ease, border-color 180ms ease, width 200ms ease, height 200ms ease;
-}
-.sb-link:hover { background: transparent; }
-.sb-sep { height: 1px; background: rgba(0,0,0,0.06); margin: 12px 0; }
-
-/* Collapsed state: keep same alignment/padding so icons don't move */
-.dash-body.collapsed .sb-link {
-  justify-content: flex-start;   /* ensure same alignment as expanded */
-  column-gap: 12px;              /* keep space reserved for label column */
-  padding: 10px 12px;            /* same padding as expanded */
-}
-
-/* Optional hover state for non-active items (keep consistent square on hover) */
-.sb-item:not(.active) .sb-link:hover .sb-icon {
-  background: #eef2f7;
-  border: 1px solid rgba(0,0,0,0.06);
-  width: var(--sb-ico-bg);
-  height: var(--sb-ico-bg);
-  border-radius: var(--sb-ico-radius);
-}
 
 /* Main uses Bootstrap grid inside */
 .dash-main {
@@ -294,26 +140,6 @@
 /* Available Today (fixed 4-slot grid) */
 .available-fixed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
 @media (max-width: 991.98px) { .available-fixed-grid { grid-template-columns: 1fr; } }
-.advisor-card { 
-  background: #fff;
-  border: 1px solid rgba(0,0,0,0.08);
-  border-radius: 16px;
-  padding: 16px;
-  width: 100%;
-  height: 320px; /* increased by ~20px */
-  display: flex; flex-direction: column;
-  box-shadow: none;
-}
-.advisor-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
-.advisor-avatar { width: 52px; height: 52px; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle at 30% 30%, #cfe0ff, #a7c1ff); color: #2d5bd1; font-size: 28px; }
-.advisor-name { font-weight: 600; }
-.advisor-role { color: #6b7280; font-size: 0.9rem; }
-.advisor-status { display: inline-flex; align-items: center; align-self: flex-start; font-size: 0.75rem; background: #e8fff1; color: #16803c; border: 1px solid rgba(0,0,0,0.04); border-radius: 999px; padding: 4px 8px; margin-bottom: 8px; width: auto; }
-.advisor-meta { color: #6b7280; font-size: 0.9rem; border-top: 1px solid rgba(0,0,0,0.06); padding-top: 8px; margin-top: 4px; }
-.advisor-card .book-btn { background: #3e5877; border-color: #3e5877; }
-
-/* On very small screens, let cards take full width */
-@media (max-width: 576px) { .advisor-card { height: auto; } }
 
 /* Responsive: stack media above text on small screens */
 @media (max-width: 576px) {

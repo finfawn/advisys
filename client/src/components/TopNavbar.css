@@ -1,0 +1,118 @@
+/* TopNavbar Component Styles */
+
+.dash-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #ffffff;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+.dash-topbar .tb-left { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+}
+
+.dash-topbar .brand { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+}
+
+.dash-topbar .brand-logo { 
+  width: 34px; 
+  height: 34px; 
+  border-radius: 8px; 
+}
+
+.dash-topbar .brand-title { 
+  font-weight: 700; 
+  font-size: 1.125rem; 
+}
+
+.dash-topbar .brand-sys { 
+  color: #5285c9; 
+}
+
+.dash-topbar .greeting { 
+  color: #6b7280; 
+  margin-right: 6px; 
+}
+
+/* Plain icon button (no square outline) */
+.icon-plain {
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: none;
+  padding: 0;
+  width: auto;
+  height: auto;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.icon-plain:hover { 
+  color: #374151; 
+}
+
+.icon-plain:focus { 
+  outline: 2px solid rgba(45,91,209,0.35); 
+  outline-offset: 2px; 
+  border-radius: 6px; 
+}
+
+.dash-topbar .tb-center { 
+  flex: 1; 
+  display: flex; 
+  justify-content: center; 
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: min(680px, 100%);
+  background: #f3f5f9;
+  border: 1px solid rgba(0,0,0,0.06);
+  padding: 6px 8px;
+  border-radius: 999px;
+}
+
+.search-box input {
+  flex: 1;
+  border: none;
+  outline: none;
+  background: transparent;
+}
+
+.search-box .search-ic { 
+  color: #6b7280; 
+}
+
+.dash-topbar .tb-right { 
+  display: flex; 
+  align-items: center; 
+  gap: 10px; 
+}
+
+.avatar.small { 
+  width: 32px; 
+  height: 32px; 
+  border-radius: 50%; 
+  display: grid; 
+  place-items: center; 
+  background: #e6efff; 
+  color: #2d5bd1; 
+}
+
+.user-name { 
+  font-weight: 600; 
+  color: #374151; 
+}

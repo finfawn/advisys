@@ -3,6 +3,7 @@ import { Container, Row, Col, Button, Badge, Carousel } from "react-bootstrap";
 import { FaPlay, FaArrowRight, FaRegCircle } from "react-icons/fa";
 import { BsCalendarCheck, BsPeople, BsFileEarmarkText, BsBarChart, BsClock, BsPersonCircle } from "react-icons/bs";
 import Logo from "../assets/logo.png";
+import AdvisorCard from "../components/AdvisorCard";
 import "./Home.css";
 
 function Home() {
@@ -224,27 +225,15 @@ function Home() {
           <Row className="g-4">
             {Array.from({ length: 3 }).map((_, idx) => (
               <Col md={4} key={idx}>
-                <div className="glass-card p-3 p-md-4">
-                  <div className="d-flex align-items-center gap-3 mb-3">
-                    <div className="avatar-circle d-flex align-items-center justify-content-center"><BsPersonCircle /></div>
-                    <div>
-                      <div className="fw-semibold">Lorem Ipsum</div>
-                      <div className="text-muted small">Academic Title</div>
-                    </div>
-                  </div>
-                  <div className="mb-3">
-                    <span className="badge availability-badge">Available</span>
-                  </div>
-                  <div className="small text-muted d-flex align-items-start gap-2 py-3 border-top">
-                    <BsClock />
-                    <div>
-                      <div>Tue, Thu</div>
-                      <div>10:00 AM–01:00 PM</div>
-                      <div>In-person/Online</div>
-                    </div>
-                  </div>
-                  <Button variant="secondary" className="w-100 book-btn mt-2">Book a consultation</Button>
-                </div>
+                <AdvisorCard 
+                  name="Lorem Ipsum"
+                  title="Academic Title"
+                  status="Available"
+                  schedule="Tue, Thu"
+                  time="10:00 AM–01:00 PM"
+                  mode="In-person/Online"
+                  onBookClick={() => console.log('Book consultation clicked')}
+                />
               </Col>
             ))}
           </Row>
