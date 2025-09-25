@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from "react";
+import Calendar from "react-calendar";
+import "react-calendar/dist/Calendar.css";
 import { Button } from "react-bootstrap";
 import { BsSearch, BsGrid, BsCalendarCheck, BsPeople, BsBoxArrowRight, BsChevronRight, BsChevronLeft, BsPersonCircle, BsBell, BsCheckCircle, BsClock } from "react-icons/bs";
 import { FaUserTie } from "react-icons/fa";
@@ -244,6 +246,54 @@ export default function StudentDashboard() {
                 </div>
               </div>
           </div>
+          </section>
+
+          {/* Date-based availability */}
+          <section className="section-block">
+            <div className="section-panel">
+              <div className="section-head">
+                <div className="section-title mb-0">Find by Date</div>
+              </div>
+              {(() => {
+                const today = new Date();
+                const [selectedDate, setSelectedDate] = useState(today);
+                const advisorsByDate = {
+                  // yyyy-mm-dd → advisors
+                  [today.toISOString().slice(0,10)]: [
+                    { name: "Dr. Santos", slots: "10:00 AM – 12:00 PM", mode: "Online" },
+                    { name: "Prof. Cruz", slots: "1:00 PM – 3:00 PM", mode: "In-person" },
+                  ],
+                };
+                const key = selectedDate.toISOString().slice(0,10);
+                const list = advisorsByDate[key] || [
+                  { name: "Ms. Reyes", slots: "9:00 AM – 10:30 AM", mode: "Online" },
+                  { name: "Mr. Dela Cruz", slots: "2:00 PM – 4:00 PM", mode: "In-person" },
+                ];
+
+                return (
+                  <div className="date-grid">
+                    <div className="date-col calendar-card">
+                      <Calendar onChange={setSelectedDate} value={selectedDate} className="dash-calendar" />
+                    </div>
+                    <div className="advisors-col avail-panel">
+                      <div className="avail-head">Available Faculty</div>
+                      <ul className="date-adv-list">
+                        {list.map((a, i) => (
+                          <li key={i} className="date-adv-item">
+                            <div className="avatar small"><BsPersonCircle /></div>
+                            <div className="deta">
+                              <div className="nm">{a.name}</div>
+                              <div className="sl small text-muted">{a.slots}</div>
+                            </div>
+                            <span className={`mode-pill ${a.mode === "Online" ? "on" : "in"}`}>{a.mode}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                );
+              })()}
+            </div>
           </section>
         </main>
       </div>
