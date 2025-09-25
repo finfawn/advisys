@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { Button } from "react-bootstrap";
@@ -11,7 +12,24 @@ import "./StudentDashboard.css";
 
 export default function StudentDashboard() {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
   const toggleSidebar = () => setCollapsed((v) => !v);
+
+  const handleNavigation = (page) => {
+    console.log('Navigating to:', page);
+    
+    if (page === 'dashboard') {
+      navigate('/student-dashboard');
+    } else if (page === 'advisors') {
+      navigate('/student-dashboard/advisors');
+    } else if (page === 'consultations') {
+      navigate('/student-dashboard/consultations');
+    } else if (page === 'logout') {
+      // Handle logout
+      console.log('Logout');
+    }
+  };
 
   return (
     <div className="dash-wrap">
@@ -19,7 +37,7 @@ export default function StudentDashboard() {
 
       {/* Body */}
       <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
+        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
 
         {/* Content */}
         <main className="dash-main">

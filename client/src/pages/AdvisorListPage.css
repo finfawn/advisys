@@ -1,0 +1,322 @@
+/* AdvisorListPage Styles */
+
+.advisor-list-container {
+  padding: 0;
+  max-width: 100%;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 32px;
+  padding: 0 4px;
+  gap: 24px;
+}
+
+.page-title-section {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Filter Section */
+.filter-section {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  min-width: 200px;
+}
+
+.filter-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+}
+
+.filter-dropdown {
+  padding: 8px 12px;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  border-radius: 8px;
+  background: #ffffff;
+  color: #374151;
+  font-size: 0.875rem;
+  min-width: 180px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.filter-dropdown:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.filter-dropdown:hover {
+  border-color: rgba(0, 0, 0, 0.2);
+}
+
+/* Advisor Sections */
+.advisor-section {
+  margin-bottom: 48px;
+}
+
+.advisor-section:last-child {
+  margin-bottom: 0;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 0 4px;
+}
+
+.section-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.section-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.section-count {
+  background: #f3f4f6;
+  color: #6b7280;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Advisor Grid */
+.advisor-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+/* Responsive Grid */
+@media (max-width: 1200px) {
+  .advisor-grid {
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+}
+
+@media (max-width: 992px) {
+  .advisor-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 16px;
+  }
+  
+  .filter-section {
+    align-items: flex-start;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+  }
+  
+  .filter-dropdown {
+    min-width: 160px;
+  }
+}
+
+@media (max-width: 768px) {
+  .advisor-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+  
+  .page-title {
+    font-size: 1.75rem;
+  }
+  
+  .section-title {
+    font-size: 1.25rem;
+  }
+  
+  .advisor-section {
+    margin-bottom: 32px;
+  }
+}
+
+@media (max-width: 576px) {
+  .advisor-list-container {
+    padding: 0;
+  }
+  
+  .page-header {
+    margin-bottom: 24px;
+  }
+  
+  .page-title {
+    font-size: 1.5rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.9rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  
+  .filter-section {
+    width: 100%;
+    justify-content: space-between;
+  }
+  
+  .filter-dropdown {
+    flex: 1;
+    max-width: 200px;
+  }
+}
+
+/* Load More Section */
+.load-more-section {
+  display: flex;
+  justify-content: center;
+  margin-top: 32px;
+  padding: 0 4px;
+}
+
+.load-more-btn {
+  padding: 12px 24px;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 2px solid #3b82f6;
+  color: #3b82f6;
+  background: transparent;
+  transition: all 0.2s ease;
+  min-width: 200px;
+}
+
+.load-more-btn:hover {
+  background: #3b82f6;
+  color: white;
+  border-color: #3b82f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
+.load-more-btn:focus {
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* No Results */
+.no-results {
+  text-align: center;
+  padding: 48px 24px;
+  background: #f9fafb;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+
+.no-results p {
+  color: #6b7280;
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Consistent Card Heights */
+.advisor-grid .advisor-card {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Ensure cards don't stretch beyond their content */
+.advisor-card {
+  min-height: 320px;
+  max-height: 400px;
+}
+
+/* Responsive adjustments for very small screens */
+@media (max-width: 480px) {
+  .advisor-grid {
+    gap: 12px;
+  }
+  
+  .load-more-btn {
+    min-width: 160px;
+    padding: 10px 20px;
+    font-size: 0.9rem;
+  }
+  
+  .no-results {
+    padding: 32px 16px;
+  }
+}
+
+/* Dark mode support (optional) */
+@media (prefers-color-scheme: dark) {
+  .page-title {
+    color: #f9fafb;
+  }
+  
+  .page-subtitle {
+    color: #d1d5db;
+  }
+  
+  .section-title {
+    color: #f9fafb;
+  }
+  
+  .filter-dropdown {
+    background: #374151;
+    color: #f9fafb;
+    border-color: #4b5563;
+  }
+  
+  .filter-dropdown:focus {
+    border-color: #60a5fa;
+    box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
+  }
+  
+  .section-count {
+    background: #374151;
+    color: #d1d5db;
+  }
+  
+  .no-results {
+    background: #374151;
+    border-color: #4b5563;
+  }
+  
+  .no-results p {
+    color: #d1d5db;
+  }
+}

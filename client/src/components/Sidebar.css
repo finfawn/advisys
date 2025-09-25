@@ -8,12 +8,17 @@
   background: #f8fafc;
   border-right: 1px solid rgba(0,0,0,0.06);
   padding: 12px 10px;
-  overflow: hidden; /* hide text when sliding */
+  min-width: 200px; /* ensure sidebar is wide enough for text */
+  transition: min-width 240ms ease;
   /* unified sizes for active icon background */
   --sb-ico-bg: 2rem;
   --sb-ico-radius: 10px;
   /* fixed icon column width so icons don't move */
   --sb-ico-col: 2rem;
+}
+
+.sidebar-collapsed {
+  min-width: 60px; /* narrow width when collapsed */
 }
 
 .sb-list { 
@@ -27,16 +32,21 @@
 }
 
 .sb-link { 
-  display: grid; 
-  grid-template-columns: var(--sb-ico-col) 1fr; /* fixed icon column + flexible label */
+  display: flex; 
   align-items: center; 
-  column-gap: 12px; 
+  gap: 12px; 
   padding: 10px 12px; 
   border-radius: 10px; 
   color: inherit; 
   text-decoration: none;
   font-size: 1rem; 
-  line-height: 1; 
+  line-height: 1;
+  /* Button-specific styles */
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
 }
 
 .sb-icon {
@@ -45,7 +55,7 @@
   width: var(--sb-ico-col);
   height: var(--sb-ico-col);
   font-size: 1em;    /* ensure react-icons inherits this size */
-  flex: 0 0 auto;
+  flex-shrink: 0;    /* prevent icon from shrinking */
 }
 
 .sb-icon svg {
@@ -56,17 +66,20 @@
 
 .sb-text { 
   white-space: nowrap; 
-  overflow: hidden;
   display: inline-block;
-  max-width: 20ch;                 /* visible width when expanded */
-  transition: max-width 240ms ease, opacity 240ms ease, transform 240ms ease; 
+  min-width: 0;                    /* allow text to shrink if needed */
+  flex: 1;                         /* take available space */
+  transition: opacity 240ms ease, transform 240ms ease, width 240ms ease, max-width 240ms ease; 
 }
 
 /* Collapsed state: hide text with smooth animation */
 .sidebar-collapsed .sb-text { 
-  max-width: 0; 
   opacity: 0; 
   transform: translateX(-4px);
+  width: 0;
+  overflow: hidden;
+  flex: 0;
+  max-width: 0;
 }
 
 .sb-item.active .sb-link {
@@ -108,4 +121,37 @@
   width: var(--sb-ico-bg);
   height: var(--sb-ico-bg);
   border-radius: var(--sb-ico-radius);
+}
+
+/* Logout Button Styles */
+.logout-item .logout-link {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.logout-item .logout-link:hover {
+  background: transparent; /* same as other nav items */
+  color: #b91c1c;
+}
+
+.logout-item .logout-link:hover .logout-icon {
+  background: #fecaca;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  width: var(--sb-ico-bg);
+  height: var(--sb-ico-bg);
+  border-radius: var(--sb-ico-radius);
+}
+
+.logout-item .logout-icon {
+  color: #dc2626;
+}
+
+.logout-item .logout-link:active {
+  background: transparent;
+  transform: none; /* remove press effect to match other items */
+}
+
+/* Logout button focus state */
+.logout-item .logout-link:focus {
+  outline: none;
 }
