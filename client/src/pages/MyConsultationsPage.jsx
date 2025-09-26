@@ -6,6 +6,7 @@ import TopNavbar from "../components/TopNavbar";
 import Sidebar from "../components/Sidebar";
 import ConsultationCard from "../components/ConsultationCard";
 import HistoryCard from "../components/HistoryCard";
+import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
 import "./MyConsultationsPage.css";
 
 export default function MyConsultationsPage() {
@@ -14,6 +15,9 @@ export default function MyConsultationsPage() {
   const [historyPage, setHistoryPage] = useState(1);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [consultationHistory, setConsultationHistory] = useState([]);
+  const [deletedItems, setDeletedItems] = useState([]);
+  const [undoTimeout, setUndoTimeout] = useState(null);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
   
   const toggleSidebar = () => setCollapsed((v) => !v);
@@ -237,17 +241,83 @@ export default function MyConsultationsPage() {
     return upcomingConsultations.filter(consultation => consultation.mode === upcomingFilter);
   }, [upcomingConsultations, upcomingFilter]);
 
-  // Delete functions
+  // Delete functions with undo functionality
   const handleDeleteHistoryItem = (consultation) => {
-    if (window.confirm(`Are you sure you want to delete the consultation "${consultation.topic}"?`)) {
-      setConsultationHistory(prev => prev.filter(item => item.id !== consultation.id));
+    // Clear any existing undo timeout
+    if (undoTimeout) {
+      clearTimeout(undoTimeout);
     }
+
+    // Remove item from display immediately
+    setConsultationHistory(prev => prev.filter(item => item.id !== consultation.id));
+    
+    // Add to deleted items for potential undo
+    setDeletedItems(prev => [...prev, consultation]);
+
+    // Set timeout for permanent deletion (5 seconds)
+    const timeout = setTimeout(() => {
+      setDeletedItems(prev => prev.filter(item => item.id !== consultation.id));
+    }, 5000);
+    
+    setUndoTimeout(timeout);
+  };
+
+  const handleUndoDelete = (consultation) => {
+    // Clear the timeout
+    if (undoTimeout) {
+      clearTimeout(undoTimeout);
+      setUndoTimeout(null);
+    }
+
+    // Restore the item
+    setConsultationHistory(prev => [...prev, consultation].sort((a, b) => new Date(b.date) - new Date(a.date)));
+    
+    // Remove from deleted items
+    setDeletedItems(prev => prev.filter(item => item.id !== consultation.id));
   };
 
   const handleDeleteAllHistory = () => {
-    if (window.confirm(`Are you sure you want to delete all ${consultationHistory.length} consultation history items? This action cannot be undone.`)) {
-      setConsultationHistory([]);
+    setShowDeleteModal(true);
+  };
+
+  const handleConfirmDeleteAll = () => {
+    setShowDeleteModal(false);
+    
+    // Clear any existing undo timeout
+    if (undoTimeout) {
+      clearTimeout(undoTimeout);
     }
+
+    // Store all items for potential undo
+    setDeletedItems(prev => [...prev, ...consultationHistory]);
+    
+    // Clear the history
+    setConsultationHistory([]);
+
+    // Set timeout for permanent deletion (5 seconds)
+    const timeout = setTimeout(() => {
+      setDeletedItems([]);
+    }, 5000);
+    
+    setUndoTimeout(timeout);
+  };
+
+  const handleCloseDeleteModal = () => {
+    setShowDeleteModal(false);
+  };
+
+  const handleUndoDeleteAll = () => {
+    // Clear the timeout
+    if (undoTimeout) {
+      clearTimeout(undoTimeout);
+      setUndoTimeout(null);
+    }
+
+    // Restore all items
+    setConsultationHistory(prev => [...prev, ...deletedItems].sort((a, b) => new Date(b.date) - new Date(a.date)));
+    
+    // Clear deleted items
+    setDeletedItems([]);
   };
 
   const handleUpcomingFilterChange = (e) => {
@@ -371,9 +441,44 @@ export default function MyConsultationsPage() {
                   <p>No consultation history found.</p>
                 </div>
               )}
+
+              {/* Undo Notification */}
+              {deletedItems.length > 0 && (
+                <div className="undo-notification">
+                  <div className="undo-content">
+                    <span className="undo-message">
+                      {deletedItems.length === 1 
+                        ? `"${deletedItems[0].topic}" deleted`
+                        : `${deletedItems.length} consultations deleted`
+                      }
+                    </span>
+                    <button 
+                      className="undo-btn"
+                      onClick={deletedItems.length === 1 ? () => handleUndoDelete(deletedItems[0]) : handleUndoDeleteAll}
+                    >
+                      Undo
+                    </button>
+                  </div>
+                  <div className="undo-timer">
+                    <div className="undo-timer-bar"></div>
+                  </div>
+                </div>
+              )}
             </section>
         </main>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={showDeleteModal}
+        onClose={handleCloseDeleteModal}
+        onConfirm={handleConfirmDeleteAll}
+        title="Delete All History"
+        message="Are you sure you want to delete all consultation history items? This action cannot be undone."
+        itemCount={consultationHistory.length}
+        confirmText="Delete All"
+        cancelText="Cancel"
+      />
     </div>
   );
 }

@@ -51,13 +51,16 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
 
     if (isOpen) {
       document.addEventListener("keydown", handleEscape);
-      // Prevent body scroll when modal is open
+      // Prevent body scroll when modal is open while preserving scrollbar space
+      const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
       document.body.style.overflow = "hidden";
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
     }
 
     return () => {
       document.removeEventListener("keydown", handleEscape);
       document.body.style.overflow = "unset";
+      document.body.style.paddingRight = "0px";
     };
   }, [isOpen, onClose]);
 
@@ -119,6 +122,12 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     }
   };
 
+  const handleBackdropClick = (e) => {
+    if (e.target === e.currentTarget) {
+      onClose();
+    }
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -127,6 +136,7 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
       role="dialog"
       aria-modal="true"
       aria-labelledby="auth-modal-title"
+      onClick={handleBackdropClick}
     >
       <div className="auth-modal-container">
         <div className="auth-modal-content glass-modal auth-card">
