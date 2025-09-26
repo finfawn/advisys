@@ -381,51 +381,17 @@ export default function MyConsultationsPage() {
                 </div>
               </div>
               
-              {displayedHistoryEntries.length > 0 ? (
+              {consultationHistory.length > 0 ? (
                 <>
-                  <div className="history-list">
-                    {displayedHistoryEntries.map(([dateGroup, consultations]) => (
-                      <div key={dateGroup} className="history-group">
-                        <div className="history-group-header">
-                          <div className="history-group-title-section">
-                            <h3 className="history-group-title">{dateGroup}</h3>
-                            <div className="history-group-times">
-                              {consultations.map((consultation, index) => (
-                                <span key={consultation.id} className="history-time-item">
-                                  <BsClock className="time-icon" />
-                                  {consultation.time}
-                                  {index < consultations.length - 1 && <span className="time-separator">•</span>}
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                          <span className="history-group-count">{consultations.length} sessions</span>
-                        </div>
-                        <div className="history-group-content">
-                          {consultations.map(consultation => (
-                            <HistoryCard
-                              key={consultation.id}
-                              consultation={consultation}
-                              onViewDetails={handleViewHistoryDetails}
-                            />
-                          ))}
-                        </div>
-                      </div>
+                  <div className="history-consultations-grid">
+                    {consultationHistory.map(consultation => (
+                      <HistoryCard
+                        key={consultation.id}
+                        consultation={consultation}
+                        onViewDetails={handleViewHistoryDetails}
+                      />
                     ))}
                   </div>
-                  
-                  {/* Load More Button for History */}
-                  {!showAllHistory && endHistoryIndex < historyEntries.length && (
-                    <div className="load-more-section">
-                      <Button 
-                        variant="outline-primary" 
-                        className="load-more-btn"
-                        onClick={handleLoadMoreHistory}
-                      >
-                        Load More ({historyEntries.length - endHistoryIndex} groups remaining)
-                      </Button>
-                    </div>
-                  )}
                 </>
               ) : (
                 <div className="no-history">

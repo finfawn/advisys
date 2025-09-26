@@ -180,79 +180,32 @@
   margin-bottom: 1rem;
 }
 
-/* History List */
-.history-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
+/* History Section */
 
-.history-group {
-  margin-bottom: 1.5rem;
-}
-
-.history-group-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  padding: 0.5rem 0;
-  margin-bottom: 0.5rem;
-  border-bottom: 2px solid #e1e5e9;
+.history-consultations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
   gap: 1rem;
 }
 
-.history-group-title-section {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
+/* Responsive Grid Layout for History */
+@media (min-width: 1200px) {
+  .history-consultations-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
 }
 
-.history-group-title {
-  font-size: 1rem;
-  font-weight: 600;
-  color: #1a1a1a;
-  margin: 0;
+@media (min-width: 768px) and (max-width: 1199px) {
+  .history-consultations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.history-group-times {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  align-items: center;
-}
-
-.history-time-item {
-  display: flex;
-  align-items: center;
-  gap: 0.25rem;
-  font-size: 0.8rem;
-  color: #666;
-  font-weight: 500;
-}
-
-.history-time-item .time-icon {
-  font-size: 0.75rem;
-  color: #667eea;
-}
-
-.time-separator {
-  color: #ccc;
-  margin: 0 0.25rem;
-}
-
-.history-group-count {
-  font-size: 0.8rem;
-  color: #666;
-  font-weight: 500;
-  flex-shrink: 0;
-}
-
-.history-group-content {
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
+@media (max-width: 767px) {
+  .history-consultations-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
 }
 
 /* Load More Section */
@@ -351,23 +304,6 @@
     font-size: 0.85rem;
   }
   
-  .history-group-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.5rem;
-  }
-  
-  .history-group-title-section {
-    width: 100%;
-  }
-  
-  .history-group-times {
-    gap: 0.25rem;
-  }
-  
-  .history-time-item {
-    font-size: 0.75rem;
-  }
 }
 
 @media (max-width: 480px) {
