@@ -11,6 +11,11 @@
   height: 100%;
   display: flex;
   flex-direction: column;
+  transition: border-color 0.2s ease;
+}
+
+.advisor-card:hover {
+  border-color: #667eea;
 }
 
 .advisor-card-header {
