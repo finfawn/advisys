@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
-import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight } from "react-icons/bs";
+import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsTrash } from "react-icons/bs";
 import TopNavbar from "../components/TopNavbar";
 import Sidebar from "../components/Sidebar";
 import ConsultationCard from "../components/ConsultationCard";
@@ -13,6 +13,7 @@ export default function MyConsultationsPage() {
   const [upcomingFilter, setUpcomingFilter] = useState("all");
   const [historyPage, setHistoryPage] = useState(1);
   const [showAllHistory, setShowAllHistory] = useState(false);
+  const [consultationHistory, setConsultationHistory] = useState([]);
   const navigate = useNavigate();
   
   const toggleSidebar = () => setCollapsed((v) => !v);
@@ -199,23 +200,10 @@ export default function MyConsultationsPage() {
   ];
 
 
-  // Separate upcoming and history consultations
-  const { upcomingConsultations, consultationHistory } = useMemo(() => {
+  // Initialize consultation history state
+  React.useEffect(() => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
-    console.log('Today:', today.toISOString());
-    
-    const upcoming = allConsultations.filter(consultation => {
-      const consultationDate = new Date(consultation.date);
-      consultationDate.setHours(0, 0, 0, 0);
-      console.log('Consultation date:', consultationDate.toISOString(), 'Status:', consultation.status);
-      // Include approved, pending, and declined consultations for upcoming (declined can be rescheduled)
-      const isUpcoming = consultationDate >= today && (consultation.status === 'approved' || consultation.status === 'pending' || consultation.status === 'declined');
-      console.log('Is upcoming:', isUpcoming);
-      // TEMPORARY: Force show first 6 consultations for testing
-      return consultation.id <= 6;
-    });
     
     const history = allConsultations.filter(consultation => {
       const consultationDate = new Date(consultation.date);
@@ -223,10 +211,24 @@ export default function MyConsultationsPage() {
       return consultationDate < today || consultation.status === 'cancelled' || consultation.status === 'completed';
     });
     
-    console.log('Upcoming count:', upcoming.length);
-    console.log('History count:', history.length);
+    setConsultationHistory(history);
+  }, []);
+
+  // Separate upcoming and history consultations
+  const { upcomingConsultations } = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
     
-    return { upcomingConsultations: upcoming, consultationHistory: history };
+    const upcoming = allConsultations.filter(consultation => {
+      const consultationDate = new Date(consultation.date);
+      consultationDate.setHours(0, 0, 0, 0);
+      // Include approved, pending, and declined consultations for upcoming (declined can be rescheduled)
+      const isUpcoming = consultationDate >= today && (consultation.status === 'approved' || consultation.status === 'pending' || consultation.status === 'declined');
+      // TEMPORARY: Force show first 6 consultations for testing
+      return consultation.id <= 6;
+    });
+    
+    return { upcomingConsultations: upcoming };
   }, []);
 
   // Filter upcoming consultations
@@ -235,65 +237,23 @@ export default function MyConsultationsPage() {
     return upcomingConsultations.filter(consultation => consultation.mode === upcomingFilter);
   }, [upcomingConsultations, upcomingFilter]);
 
-  // Group history by date
-  const groupedHistory = useMemo(() => {
-    const groups = {};
-    consultationHistory.forEach(consultation => {
-      const date = new Date(consultation.date);
-      const today = new Date();
-      const yesterday = new Date(today);
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      let groupKey;
-      if (date.toDateString() === today.toDateString()) {
-        groupKey = "Today";
-      } else if (date.toDateString() === yesterday.toDateString()) {
-        groupKey = "Yesterday";
-      } else {
-        groupKey = date.toLocaleDateString('en-US', { 
-          month: 'short', 
-          day: 'numeric', 
-          year: 'numeric' 
-        });
-      }
-      
-      if (!groups[groupKey]) {
-        groups[groupKey] = [];
-      }
-      groups[groupKey].push(consultation);
-    });
-    
-    // Sort consultations within each group by time
-    Object.keys(groups).forEach(groupKey => {
-      groups[groupKey].sort((a, b) => {
-        const timeA = a.time.split(' - ')[0];
-        const timeB = b.time.split(' - ')[0];
-        return timeA.localeCompare(timeB);
-      });
-    });
-    
-    return groups;
-  }, []);
+  // Delete functions
+  const handleDeleteHistoryItem = (consultation) => {
+    if (window.confirm(`Are you sure you want to delete the consultation "${consultation.topic}"?`)) {
+      setConsultationHistory(prev => prev.filter(item => item.id !== consultation.id));
+    }
+  };
 
-  // Pagination for history
-  const historyItemsPerPage = 6;
-  const historyEntries = Object.entries(groupedHistory);
-  const totalHistoryPages = Math.ceil(historyEntries.length / historyItemsPerPage);
-  const startHistoryIndex = (historyPage - 1) * historyItemsPerPage;
-  const endHistoryIndex = showAllHistory ? historyEntries.length : startHistoryIndex + historyItemsPerPage;
-  const displayedHistoryEntries = historyEntries.slice(0, endHistoryIndex);
+  const handleDeleteAllHistory = () => {
+    if (window.confirm(`Are you sure you want to delete all ${consultationHistory.length} consultation history items? This action cannot be undone.`)) {
+      setConsultationHistory([]);
+    }
+  };
 
   const handleUpcomingFilterChange = (e) => {
     setUpcomingFilter(e.target.value);
   };
 
-  const handleLoadMoreHistory = () => {
-    if (endHistoryIndex >= historyEntries.length) {
-      setShowAllHistory(true);
-    } else {
-      setHistoryPage(prev => prev + 1);
-    }
-  };
 
   const handleNewConsultation = () => {
     console.log('Opening new consultation booking flow');
@@ -377,6 +337,17 @@ export default function MyConsultationsPage() {
               <div className="section-header">
                 <h2 className="section-title">History</h2>
                 <div className="section-controls">
+                  {consultationHistory.length > 0 && (
+                    <Button 
+                      variant="outline-danger" 
+                      size="sm"
+                      className="delete-all-btn"
+                      onClick={handleDeleteAllHistory}
+                    >
+                      <BsTrash className="btn-icon" />
+                      Delete All
+                    </Button>
+                  )}
                   <span className="section-count">{consultationHistory.length} past sessions</span>
                 </div>
               </div>
@@ -389,6 +360,7 @@ export default function MyConsultationsPage() {
                         key={consultation.id}
                         consultation={consultation}
                         onViewDetails={handleViewHistoryDetails}
+                        onDelete={handleDeleteHistoryItem}
                       />
                     ))}
                   </div>

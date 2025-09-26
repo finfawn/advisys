@@ -80,6 +80,31 @@
   font-weight: 500;
 }
 
+.delete-all-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+  background: white;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.delete-all-btn:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+}
+
+.delete-all-btn .btn-icon {
+  font-size: 0.9rem;
+}
+
 /* Upcoming Consultations Grid */
 .consultations-grid {
   display: grid;

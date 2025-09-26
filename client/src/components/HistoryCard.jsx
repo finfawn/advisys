@@ -1,8 +1,8 @@
 import React from "react";
-import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsCheckCircle, BsXCircle, BsChevronRight } from "react-icons/bs";
+import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsCheckCircle, BsXCircle, BsChevronRight, BsTrash } from "react-icons/bs";
 import "./HistoryCard.css";
 
-function HistoryCard({ consultation, onViewDetails }) {
+function HistoryCard({ consultation, onViewDetails, onDelete }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -36,6 +36,13 @@ function HistoryCard({ consultation, onViewDetails }) {
   const handleViewDetails = () => {
     if (onViewDetails) {
       onViewDetails(consultation);
+    }
+  };
+
+  const handleDelete = (e) => {
+    e.stopPropagation(); // Prevent card click events
+    if (onDelete) {
+      onDelete(consultation);
     }
   };
 
@@ -91,6 +98,13 @@ function HistoryCard({ consultation, onViewDetails }) {
         >
           {getActionButtonText()}
           <BsChevronRight className="action-icon" />
+        </button>
+        <button 
+          className="history-delete-btn"
+          onClick={handleDelete}
+          title="Delete consultation"
+        >
+          <BsTrash className="delete-icon" />
         </button>
       </div>
     </div>
