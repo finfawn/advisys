@@ -1,13 +1,20 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { BsSearch, BsBell, BsPersonCircle } from "react-icons/bs";
 import Logo from "../assets/logo.png";
 import "./TopNavbar.css";
 
 function TopNavbar() {
+  const navigate = useNavigate();
+
+  const handleLogoClick = () => {
+    navigate('/');
+  };
+
   return (
     <header className="dash-topbar">
       <div className="tb-left">
-        <div className="brand">
+        <div className="brand clickable-brand" onClick={handleLogoClick}>
           <img src={Logo} alt="AdviSys" className="brand-logo" />
           <div className="brand-title">advi<span className="brand-sys">Sys</span></div>
         </div>

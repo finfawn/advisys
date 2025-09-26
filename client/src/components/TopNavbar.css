@@ -25,6 +25,17 @@
   gap: 10px; 
 }
 
+.dash-topbar .clickable-brand {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+  border-radius: 6px;
+  padding: 4px;
+}
+
+.dash-topbar .clickable-brand:hover {
+  opacity: 0.8;
+}
+
 .dash-topbar .brand-logo { 
   width: 34px; 
   height: 34px; 
