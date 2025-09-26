@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import Home from "./pages/Home";
 import StudentDashboard from "./pages/StudentDashboard";
 import AdvisorListPage from "./pages/AdvisorListPage";
+import MyConsultationsPage from "./pages/MyConsultationsPage";
 
 function App() {
   return (
@@ -11,7 +12,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/student-dashboard/advisors" element={<AdvisorListPage />} />
-        <Route path="/student-dashboard/consultations" element={<StudentDashboard />} />
+        <Route path="/student-dashboard/consultations" element={<MyConsultationsPage />} />
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

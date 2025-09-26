@@ -1,0 +1,268 @@
+/* ConsultationCard.css */
+.consultation-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: visible;
+  min-height: 280px;
+  height: auto;
+  transition: border-color 0.2s ease;
+}
+
+.consultation-card:hover {
+  border-color: #667eea;
+}
+
+.consultation-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge.status-approved {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.status-badge.status-pending {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.status-badge.status-declined {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.status-badge.status-completed {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.status-badge.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Date badge removed - date now included in time section */
+
+.consultation-card-mode-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f8f9fa;
+  color: #666;
+  padding: 0.4rem 0.8rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #e1e5e9;
+}
+
+.mode-icon {
+  font-size: 0.9rem;
+}
+
+.consultation-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.consultation-card-topic {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.consultation-card-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.time-icon {
+  font-size: 1rem;
+  color: #667eea;
+}
+
+.consultation-card-faculty {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.faculty-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  font-size: 1.2rem;
+}
+
+.faculty-info {
+  flex: 1;
+}
+
+.faculty-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+
+.faculty-title {
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.consultation-card-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+}
+
+.location-icon {
+  font-size: 0.9rem;
+  color: #f39c12;
+}
+
+.consultation-card-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e1e5e9;
+}
+
+.consultation-card-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+}
+
+.consultation-card-action-btn.online {
+  background: #10b981;
+  color: white;
+}
+
+.consultation-card-action-btn.in-person {
+  background: #6366f1;
+  color: white;
+}
+
+.consultation-card-action-btn.reschedule {
+  background: #f59e0b;
+  color: white;
+}
+
+.consultation-card-action-btn.cancel {
+  background: #ef4444;
+  color: white;
+}
+
+.action-icon {
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .consultation-card {
+    padding: 1.25rem;
+  }
+  
+  .consultation-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .consultation-card-date-badge {
+    align-self: flex-start;
+  }
+  
+  .consultation-card-mode-badge {
+    align-self: flex-end;
+  }
+  
+  .consultation-card-topic {
+    font-size: 1.1rem;
+  }
+  
+  .consultation-card-faculty {
+    padding: 0.6rem;
+  }
+  
+  .faculty-avatar {
+    width: 35px;
+    height: 35px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .consultation-card {
+    padding: 1rem;
+  }
+  
+  .consultation-card-topic {
+    font-size: 1rem;
+  }
+  
+  .consultation-card-faculty {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .faculty-info {
+    text-align: center;
+  }
+}

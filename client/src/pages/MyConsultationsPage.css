@@ -1,0 +1,411 @@
+/* MyConsultationsPage.css */
+/* Remove the centered container - use full width like dashboard */
+
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 1.5rem;
+  padding: 0 0.5rem;
+  gap: 1rem;
+}
+
+.page-title-section {
+  flex: 1;
+}
+
+.page-title {
+  font-size: 2.2rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 0.5rem 0;
+  line-height: 1.2;
+}
+
+.page-subtitle {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+
+/* Sections */
+.consultations-section {
+  margin-bottom: 1.5rem;
+  padding: 0 0.5rem;
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.section-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-dropdown {
+  padding: 0.5rem 1rem;
+  border: 2px solid #e1e5e9;
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: border-color 0.3s ease;
+}
+
+.filter-dropdown:focus {
+  outline: none;
+  border-color: #667eea;
+}
+
+.section-count {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+/* Upcoming Consultations Grid */
+.consultations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+/* Responsive Grid Layout */
+@media (min-width: 1200px) {
+  .consultations-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .consultations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .consultations-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
+
+/* Add New Consultation Card */
+.add-consultation-card {
+  background: #f8f9fa;
+  border: 2px dashed #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+}
+
+.add-consultation-card:hover {
+  background: #e9ecef;
+  border-color: #667eea;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+}
+
+.add-consultation-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.add-consultation-icon {
+  font-size: 2.5rem;
+  color: #667eea;
+  margin-bottom: 0.5rem;
+}
+
+.add-consultation-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.add-consultation-subtitle {
+  font-size: 0.9rem;
+  color: #666;
+  margin: 0;
+  line-height: 1.4;
+}
+
+/* No Consultations State */
+.no-consultations {
+  text-align: center;
+  padding: 2rem 1.5rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.no-consultations-icon {
+  font-size: 2rem;
+  color: #adb5bd;
+  margin-bottom: 0.75rem;
+}
+
+.no-consultations p {
+  font-size: 1rem;
+  color: #666;
+  margin-bottom: 1rem;
+}
+
+/* History List */
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.history-group {
+  margin-bottom: 1.5rem;
+}
+
+.history-group-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  padding: 0.5rem 0;
+  margin-bottom: 0.5rem;
+  border-bottom: 2px solid #e1e5e9;
+  gap: 1rem;
+}
+
+.history-group-title-section {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-group-title {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+}
+
+.history-group-times {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.history-time-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.history-time-item .time-icon {
+  font-size: 0.75rem;
+  color: #667eea;
+}
+
+.time-separator {
+  color: #ccc;
+  margin: 0 0.25rem;
+}
+
+.history-group-count {
+  font-size: 0.8rem;
+  color: #666;
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.history-group-content {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+/* Load More Section */
+.load-more-section {
+  text-align: center;
+  margin-top: 1.5rem;
+}
+
+.load-more-btn {
+  padding: 0.75rem 2rem;
+  border: 2px solid #667eea;
+  color: #667eea;
+  background: white;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.load-more-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+}
+
+/* No History State */
+.no-history {
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #f8f9fa;
+  border-radius: 12px;
+  border: 2px dashed #dee2e6;
+}
+
+.no-history-icon {
+  font-size: 3rem;
+  color: #adb5bd;
+  margin-bottom: 1rem;
+}
+
+.no-history p {
+  font-size: 1.1rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 0 0.25rem;
+  }
+  
+  .page-title {
+    font-size: 2rem;
+  }
+  
+  
+  .consultations-section {
+    padding: 0 0.25rem;
+    margin-bottom: 1.25rem;
+  }
+  
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+  
+  .section-controls {
+    justify-content: space-between;
+  }
+  
+  .consultations-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .add-consultation-card {
+    min-height: 150px;
+    padding: 1rem;
+  }
+  
+  .add-consultation-icon {
+    font-size: 2rem;
+  }
+  
+  .add-consultation-title {
+    font-size: 1rem;
+  }
+  
+  .add-consultation-subtitle {
+    font-size: 0.85rem;
+  }
+  
+  .history-group-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+  }
+  
+  .history-group-title-section {
+    width: 100%;
+  }
+  
+  .history-group-times {
+    gap: 0.25rem;
+  }
+  
+  .history-time-item {
+    font-size: 0.75rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-header {
+    padding: 0 0.125rem;
+  }
+  
+  .consultations-section {
+    padding: 0 0.125rem;
+    margin-bottom: 1rem;
+  }
+  
+  .page-title {
+    font-size: 1.75rem;
+  }
+  
+  .section-title {
+    font-size: 1.5rem;
+  }
+  
+  .consultations-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .add-consultation-card {
+    min-height: 120px;
+    padding: 0.75rem;
+  }
+  
+  .add-consultation-icon {
+    font-size: 1.75rem;
+  }
+  
+  .add-consultation-title {
+    font-size: 0.95rem;
+  }
+  
+  .add-consultation-subtitle {
+    font-size: 0.8rem;
+  }
+}

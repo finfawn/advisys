@@ -1,0 +1,227 @@
+/* HistoryCard.css */
+.history-card {
+  background: white;
+  border: 1px solid #e1e5e9;
+  border-radius: 8px;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.history-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  border-color: #667eea;
+}
+
+.history-card-content {
+  display: flex;
+  align-items: center;
+  padding: 1rem;
+  gap: 1rem;
+}
+
+
+.history-item-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.history-item-topic {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.history-item-faculty {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.faculty-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  flex-shrink: 0;
+}
+
+.faculty-name {
+  font-weight: 500;
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.history-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-right: 1rem;
+}
+
+.history-card-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.view-details-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #667eea;
+  color: #667eea;
+  background: white;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.view-details-btn:hover {
+  background: #667eea;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.view-details-btn .btn-icon {
+  font-size: 0.9rem;
+}
+
+.history-item-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #666;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.mode-icon {
+  font-size: 0.9rem;
+}
+
+.history-card-status {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.history-card-status.completed {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.history-card-status.cancelled {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.status-icon {
+  font-size: 0.9rem;
+}
+
+.status-icon.completed {
+  color: #28a745;
+}
+
+.status-icon.cancelled {
+  color: #dc3545;
+}
+
+.status-text {
+  text-transform: capitalize;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .history-card-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .history-item-meta {
+    margin-right: 0;
+    justify-content: space-between;
+  }
+  
+  .history-card-actions {
+    align-self: stretch;
+  }
+  
+  .view-details-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .history-item-topic {
+    font-size: 0.95rem;
+  }
+  
+  .faculty-name {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-card-content {
+    padding: 0.75rem;
+  }
+  
+  .history-item-main {
+    gap: 0.5rem;
+  }
+  
+  .history-item-faculty {
+    gap: 0.5rem;
+  }
+  
+  .faculty-avatar {
+    width: 30px;
+    height: 30px;
+    font-size: 1rem;
+  }
+  
+  .history-item-topic {
+    font-size: 0.9rem;
+  }
+  
+  .faculty-name {
+    font-size: 0.85rem;
+  }
+  
+  .history-item-mode {
+    font-size: 0.75rem;
+  }
+  
+  .history-card-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.6rem;
+  }
+  
+  .view-details-btn {
+    font-size: 0.75rem;
+    padding: 0.35rem 0.7rem;
+  }
+}
