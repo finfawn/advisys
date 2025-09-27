@@ -190,13 +190,14 @@ export default function StudentDashboard() {
               {Array.from({ length: 2 }).map((_, idx) => (
                 <AdvisorCard 
                   key={idx}
-                  name="Lorem Ipsum"
-                  title="Academic Title"
+                  name="Dr. Maria Santos"
+                  title="Professor of Computer Science"
                   status="Available"
                   schedule="Tue, Thu"
                   time="10:00 AM–01:00 PM"
                   mode="In-person/Online"
                   onBookClick={() => console.log('Book consultation clicked')}
+                  onNavigateToConsultations={() => handleNavigation('consultations')}
                 />
               ))}
                 </div>
