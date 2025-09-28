@@ -1,8 +1,8 @@
 import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
-import "./ConsultationCard.css";
+import "./CompactConsultationCard.css";
 
-function ConsultationCard({ consultation, onActionClick, onDelete }) {
+function CompactConsultationCard({ consultation, onActionClick, onDelete }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -41,11 +41,11 @@ function ConsultationCard({ consultation, onActionClick, onDelete }) {
 
   const getActionButtonClass = () => {
     if (consultation.status === 'pending') {
-      return 'consultation-card-action-btn cancel';
+      return 'compact-card-action-btn cancel';
     } else if (consultation.mode === 'online') {
-      return 'consultation-card-action-btn online';
+      return 'compact-card-action-btn online';
     } else {
-      return 'consultation-card-action-btn in-person';
+      return 'compact-card-action-btn in-person';
     }
   };
 
@@ -69,59 +69,43 @@ function ConsultationCard({ consultation, onActionClick, onDelete }) {
   const statusInfo = getStatusInfo();
 
   return (
-    <div className="consultation-card">
-      <div className="consultation-card-header">
-        <span className={`status-badge ${statusInfo.class}`}>
-          {statusInfo.icon}
-          <span className="status-text">{statusInfo.text}</span>
-        </span>
-        <div className="consultation-card-mode-badge">
-          {consultation.mode === 'online' ? (
-            <BsCameraVideo className="mode-icon" />
-          ) : (
-            <BsGeoAlt className="mode-icon" />
-          )}
-          <span className="mode-text">
-            {consultation.mode === 'online' ? 'Online' : 'In-Person'}
-          </span>
+    <div className="compact-consultation-card">
+      <div className="compact-date-section">
+        <div className="compact-date">
+          <div className="compact-dow">{formatDate(consultation.date).split(' ')[0]}</div>
+          <div className="compact-dom">{formatDate(consultation.date).split(' ')[2]}</div>
         </div>
       </div>
       
-      <div className="consultation-card-content">
-        <h3 className="consultation-card-topic">{consultation.topic}</h3>
+      <div className="compact-content">
+        <div className="compact-faculty-info">
+          <div className="compact-faculty-name">{consultation.faculty.name}</div>
+          <div className="compact-faculty-title">{consultation.faculty.title}</div>
+        </div>
         
-        <div className="consultation-card-time">
+        <div className="compact-time-info">
           <BsClock className="time-icon" />
-          <span className="time-text">{formatDate(consultation.date)} • {consultation.time}</span>
+          <span className="time-text">{consultation.time}</span>
         </div>
         
-        <div className="consultation-card-faculty">
-          <div className="faculty-avatar">
-            {consultation.faculty.avatar}
-          </div>
-          <div className="faculty-info">
-            <div className="faculty-name">{consultation.faculty.name}</div>
-            <div className="faculty-title">{consultation.faculty.title}</div>
+        <div className="compact-badges">
+          {consultation.status !== 'approved' && (
+            <span className={`compact-status-badge ${statusInfo.class}`}>
+              {statusInfo.icon}
+              <span className="status-text">{statusInfo.text}</span>
+            </span>
+          )}
+          <div className={`compact-mode-indicator ${consultation.mode}`}>
+            <span className="mode-dot"></span>
+            <span className="mode-text">
+              {consultation.mode === 'online' ? 'Online' : 'In-Person'}
+            </span>
           </div>
         </div>
-        
-        {consultation.mode === 'in-person' && consultation.location && (
-          <div className="consultation-card-location">
-            <BsGeoAlt className="location-icon" />
-            <span className="location-text">{consultation.location}</span>
-          </div>
-        )}
-        
-        {consultation.status === 'declined' && consultation.declineReason && (
-          <div className="consultation-card-decline-reason">
-            <div className="decline-reason-label">Reason:</div>
-            <div className="decline-reason-text">{consultation.declineReason}</div>
-          </div>
-        )}
       </div>
       
       {shouldShowActionButton() && (
-        <div className="consultation-card-footer">
+        <div className="compact-action">
           <button 
             className={getActionButtonClass()}
             onClick={onActionClick}
@@ -133,16 +117,16 @@ function ConsultationCard({ consultation, onActionClick, onDelete }) {
       )}
       
       {consultation.status === 'declined' && (
-        <div className="consultation-card-footer declined-actions">
+        <div className="compact-action declined-actions">
           <button 
-            className="consultation-card-action-btn delete"
+            className="compact-card-action-btn delete"
             onClick={handleDeleteConsultation}
             title="Delete consultation"
           >
             <BsTrash className="delete-icon" />
           </button>
           <button 
-            className="consultation-card-action-btn reschedule"
+            className="compact-card-action-btn reschedule"
             onClick={handleRescheduleConsultation}
           >
             Reschedule
@@ -153,4 +137,5 @@ function ConsultationCard({ consultation, onActionClick, onDelete }) {
   );
 }
 
-export default ConsultationCard;
+export default CompactConsultationCard;
+

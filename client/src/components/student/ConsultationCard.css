@@ -168,15 +168,82 @@
   border-radius: 6px;
 }
 
-.location-icon {
+.consultation-card-location .location-icon {
   font-size: 0.9rem;
   color: #f39c12;
+  display: inline-block;
+  width: auto;
+  height: auto;
+  background: none !important;
 }
 
 .consultation-card-footer {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid #e1e5e9;
+}
+
+.consultation-card-decline-reason {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 6px;
+  border-left: 3px solid #dc3545;
+}
+
+.decline-reason-label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #dc3545;
+  margin-bottom: 0.25rem;
+}
+
+.decline-reason-text {
+  font-size: 0.85rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.declined-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 1rem;
+}
+
+.declined-actions .consultation-card-action-btn {
+  flex: 1;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.declined-actions .consultation-card-action-btn.delete {
+  background: white;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+}
+
+.declined-actions .consultation-card-action-btn.delete:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.declined-actions .consultation-card-action-btn.reschedule {
+  background: #f59e0b;
+  color: white;
+}
+
+.declined-actions .consultation-card-action-btn.reschedule:hover {
+  background: #d97706;
+  transform: translateY(-1px);
 }
 
 .consultation-card-action-btn {
@@ -191,6 +258,7 @@
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .consultation-card-action-btn.online {
@@ -198,9 +266,19 @@
   color: white;
 }
 
+.consultation-card-action-btn.online:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
 .consultation-card-action-btn.in-person {
   background: #6366f1;
   color: white;
+}
+
+.consultation-card-action-btn.in-person:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
 }
 
 .consultation-card-action-btn.reschedule {
@@ -208,13 +286,27 @@
   color: white;
 }
 
+.consultation-card-action-btn.reschedule:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
 .consultation-card-action-btn.cancel {
   background: #ef4444;
   color: white;
 }
 
+.consultation-card-action-btn.cancel:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
 .action-icon {
   font-size: 0.9rem;
+}
+
+.delete-icon {
+  font-size: 1rem;
 }
 
 /* Responsive Design */

@@ -90,6 +90,7 @@
 .history-delete-btn:hover {
   background: #dc3545;
   color: white;
+  transform: translateY(-1px);
 }
 
 .delete-icon {
@@ -176,9 +177,10 @@
   border-radius: 6px;
 }
 
-.location-icon {
+.history-card-location .location-icon {
   font-size: 0.9rem;
   color: #f39c12;
+  background: none !important;
 }
 
 .history-card-footer {
@@ -201,6 +203,7 @@
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
+  transition: all 0.2s ease;
 }
 
 .history-card-action-btn.view-details {
@@ -210,6 +213,7 @@
 
 .history-card-action-btn.view-details:hover {
   background: #5a6fd8;
+  transform: translateY(-1px);
 }
 
 .action-icon {

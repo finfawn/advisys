@@ -1,0 +1,404 @@
+/* CompactConsultationCard.css - Much smaller, list-like design */
+.compact-consultation-card {
+  display: grid;
+  grid-template-columns: 70px 1fr 80px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background-color 0.2s ease;
+  min-height: 55px;
+}
+
+.compact-consultation-card:last-child {
+  border-bottom: 0;
+}
+
+.compact-consultation-card:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+.compact-date-section {
+  display: flex;
+  justify-content: center;
+}
+
+.compact-date {
+  display: grid;
+  place-items: center;
+  width: 60px;
+  height: 60px;
+  border-radius: 12px;
+  background: #eef7ff;
+  color: #2d5bd1;
+  text-align: center;
+}
+
+.compact-dow {
+  font-size: 0.7rem;
+  color: #d97706;
+  font-weight: 600;
+}
+
+.compact-dom {
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.compact-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.compact-faculty-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.compact-faculty-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-faculty-title {
+  color: #666;
+  font-size: 0.75rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-time-info {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #666;
+  font-size: 0.75rem;
+}
+
+.time-icon {
+  font-size: 0.8rem;
+  color: #667eea;
+}
+
+.time-text {
+  font-weight: 500;
+}
+
+.compact-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 1px;
+}
+
+.compact-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.2rem 0.4rem;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.compact-status-badge svg {
+  color: inherit;
+  font-size: 0.7rem;
+}
+
+.compact-status-badge.status-approved {
+  background: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.compact-status-badge.status-pending {
+  background: #fff3cd;
+  color: #856404;
+  border: 1px solid #ffeaa7;
+}
+
+.compact-status-badge.status-declined {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.compact-status-badge.status-completed {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.compact-status-badge.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.compact-mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.compact-mode-indicator.online {
+  color: #2563eb;
+}
+
+.compact-mode-indicator.in-person {
+  color: #d97706;
+}
+
+.mode-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.compact-mode-indicator.online .mode-dot {
+  background: #2563eb;
+}
+
+.compact-mode-indicator.in-person .mode-dot {
+  background: #d97706;
+}
+
+.mode-text {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: inherit;
+}
+
+.compact-action {
+  display: flex;
+  justify-content: center;
+}
+
+.compact-card-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 5px 8px;
+  border: none;
+  border-radius: 5px;
+  font-weight: 600;
+  font-size: 0.7rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 60px;
+}
+
+.compact-card-action-btn.online {
+  background: #10b981;
+  color: white;
+}
+
+.compact-card-action-btn.online:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.compact-card-action-btn.in-person {
+  background: #6366f1;
+  color: white;
+}
+
+.compact-card-action-btn.in-person:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.compact-card-action-btn.reschedule {
+  background: #f59e0b;
+  color: white;
+}
+
+.compact-card-action-btn.reschedule:hover {
+  background: #d97706;
+  transform: translateY(-1px);
+}
+
+.compact-card-action-btn.cancel {
+  background: #ef4444;
+  color: white;
+}
+
+.compact-card-action-btn.cancel:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+}
+
+.action-icon {
+  font-size: 0.7rem;
+}
+
+.delete-icon {
+  font-size: 0.8rem;
+}
+
+.compact-decline-reason {
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: #f8f9fa;
+  border-radius: 4px;
+  border-left: 2px solid #dc3545;
+}
+
+.compact-decline-reason .decline-reason-text {
+  font-size: 0.75rem;
+  color: #6c757d;
+  line-height: 1.3;
+}
+
+.compact-action.declined-actions {
+  display: flex;
+  gap: 0.25rem;
+  margin-top: 0.5rem;
+}
+
+.compact-action.declined-actions .compact-card-action-btn {
+  flex: 1;
+  padding: 0.5rem 0.7rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem;
+}
+
+.compact-action.declined-actions .compact-card-action-btn.delete {
+  background: white;
+  border: 1px solid #dc3545;
+  color: #dc3545;
+}
+
+.compact-action.declined-actions .compact-card-action-btn.delete:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.compact-action.declined-actions .compact-card-action-btn.reschedule {
+  background: #f59e0b;
+  color: white;
+}
+
+.compact-action.declined-actions .compact-card-action-btn.reschedule:hover {
+  background: #d97706;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .compact-consultation-card {
+    grid-template-columns: 60px 1fr 70px;
+    gap: 8px;
+    padding: 8px 10px;
+    min-height: 50px;
+  }
+  
+  .compact-date {
+    width: 50px;
+    height: 50px;
+  }
+  
+  .compact-dow {
+    font-size: 0.65rem;
+  }
+  
+  .compact-dom {
+    font-size: 0.95rem;
+  }
+  
+  .compact-faculty-name {
+    font-size: 0.8rem;
+  }
+  
+  .compact-faculty-title {
+    font-size: 0.7rem;
+  }
+  
+  .compact-time-info {
+    font-size: 0.7rem;
+  }
+  
+  .compact-card-action-btn {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+    min-width: 50px;
+  }
+  
+  .compact-badges {
+    gap: 3px;
+  }
+  
+  .compact-status-badge {
+    font-size: 0.6rem;
+    padding: 0.1rem 0.25rem;
+  }
+  
+  .compact-mode-indicator {
+    font-size: 0.7rem;
+  }
+  
+  .compact-mode-indicator .mode-dot {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .compact-consultation-card {
+    grid-template-columns: 50px 1fr 60px;
+    gap: 6px;
+    padding: 6px 8px;
+    min-height: 45px;
+  }
+  
+  .compact-date {
+    width: 42px;
+    height: 42px;
+  }
+  
+  .compact-dow {
+    font-size: 0.6rem;
+  }
+  
+  .compact-dom {
+    font-size: 0.85rem;
+  }
+  
+  .compact-faculty-name {
+    font-size: 0.75rem;
+  }
+  
+  .compact-faculty-title {
+    font-size: 0.65rem;
+  }
+  
+  .compact-time-info {
+    font-size: 0.65rem;
+  }
+  
+  .compact-card-action-btn {
+    padding: 3px 5px;
+    font-size: 0.6rem;
+    min-width: 45px;
+  }
+}

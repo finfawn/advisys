@@ -10,7 +10,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   const [formData, setFormData] = useState({
     description: "",
     category: "",
-    mode: "in-person"
+    mode: "in-person",
+    location: ""
   });
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState(null);
@@ -38,6 +39,20 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     "Career Advice",
     "Technical Support",
     "Project Review"
+  ];
+
+  // Sample locations for in-person consultations
+  const locations = [
+    "Faculty Office - Room 201",
+    "Faculty Office - Room 205", 
+    "Faculty Office - Room 301",
+    "Conference Room A",
+    "Conference Room B",
+    "Library Study Room 1",
+    "Library Study Room 2",
+    "Student Center - Meeting Room",
+    "Department Lounge",
+    "Lab Room 101"
   ];
 
   // Sample time slots grouped by time of day
@@ -72,7 +87,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
       setFormData({
         description: "",
         category: "",
-        mode: "in-person"
+        mode: "in-person",
+        location: ""
       });
       setSelectedDate(new Date());
       setSelectedSlot(null);
@@ -115,7 +131,16 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   };
 
   const handleModeToggle = (mode) => {
-    setFormData(prev => ({ ...prev, mode }));
+    setFormData(prev => ({ 
+      ...prev, 
+      mode,
+      // Clear location when switching to online
+      location: mode === 'online' ? '' : prev.location
+    }));
+  };
+
+  const handleLocationSelect = (location) => {
+    setFormData(prev => ({ ...prev, location }));
   };
 
   const handleSlotSelect = (slot) => {
@@ -158,7 +183,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   };
 
 
-  const isStep1Valid = formData.description.trim() && formData.category;
+  const isStep1Valid = formData.description.trim() && formData.category && 
+    (formData.mode === 'online' || (formData.mode === 'in-person' && formData.location));
   const isStep2Valid = selectedSlot;
 
   return (
@@ -287,6 +313,25 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 </button>
               </div>
             </div>
+
+            {/* Location dropdown - only show for in-person consultations */}
+            {formData.mode === 'in-person' && (
+              <div className="form-section">
+                <label className="form-label">Location</label>
+                <Form.Select
+                  value={formData.location}
+                  onChange={(e) => handleLocationSelect(e.target.value)}
+                  className="form-control"
+                >
+                  <option value="">Select a location...</option>
+                  {locations.map((location) => (
+                    <option key={location} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                </Form.Select>
+              </div>
+            )}
           </div>
 
           {/* Step 2 */}
@@ -379,6 +424,19 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                       </div>
                     </div>
                   </div>
+
+                  {/* Show location for in-person consultations */}
+                  {formData.mode === 'in-person' && formData.location && (
+                    <div className="summary-card-item">
+                      <div className="summary-icon location-icon">
+                        <FaMapMarkerAlt />
+                      </div>
+                      <div className="summary-content">
+                        <div className="summary-label">Location</div>
+                        <div className="summary-value">{formData.location}</div>
+                      </div>
+                    </div>
+                  )}
                   
                   <div className="summary-card-item">
                     <div className="summary-icon category-icon">
