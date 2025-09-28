@@ -109,6 +109,67 @@
   margin-bottom: 0;
 }
 
+/* Consultation Mode Display */
+.consultation-mode-display {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-top: 4px;
+  padding: 3px 6px;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.mode-icons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.mode-icons svg {
+  font-size: 0.7rem;
+}
+
+.mode-text {
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+/* Mode-specific styling */
+.consultation-mode-display.online-mode {
+  background: #dbeafe;
+  color: #2563eb;
+  border: 1px solid #93c5fd;
+}
+
+.consultation-mode-display.inperson-mode {
+  background: #fef3c7;
+  color: #d97706;
+  border: 1px solid #fbbf24;
+}
+
+.consultation-mode-display.both-modes {
+  background: linear-gradient(135deg, #dbeafe 0%, #fef3c7 100%);
+  color: #374151;
+  border: 1px solid #93c5fd;
+}
+
+.consultation-mode-display.default-mode {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+}
+
+/* Separate mode badges container */
+.separate-mode-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 4px;
+  flex-wrap: wrap;
+}
+
 .advisor-card-actions {
   display: flex;
   gap: 8px;
