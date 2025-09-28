@@ -5,16 +5,16 @@ import "react-calendar/dist/Calendar.css";
 import { Button } from "react-bootstrap";
 import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck } from "react-icons/bs";
 import { FaUserTie } from "react-icons/fa";
-import AdvisorCard from "../components/AdvisorCard";
-import TopNavbar from "../components/TopNavbar";
-import Sidebar from "../components/Sidebar";
+import AdvisorCard from "../../components/student/AdvisorCard";
+import TopNavbar from "../../components/student/TopNavbar";
+import Sidebar from "../../components/student/Sidebar";
+import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentDashboard.css";
 
 export default function StudentDashboard() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  const toggleSidebar = () => setCollapsed((v) => !v);
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -53,18 +53,21 @@ export default function StudentDashboard() {
                       sub: "Reserve a slot and meet with your faculty advisor.",
                       cta: "Book Now",
                       Icon: BsCalendarCheck,
+                      navigateTo: 'advisors',
                     },
                     {
                       title: "Manage Appointments",
                       sub: "Review upcoming and past sessions in one place.",
                       cta: "View Appointments",
                       Icon: BsCalendarCheck,
+                      navigateTo: 'consultations',
                     },
                     {
                       title: "Explore Faculty Advisors",
                       sub: "Browse profiles to find the right mentor for you.",
                       cta: "Browse Faculty",
                       Icon: BsPeople,
+                      navigateTo: 'advisors',
                     },
                   ];
                   const [active, setActive] = useState(0);
@@ -77,6 +80,12 @@ export default function StudentDashboard() {
                   const CurrentIcon = slides[active].Icon;
                   const goPrev = () => setActive((i) => (i - 1 + slides.length) % slides.length);
                   const goNext = () => setActive((i) => (i + 1) % slides.length);
+                  const handleCtaClick = () => {
+                    const currentSlide = slides[active];
+                    if (currentSlide.navigateTo) {
+                      handleNavigation(currentSlide.navigateTo);
+                    }
+                  };
                   return (
                     <>
                       <div className="glass-card h-100">
@@ -95,7 +104,7 @@ export default function StudentDashboard() {
                             ))}
                           </div>
                           <div className="gc-actions">
-                            <Button size="lg" className="btn-gradient">{slides[active].cta}</Button>
+                            <Button size="lg" className="btn-gradient" onClick={handleCtaClick}>{slides[active].cta}</Button>
                           </div>
                         </div>
                         <div className="gc-arrows" aria-hidden>
@@ -184,18 +193,26 @@ export default function StudentDashboard() {
               <div className="section-panel">
                 <div className="section-head">
                   <div className="section-title mb-0">Available Today</div>
-                  <a href="#" className="view-all-link">View All ▸</a>
+                  <button 
+                    onClick={() => handleNavigation('advisors')} 
+                    className="view-all-link"
+                    style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
+                    View All ▸
+                  </button>
                 </div>
                 <div className="available-fixed-grid">
               {Array.from({ length: 2 }).map((_, idx) => (
                 <AdvisorCard 
                   key={idx}
+                  advisorId={idx + 1}
                   name="Dr. Maria Santos"
                   title="Professor of Computer Science"
                   status="Available"
                   schedule="Tue, Thu"
                   time="10:00 AM–01:00 PM"
                   mode="In-person/Online"
+                  coursesTaught={["CS 101", "CS 301", "CS 401"]}
                   onBookClick={() => console.log('Book consultation clicked')}
                   onNavigateToConsultations={() => handleNavigation('consultations')}
                 />

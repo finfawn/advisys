@@ -1,5 +1,5 @@
-/* ConsultationCard.css */
-.consultation-card {
+/* HistoryCard.css - Matching ConsultationCard styling */
+.history-card {
   background: white;
   border-radius: 8px;
   border: 1px solid #e1e5e9;
@@ -13,16 +13,17 @@
   transition: border-color 0.2s ease;
 }
 
-.consultation-card:hover {
+.history-card:hover {
   border-color: #667eea;
 }
 
-.consultation-card-header {
+.history-card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
 }
+
 
 .status-badge {
   display: inline-flex;
@@ -35,22 +36,8 @@
   text-transform: capitalize;
 }
 
-.status-badge.status-approved {
-  background: #d4edda;
-  color: #155724;
-  border: 1px solid #c3e6cb;
-}
-
-.status-badge.status-pending {
-  background: #fff3cd;
-  color: #856404;
-  border: 1px solid #ffeaa7;
-}
-
-.status-badge.status-declined {
-  background: #f8d7da;
-  color: #721c24;
-  border: 1px solid #f5c6cb;
+.status-badge svg {
+  color: inherit;
 }
 
 .status-badge.status-completed {
@@ -65,9 +52,7 @@
   border: 1px solid #f5c6cb;
 }
 
-/* Date badge removed - date now included in time section */
-
-.consultation-card-mode-badge {
+.history-card-mode-badge {
   display: flex;
   align-items: center;
   gap: 0.4rem;
@@ -82,16 +67,44 @@
 
 .mode-icon {
   font-size: 0.9rem;
+  color: inherit;
 }
 
-.consultation-card-content {
+.history-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #dc3545;
+  border-radius: 8px;
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 0.5rem;
+}
+
+.history-delete-btn:hover {
+  background: #dc3545;
+  color: white;
+}
+
+.delete-icon {
+  font-size: 1rem;
+}
+
+
+.history-card-content {
   flex: 1;
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
 }
 
-.consultation-card-topic {
+.history-card-topic {
   font-size: 1.2rem;
   font-weight: 600;
   color: #1a1a1a;
@@ -99,7 +112,7 @@
   line-height: 1.3;
 }
 
-.consultation-card-time {
+.history-card-time {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -112,7 +125,7 @@
   color: #667eea;
 }
 
-.consultation-card-faculty {
+.history-card-faculty {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -151,7 +164,7 @@
   line-height: 1.3;
 }
 
-.consultation-card-location {
+.history-card-location {
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -168,44 +181,35 @@
   color: #f39c12;
 }
 
-.consultation-card-footer {
+.history-card-footer {
   margin-top: 0.75rem;
   padding-top: 0.75rem;
   border-top: 1px solid #e1e5e9;
+  display: flex;
+  gap: 0.75rem;
 }
 
-.consultation-card-action-btn {
+.history-card-action-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  width: 100%;
+  flex: 1;
   padding: 0.75rem 1rem;
-  border: none;
+  border: 1px solid #667eea;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.95rem;
   cursor: pointer;
 }
 
-.consultation-card-action-btn.online {
-  background: #10b981;
+.history-card-action-btn.view-details {
+  background: #667eea;
   color: white;
 }
 
-.consultation-card-action-btn.in-person {
-  background: #6366f1;
-  color: white;
-}
-
-.consultation-card-action-btn.reschedule {
-  background: #f59e0b;
-  color: white;
-}
-
-.consultation-card-action-btn.cancel {
-  background: #ef4444;
-  color: white;
+.history-card-action-btn.view-details:hover {
+  background: #5a6fd8;
 }
 
 .action-icon {
@@ -214,29 +218,30 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .consultation-card {
+  .history-card {
     padding: 1.25rem;
   }
   
-  .consultation-card-header {
+  .history-card-header {
     flex-direction: column;
     align-items: stretch;
     gap: 0.75rem;
   }
   
-  .consultation-card-date-badge {
-    align-self: flex-start;
-  }
-  
-  .consultation-card-mode-badge {
+  .history-card-mode-badge {
     align-self: flex-end;
   }
   
-  .consultation-card-topic {
+  .history-card-footer {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .history-card-topic {
     font-size: 1.1rem;
   }
   
-  .consultation-card-faculty {
+  .history-card-faculty {
     padding: 0.6rem;
   }
   
@@ -248,15 +253,15 @@
 }
 
 @media (max-width: 480px) {
-  .consultation-card {
+  .history-card {
     padding: 1rem;
   }
   
-  .consultation-card-topic {
+  .history-card-topic {
     font-size: 1rem;
   }
   
-  .consultation-card-faculty {
+  .history-card-faculty {
     flex-direction: column;
     text-align: center;
     gap: 0.5rem;

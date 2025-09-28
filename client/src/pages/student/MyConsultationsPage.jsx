@@ -2,15 +2,16 @@ import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsTrash } from "react-icons/bs";
-import TopNavbar from "../components/TopNavbar";
-import Sidebar from "../components/Sidebar";
-import ConsultationCard from "../components/ConsultationCard";
-import HistoryCard from "../components/HistoryCard";
-import DeleteConfirmationModal from "../components/DeleteConfirmationModal";
+import TopNavbar from "../../components/student/TopNavbar";
+import Sidebar from "../../components/student/Sidebar";
+import ConsultationCard from "../../components/student/ConsultationCard";
+import HistoryCard from "../../components/student/HistoryCard";
+import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
+import { useSidebar } from "../../contexts/SidebarContext";
 import "./MyConsultationsPage.css";
 
 export default function MyConsultationsPage() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggleSidebar } = useSidebar();
   const [upcomingFilter, setUpcomingFilter] = useState("all");
   const [historyPage, setHistoryPage] = useState(1);
   const [showAllHistory, setShowAllHistory] = useState(false);
@@ -19,8 +20,6 @@ export default function MyConsultationsPage() {
   const [undoTimeout, setUndoTimeout] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const navigate = useNavigate();
-  
-  const toggleSidebar = () => setCollapsed((v) => !v);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') {

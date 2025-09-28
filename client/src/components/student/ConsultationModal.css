@@ -434,6 +434,19 @@
   margin-bottom: 8px;
 }
 
+.form-label-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.character-count {
+  font-size: 12px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
 .form-control {
   border: 2px solid #e5e7eb;
   border-radius: 12px;
@@ -446,10 +459,27 @@
 }
 
 
-.form-control[as="textarea"] {
-  height: 80px;
-  resize: none;
+.form-control[as="textarea"],
+.form-control textarea,
+textarea.form-control {
+  height: 120px !important;
+  min-height: 120px !important;
+  max-height: 120px !important;
+  resize: none !important;
   overflow-y: auto;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.form-control.near-limit {
+  border-color: #f59e0b;
+}
+
+.character-warning {
+  font-size: 12px;
+  color: #f59e0b;
+  margin-top: 4px;
+  font-weight: 500;
 }
 
 .form-control:focus {
@@ -547,7 +577,8 @@
 /* Date & Time Section */
 .date-time-section {
   display: grid;
-  gap: 24px;
+  gap: 32px;
+  padding: 8px 0;
 }
 
 /* Calendar section styles removed - now handled by ModernCalendar component */
@@ -603,10 +634,11 @@
 }
 
 .section-title {
-  font-size: 16px;
-  font-weight: 600;
-  color: #5a7ba8;
-  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 20px 0;
+  letter-spacing: -0.025em;
 }
 
 /* Modern Date Picker */
@@ -887,8 +919,7 @@
 }
 
 .mode-icon {
-  background: #48a5ac;
-  color: white;
+  color: inherit;
 }
 
 .category-icon {

@@ -15,6 +15,9 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Character limit for description
+  const MAX_DESCRIPTION_LENGTH = 300;
 
   // Sample faculty data if not provided
   const defaultFaculty = {
@@ -98,6 +101,12 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
   const handleInputChange = (e) => {
     const { name, value } = e.target;
+    
+    // Enforce character limit for description
+    if (name === 'description' && value.length > MAX_DESCRIPTION_LENGTH) {
+      return; // Don't update if exceeding limit
+    }
+    
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
@@ -213,9 +222,14 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
             {/* Form Fields */}
             <div className="form-section">
-              <label htmlFor="description" className="form-label">
-                What do you need help with?
-              </label>
+              <div className="form-label-container">
+                <label htmlFor="description" className="form-label">
+                  What do you need help with?
+                </label>
+                <span className="character-count">
+                  {formData.description.length}/{MAX_DESCRIPTION_LENGTH}
+                </span>
+              </div>
               <Form.Control
                 as="textarea"
                 id="description"
@@ -223,8 +237,17 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 value={formData.description}
                 onChange={handleInputChange}
                 placeholder="Describe your consultation needs..."
-                className="form-control"
+                className={`form-control ${formData.description.length > MAX_DESCRIPTION_LENGTH * 0.9 ? 'near-limit' : ''}`}
+                maxLength={MAX_DESCRIPTION_LENGTH}
               />
+              {formData.description.length > MAX_DESCRIPTION_LENGTH * 0.9 && (
+                <div className="character-warning">
+                  {formData.description.length >= MAX_DESCRIPTION_LENGTH 
+                    ? 'Character limit reached' 
+                    : `${MAX_DESCRIPTION_LENGTH - formData.description.length} characters remaining`
+                  }
+                </div>
+              )}
             </div>
 
             <div className="form-section">

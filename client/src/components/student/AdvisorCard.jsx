@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { BsPersonCircle, BsClock } from "react-icons/bs";
+import { useNavigate } from "react-router-dom";
+import { BsPersonCircle, BsClock, BsEye } from "react-icons/bs";
 import ConsultationModal from "./ConsultationModal";
 import "./AdvisorCard.css";
 
@@ -10,10 +11,13 @@ function AdvisorCard({
   schedule = "Tue, Thu", 
   time = "10:00 AM–01:00 PM", 
   mode = "In-person/Online",
+  coursesTaught = ["CS 101", "CS 301", "CS 401"],
+  advisorId = "1",
   onBookClick,
   onNavigateToConsultations
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
 
   const facultyData = {
     name,
@@ -40,6 +44,10 @@ function AdvisorCard({
     }
   };
 
+  const handleViewProfile = () => {
+    navigate(`/student-dashboard/advisors/${advisorId}`);
+  };
+
   return (
     <>
       <div className="advisor-card">
@@ -53,8 +61,14 @@ function AdvisorCard({
           </div>
         </div>
         
-        <div className="advisor-card-status">
-          <span className="advisor-card-badge">{status}</span>
+        <div className="advisor-card-courses">
+          <div className="advisor-course-tags">
+            {coursesTaught.map((course, index) => (
+              <span key={index} className="advisor-course-tag">
+                {course}
+              </span>
+            ))}
+          </div>
         </div>
         
         <div className="advisor-card-meta">
@@ -66,12 +80,21 @@ function AdvisorCard({
           </div>
         </div>
         
-        <button 
-          className="advisor-card-button"
-          onClick={handleBookClick}
-        >
-          Book a consultation
-        </button>
+        <div className="advisor-card-actions">
+          <button 
+            className="advisor-card-button secondary"
+            onClick={handleViewProfile}
+          >
+            <BsEye />
+            View Profile
+          </button>
+          <button 
+            className="advisor-card-button primary"
+            onClick={handleBookClick}
+          >
+            Book a consultation
+          </button>
+        </div>
       </div>
 
       <ConsultationModal

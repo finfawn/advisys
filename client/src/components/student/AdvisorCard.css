@@ -56,18 +56,26 @@
   font-weight: 400;
 }
 
-.advisor-card-status {
+.advisor-card-courses {
   margin-bottom: 12px;
 }
 
-.advisor-card-badge {
-  background: #e5f8ee;
-  color: #1a9b5b;
-  border-radius: 999px;
-  padding: 6px 10px;
+.advisor-course-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.advisor-course-tag {
+  background: #e0f2fe;
+  color: #0369a1;
+  border-radius: 10px;
+  padding: 3px 6px;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.65rem;
   display: inline-block;
+  border: 1px solid #bae6fd;
+  white-space: nowrap;
 }
 
 .advisor-card-meta {
@@ -101,27 +109,56 @@
   margin-bottom: 0;
 }
 
+.advisor-card-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+}
+
 .advisor-card-button {
-  background: #3e5877;
-  border-color: #3e5877;
-  color: white;
   border-radius: 8px;
   padding: 10px 16px;
   font-weight: 600;
   font-size: 0.9rem;
-  width: 100%;
-  margin-top: auto;
-  transition: background-color 0.2s ease, border-color 0.2s ease;
+  flex: 1;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid;
 }
 
-.advisor-card-button:hover {
+.advisor-card-button.primary {
+  background: #3e5877;
+  border-color: #3e5877;
+  color: white;
+}
+
+.advisor-card-button.primary:hover {
   background: #334b69;
   border-color: #334b69;
   color: white;
 }
 
+.advisor-card-button.secondary {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #6b7280;
+}
+
+.advisor-card-button.secondary:hover {
+  background: #e2e8f0;
+  border-color: #cbd5e1;
+  color: #374151;
+}
+
 .advisor-card-button:focus {
   box-shadow: 0 0 0 3px rgba(62, 88, 119, 0.25);
+}
+
+.advisor-card-button.secondary:focus {
+  box-shadow: 0 0 0 3px rgba(107, 114, 128, 0.25);
 }
 
 /* Responsive adjustments */

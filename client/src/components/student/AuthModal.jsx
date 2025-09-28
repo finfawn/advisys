@@ -1,10 +1,12 @@
 import React, { useEffect, useRef, useState } from "react";
-import Logo from "../assets/logo.png";
+import { useNavigate } from "react-router-dom";
+import Logo from "../../assets/logo.png";
 import "./AuthModal.css";
 
 function AuthModal({ isOpen, onClose, onAuthSuccess }) {
   const [authMode, setAuthMode] = useState("register"); // "register" | "login"
   const [role, setRole] = useState("student");
+  const navigate = useNavigate();
   const initialForm = {
     firstName: "",
     lastName: "",
@@ -252,7 +254,14 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
                       {errors.password && <div className="invalid-feedback">{errors.password}</div>}
                     </div>
                     <div className="d-flex justify-content-end mb-3">
-                      <a href="#" className="small">Forgot password?</a>
+                      <button 
+                        type="button"
+                        onClick={() => navigate('/student-dashboard/advisors')} 
+                        className="small"
+                        style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer', textDecoration: 'underline' }}
+                      >
+                        Forgot password?
+                      </button>
                     </div>
                     <div className="d-grid">
                       <button type="submit" className="btn btn-primary rounded-pill py-2">Login</button>

@@ -1,7 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BsSearch, BsBell, BsPersonCircle } from "react-icons/bs";
-import Logo from "../assets/logo.png";
+import Logo from "../../assets/logo.png";
 import "./TopNavbar.css";
 
 function TopNavbar() {
