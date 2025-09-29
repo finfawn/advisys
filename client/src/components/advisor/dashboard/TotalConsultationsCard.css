@@ -1,0 +1,65 @@
+.dashboard-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Header layout: icon left, count/label stacked right */
+.header-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #eff6ff; /* light blue background */
+  color: #1d4ed8;      /* blue icon */
+}
+
+.total-count {
+  font-size: 2.25rem;
+  font-weight: 800;
+  line-height: 1;
+  color: #111827;
+}
+
+.total-label {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+.bar-chart-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Wrapper used by the JSX; space for chart under header */
+.bar-chart-wrapper {
+  margin-top: 8px;
+}
+
+.bar-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.legend-item {
+  display: flex;
+  justify-content: space-between;
+}

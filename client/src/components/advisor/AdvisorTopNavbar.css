@@ -1,0 +1,151 @@
+/* AdvisorTopNavbar Component Styles */
+
+.advisor-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  background: #ffffff;
+  border-bottom: 1px solid #e5e7eb;
+  min-height: 64px;
+}
+
+.advisor-topbar-left {
+  display: flex;
+  align-items: center;
+  gap: 135px;
+}
+
+.advisor-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.advisor-logo {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  object-fit: contain;
+}
+
+.advisor-brand-title {
+  font-weight: 700;
+  font-size: 1.125rem;
+  color: #111827;
+}
+
+.advisor-brand-sys {
+  color: #5285c9;
+}
+
+.advisor-greeting {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.greeting-text {
+  font-size: 14px;
+  color: #6b7280;
+  font-weight: 400;
+  line-height: 1.2;
+}
+
+.welcome-text {
+  font-size: 24px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.advisor-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.notification-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+}
+
+.notification-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.bell-icon {
+  font-size: 20px;
+  color: #374151;
+}
+
+.notification-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  background-color: #ef4444;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+.user-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background-color: #dbeafe;
+  border-radius: 50%;
+  border: 2px solid #ffffff;
+}
+
+.avatar-icon {
+  font-size: 24px;
+  color: #3b82f6;
+}
+
+.faculty-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin-left: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .advisor-topbar {
+    padding: 12px 16px;
+  }
+  
+  .welcome-text {
+    font-size: 20px;
+  }
+  
+  .faculty-name {
+    font-size: 14px;
+  }
+}
+
+@media (max-width: 480px) {
+  .advisor-topbar-right {
+    gap: 12px;
+  }
+  
+  .faculty-name {
+    display: none;
+  }
+}
