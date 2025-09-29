@@ -236,7 +236,8 @@ export default function MyConsultationsPage() {
         avatar: <BsPersonCircle />
       },
       mode: "in-person",
-      status: "completed"
+      status: "completed",
+      location: "Office 205, Math Building"
     },
     {
       id: 15,
@@ -262,7 +263,8 @@ export default function MyConsultationsPage() {
         avatar: <BsPersonCircle />
       },
       mode: "in-person",
-      status: "cancelled"
+      status: "cancelled",
+      location: "Chemistry Lab 3, Science Building"
     },
     {
       id: 17,
@@ -288,7 +290,8 @@ export default function MyConsultationsPage() {
         avatar: <BsPersonCircle />
       },
       mode: "in-person",
-      status: "completed"
+      status: "completed",
+      location: "Engineering Lab 2, Engineering Building"
     },
     {
       id: 19,

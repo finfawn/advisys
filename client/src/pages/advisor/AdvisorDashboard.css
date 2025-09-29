@@ -159,8 +159,8 @@
   }
 }
 
-/* Card Base Styles */
-.dashboard-card {
+/* Card Base Styles - Scoped to advisor dashboard */
+.advisor-dash-wrap .dashboard-card {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 16px;
@@ -169,20 +169,20 @@
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
-.dashboard-card:hover {
+.advisor-dash-wrap .dashboard-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   border-color: rgba(0, 0, 0, 0.12);
 }
 
-/* Card Headers */
-.card-header {
+/* Card Headers - Scoped to advisor dashboard */
+.advisor-dash-wrap .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   margin-bottom: 16px;
 }
 
-.card-title {
+.advisor-dash-wrap .card-title {
   font-size: 1.1rem;
   font-weight: 700;
   color: #1f2937;
@@ -429,14 +429,14 @@
   transition: width 0.3s ease;
 }
 
-/* Upcoming Consultations */
-.upcoming-list {
+/* Upcoming Consultations - Scoped to advisor dashboard */
+.advisor-dash-wrap .upcoming-list {
   list-style: none;
   margin: 0;
   padding: 0;
 }
 
-.upcoming-item {
+.advisor-dash-wrap .upcoming-item {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -446,54 +446,54 @@
   transition: background-color 0.2s ease;
 }
 
-.upcoming-item:hover {
+.advisor-dash-wrap .upcoming-item:hover {
   background: #f9fafb;
 }
 
-.upcoming-date {
+.advisor-dash-wrap .upcoming-date {
   display: flex;
   flex-direction: column;
   align-items: center;
   min-width: 40px;
 }
 
-.upcoming-day {
+.advisor-dash-wrap .upcoming-day {
   font-size: 0.8rem;
   color: #6b7280;
   font-weight: 500;
 }
 
-.upcoming-number {
+.advisor-dash-wrap .upcoming-number {
   font-size: 1.1rem;
   font-weight: 700;
   color: #1f2937;
 }
 
-.upcoming-details {
+.advisor-dash-wrap .upcoming-details {
   flex: 1;
 }
 
-.upcoming-title {
+.advisor-dash-wrap .upcoming-title {
   font-weight: 600;
   color: #374151;
   margin-bottom: 2px;
 }
 
-.upcoming-time {
+.advisor-dash-wrap .upcoming-time {
   font-size: 0.85rem;
   color: #6b7280;
 }
 
-.upcoming-arrow {
+.advisor-dash-wrap .upcoming-arrow {
   color: #9ca3af;
   cursor: pointer;
 }
 
-/* Status indicators */
-.status-em {
+/* Status indicators - Scoped to advisor dashboard */
+.advisor-dash-wrap .status-em {
   background: #fef2f2;
 }
 
-.status-normal {
+.advisor-dash-wrap .status-normal {
   background: #f0fdf4;
 }

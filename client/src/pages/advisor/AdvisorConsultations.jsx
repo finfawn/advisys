@@ -40,7 +40,7 @@ export default function AdvisorConsultations() {
   }), []);
 
   return (
-    <div className="advisor-dash-wrap">
+    <div className="advisor-dash-wrap advisor-consultations-page">
       <AdvisorTopNavbar />
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
         <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />

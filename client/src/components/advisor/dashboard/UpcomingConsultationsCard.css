@@ -1,63 +1,64 @@
 
-.dashboard-card {
+/* Scoped styles for advisor dashboard UpcomingConsultationsCard */
+.advisor-dashboard-card {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
 }
 
-.card-header {
+.advisor-dashboard-card .card-header {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 16px;
 }
 
-.upcoming-list {
+.advisor-dashboard-card .upcoming-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-.upcoming-item {
+.advisor-dashboard-card .upcoming-item {
   display: flex;
   align-items: center;
   padding: 8px 0;
   border-bottom: 1px solid #e5e7eb;
 }
 
-.upcoming-item:last-child {
+.advisor-dashboard-card .upcoming-item:last-child {
   border-bottom: none;
 }
 
-.upcoming-date {
+.advisor-dashboard-card .upcoming-date {
   text-align: center;
   margin-right: 16px;
 }
 
-.upcoming-day {
+.advisor-dashboard-card .upcoming-day {
   font-size: 0.875rem;
   color: #6b7280;
 }
 
-.upcoming-number {
+.advisor-dashboard-card .upcoming-number {
   font-size: 1.25rem;
   font-weight: 600;
 }
 
-.upcoming-details {
+.advisor-dashboard-card .upcoming-details {
   flex: 1;
 }
 
-.upcoming-title {
+.advisor-dashboard-card .upcoming-title {
   font-size: 1rem;
   font-weight: 500;
 }
 
-.upcoming-time {
+.advisor-dashboard-card .upcoming-time {
   font-size: 0.875rem;
   color: #6b7280;
 }
 
-.upcoming-arrow {
+.advisor-dashboard-card .upcoming-arrow {
   color: #9ca3af;
 }

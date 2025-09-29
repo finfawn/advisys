@@ -10,7 +10,7 @@ export default function UpcomingConsultationsCard() {
   ];
 
   return (
-    <div className="dashboard-card">
+    <div className="advisor-dashboard-card">
       <div className="card-header">
         <h3 className="card-title">Your Upcoming Consultations</h3>
       </div>
