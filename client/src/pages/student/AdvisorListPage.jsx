@@ -1,19 +1,18 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
-import AdvisorCard from "../components/AdvisorCard";
-import TopNavbar from "../components/TopNavbar";
-import Sidebar from "../components/Sidebar";
+import AdvisorCard from "../../components/student/AdvisorCard";
+import TopNavbar from "../../components/student/TopNavbar";
+import Sidebar from "../../components/student/Sidebar";
+import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorListPage.css";
 
 export default function AdvisorListPage() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggleSidebar } = useSidebar();
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
   const navigate = useNavigate();
-  
-  const toggleSidebar = () => setCollapsed((v) => !v);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') {
@@ -37,6 +36,7 @@ export default function AdvisorListPage() {
       schedule: "Mon, Wed, Fri",
       time: "9:00 AM–12:00 PM",
       mode: "In-person/Online",
+      coursesTaught: ["CS 101", "CS 301", "CS 401"],
       isAvailableToday: true
     },
     {
@@ -48,6 +48,7 @@ export default function AdvisorListPage() {
       schedule: "Tue, Thu",
       time: "1:00 PM–4:00 PM",
       mode: "Online",
+      coursesTaught: ["MATH 201", "MATH 301"],
       isAvailableToday: true
     },
     {
@@ -59,6 +60,7 @@ export default function AdvisorListPage() {
       schedule: "Mon, Wed, Fri",
       time: "10:00 AM–2:00 PM",
       mode: "In-person",
+      coursesTaught: ["PHYS 101", "PHYS 201", "PHYS 301"],
       isAvailableToday: false
     },
     {
@@ -70,6 +72,7 @@ export default function AdvisorListPage() {
       schedule: "Tue, Thu, Sat",
       time: "8:00 AM–11:00 AM",
       mode: "In-person/Online",
+      coursesTaught: ["CHEM 101", "CHEM 201"],
       isAvailableToday: true
     },
     {
@@ -81,6 +84,7 @@ export default function AdvisorListPage() {
       schedule: "Mon, Wed",
       time: "2:00 PM–5:00 PM",
       mode: "Online",
+      coursesTaught: ["BIO 101", "BIO 201", "BIO 301", "BIO 401"],
       isAvailableToday: false
     },
     {
@@ -92,6 +96,7 @@ export default function AdvisorListPage() {
       schedule: "Tue, Thu, Fri",
       time: "9:00 AM–1:00 PM",
       mode: "In-person/Online",
+      coursesTaught: ["ENG 101", "ENG 201"],
       isAvailableToday: true
     },
     {
@@ -103,6 +108,7 @@ export default function AdvisorListPage() {
       schedule: "Mon, Wed, Fri",
       time: "11:00 AM–3:00 PM",
       mode: "In-person",
+      coursesTaught: ["PSY 101", "PSY 201", "PSY 301"],
       isAvailableToday: false
     },
     {
@@ -114,6 +120,7 @@ export default function AdvisorListPage() {
       schedule: "Tue, Thu",
       time: "1:00 PM–4:00 PM",
       mode: "Online",
+      coursesTaught: ["ECON 101", "ECON 201"],
       isAvailableToday: true
     }
   ];
@@ -172,6 +179,7 @@ export default function AdvisorListPage() {
       schedule: "Mon, Wed, Fri",
       time: "9:00 AM–12:00 PM",
       mode: "In-person/Online",
+      coursesTaught: ["CS 101", "CS 301", "CS 401"],
       isAvailableToday: true,
       lastConsultation: "2 weeks ago",
       consultationCount: 3
@@ -185,6 +193,7 @@ export default function AdvisorListPage() {
       schedule: "Tue, Thu",
       time: "1:00 PM–4:00 PM",
       mode: "Online",
+      coursesTaught: ["MATH 201", "MATH 301"],
       isAvailableToday: true,
       lastConsultation: "1 month ago",
       consultationCount: 1
@@ -198,6 +207,7 @@ export default function AdvisorListPage() {
       schedule: "Tue, Thu, Sat",
       time: "8:00 AM–11:00 AM",
       mode: "In-person/Online",
+      coursesTaught: ["CHEM 101", "CHEM 201"],
       isAvailableToday: true,
       lastConsultation: "3 weeks ago",
       consultationCount: 2
@@ -232,19 +242,21 @@ export default function AdvisorListPage() {
                 </div>
               </div>
               
-              <div className="advisor-grid">
-                {previousConsultations.map(advisor => (
-                  <AdvisorCard
-                    key={`previous-${advisor.id}`}
-                    name={advisor.name}
-                    title={advisor.title}
-                    status={advisor.status}
-                    schedule={advisor.schedule}
-                    time={advisor.time}
-                    mode={advisor.mode}
-                    onBookClick={() => handleBookClick(advisor.name)}
-                  />
-                ))}
+                  <div className="advisor-grid">
+                    {previousConsultations.map(advisor => (
+                      <AdvisorCard
+                        key={`previous-${advisor.id}`}
+                        advisorId={advisor.id}
+                        name={advisor.name}
+                        title={advisor.title}
+                        status={advisor.status}
+                        schedule={advisor.schedule}
+                        time={advisor.time}
+                        mode={advisor.mode}
+                        coursesTaught={advisor.coursesTaught}
+                        onBookClick={() => handleBookClick(advisor.name)}
+                      />
+                    ))}
               </div>
             </section>
 
@@ -277,12 +289,14 @@ export default function AdvisorListPage() {
                     {displayedAdvisors.map(advisor => (
                       <AdvisorCard
                         key={advisor.id}
+                        advisorId={advisor.id}
                         name={advisor.name}
                         title={advisor.title}
                         status={advisor.status}
                         schedule={advisor.schedule}
                         time={advisor.time}
                         mode={advisor.mode}
+                        coursesTaught={advisor.coursesTaught}
                         onBookClick={() => handleBookClick(advisor.name)}
                       />
                     ))}

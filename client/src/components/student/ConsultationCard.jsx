@@ -1,8 +1,8 @@
 import React from "react";
-import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle } from "react-icons/bs";
+import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
 import "./ConsultationCard.css";
 
-function ConsultationCard({ consultation, onActionClick }) {
+function ConsultationCard({ consultation, onActionClick, onDelete }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -17,7 +17,7 @@ function ConsultationCard({ consultation, onActionClick }) {
       case 'approved':
         return { text: 'Approved', icon: <BsCheckCircle />, class: 'status-approved' };
       case 'pending':
-        return { text: 'Pending', icon: <BsClockHistory />, class: 'status-pending' };
+        return { text: 'Awaiting Approval', icon: <BsClockHistory />, class: 'status-pending' };
       case 'declined':
         return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
       case 'completed':
@@ -32,8 +32,6 @@ function ConsultationCard({ consultation, onActionClick }) {
   const getActionButtonText = () => {
     if (consultation.status === 'pending') {
       return 'Cancel';
-    } else if (consultation.status === 'declined') {
-      return 'Reschedule';
     } else if (consultation.mode === 'online') {
       return 'Join';
     } else {
@@ -44,13 +42,28 @@ function ConsultationCard({ consultation, onActionClick }) {
   const getActionButtonClass = () => {
     if (consultation.status === 'pending') {
       return 'consultation-card-action-btn cancel';
-    } else if (consultation.status === 'declined') {
-      return 'consultation-card-action-btn reschedule';
     } else if (consultation.mode === 'online') {
       return 'consultation-card-action-btn online';
     } else {
       return 'consultation-card-action-btn in-person';
     }
+  };
+
+  const shouldShowActionButton = () => {
+    return consultation.status !== 'declined';
+  };
+
+  const handleDeleteConsultation = (e) => {
+    e.stopPropagation();
+    if (onDelete) {
+      onDelete(consultation);
+    }
+  };
+
+  const handleRescheduleConsultation = (e) => {
+    e.stopPropagation();
+    console.log('Reschedule consultation:', consultation.id);
+    // Add reschedule logic here
   };
 
   const statusInfo = getStatusInfo();
@@ -98,17 +111,44 @@ function ConsultationCard({ consultation, onActionClick }) {
             <span className="location-text">{consultation.location}</span>
           </div>
         )}
+        
+        {consultation.status === 'declined' && consultation.declineReason && (
+          <div className="consultation-card-decline-reason">
+            <div className="decline-reason-label">Reason:</div>
+            <div className="decline-reason-text">{consultation.declineReason}</div>
+          </div>
+        )}
       </div>
       
-      <div className="consultation-card-footer">
-        <button 
-          className={getActionButtonClass()}
-          onClick={onActionClick}
-        >
-          {getActionButtonText()}
-          <BsChevronRight className="action-icon" />
-        </button>
-      </div>
+      {shouldShowActionButton() && (
+        <div className="consultation-card-footer">
+          <button 
+            className={getActionButtonClass()}
+            onClick={onActionClick}
+          >
+            {getActionButtonText()}
+            <BsChevronRight className="action-icon" />
+          </button>
+        </div>
+      )}
+      
+      {consultation.status === 'declined' && (
+        <div className="consultation-card-footer declined-actions">
+          <button 
+            className="consultation-card-action-btn delete"
+            onClick={handleDeleteConsultation}
+            title="Delete consultation"
+          >
+            <BsTrash className="delete-icon" />
+          </button>
+          <button 
+            className="consultation-card-action-btn reschedule"
+            onClick={handleRescheduleConsultation}
+          >
+            Reschedule
+          </button>
+        </div>
+      )}
     </div>
   );
 }

@@ -1,15 +1,17 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Badge, Carousel } from "react-bootstrap";
+import { useNavigate } from "react-router-dom";
 import { FaPlay, FaArrowRight, FaRegCircle } from "react-icons/fa";
 import { BsCalendarCheck, BsPeople, BsFileEarmarkText, BsBarChart, BsClock, BsPersonCircle } from "react-icons/bs";
 import Logo from "../assets/logo.png";
-import AdvisorCard from "../components/AdvisorCard";
-import AuthModal from "../components/AuthModal";
+import AdvisorCard from "../components/student/AdvisorCard";
+import AuthModal from "../components/student/AuthModal";
 import "./Home.css";
 
 function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const navigate = useNavigate();
 
 
   const handleAuthSuccess = (authData) => {
@@ -118,7 +120,13 @@ function Home() {
           </div>
           <div className="d-flex align-items-center justify-content-between mb-3">
             <h5 className="mb-0 fw-semibold">Available Today</h5>
-            <a href="#" className="view-all-link">View All ▸</a>
+            <button 
+              onClick={() => navigate('/student-dashboard/advisors')} 
+              className="view-all-link"
+              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+            >
+              View All ▸
+            </button>
           </div>
           <Row className="g-4">
             {Array.from({ length: 3 }).map((_, idx) => (
@@ -143,9 +151,26 @@ function Home() {
             <div className="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
               <div className="small text-muted"> 2025 AdviSys</div>
               <div className="footer-links small">
-                <a href="#" className="me-3">Privacy</a>
-                <a href="#" className="me-3">Terms</a>
-                <a href="#">Contact</a>
+                <button 
+                  onClick={() => navigate('/student-dashboard/advisors')} 
+                  className="me-3"
+                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                >
+                  Privacy
+                </button>
+                <button 
+                  onClick={() => navigate('/student-dashboard/advisors')} 
+                  className="me-3"
+                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                >
+                  Terms
+                </button>
+                <button 
+                  onClick={() => navigate('/student-dashboard/advisors')}
+                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                >
+                  Contact
+                </button>
               </div>
             </div>
           </Container>

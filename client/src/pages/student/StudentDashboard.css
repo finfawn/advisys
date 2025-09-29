@@ -117,7 +117,6 @@
 .section-title { font-weight: 700; margin-bottom: 10px; padding: 0 2px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .section-head .view-all-link { color: #2d5bd1; text-decoration: none; }
-.section-head .view-all-link:hover { text-decoration: underline; }
 /* Panel container to house Available Today */
 .section-panel { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; padding: 20px; box-shadow: none; }
 
@@ -500,41 +499,35 @@
   background: #fff;
   border: 1px solid rgba(0,0,0,0.06);
   border-radius: 12px;
+  display: flex;
+  flex-direction: column;
 }
-.up-header { font-weight: 700; padding: 12px 14px; border-bottom: 1px solid rgba(0,0,0,0.06); }
-.up-list { list-style: none; margin: 0; padding: 0; }
-.up-item { display: grid; grid-template-columns: 60px 1fr 24px; align-items: center; gap: 10px; padding: 10px 12px; border-bottom: 1px solid rgba(0,0,0,0.06); }
-.up-item:last-child { border-bottom: 0; }
-.up-item .date { display: grid; place-items: center; width: 54px; height: 54px; border-radius: 12px; background: #eef7ff; color: #2d5bd1; text-align: center; }
-.up-item .date .dow { font-size: 0.8rem; color: #d97706; }
-.up-item .date .dom { font-weight: 700; font-size: 1.1rem; }
-.up-item.em { background: #fff5f6; }
-.up-item .meta .faculty { font-weight: 600; }
-.up-item .meta .time { color: #6b7280; font-size: 0.9rem; }
-.up-item .go { display: grid; place-items: center; color: #9aa2b1; }
+.up-header { 
+  font-weight: 700; 
+  padding: 16px 18px; 
+  border-bottom: 1px solid rgba(0,0,0,0.06); 
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.upcoming-consultations-list {
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  overflow-y: auto;
+}
 
 @media (min-width: 992px) {
   .upcoming { min-height: 100%; }
 }
 
-.up-item .date .dow { font-size: 0.8rem; color: #d97706; }
-
-.up-item .date .dom { font-weight: 700; font-size: 1.1rem; }
-
-.up-item.em { background: #fff5f6; }
-
-.up-item .meta .faculty { font-weight: 600; }
-
-.up-item .meta .time { color: #6b7280; font-size: 0.9rem; }
-
-.up-item .go { display: grid; place-items: center; color: #9aa2b1; }
-
-
-
-@media (min-width: 992px) {
-
-  .upcoming { min-height: 100%; }
-
+/* Responsive adjustments for upcoming consultations */
+@media (max-width: 768px) {
+  .up-header {
+    padding: 14px 16px;
+    font-size: 0.95rem;
+  }
 }
 
 

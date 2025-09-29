@@ -5,16 +5,17 @@ import "react-calendar/dist/Calendar.css";
 import { Button } from "react-bootstrap";
 import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck } from "react-icons/bs";
 import { FaUserTie } from "react-icons/fa";
-import AdvisorCard from "../components/AdvisorCard";
-import TopNavbar from "../components/TopNavbar";
-import Sidebar from "../components/Sidebar";
+import AdvisorCard from "../../components/student/AdvisorCard";
+import CompactConsultationCard from "../../components/student/CompactConsultationCard";
+import TopNavbar from "../../components/student/TopNavbar";
+import Sidebar from "../../components/student/Sidebar";
+import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentDashboard.css";
 
 export default function StudentDashboard() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-  const toggleSidebar = () => setCollapsed((v) => !v);
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -28,6 +29,133 @@ export default function StudentDashboard() {
     } else if (page === 'logout') {
       // Handle logout
       console.log('Logout');
+    }
+  };
+
+  // Mock data for upcoming consultations (limited to 3-4 for dashboard)
+  const allConsultations = [
+    {
+      id: 1,
+      date: "2025-10-05",
+      time: "10:00 AM - 10:30 AM",
+      topic: "Course Selection for Next Semester",
+      faculty: {
+        name: "Dr. Maria Santos",
+        title: "Professor of Computer Science",
+        avatar: <BsPersonCircle />
+      },
+      mode: "online",
+      status: "approved",
+      meetingLink: "https://meet.google.com/abc-defg-hij"
+    },
+    {
+      id: 2,
+      date: "2025-10-08",
+      time: "2:00 PM - 2:30 PM",
+      topic: "Research Project Discussion",
+      faculty: {
+        name: "Prof. John Cruz",
+        title: "Associate Professor of Mathematics",
+        avatar: <BsPersonCircle />
+      },
+      mode: "in-person",
+      status: "approved",
+      location: "Room 205, Math Building"
+    },
+    {
+      id: 3,
+      date: "2025-10-10",
+      time: "11:00 AM - 11:30 AM",
+      topic: "Career Guidance",
+      faculty: {
+        name: "Ms. Sarah Reyes",
+        title: "Assistant Professor of Physics",
+        avatar: <BsPersonCircle />
+      },
+      mode: "online",
+      status: "pending",
+      meetingLink: "https://zoom.us/j/123456789"
+    },
+    {
+      id: 4,
+      date: "2025-10-12",
+      time: "3:00 PM - 3:30 PM",
+      topic: "Thesis Proposal Review",
+      faculty: {
+        name: "Dr. Michael Dela Cruz",
+        title: "Professor of Chemistry",
+        avatar: <BsPersonCircle />
+      },
+      mode: "in-person",
+      status: "approved",
+      location: "Office 301, Chemistry Building"
+    },
+    {
+      id: 5,
+      date: "2025-10-15",
+      time: "9:00 AM - 9:30 AM",
+      topic: "Academic Performance Review",
+      faculty: {
+        name: "Prof. Lisa Garcia",
+        title: "Associate Professor of Biology",
+        avatar: <BsPersonCircle />
+      },
+      mode: "online",
+      status: "approved",
+      meetingLink: "https://teams.microsoft.com/l/meetup-join/..."
+    },
+    {
+      id: 6,
+      date: "2025-10-18",
+      time: "1:00 PM - 1:30 PM",
+      topic: "Internship Application Guidance",
+      faculty: {
+        name: "Dr. Robert Martinez",
+        title: "Professor of Engineering",
+        avatar: <BsPersonCircle />
+      },
+      mode: "in-person",
+      status: "approved",
+      location: "Conference Room A, Engineering Building"
+    },
+    {
+      id: 7,
+      date: "2025-10-20",
+      time: "2:30 PM - 3:00 PM",
+      topic: "Graduate School Applications",
+      faculty: {
+        name: "Dr. Jennifer Lee",
+        title: "Professor of Psychology",
+        avatar: <BsPersonCircle />
+      },
+      mode: "online",
+      status: "approved",
+      meetingLink: "https://zoom.us/j/987654321"
+    },
+    {
+      id: 8,
+      date: "2025-10-22",
+      time: "10:30 AM - 11:00 AM",
+      topic: "Research Methodology Discussion",
+      faculty: {
+        name: "Prof. David Kim",
+        title: "Associate Professor of Statistics",
+        avatar: <BsPersonCircle />
+      },
+      mode: "in-person",
+      status: "approved",
+      location: "Lab 101, Statistics Building"
+    }
+  ];
+
+  // Filter to show only approved consultations for dashboard
+  const upcomingConsultations = allConsultations.filter(consultation => consultation.status === 'approved');
+
+  const handleJoinConsultation = (consultation) => {
+    if (consultation.mode === 'online' && consultation.meetingLink) {
+      window.open(consultation.meetingLink, '_blank');
+    } else {
+      console.log('Show details for in-person consultation:', consultation);
     }
   };
 
@@ -53,18 +181,21 @@ export default function StudentDashboard() {
                       sub: "Reserve a slot and meet with your faculty advisor.",
                       cta: "Book Now",
                       Icon: BsCalendarCheck,
+                      navigateTo: 'advisors',
                     },
                     {
                       title: "Manage Appointments",
                       sub: "Review upcoming and past sessions in one place.",
                       cta: "View Appointments",
                       Icon: BsCalendarCheck,
+                      navigateTo: 'consultations',
                     },
                     {
                       title: "Explore Faculty Advisors",
                       sub: "Browse profiles to find the right mentor for you.",
                       cta: "Browse Faculty",
                       Icon: BsPeople,
+                      navigateTo: 'advisors',
                     },
                   ];
                   const [active, setActive] = useState(0);
@@ -77,6 +208,12 @@ export default function StudentDashboard() {
                   const CurrentIcon = slides[active].Icon;
                   const goPrev = () => setActive((i) => (i - 1 + slides.length) % slides.length);
                   const goNext = () => setActive((i) => (i + 1) % slides.length);
+                  const handleCtaClick = () => {
+                    const currentSlide = slides[active];
+                    if (currentSlide.navigateTo) {
+                      handleNavigation(currentSlide.navigateTo);
+                    }
+                  };
                   return (
                     <>
                       <div className="glass-card h-100">
@@ -95,7 +232,7 @@ export default function StudentDashboard() {
                             ))}
                           </div>
                           <div className="gc-actions">
-                            <Button size="lg" className="btn-gradient">{slides[active].cta}</Button>
+                            <Button size="lg" className="btn-gradient" onClick={handleCtaClick}>{slides[active].cta}</Button>
                           </div>
                         </div>
                         <div className="gc-arrows" aria-hidden>
@@ -128,22 +265,26 @@ export default function StudentDashboard() {
             {/* Right column: Upcoming */}
             <div className="col-12 col-lg-4">
               <aside className="upcoming h-100">
-                <div className="up-header">Upcoming Consultations</div>
-                <ul className="up-list">
-                  {[{day:"Fri", date:"14"},{day:"Sat", date:"15"},{day:"Sat", date:"15"},{day:"Sat", date:"15"}].map((d, i) => (
-                    <li key={i} className={`up-item ${i===0 ? "em" : ""}`}>
-                      <div className="date">
-                        <div className="dow">{d.day}</div>
-                        <div className="dom">{d.date}</div>
-                      </div>
-                      <div className="meta">
-                        <div className="faculty">Faculty name</div>
-                        <div className="time">10:00am – 10:30am</div>
-                      </div>
-                      <div className="go"><BsChevronRight /></div>
-                    </li>
+                <div className="up-header">
+                  <span>Upcoming Consultations</span>
+                  <button 
+                    onClick={() => handleNavigation('consultations')} 
+                    className="view-all-link"
+                    style={{ background: 'none', border: 'none', color: '#2d5bd1', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500' }}
+                  >
+                    View All ▸
+                  </button>
+                </div>
+                <div className="upcoming-consultations-list">
+                  {upcomingConsultations.slice(0, 3).map(consultation => (
+                    <CompactConsultationCard
+                      key={consultation.id}
+                      consultation={consultation}
+                      onActionClick={() => handleJoinConsultation(consultation)}
+                      onDelete={() => console.log('Delete consultation:', consultation.id)}
+                    />
                   ))}
-                </ul>
+                </div>
               </aside>
             </div>
           </div>
@@ -184,19 +325,28 @@ export default function StudentDashboard() {
               <div className="section-panel">
                 <div className="section-head">
                   <div className="section-title mb-0">Available Today</div>
-                  <a href="#" className="view-all-link">View All ▸</a>
+                  <button 
+                    onClick={() => handleNavigation('advisors')} 
+                    className="view-all-link"
+                    style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
+                    View All ▸
+                  </button>
                 </div>
                 <div className="available-fixed-grid">
               {Array.from({ length: 2 }).map((_, idx) => (
                 <AdvisorCard 
                   key={idx}
-                  name="Lorem Ipsum"
-                  title="Academic Title"
+                  advisorId={idx + 1}
+                  name="Dr. Maria Santos"
+                  title="Professor of Computer Science"
                   status="Available"
                   schedule="Tue, Thu"
                   time="10:00 AM–01:00 PM"
                   mode="In-person/Online"
+                  coursesTaught={["CS 101", "CS 301", "CS 401"]}
                   onBookClick={() => console.log('Book consultation clicked')}
+                  onNavigateToConsultations={() => handleNavigation('consultations')}
                 />
               ))}
                 </div>
