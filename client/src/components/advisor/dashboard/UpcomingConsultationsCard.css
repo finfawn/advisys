@@ -1,64 +1,334 @@
 
-/* Scoped styles for advisor dashboard UpcomingConsultationsCard */
-.advisor-dashboard-card {
+/* Upcoming Consultations Card - Using CompactConsultationCard design */
+.upcoming-consultations-card {
   background: #fff;
   border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-.advisor-dashboard-card .card-header {
+.upcoming-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.upcoming-card-title {
   font-size: 1.25rem;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
-
-.advisor-dashboard-card .upcoming-list {
-  list-style: none;
-  padding: 0;
+  font-weight: 700;
+  color: #1f2937;
   margin: 0;
 }
 
-.advisor-dashboard-card .upcoming-item {
+.upcoming-view-all {
   display: flex;
   align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.advisor-dashboard-card .upcoming-item:last-child {
-  border-bottom: none;
-}
-
-.advisor-dashboard-card .upcoming-date {
-  text-align: center;
-  margin-right: 16px;
-}
-
-.advisor-dashboard-card .upcoming-day {
+  gap: 4px;
+  color: #2563eb;
+  text-decoration: none;
   font-size: 0.875rem;
-  color: #6b7280;
+  font-weight: 500;
+  transition: color 0.2s ease;
 }
 
-.advisor-dashboard-card .upcoming-number {
-  font-size: 1.25rem;
+.upcoming-view-all:hover {
+  color: #1d4ed8;
+  text-decoration: none;
+}
+
+.view-all-icon {
+  font-size: 0.75rem;
+}
+
+.upcoming-consultations-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* CompactConsultationCard styles - copied from student component */
+.compact-consultation-card {
+  display: grid;
+  grid-template-columns: 70px 1fr 80px;
+  align-items: center;
+  gap: 10px;
+  padding: 16px 12px;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+  transition: background-color 0.2s ease;
+  min-height: 70px;
+}
+
+.compact-consultation-card:last-child {
+  border-bottom: 0;
+}
+
+.compact-consultation-card:hover {
+  background: rgba(0,0,0,0.02);
+}
+
+.compact-date-section {
+  display: flex;
+  justify-content: center;
+}
+
+.compact-date {
+  display: grid;
+  place-items: center;
+  width: 65px;
+  height: 65px;
+  border-radius: 12px;
+  background: #eef7ff;
+  color: #2d5bd1;
+  text-align: center;
+}
+
+.compact-dow {
+  font-size: 0.75rem;
+  color: #d97706;
   font-weight: 600;
 }
 
-.advisor-dashboard-card .upcoming-details {
-  flex: 1;
+.compact-dom {
+  font-weight: 700;
+  font-size: 1.2rem;
 }
 
-.advisor-dashboard-card .upcoming-title {
-  font-size: 1rem;
+.compact-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.compact-faculty-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.compact-faculty-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.9rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-faculty-title {
+  color: #666;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.compact-time-info {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: #666;
+  font-size: 0.8rem;
+}
+
+.time-icon {
+  font-size: 0.85rem;
+  color: #667eea;
+}
+
+.time-text {
   font-weight: 500;
 }
 
-.advisor-dashboard-card .upcoming-time {
-  font-size: 0.875rem;
-  color: #6b7280;
+.compact-badges {
+  display: flex;
+  gap: 4px;
+  margin-top: 1px;
 }
 
-.advisor-dashboard-card .upcoming-arrow {
-  color: #9ca3af;
+.compact-mode-indicator {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+}
+
+.compact-mode-indicator.online {
+  color: #2563eb;
+}
+
+.compact-mode-indicator.in-person {
+  color: #d97706;
+}
+
+.mode-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.compact-mode-indicator.online .mode-dot {
+  background: #2563eb;
+}
+
+.compact-mode-indicator.in-person .mode-dot {
+  background: #d97706;
+}
+
+.mode-text {
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: inherit;
+}
+
+.compact-action {
+  display: flex;
+  justify-content: center;
+}
+
+.upcoming-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.25rem;
+  padding: 7px 12px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 70px;
+}
+
+.upcoming-action-btn.online {
+  background: #10b981;
+  color: white;
+}
+
+.upcoming-action-btn.online:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.upcoming-action-btn.details {
+  background: #6366f1;
+  color: white;
+}
+
+.upcoming-action-btn.details:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+
+.upcoming-action-btn.join {
+  background: #10b981;
+  color: white;
+}
+
+.upcoming-action-btn.join:hover {
+  background: #059669;
+  transform: translateY(-1px);
+}
+
+.action-icon {
+  font-size: 0.75rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .compact-consultation-card {
+    grid-template-columns: 60px 1fr 70px;
+    gap: 8px;
+    padding: 12px 10px;
+    min-height: 60px;
+  }
+  
+  .compact-date {
+    width: 55px;
+    height: 55px;
+  }
+  
+  .compact-dow {
+    font-size: 0.7rem;
+  }
+  
+  .compact-dom {
+    font-size: 1rem;
+  }
+  
+  .compact-faculty-name {
+    font-size: 0.85rem;
+  }
+  
+  .compact-faculty-title {
+    font-size: 0.75rem;
+  }
+  
+  .compact-time-info {
+    font-size: 0.75rem;
+  }
+  
+  .upcoming-action-btn {
+    padding: 5px 8px;
+    font-size: 0.7rem;
+    min-width: 60px;
+  }
+  
+  .compact-badges {
+    gap: 3px;
+  }
+  
+  .compact-mode-indicator {
+    font-size: 0.75rem;
+  }
+  
+  .compact-mode-indicator .mode-dot {
+    width: 5px;
+    height: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .compact-consultation-card {
+    grid-template-columns: 50px 1fr 60px;
+    gap: 6px;
+    padding: 8px 8px;
+    min-height: 50px;
+  }
+  
+  .compact-date {
+    width: 45px;
+    height: 45px;
+  }
+  
+  .compact-dow {
+    font-size: 0.65rem;
+  }
+  
+  .compact-dom {
+    font-size: 0.9rem;
+  }
+  
+  .compact-faculty-name {
+    font-size: 0.8rem;
+  }
+  
+  .compact-faculty-title {
+    font-size: 0.7rem;
+  }
+  
+  .compact-time-info {
+    font-size: 0.7rem;
+  }
+  
+  .upcoming-action-btn {
+    padding: 4px 6px;
+    font-size: 0.65rem;
+    min-width: 50px;
+  }
 }
