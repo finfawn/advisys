@@ -1,0 +1,29 @@
+
+.dashboard-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card-header {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.average-session-length {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 120px;
+  font-size: 3rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.average-session-length span {
+  font-size: 1.5rem;
+  color: #6b7280;
+  margin-left: 4px;
+}

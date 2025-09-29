@@ -1,0 +1,53 @@
+
+.dashboard-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.card-header {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.topic-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.topic-bar-container {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  position: relative;
+}
+
+.topic-bar-background {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.topic-name {
+  position: relative;
+  z-index: 1;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+.topic-count {
+  font-size: 0.875rem;
+  color: #6b7280;
+}

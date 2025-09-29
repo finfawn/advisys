@@ -1,4 +1,5 @@
 import React from "react";
+import "./TopTopicsCard.css";
 
 export default function TopTopicsCard() {
   const topics = [

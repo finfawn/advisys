@@ -1,5 +1,6 @@
 import React from "react";
 import LineChart from "./LineChart";
+import "./ConsultationTrendCard.css";
 
 export default function ConsultationTrendCard() {
   const data = [
@@ -21,20 +22,12 @@ export default function ConsultationTrendCard() {
   ];
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card consultation-trend-card">
       <div className="card-header">
         <h3 className="card-title">Consultation Trend</h3>
-        <div style={{ 
-          display: "flex", 
-          alignItems: "center", 
-          gap: "8px",
-          padding: "6px 12px",
-          background: "#f8fafc",
-          borderRadius: "8px",
-          border: "1px solid #e2e8f0"
-        }}>
-          <span style={{ fontSize: "0.9rem", color: "#374151" }}>This Month</span>
-          <span style={{ color: "#6b7280" }}>▼</span>
+        <div className="dropdown">
+          <span className="dropdown-label">This Month</span>
+          <span className="dropdown-icon">▼</span>
         </div>
       </div>
       <div className="chart-container">
