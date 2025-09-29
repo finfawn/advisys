@@ -511,7 +511,8 @@ export default function MyConsultationsPage() {
     if (consultation.mode === 'online' && consultation.meetingLink) {
       window.open(consultation.meetingLink, '_blank');
     } else {
-      console.log('Show details for in-person consultation:', consultation);
+      // Navigate to consultation details page for in-person consultations
+      navigate(`/student-dashboard/consultations/${consultation.id}`);
     }
   };
 
@@ -520,6 +521,18 @@ export default function MyConsultationsPage() {
     // Here you could open a modal or navigate to a details page
     // For now, we'll just log the consultation details
     alert(`Consultation Details:\n\nTopic: ${consultation.topic}\nFaculty: ${consultation.faculty.name}\nDate: ${consultation.date}\nTime: ${consultation.time}\nMode: ${consultation.mode}\nStatus: ${consultation.status}`);
+  };
+
+  const handleCancelConsultation = (consultation) => {
+    console.log('Cancelling consultation:', consultation);
+    // Here you would implement the cancel logic
+    // For now, we'll just show a confirmation and remove it from the list
+    if (window.confirm(`Are you sure you want to cancel the consultation "${consultation.topic}" with ${consultation.faculty.name}?`)) {
+      // Remove from upcoming consultations
+      setRequestConsultationsState(prev => prev.filter(item => item.id !== consultation.id));
+      // You might want to add it to a cancelled state or send to backend
+      console.log('Consultation cancelled:', consultation.id);
+    }
   };
 
   return (
@@ -595,6 +608,7 @@ export default function MyConsultationsPage() {
                       key={consultation.id}
                       consultation={consultation}
                       onActionClick={() => handleJoinConsultation(consultation)}
+                      onCancel={handleCancelConsultation}
                     />
                   ))}
                   
@@ -627,6 +641,7 @@ export default function MyConsultationsPage() {
                       consultation={consultation}
                       onActionClick={() => handleJoinConsultation(consultation)}
                       onDelete={handleDeleteDeclinedConsultation}
+                      onCancel={handleCancelConsultation}
                     />
                   ))}
                   

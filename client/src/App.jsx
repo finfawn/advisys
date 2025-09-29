@@ -6,6 +6,7 @@ import StudentDashboard from "./pages/student/StudentDashboard";
 import AdvisorListPage from "./pages/student/AdvisorListPage";
 import AdvisorProfilePage from "./pages/student/AdvisorProfilePage";
 import MyConsultationsPage from "./pages/student/MyConsultationsPage";
+import ConsultationDetailsPage from "./pages/student/ConsultationDetailsPage";
 
 function App() {
   return (
@@ -17,6 +18,7 @@ function App() {
           <Route path="/student-dashboard/advisors" element={<AdvisorListPage />} />
           <Route path="/student-dashboard/advisors/:advisorId" element={<AdvisorProfilePage />} />
           <Route path="/student-dashboard/consultations" element={<MyConsultationsPage />} />
+          <Route path="/student-dashboard/consultations/:consultationId" element={<ConsultationDetailsPage />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

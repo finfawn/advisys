@@ -2,7 +2,7 @@ import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
 import "./ConsultationCard.css";
 
-function ConsultationCard({ consultation, onActionClick, onDelete }) {
+function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -66,6 +66,13 @@ function ConsultationCard({ consultation, onActionClick, onDelete }) {
     // Add reschedule logic here
   };
 
+  const handleCancelConsultation = (e) => {
+    e.stopPropagation();
+    if (onCancel) {
+      onCancel(consultation);
+    }
+  };
+
   const statusInfo = getStatusInfo();
 
   return (
@@ -122,13 +129,33 @@ function ConsultationCard({ consultation, onActionClick, onDelete }) {
       
       {shouldShowActionButton() && (
         <div className="consultation-card-footer">
-          <button 
-            className={getActionButtonClass()}
-            onClick={onActionClick}
-          >
-            {getActionButtonText()}
-            <BsChevronRight className="action-icon" />
-          </button>
+          {consultation.status === 'approved' ? (
+            <>
+              <button 
+                className={getActionButtonClass()}
+                onClick={onActionClick}
+              >
+                {getActionButtonText()}
+                <BsChevronRight className="action-icon" />
+              </button>
+              <button 
+                className="consultation-card-action-btn cancel"
+                onClick={handleCancelConsultation}
+                title="Cancel consultation"
+              >
+                <BsXCircle className="cancel-icon" />
+                Cancel
+              </button>
+            </>
+          ) : (
+            <button 
+              className={getActionButtonClass()}
+              onClick={onActionClick}
+            >
+              {getActionButtonText()}
+              <BsChevronRight className="action-icon" />
+            </button>
+          )}
         </div>
       )}
       
