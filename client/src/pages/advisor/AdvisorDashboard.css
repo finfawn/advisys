@@ -1,0 +1,499 @@
+/* Advisor Dashboard Layout */
+.advisor-dash-wrap {
+  min-height: 100vh;
+  background: #f5f7fb;
+  color: #1f2937;
+}
+
+/* Body layout with animated sidebar width */
+.advisor-dash-body {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  /* sidebar + main */
+  transition: grid-template-columns 240ms ease;
+}
+
+.advisor-dash-body.collapsed {
+  grid-template-columns: 76px 1fr;
+}
+
+/* Main content area */
+.advisor-dash-main {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Header Section */
+.advisor-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.advisor-greeting h1 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0;
+  margin-bottom: 4px;
+}
+
+.advisor-greeting h2 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0;
+}
+
+.advisor-nav {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-icon {
+  width: 24px;
+  height: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.nav-icon:hover {
+  color: #374151;
+}
+
+.faculty-name {
+  font-weight: 600;
+  color: #374151;
+  font-size: 1rem;
+}
+
+/* Dashboard Grid */
+.dashboard-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.dashboard-row {
+  display: grid;
+  gap: 20px;
+  align-items: stretch;
+  /* ensure all columns match tallest card height */
+}
+
+/* Top row: 3 cards + stacked cards */
+.dashboard-row:first-child {
+  grid-template-columns: 1.5fr 0.5fr 1fr;
+}
+
+/* Stacked cards container */
+.stacked-cards {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  height: 100%;
+  /* fill grid row height so children can split evenly */
+}
+
+/* Split stacked cards evenly and allow inner content to layout */
+.stacked-cards>.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  /* fix flex overflow in some browsers */
+}
+
+/* Bottom row: 2 cards */
+.dashboard-row:last-child {
+  grid-template-columns: 2fr 1fr;
+}
+
+/* Responsive Design */
+@media (max-width: 1200px) {
+  .dashboard-row:first-child {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .stacked-cards {
+    grid-row: span 2;
+  }
+
+  .dashboard-row:last-child {
+    grid-template-columns: 2fr 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .advisor-dash-main {
+    padding: 16px;
+    gap: 16px;
+  }
+
+  .dashboard-row:first-child,
+  .dashboard-row:last-child {
+    grid-template-columns: 1fr;
+  }
+
+  .stacked-cards {
+    grid-row: auto;
+  }
+
+  .advisor-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .advisor-greeting h1 {
+    font-size: 1.25rem;
+  }
+
+  .advisor-greeting h2 {
+    font-size: 1.5rem;
+  }
+}
+
+/* Card Base Styles */
+.dashboard-card {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.dashboard-card:hover {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+/* Card Headers */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.card-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0;
+}
+
+/* Chart Containers */
+.chart-container {
+  width: 100%;
+  height: 200px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+/* Bar Chart Styles */
+.bar-chart {
+  display: flex;
+  align-items: end;
+  gap: 8px;
+  height: 120px;
+  width: 100%;
+}
+
+.bar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  transition: opacity 0.2s ease;
+}
+
+.bar:hover {
+  opacity: 0.8;
+}
+
+.bar-legend {
+  display: flex;
+  gap: 16px;
+  margin-top: 12px;
+  flex-wrap: wrap;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.legend-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+/* Consultation Mode Card Styles */
+.consultation-mode-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.donut-chart-container {
+  position: relative;
+  width: 80px;
+  height: 80px;
+  margin: 0 auto;
+}
+
+.donut-svg {
+  width: 80px;
+  height: 80px;
+}
+
+.donut-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  text-align: center;
+}
+
+.donut-percentage {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1f2937;
+  line-height: 1;
+}
+
+.donut-label {
+  font-size: 0.7rem;
+  color: #6b7280;
+  margin-top: 2px;
+  line-height: 1;
+}
+
+.consultation-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  align-items: center;
+}
+
+.consultation-legend .legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.legend-square {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
+.legend-text {
+  font-size: 0.85rem;
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Top Topics Card Styles */
+.topics-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.topics-header {
+  margin-bottom: 8px;
+}
+
+.topics-header-text {
+  font-size: 0.9rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.topic-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  height: 32px;
+}
+
+.topic-bar-container {
+  position: relative;
+  flex: 1;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  margin-right: 12px;
+}
+
+.topic-bar-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background-color: #f3f4f6;
+  border-radius: 4px;
+  z-index: 1;
+}
+
+.topic-name {
+  position: relative;
+  z-index: 2;
+  font-size: 0.9rem;
+  color: #1f2937;
+  font-weight: 500;
+  padding: 0 8px;
+  white-space: nowrap;
+}
+
+.topic-count {
+  font-size: 0.9rem;
+  color: #1f2937;
+  font-weight: 500;
+  min-width: 40px;
+  text-align: right;
+}
+
+/* Line Chart Styles */
+.line-chart {
+  width: 100%;
+  height: 160px;
+  position: relative;
+}
+
+.line-chart svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* Topic List Styles */
+.topic-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.topic-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.topic-name {
+  flex: 1;
+  font-weight: 500;
+  color: #374151;
+}
+
+.topic-count {
+  font-weight: 600;
+  color: #1f2937;
+  margin-right: 8px;
+}
+
+.topic-bar {
+  flex: 1;
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.topic-bar-fill {
+  height: 100%;
+  background: #3b82f6;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Upcoming Consultations */
+.upcoming-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.upcoming-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.upcoming-item:hover {
+  background: #f9fafb;
+}
+
+.upcoming-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 40px;
+}
+
+.upcoming-day {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.upcoming-number {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.upcoming-details {
+  flex: 1;
+}
+
+.upcoming-title {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.upcoming-time {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.upcoming-arrow {
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+/* Status indicators */
+.status-em {
+  background: #fef2f2;
+}
+
+.status-normal {
+  background: #f0fdf4;
+}

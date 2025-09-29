@@ -1,0 +1,68 @@
+/* Scoped styles for UpcomingConsultationsCard */
+.upcoming-card .upcoming-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.upcoming-card .upcoming-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.upcoming-card .upcoming-item:hover {
+  background: #f9fafb;
+}
+
+.upcoming-card .upcoming-date {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 40px;
+}
+
+.upcoming-card .upcoming-day {
+  font-size: 0.8rem;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.upcoming-card .upcoming-number {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.upcoming-card .upcoming-details {
+  flex: 1;
+}
+
+.upcoming-card .upcoming-title {
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 2px;
+}
+
+.upcoming-card .upcoming-time {
+  font-size: 0.85rem;
+  color: #6b7280;
+}
+
+.upcoming-card .upcoming-arrow {
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+/* Status indicators */
+.upcoming-card .status-em {
+  background: #fef2f2;
+}
+
+.upcoming-card .status-normal {
+  background: #f0fdf4;
+}
