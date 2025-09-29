@@ -1,5 +1,5 @@
 import React from "react";
-import styles from "./BarChart.css";
+import "./BarChart.css";
 
 export default function BarChart({ data }) {
   const maxValue = 100; // Assuming data.value are percentages out of 100
@@ -18,30 +18,30 @@ export default function BarChart({ data }) {
   };
 
   return (
-    <div className={styles.container}>
+    <div className="container">
       {/* --- Bar Chart Section --- */}
-      <div className={styles.barChartContainer}>
+      <div className="barChartContainer">
         {/* Mock Y-axis lines and labels from the image */}
-        <div className={styles.axisContainer}>
+        <div className="axisContainer">
           {/* Top axis line */}
-          <div className={styles.axisLineTop} />
+          <div className="axisLineTop" />
           {/* Middle axis line */}
-          <div className={styles.axisLineMiddle} />
+          <div className="axisLineMiddle" />
           {/* Mock Y-axis labels */}
-          <div className={styles.yAxisLabelTop}>00</div>
-          <div className={styles.yAxisLabelBottom}>00</div>
+          <div className="yAxisLabelTop">00</div>
+          <div className="yAxisLabelBottom">00</div>
         </div>
         
-        <div className={styles.barChart}>
+        <div className="barChart">
           {data.map((item, index) => (
             <div
               key={index}
-              className={styles.barFullHeight}
+              className="barFullHeight"
               title={`${item.label}: ${item.value}%`}
             >
               {/* The actual colored bar for the value */}
               <div
-                className={styles.barColored}
+                className="barColored"
                 style={{
                   height: `${(item.value / maxValue) * 100}%`,
                   backgroundColor: getBarColor(item.label),
@@ -53,19 +53,19 @@ export default function BarChart({ data }) {
       </div>
 
       {/* --- Legend Section --- */}
-      <div className={styles.barLegend}>
+      <div className="barLegend">
         {data.map((item, index) => (
-          <div key={index} className={styles.legendItem}>
-            <div className={styles.legendLeft}>
+          <div key={index} className="legendItem">
+            <div className="legendLeft">
               <div
-                className={styles.legendDot}
+                className="legendDot"
                 style={{ backgroundColor: getBarColor(item.label) }}
               />
-              <span className={styles.legendLabel}>
+              <span className="legendLabel">
                 {item.label}
               </span>
             </div>
-            <span className={styles.legendValue}>
+            <span className="legendValue">
               {item.value}%
             </span>
           </div>

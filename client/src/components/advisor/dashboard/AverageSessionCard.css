@@ -1,4 +1,3 @@
-
 .dashboard-card {
   background: #fff;
   border: 1px solid #e5e7eb;
@@ -16,7 +15,8 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 120px;
+  flex: 1;
+  min-height: 0;
   font-size: 3rem;
   font-weight: 800;
   color: #1f2937;

@@ -5,14 +5,14 @@ export default function TopTopicsCard() {
   const topics = [
     { name: "Topic 1", count: 301 },
     { name: "Topic 2", count: 154 },
-    { name: "Topic 3", count: 52 },
-    { name: "Topic 4", count: 32 }
+    { name: "Topic 3", count: 82 },
+    { name: "Topic 4", count: 62 }
   ];
 
   const maxCount = Math.max(...topics.map(topic => topic.count));
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card topics-card">
       <div className="card-header">
         <h3 className="card-title">Top Consultation Topics</h3>
       </div>

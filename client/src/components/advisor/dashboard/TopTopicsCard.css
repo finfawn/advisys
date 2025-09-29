@@ -1,53 +1,61 @@
-
-.dashboard-card {
+.topics-card {
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
 }
 
-.card-header {
+.topics-card .card-header {
   font-size: 1.25rem;
   font-weight: 600;
   margin-bottom: 16px;
 }
 
-.topics-list {
+.topics-card .topics-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.topic-item {
+.topics-card .topic-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  position: relative;
+  height: 32px; /* fixed row height for consistent alignment */
 }
 
-.topic-bar-container {
+.topics-card .topic-bar-container {
   display: flex;
   align-items: center;
   flex: 1;
   position: relative;
+  height: 100%;
+  margin-right: 12px;
 }
 
-.topic-bar-background {
-  height: 8px;
-  background: #e5e7eb;
-  border-radius: 4px;
+.topics-card .topic-bar-background {
   position: absolute;
   top: 50%;
+  left: 0;
   transform: translateY(-50%);
+  height: 26px;
+  background: #f3f4f6;
+  border-radius: 9999px; /* pill */
+  z-index: 1;
 }
 
-.topic-name {
+.topics-card .topic-name {
   position: relative;
-  z-index: 1;
+  z-index: 2;
   font-size: 0.875rem;
   color: #374151;
+  padding: 0 8px;
 }
 
-.topic-count {
+.topics-card .topic-count {
   font-size: 0.875rem;
   color: #6b7280;
+  min-width: 40px;
+  text-align: right;
 }

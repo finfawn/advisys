@@ -1,6 +1,6 @@
 import React from "react";
 import { BsBell, BsPersonCircle } from "react-icons/bs";
-import Logo from "../assets/logo.png";
+import Logo from "../../assets/logo.png";
 import "./AdvisorTopNavbar.css";
 
 function AdvisorTopNavbar() {

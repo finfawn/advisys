@@ -8,12 +8,13 @@
 /* Body layout with animated sidebar width */
 .advisor-dash-body {
   display: grid;
-  grid-template-columns: 240px 1fr; /* sidebar + main */
+  grid-template-columns: 240px 1fr;
+  /* sidebar + main */
   transition: grid-template-columns 240ms ease;
 }
 
-.advisor-dash-body.collapsed { 
-  grid-template-columns: 76px 1fr; 
+.advisor-dash-body.collapsed {
+  grid-template-columns: 76px 1fr;
 }
 
 /* Main content area */
@@ -81,6 +82,8 @@
 .dashboard-row {
   display: grid;
   gap: 20px;
+  align-items: stretch;
+  /* ensure all columns match tallest card height */
 }
 
 /* Top row: 3 cards + stacked cards */
@@ -93,6 +96,17 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  height: 100%;
+  /* fill grid row height so children can split evenly */
+}
+
+/* Split stacked cards evenly and allow inner content to layout */
+.stacked-cards>.dashboard-card {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-height: 0;
+  /* fix flex overflow in some browsers */
 }
 
 /* Bottom row: 2 cards */
@@ -105,11 +119,11 @@
   .dashboard-row:first-child {
     grid-template-columns: 1fr 1fr;
   }
-  
+
   .stacked-cards {
     grid-row: span 2;
   }
-  
+
   .dashboard-row:last-child {
     grid-template-columns: 2fr 1fr;
   }
@@ -120,26 +134,26 @@
     padding: 16px;
     gap: 16px;
   }
-  
+
   .dashboard-row:first-child,
   .dashboard-row:last-child {
     grid-template-columns: 1fr;
   }
-  
+
   .stacked-cards {
     grid-row: auto;
   }
-  
+
   .advisor-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 12px;
   }
-  
+
   .advisor-greeting h1 {
     font-size: 1.25rem;
   }
-  
+
   .advisor-greeting h2 {
     font-size: 1.5rem;
   }

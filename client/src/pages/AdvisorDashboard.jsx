@@ -1,14 +1,14 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BsChevronRight } from "react-icons/bs";
-import AdvisorTopNavbar from "../components/AdvisorTopNavbar";
-import AdvisorSidebar from "../components/AdvisorSidebar";
-import TotalConsultationsCard from "../components/advisor_dashboard/TotalConsultationsCard";
-import ConsultationModeCard from "../components/advisor_dashboard/ConsultationModeCard";
-import AverageSessionCard from "../components/advisor_dashboard/AverageSessionCard";
-import UpcomingConsultationsCard from "../components/advisor_dashboard/UpcomingConsultationsCard";
-import ConsultationTrendCard from "../components/advisor_dashboard/ConsultationTrendCard";
-import TopTopicsCard from "../components/advisor_dashboard/TopTopicsCard";
+import AdvisorTopNavbar from "../components/advisor/AdvisorTopNavbar";
+import AdvisorSidebar from "../components/advisor/AdvisorSidebar";
+import TotalConsultationsCard from "../components/advisor/dashboard/TotalConsultationsCard";
+import ConsultationModeCard from "../components/advisor/dashboard/ConsultationModeCard";
+import AverageSessionCard from "../components/advisor/dashboard/AverageSessionCard";
+import UpcomingConsultationsCard from "../components/advisor/dashboard/UpcomingConsultationsCard";
+import ConsultationTrendCard from "../components/advisor/dashboard/ConsultationTrendCard";
+import TopTopicsCard from "../components/advisor/dashboard/TopTopicsCard";
 import "./AdvisorDashboard.css";
 
 export default function AdvisorDashboard() {
