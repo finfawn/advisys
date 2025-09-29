@@ -2,9 +2,10 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import Home from "./pages/Home";
 import StudentDashboard from "./pages/StudentDashboard";
-import AdvisorDashboard from "./pages/AdvisorDashboard";
+import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
 import AdvisorListPage from "./pages/AdvisorListPage";
 import MyConsultationsPage from "./pages/MyConsultationsPage";
+import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
 
 function App() {
   return (
@@ -15,6 +16,7 @@ function App() {
         <Route path="/student-dashboard/advisors" element={<AdvisorListPage />} />
         <Route path="/student-dashboard/consultations" element={<MyConsultationsPage />} />
         <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
+        <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
         {/* Fallback */}
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>

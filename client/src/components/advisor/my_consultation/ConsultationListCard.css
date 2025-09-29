@@ -1,0 +1,88 @@
+/* Scoped styles for ConsultationListCard */
+.consultation-list-card .consultation-tabs {
+  display: flex;
+  border-bottom: 1px solid #e5e7eb;
+  gap: 8px;
+  padding-bottom: 8px;
+}
+
+.consultation-list-card .tab {
+  appearance: none;
+  background: transparent;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 8px;
+  color: #374151;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.consultation-list-card .tab:hover { background: #f3f4f6; }
+.consultation-list-card .tab.active {
+  background: #eef2ff;
+  color: #1e3a8a;
+  box-shadow: inset 0 0 0 1px #c7d2fe;
+}
+
+/* List */
+.consultation-list-card .consultation-list {
+  list-style: none;
+  margin: 12px 0 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.consultation-list-card .consultation-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid rgba(0,0,0,0.06);
+  border-radius: 12px;
+}
+
+.consultation-list-card .empty-state { text-align: center; color: #6b7280; padding: 24px 12px; }
+
+/* Date tile */
+.consultation-list-card .date-tile {
+  display: grid;
+  grid-template-rows: auto auto;
+  align-items: center;
+  justify-items: center;
+  width: 48px;
+  border-radius: 10px;
+  border: 1px solid #e5e7eb;
+  padding: 6px 0;
+}
+
+.consultation-list-card .date-day { font-size: 0.75rem; color: #6b7280; font-weight: 600; }
+.consultation-list-card .date-number { font-size: 1rem; font-weight: 800; color: #111827; }
+
+/* Date tile tones */
+.consultation-list-card .tone-rose { background: #fef2f2; border-color: #fecaca; }
+.consultation-list-card .tone-neutral { background: #f9fafb; border-color: #e5e7eb; }
+
+/* Details */
+.consultation-list-card .row-details { min-width: 0; }
+.consultation-list-card .row-title { font-weight: 700; color: #111827; }
+.consultation-list-card .row-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6b7280;
+  font-size: 0.85rem;
+}
+
+.consultation-list-card .row-student { color: #16a34a; font-weight: 600; }
+.consultation-list-card .dot { width: 4px; height: 4px; border-radius: 999px; background: #d1d5db; display: inline-block; }
+
+/* Actions */
+.consultation-list-card .row-actions { display: flex; gap: 8px; }
+.consultation-list-card .btn { appearance: none; border: 1px solid #d1d5db; background: #ffffff; color: #1f2937; padding: 8px 12px; border-radius: 8px; font-weight: 600; cursor: pointer; }
+.consultation-list-card .btn:hover { background: #f9fafb; }
+.consultation-list-card .btn-primary { background: #1f3a8a; border-color: #1f3a8a; color: #ffffff; }
+.consultation-list-card .btn-primary:hover { filter: brightness(0.95); }
+.consultation-list-card .btn-secondary { background: #e5e7eb; border-color: #d1d5db; color: #111827; }
