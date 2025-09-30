@@ -54,11 +54,19 @@ export default function StudentSettingsPage() {
   };
 
   const handleSave = () => {
+    // Clean up the old profile picture URL if it's being replaced
+    if (studentData.profilePicture && studentData.profilePicture !== editData.profilePicture) {
+      URL.revokeObjectURL(studentData.profilePicture);
+    }
     setStudentData({ ...editData });
     setIsEditing(false);
   };
 
   const handleCancel = () => {
+    // Clean up any new profile picture URL that was created during editing
+    if (editData.profilePicture && editData.profilePicture !== studentData.profilePicture) {
+      URL.revokeObjectURL(editData.profilePicture);
+    }
     setEditData({ ...studentData });
     setIsEditing(false);
   };
@@ -98,6 +106,29 @@ export default function StudentSettingsPage() {
     console.log('Delete account clicked');
     // Implement account deletion functionality
   };
+
+  // Profile picture handlers
+  const handleFileUpload = (event) => {
+    const file = event.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        alert('Please select an image file');
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        alert('File size must be less than 5MB');
+        return;
+      }
+
+      // Create preview URL
+      const previewUrl = URL.createObjectURL(file);
+      setEditData(prev => ({ ...prev, profilePicture: previewUrl }));
+    }
+  };
+
 
   const settingsSections = [
     { id: "profile", label: "Profile", icon: BsPersonCircle },
@@ -179,8 +210,8 @@ export default function StudentSettingsPage() {
                       <div className="profile-picture-section">
                         <div className="profile-picture-container">
                           <div className="profile-picture">
-                            {studentData.profilePicture ? (
-                              <img src={studentData.profilePicture} alt="Profile" />
+                            {(isEditing ? editData.profilePicture : studentData.profilePicture) ? (
+                              <img src={isEditing ? editData.profilePicture : studentData.profilePicture} alt="Profile" />
                             ) : (
                               <div className="profile-placeholder">
                                 <BsPersonCircle />
@@ -189,15 +220,17 @@ export default function StudentSettingsPage() {
                           </div>
                           {isEditing && (
                             <div className="profile-actions">
-                              <Button variant="outline-primary" size="sm" className="upload-btn">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                onChange={handleFileUpload}
+                                className="file-input"
+                                id="profile-upload"
+                              />
+                              <label htmlFor="profile-upload" className="upload-btn">
                                 <BsPencil className="me-1" />
-                                Change Photo
-                              </Button>
-                              {studentData.profilePicture && (
-                                <Button variant="outline-secondary" size="sm" className="remove-btn">
-                                  Remove
-                                </Button>
-                              )}
+                                {editData.profilePicture ? 'Change Photo' : 'Add Photo'}
+                              </label>
                             </div>
                           )}
                         </div>

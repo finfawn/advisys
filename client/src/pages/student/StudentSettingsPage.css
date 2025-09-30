@@ -320,12 +320,6 @@ select.info-input {
   overflow: hidden;
   position: relative;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.profile-picture:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
 }
 
 .profile-placeholder {
@@ -357,6 +351,10 @@ select.info-input {
   align-items: center;
 }
 
+.file-input {
+  display: none;
+}
+
 .upload-btn {
   padding: 6px 12px;
   font-size: 0.8rem;
@@ -367,6 +365,11 @@ select.info-input {
   background: #ffffff;
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
 }
 
 .upload-btn:hover {
@@ -376,24 +379,6 @@ select.info-input {
   box-shadow: 0 2px 6px rgba(59, 130, 246, 0.3);
 }
 
-.remove-btn {
-  padding: 6px 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  border-radius: 6px;
-  border: 1px solid #6b7280;
-  color: #6b7280;
-  background: #ffffff;
-  transition: all 0.2s ease;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-}
-
-.remove-btn:hover {
-  background: #6b7280;
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 6px rgba(107, 114, 128, 0.3);
-}
 
 .profile-info {
   flex: 1;
@@ -412,7 +397,7 @@ select.info-input {
   color: #6b7280;
   margin: 0;
   font-weight: 500;
-  text-align: center;
+  text-align: left;
 }
 
 
@@ -835,8 +820,7 @@ input:checked + .toggle-slider:before {
     gap: 6px;
   }
   
-  .upload-btn,
-  .remove-btn {
+  .upload-btn {
     padding: 8px 16px;
     font-size: 0.8rem;
   }
