@@ -310,11 +310,11 @@ export default function StudentDashboard() {
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon"><FaUserTie /></div>
+                <div className="stat-icon"><BsCalendarCheck /></div>
                 <div className="stat-body">
-                  <div className="stat-label">Most Frequent Advisor</div>
-                  <div className="stat-value small">Dr. Santos, Prof. Cruz, Ms. Reyes</div>
-                  <div className="stat-sub">Booked the most</div>
+                  <div className="stat-label">Upcoming Sessions</div>
+                  <div className="stat-value">3</div>
+                  <div className="stat-sub">Scheduled this week</div>
                 </div>
               </div>
             </div>
