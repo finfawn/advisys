@@ -26,11 +26,13 @@ html, body, #root {
 body {
   display: block;
   place-items: initial;
-  min-height: 100vh;
+  height: 100vh;
   margin: 0;
+  padding: 0;
   background: #e2e1ef;
   color: #212529;
   overflow-x: hidden;
+  overflow-y: hidden;
 }
 
 #root {

@@ -1,8 +1,9 @@
 /* Advisor Dashboard Layout */
 .advisor-dash-wrap {
-  min-height: 100vh;
+  height: 100vh;
   background: #f5f7fb;
   color: #1f2937;
+  overflow: hidden;
 }
 
 /* Body layout with animated sidebar width */
@@ -23,6 +24,9 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
 }
 
 /* Header Section */
