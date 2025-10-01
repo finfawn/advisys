@@ -7,12 +7,21 @@ import "../student/Sidebar.css";
 function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout = false, onExpand }) {
   const handleClick = (e) => {
     e.stopPropagation();
-    if (onClick) {
-      onClick();
-    }
-    // If sidebar is collapsed and this is not a logout item, expand the sidebar
+    
+    // If sidebar is collapsed and this is not a logout item, expand the sidebar first
     if (collapsed && !isLogout && onExpand) {
       onExpand();
+      // Delay navigation to allow sidebar expansion animation to complete
+      setTimeout(() => {
+        if (onClick) {
+          onClick();
+        }
+      }, 250); // Match the CSS transition duration (240ms + small buffer)
+    } else {
+      // If sidebar is already expanded or this is a logout item, navigate immediately
+      if (onClick) {
+        onClick();
+      }
     }
   };
 
