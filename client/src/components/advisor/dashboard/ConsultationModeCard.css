@@ -16,7 +16,7 @@
   align-items: center;
   gap: 16px;
   justify-content: center;
-  flex: 1;           /* fill remaining height inside stacked column */
+  min-height: 200px;
 }
 
 .donut-chart-container {
@@ -35,4 +35,25 @@
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .consultation-mode-content {
+    min-height: 120px;
+    padding: 8px;
+  }
+  
+  .card-header {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+  
+  .dashboard-card {
+    padding: 12px;
+  }
+  
+  .consultation-mode-card {
+    height: 200px;
+  }
 }

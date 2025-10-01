@@ -3,7 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import Calendar from "react-calendar";
 import "react-calendar/dist/Calendar.css";
 import { Button } from "react-bootstrap";
-import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck } from "react-icons/bs";
+import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck, BsBookmark } from "react-icons/bs";
 import { FaUserTie } from "react-icons/fa";
 import AdvisorCard from "../../components/student/AdvisorCard";
 import CompactConsultationCard from "../../components/student/CompactConsultationCard";
@@ -150,6 +150,17 @@ export default function StudentDashboard() {
 
   // Filter to show only approved consultations for dashboard
   const upcomingConsultations = allConsultations.filter(consultation => consultation.status === 'approved');
+
+  // Calculate top consultation topic
+  const topicCounts = {};
+  allConsultations.forEach(consultation => {
+    const topic = consultation.topic;
+    topicCounts[topic] = (topicCounts[topic] || 0) + 1;
+  });
+  
+  const topTopic = Object.entries(topicCounts).reduce((a, b) => 
+    topicCounts[a[0]] > topicCounts[b[0]] ? a : b
+  );
 
   const handleJoinConsultation = (consultation) => {
     if (consultation.mode === 'online' && consultation.meetingLink) {
@@ -310,11 +321,11 @@ export default function StudentDashboard() {
                 </div>
               </div>
               <div className="stat-card">
-                <div className="stat-icon"><BsCalendarCheck /></div>
+                <div className="stat-icon"><BsBookmark /></div>
                 <div className="stat-body">
-                  <div className="stat-label">Upcoming Sessions</div>
-                  <div className="stat-value">3</div>
-                  <div className="stat-sub">Scheduled this week</div>
+                  <div className="stat-label">Top Consultation Topic</div>
+                  <div className="stat-value" style={{ fontSize: '0.9rem', lineHeight: '1.2' }}>{topTopic[0]}</div>
+                  <div className="stat-sub">{topTopic[1]} consultation{topTopic[1] > 1 ? 's' : ''}</div>
                 </div>
               </div>
             </div>

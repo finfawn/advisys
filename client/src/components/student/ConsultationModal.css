@@ -183,6 +183,8 @@
   z-index: 2;
   transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   border: 2px solid #e5e7eb;
+  line-height: 1;
+  text-align: center;
 }
 
 

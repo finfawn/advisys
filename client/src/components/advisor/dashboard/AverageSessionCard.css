@@ -15,15 +15,45 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  flex: 1;
-  min-height: 0;
-  font-size: 3rem;
+  min-height: 150px;
+  font-size: 8rem;
   font-weight: 800;
   color: #1f2937;
 }
 
 .average-session-length span {
-  font-size: 1.5rem;
+  font-size: 8rem;
   color: #6b7280;
   margin-left: 4px;
+}
+
+.average-session-length .count-up-text {
+  font-size: 5rem;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+/* Mobile responsiveness */
+@media (max-width: 768px) {
+  .average-session-length {
+    font-size: 2.5rem;
+    min-height: 80px;
+  }
+  
+  .average-session-length span {
+    font-size: 1rem;
+  }
+  
+  .average-session-length .count-up-text {
+    font-size: 2.5rem;
+  }
+  
+  .card-header {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+  
+  .average-session-card {
+    height: 200px;
+  }
 }

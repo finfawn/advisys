@@ -16,19 +16,35 @@
   height: 180px;
 }
 
-/* Dropdown pill like the mock */
-.consultation-trend-card .card-header .dropdown {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px;
+/* Dropdown styling */
+.consultation-trend-card .dropdown-container {
+  position: relative;
+}
+
+.consultation-trend-card .period-dropdown {
+  appearance: none;
+  background: #f3f4f6;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 9999px;
-  background: #f3f4f6;
-  color: #374151;
+  padding: 6px 12px 6px 10px;
   font-size: 0.9rem;
+  color: #374151;
+  cursor: pointer;
+  width: 90px;
+  background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6,9 12,15 18,9'%3e%3c/polyline%3e%3c/svg%3e");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  background-size: 12px;
+  padding-right: 32px;
 }
-.consultation-trend-card .card-header .dropdown-icon {
-  font-size: 0.8rem;
-  color: #6b7280;
+
+.consultation-trend-card .period-dropdown:hover {
+  background-color: #e5e7eb;
+  border-color: rgba(0, 0, 0, 0.12);
+}
+
+.consultation-trend-card .period-dropdown:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }

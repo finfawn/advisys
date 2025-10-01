@@ -48,16 +48,16 @@
   gap: 0;
 }
 
-/* CompactConsultationCard styles - copied from student component */
+/* CompactConsultationCard styles - optimized for advisor dashboard */
 .compact-consultation-card {
   display: grid;
-  grid-template-columns: 70px 1fr 80px;
+  grid-template-columns: 60px 1fr 75px;
   align-items: center;
-  gap: 10px;
-  padding: 16px 12px;
+  gap: 8px;
+  padding: 12px 10px;
   border-bottom: 1px solid rgba(0,0,0,0.06);
   transition: background-color 0.2s ease;
-  min-height: 70px;
+  min-height: 55px;
 }
 
 .compact-consultation-card:last-child {
@@ -76,9 +76,9 @@
 .compact-date {
   display: grid;
   place-items: center;
-  width: 65px;
-  height: 65px;
-  border-radius: 12px;
+  width: 55px;
+  height: 55px;
+  border-radius: 10px;
   background: #eef7ff;
   color: #2d5bd1;
   text-align: center;
@@ -92,7 +92,7 @@
 
 .compact-dom {
   font-weight: 700;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
 }
 
 .compact-content {
@@ -111,7 +111,7 @@
 .compact-faculty-name {
   font-weight: 600;
   color: #1a1a1a;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -119,7 +119,7 @@
 
 .compact-faculty-title {
   color: #666;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -130,11 +130,11 @@
   align-items: center;
   gap: 0.25rem;
   color: #666;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
 }
 
 .time-icon {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #667eea;
 }
 
@@ -151,8 +151,8 @@
 .compact-mode-indicator {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
-  font-size: 0.8rem;
+  gap: 0.3rem;
+  font-size: 0.75rem;
   font-weight: 500;
 }
 
@@ -180,7 +180,7 @@
 }
 
 .mode-text {
-  font-size: 0.8rem;
+  font-size: 0.75rem;
   font-weight: 500;
   color: inherit;
 }
@@ -195,14 +195,14 @@
   align-items: center;
   justify-content: center;
   gap: 0.25rem;
-  padding: 7px 12px;
+  padding: 6px 10px;
   border: none;
   border-radius: 6px;
   font-weight: 600;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   cursor: pointer;
   transition: all 0.2s ease;
-  min-width: 70px;
+  min-width: 65px;
 }
 
 .upcoming-action-btn.online {

@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Container, Row, Col, Button, Badge, Carousel } from "react-bootstrap";
+import { Container, Row, Col, Button, Badge } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { FaPlay, FaArrowRight, FaRegCircle } from "react-icons/fa";
 import { BsCalendarCheck, BsPeople, BsFileEarmarkText, BsBarChart, BsClock, BsPersonCircle } from "react-icons/bs";
 import Logo from "../assets/logo.png";
 import AdvisorCard from "../components/student/AdvisorCard";
 import AuthModal from "../components/student/AuthModal";
+import Squares from "../components/Squares";
 import "./Home.css";
 
 function Home() {
@@ -52,30 +53,33 @@ function Home() {
       }}>
         {/* Above the fold: Banner + Features fit within first screen */}
         <div className="above-fold">
-          {/* Hero Banner Carousel */}
-          <Carousel interval={5000} indicators={false} fade={false} className="hero-carousel">
-            <Carousel.Item>
-              <div className="hero-slide">
-                <Container className="hero-slide-inner">
-                  <Row className="align-items-center justify-content-center text-center">
-                    <Col lg={10} xl={8} className="hero-left">
-                      <h1 className="banner-title fw-bold mb-3">
-                        Streamline
-                        <br />
-                        Academic Consulations with Ease
-                      </h1>
-                      <p className="banner-subtitle text-white-50 mb-3">
-                        AdviSys is a web‑based academic consultation management system designed to simplify the
-                        process of scheduling, managing, and documenting student–faculty consultations.
-                      </p>
-                      <Button variant="light" className="rounded-pill banner-cta-btn" onClick={() => setShowRegister(true)}>Get Started</Button>
-                    </Col>
-                  </Row>
-                </Container>
-              </div>
-            </Carousel.Item>
-            {/* You can duplicate <Carousel.Item> to add more slides later */}
-          </Carousel>
+          {/* Hero Banner */}
+          <div className="hero-slide">
+            <Squares 
+              speed={0.2} 
+              squareSize={60}
+              direction='diagonal'
+              borderColor='rgba(255, 255, 255, 0.4)'
+              hoverFillColor='rgba(255, 255, 255, 0.2)'
+              className="interactive"
+            />
+            <Container className="hero-slide-inner">
+              <Row className="align-items-center justify-content-center text-center">
+                <Col lg={10} xl={8} className="hero-left">
+                  <h1 className="banner-title fw-bold mb-3">
+                    Streamline
+                    <br />
+                    Academic Consulations with Ease
+                  </h1>
+                  <p className="banner-subtitle text-white-50 mb-3">
+                    AdviSys is a web‑based academic consultation management system designed to simplify the
+                    process of scheduling, managing, and documenting student–faculty consultations.
+                  </p>
+                  <Button variant="light" className="rounded-pill banner-cta-btn" onClick={() => setShowRegister(true)}>Get Started</Button>
+                </Col>
+              </Row>
+            </Container>
+          </div>
 
           {/* Features Section */}
           <Container className="px-3 px-md-4 features-section" style={{ maxWidth: 1280, margin: "0 auto" }}>

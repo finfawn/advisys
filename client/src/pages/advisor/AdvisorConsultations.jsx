@@ -4,14 +4,13 @@ import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import UpcomingConsultationsCard from "../../components/advisor/my_consultation/UpcomingConsultationsCard";
 import ConsultationListCard from "../../components/advisor/my_consultation/ConsultationListCard";
+import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorDashboard.css"; // reuse base layout + card styles
 import "./AdvisorConsultations.css";
 
 export default function AdvisorConsultations() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
-
-  const toggleSidebar = () => setCollapsed(v => !v);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') navigate('/advisor-dashboard');

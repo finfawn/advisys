@@ -1,6 +1,6 @@
 import React from "react";
 import { BsPeopleFill } from "react-icons/bs";
-import BarChart from "./BarChart";
+import CustomBarChart from "./BarChart";
 import "./TotalConsultationsCard.css";
 
 export default function TotalConsultationsCard() {
@@ -25,7 +25,7 @@ export default function TotalConsultationsCard() {
         </div>
       </div>
       <div className="bar-chart-wrapper">
-        <BarChart data={data} />
+        <CustomBarChart data={data} />
       </div>
     </div>
   );

@@ -1,37 +1,133 @@
-import React from "react";
-import LineChart from "./LineChart";
+import React, { useState } from "react";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import "./ConsultationTrendCard.css";
 
 export default function ConsultationTrendCard() {
-  const data = [
-    { x: 10, y: 5 },
-    { x: 11, y: 8 },
-    { x: 12, y: 12 },
-    { x: 13, y: 15 },
-    { x: 14, y: 15 },
-    { x: 15, y: 16 },
-    { x: 16, y: 16 },
-    { x: 17, y: 15 },
-    { x: 18, y: 12 },
-    { x: 19, y: 12 },
-    { x: 20, y: 10 },
-    { x: 21, y: 8 },
-    { x: 22, y: 6 },
-    { x: 23, y: 4 },
-    { x: 24, y: 3 }
+  const [selectedPeriod, setSelectedPeriod] = useState("month");
+
+  // Get current date for dynamic month names
+  const currentDate = new Date();
+  const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
+  const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1).toLocaleString('default', { month: 'long' });
+
+  // Sample data for different time periods
+  const weeklyData = [
+    { day: "Mon", consultations: 8, lastWeek: 6 },
+    { day: "Tue", consultations: 12, lastWeek: 9 },
+    { day: "Wed", consultations: 15, lastWeek: 11 },
+    { day: "Thu", consultations: 18, lastWeek: 14 },
+    { day: "Fri", consultations: 22, lastWeek: 17 },
+    { day: "Sat", consultations: 16, lastWeek: 19 },
+    { day: "Sun", consultations: 10, lastWeek: 13 }
   ];
+
+  const monthlyData = [
+    { day: "1", consultations: 8, lastMonth: 6 },
+    { day: "2", consultations: 12, lastMonth: 9 },
+    { day: "3", consultations: 15, lastMonth: 11 },
+    { day: "4", consultations: 18, lastMonth: 14 },
+    { day: "5", consultations: 22, lastMonth: 17 },
+    { day: "6", consultations: 16, lastMonth: 19 },
+    { day: "7", consultations: 10, lastMonth: 13 },
+    { day: "8", consultations: 14, lastMonth: 16 },
+    { day: "9", consultations: 19, lastMonth: 12 },
+    { day: "10", consultations: 25, lastMonth: 18 },
+    { day: "11", consultations: 21, lastMonth: 15 },
+    { day: "12", consultations: 17, lastMonth: 20 },
+    { day: "13", consultations: 13, lastMonth: 16 },
+    { day: "14", consultations: 16, lastMonth: 14 },
+    { day: "15", consultations: 20, lastMonth: 17 },
+    { day: "16", consultations: 24, lastMonth: 19 },
+    { day: "17", consultations: 18, lastMonth: 15 },
+    { day: "18", consultations: 15, lastMonth: 12 },
+    { day: "19", consultations: 12, lastMonth: 9 },
+    { day: "20", consultations: 9, lastMonth: 7 },
+    { day: "21", consultations: 11, lastMonth: 8 },
+    { day: "22", consultations: 14, lastMonth: 10 },
+    { day: "23", consultations: 17, lastMonth: 13 },
+    { day: "24", consultations: 21, lastMonth: 16 },
+    { day: "25", consultations: 19, lastMonth: 14 },
+    { day: "26", consultations: 16, lastMonth: 11 },
+    { day: "27", consultations: 13, lastMonth: 9 },
+    { day: "28", consultations: 10, lastMonth: 7 },
+    { day: "29", consultations: 8, lastMonth: 5 },
+    { day: "30", consultations: 6, lastMonth: 4 }
+  ];
+
+  const currentData = selectedPeriod === "week" ? weeklyData : monthlyData;
+  const xAxisKey = "day";
+
+  const handlePeriodChange = (period) => {
+    setSelectedPeriod(period);
+  };
 
   return (
     <div className="dashboard-card consultation-trend-card">
       <div className="card-header">
         <h3 className="card-title">Consultation Trend</h3>
-        <div className="dropdown">
-          <span className="dropdown-label">This Month</span>
-          <span className="dropdown-icon">▼</span>
+        <div className="dropdown-container">
+          <select 
+            className="period-dropdown"
+            value={selectedPeriod}
+            onChange={(e) => handlePeriodChange(e.target.value)}
+          >
+            <option value="week">Week</option>
+            <option value="month">Month</option>
+          </select>
         </div>
       </div>
       <div className="chart-container">
-        <LineChart data={data} />
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={currentData} margin={{ top: 20, right: 20, left: -20, bottom: -10 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+            <XAxis 
+              dataKey={xAxisKey} 
+              stroke="#6b7280"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+              interval={selectedPeriod === "week" ? 0 : "preserveStartEnd"}
+            />
+            <YAxis 
+              stroke="#6b7280"
+              fontSize={12}
+              tickLine={false}
+              axisLine={false}
+            />
+            <Tooltip 
+              contentStyle={{
+                backgroundColor: '#fff',
+                border: '1px solid #e5e7eb',
+                borderRadius: '8px',
+                boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+              }}
+              labelStyle={{ color: '#374151', fontWeight: '600' }}
+            />
+            <Legend 
+              wrapperStyle={{ paddingTop: '10px' }}
+              iconType="line"
+            />
+            <Line 
+              type="monotone" 
+              dataKey="consultations" 
+              stroke="#3b82f6" 
+              strokeWidth={3}
+              dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
+              name={selectedPeriod === "week" ? "This Week" : currentMonth}
+            />
+            <Line 
+              type="monotone" 
+              dataKey={selectedPeriod === "week" ? "lastWeek" : "lastMonth"} 
+              stroke="#94a3b8" 
+              strokeWidth={2}
+              strokeDasharray="5 5"
+              dot={{ fill: '#94a3b8', strokeWidth: 2, r: 3 }}
+              activeDot={{ r: 5, stroke: '#94a3b8', strokeWidth: 2, fill: '#fff' }}
+              name={selectedPeriod === "week" ? "Last Week" : previousMonth}
+            />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
     </div>
   );

@@ -4,11 +4,15 @@ import { BsGrid, BsCalendarCheck, BsClock, BsBoxArrowRight } from "react-icons/b
 import LogoutModal from "../student/LogoutModal";
 import "../student/Sidebar.css";
 
-function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout = false }) {
+function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout = false, onExpand }) {
   const handleClick = (e) => {
     e.stopPropagation();
     if (onClick) {
       onClick();
+    }
+    // If sidebar is collapsed and this is not a logout item, expand the sidebar
+    if (collapsed && !isLogout && onExpand) {
+      onExpand();
     }
   };
 
@@ -29,6 +33,12 @@ function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout
 function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
   const location = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
+  const handleExpand = () => {
+    if (collapsed && onToggle) {
+      onToggle();
+    }
+  };
   
   const onSidebarKey = (e) => {
     if (e.key === "Enter" || e.key === " ") {
@@ -87,6 +97,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
             collapsed={collapsed} 
             active={isActive('dashboard')}
             onClick={() => handleNavigation('dashboard')}
+            onExpand={handleExpand}
           />
           <NavItem 
             icon={BsCalendarCheck} 
@@ -94,6 +105,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
             collapsed={collapsed}
             active={isActive('consultations')}
             onClick={() => handleNavigation('consultations')}
+            onExpand={handleExpand}
           />
           <NavItem 
             icon={BsClock} 
@@ -101,6 +113,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
             collapsed={collapsed}
             active={isActive('availability')}
             onClick={() => handleNavigation('availability')}
+            onExpand={handleExpand}
           />
           <div className="sb-sep" />
           <NavItem 
@@ -110,6 +123,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
             active={false}
             isLogout={true}
             onClick={() => handleNavigation('logout')}
+            onExpand={handleExpand}
           />
         </ul>
       </aside>

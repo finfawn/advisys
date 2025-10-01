@@ -45,7 +45,7 @@
   justify-content: space-between;  
 }
 
-.hero-carousel {
+.hero-banner {
   margin-top: 8px;
   margin-bottom: 0;                 
 }
@@ -56,42 +56,55 @@
   min-height: clamp(280px, 38vh, 420px); /* keep hero compact so features fit */
   display: flex;               /* center inner container vertically */
   align-items: center;
+  position: relative;          /* for absolute positioning of Squares */
+  overflow: hidden;            /* prevent squares from extending beyond banner */
+  will-change: auto;           /* optimize for animations */
+  transform: translateZ(0);    /* force hardware acceleration */
 }
 
 .hero-slide-inner {
   padding-block: clamp(16px, 4vh, 36px); /* tighter top/bottom padding */
+  position: relative;          /* ensure content appears above Squares background */
+  z-index: 2;                  /* higher than Squares canvas z-index */
+  pointer-events: none;        /* allow mouse events to pass through to squares */
 }
 
 .banner-title {
   font-size: clamp(2rem, 4.8vw, 3.25rem);
   line-height: 1.15;
+  text-shadow: 0 3px 6px rgba(0, 0, 0, 0.4); /* stronger shadow for better contrast */
 }
 
 .banner-subtitle {
   font-size: clamp(0.95rem, 1.6vw, 1.125rem);
-  opacity: 0.9;
   max-width: 56ch;
   margin-left: auto;
   margin-right: auto;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.4); /* stronger shadow for better contrast */
+  background: rgba(0, 0, 0, 0.25); /* slightly stronger background */
+  backdrop-filter: blur(4px); /* reduced blur for smoother effect */
+  -webkit-backdrop-filter: blur(4px); /* Safari support */
+  padding: 12px 20px; /* add padding around text */
+  border-radius: 12px; /* rounded corners */
+  border: 1px solid rgba(255, 255, 255, 0.15); /* slightly more visible border */
+  display: block; /* make it a block element to force button below */
+  margin-bottom: 20px; /* ensure space below for button */
+  transition: all 0.3s ease; /* smooth transitions */
 }
 
 .banner-cta-btn {
   padding: 10px 18px;
   font-weight: 600;
   box-shadow: 0 10px 24px rgba(0,0,0,0.08);
+  display: inline-block; /* allow button to size to content */
+  margin: 0 auto; /* center the button */
+  margin-top: 16px; /* add space above button */
+  width: auto; /* let button size naturally */
+  pointer-events: auto; /* re-enable pointer events for button */
 }
 .banner-cta-btn:hover { filter: brightness(0.97); }
 
-/* Carousel nav arrows visibility over gradient */
-.hero-carousel .carousel-control-prev,
-.hero-carousel .carousel-control-next {
-  filter: invert(1) grayscale(1) contrast(1.25);
-  opacity: 0.4;
-}
-.hero-carousel .carousel-control-prev:hover,
-.hero-carousel .carousel-control-next:hover {
-  opacity: 1;
-}
+/* Removed carousel controls */
 
 /* Responsive spacing */
 @media (max-width: 991.98px) {
@@ -100,6 +113,19 @@
   .features-section { margin: 20px auto; }
   .banner-title { text-align: center; }
   .hero-left { text-align: center; margin-bottom: 24px; }
+  
+  /* Improve text visibility on mobile */
+  .banner-subtitle {
+    background: rgba(0, 0, 0, 0.3); /* stronger background on mobile */
+    backdrop-filter: blur(6px); /* reduced blur for smoother effect */
+    -webkit-backdrop-filter: blur(6px);
+    padding: 16px 24px; /* more padding on mobile */
+    margin-bottom: 24px; /* more space below on mobile */
+  }
+  
+  .banner-cta-btn {
+    margin-top: 20px; /* more space above button on mobile */
+  }
 }
 
 /* ===== Features section ===== */

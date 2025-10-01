@@ -9,12 +9,12 @@ import AverageSessionCard from "../../components/advisor/dashboard/AverageSessio
 import UpcomingConsultationsCard from "../../components/advisor/dashboard/UpcomingConsultationsCard";
 import ConsultationTrendCard from "../../components/advisor/dashboard/ConsultationTrendCard";
 import TopTopicsCard from "../../components/advisor/dashboard/TopTopicsCard";
+import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorDashboard.css";
 
 export default function AdvisorDashboard() {
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
-  const toggleSidebar = () => setCollapsed((v) => !v);
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);

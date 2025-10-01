@@ -1,5 +1,6 @@
 import React from "react";
 import "./AverageSessionCard.css";
+import CountUp from './CountUp';
 
 export default function AverageSessionCard() {
   return (
@@ -8,7 +9,15 @@ export default function AverageSessionCard() {
         <h3 className="card-title">Average Session Lengths</h3>
       </div>
       <div className="average-session-length">
-        33<span>min</span>
+        <CountUp
+          from={0}
+          to={33}
+          separator=","
+          direction="up"
+          duration={1}
+          className="count-up-text"
+        />
+        <span>min</span>
       </div>
     </div>
   );
