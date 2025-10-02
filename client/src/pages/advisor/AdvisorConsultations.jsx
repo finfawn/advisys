@@ -2,8 +2,9 @@ import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
-import UpcomingConsultationsCard from "../../components/advisor/my_consultation/UpcomingConsultationsCard";
-import ConsultationListCard from "../../components/advisor/my_consultation/ConsultationListCard";
+import UpcomingConsultationsCard from "../../components/advisor/UpcomingConsultationsCard";
+import ConsultationListCard from "../../components/advisor/ConsultationListCard";
+import AdvisorHistoryCard from "../../components/advisor/AdvisorHistoryCard";
 import "./AdvisorDashboard.css"; // reuse base layout + card styles
 import "./AdvisorConsultations.css";
 
@@ -39,6 +40,38 @@ export default function AdvisorConsultations() {
     ]
   }), []);
 
+  // Advisor consultation history (past sessions)
+  const historyData = useMemo(() => ([
+    {
+      id: 101,
+      date: "2025-09-14",
+      time: "10:00 AM - 10:30 AM",
+      topic: "Thesis Outline Review",
+      student: { name: "Juan Dela Cruz", title: "Student" },
+      mode: "online",
+      status: "completed"
+    },
+    {
+      id: 102,
+      date: "2025-09-10",
+      time: "2:00 PM - 2:30 PM",
+      topic: "Course Planning",
+      student: { name: "Maria Santos", title: "Student" },
+      mode: "in-person",
+      status: "completed",
+      location: "Faculty Office 204"
+    },
+    {
+      id: 103,
+      date: "2025-09-05",
+      time: "1:00 PM - 1:30 PM",
+      topic: "Missed Session Follow-up",
+      student: { name: "Jose Rizal", title: "Student" },
+      mode: "online",
+      status: "cancelled"
+    }
+  ]), []);
+
   return (
     <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
@@ -57,6 +90,22 @@ export default function AdvisorConsultations() {
             {/* Right: Upcoming Consultations Card */}
             <UpcomingConsultationsCard />
           </div>
+
+          {/* Consultation History (below the main grid) */}
+          <section className="advisor-history-section">
+            <div className="section-header">
+              <h2 className="section-title">Consultation History</h2>
+              <span className="section-count">{historyData.length} past sessions</span>
+            </div>
+            <div className="history-consultations-grid">
+              {historyData.map((consultation) => (
+                <AdvisorHistoryCard
+                  key={consultation.id}
+                  consultation={consultation}
+                />
+              ))}
+            </div>
+          </section>
         </main>
       </div>
     </div>
