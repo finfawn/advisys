@@ -10,3 +10,148 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Tabs (match student page styles) */
+.consultations-tabs {
+  display: flex;
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 4px;
+  margin-bottom: 1.5rem;
+  gap: 4px;
+}
+
+.tab-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-weight: 500;
+  color: #64748b;
+  flex: 1;
+  justify-content: center;
+  position: relative;
+}
+
+.tab-button:hover {
+  background: #e2e8f0;
+  color: #475569;
+}
+
+.tab-button.active {
+  background: #ffffff;
+  color: #1e293b;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  font-weight: 600;
+}
+
+.tab-label {
+  font-size: 0.95rem;
+}
+
+.tab-count {
+  background: #e2e8f0;
+  color: #64748b;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  min-width: 24px;
+  height: 24px;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.tab-button.active .tab-count {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.tab-content {
+  min-height: 300px;
+}
+
+.consultations-section {
+  margin-bottom: 1.5rem;
+}
+
+/* Card grid for Upcoming and Requests */
+.advisor-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (min-width: 1200px) {
+  .advisor-cards-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .advisor-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .advisor-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* History Section header and grid (shared look with student) */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  gap: 1rem;
+}
+
+.section-title {
+  font-size: 1.6rem;
+  font-weight: 600;
+  color: #1f2937;
+  margin: 0;
+}
+
+.section-count {
+  font-size: 0.9rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.history-consultations-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 1rem;
+}
+
+@media (min-width: 1200px) {
+  .history-consultations-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 768px) and (max-width: 1199px) {
+  .history-consultations-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 767px) {
+  .history-consultations-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}
