@@ -129,6 +129,17 @@
   }
 }
 
+/* Medium screens: narrow sidebar and balance bottom row */
+@media (max-width: 1024px) {
+  .advisor-dash-body {
+    grid-template-columns: 180px 1fr;
+  }
+
+  .dashboard-row:last-child {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
 @media (max-width: 768px) {
   .advisor-dash-main {
     padding: 16px;
@@ -142,6 +153,10 @@
 
   .stacked-cards {
     grid-row: auto;
+    height: auto; /* stop enforcing equal height */
+  }
+  .stacked-cards > .dashboard-card {
+    flex: initial; /* allow natural height */
   }
 
   .advisor-header {
@@ -156,6 +171,54 @@
 
   .advisor-greeting h2 {
     font-size: 1.5rem;
+  }
+}
+
+/* Small screens: hide sidebar and scale components */
+@media (max-width: 640px) {
+  .advisor-dash-body {
+    grid-template-columns: 1fr;
+  }
+
+  /* Hide persistent sidebar on small screens */
+  .dash-sidebar {
+    display: none;
+  }
+
+  .dashboard-row,
+  .dashboard-row:first-child,
+  .dashboard-row:last-child {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .dashboard-card {
+    padding: 16px;
+  }
+
+  .card-title {
+    font-size: 1rem;
+  }
+
+  /* Scale common chart containers */
+  .chart-container {
+    height: 160px;
+  }
+  .line-chart {
+    height: 140px;
+  }
+  .bar-chart {
+    height: 100px;
+  }
+
+  /* Donut sizes */
+  .donut-svg {
+    width: 64px;
+    height: 64px;
+  }
+  .donut-chart-container {
+    width: 64px;
+    height: 64px;
   }
 }
 

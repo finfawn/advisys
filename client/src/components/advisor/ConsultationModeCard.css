@@ -29,10 +29,78 @@
   left: 50%;
   transform: translate(-50%, -50%);
   text-align: center;
-}
 
+}
 .legend-item {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .consultation-mode-card {
+    overflow: hidden; /* prevent spill */
+  }
+
+  .consultation-mode-card .card-title {
+    font-size: 1rem;
+  }
+
+  .consultation-mode-card .card-header {
+    margin-bottom: 12px;
+  }
+
+  .consultation-mode-card .consultation-mode-content {
+    flex-direction: column;
+    gap: 12px;
+    align-items: center;
+  }
+
+  /* Ensure donut stays readable but compact */
+  .consultation-mode-card .donut-chart-container {
+    width: 64px;
+    height: 64px;
+  }
+
+  .consultation-mode-card .donut-percentage {
+    font-size: 1rem;
+  }
+
+  .consultation-mode-card .donut-label {
+    font-size: 0.7rem;
+  }
+
+  .consultation-mode-card .consultation-legend {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .consultation-mode-card .card-title {
+    font-size: 0.95rem;
+  }
+
+  .consultation-mode-card .donut-svg,
+  .consultation-mode-card .donut-chart-container {
+    width: 52px;
+    height: 52px;
+  }
+
+  .consultation-mode-card .donut-percentage {
+    font-size: 0.9rem;
+  }
+
+  .consultation-mode-card .legend-item {
+    font-size: 0.85rem;
+  }
+
+  .consultation-mode-card .consultation-legend {
+    flex-wrap: wrap;
+  }
 }

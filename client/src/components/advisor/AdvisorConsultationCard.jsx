@@ -1,6 +1,7 @@
 import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
 import "../student/ConsultationCard.css";
+import "./AdvisorConsultationCard.css";
 
 function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onApprove, onDecline }) {
   const isParsableDate = (value) => {
@@ -88,7 +89,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   };
 
   return (
-    <div className="consultation-card">
+    <div className="consultation-card advisor-card">
       <div className="consultation-card-header">
         <span className={`status-badge ${statusInfo.class}`}>
           {statusInfo.icon}

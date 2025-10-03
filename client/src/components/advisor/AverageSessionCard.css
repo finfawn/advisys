@@ -17,13 +17,44 @@
   justify-content: center;
   flex: 1;
   min-height: 0;
-  font-size: 3rem;
+  font-size: clamp(1.75rem, 10vw, 3rem);
   font-weight: 800;
   color: #1f2937;
 }
 
 .average-session-length span {
-  font-size: 1.5rem;
+  font-size: clamp(0.9rem, 3.5vw, 1.5rem);
   color: #6b7280;
   margin-left: 4px;
+}
+
+/* Prevent overflow on small screens */
+.average-session-card {
+  overflow: hidden;
+}
+
+/* Responsive tweaks */
+@media (max-width: 768px) {
+  .average-session-card .card-header {
+    font-size: 1rem;
+    margin-bottom: 12px;
+  }
+
+  .average-session-card .average-session-length {
+    font-size: 2.25rem;
+  }
+
+  .average-session-card .average-session-length span {
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .average-session-card .average-session-length {
+    font-size: 2rem;
+  }
+
+  .average-session-card .average-session-length span {
+    font-size: 1rem;
+  }
 }
