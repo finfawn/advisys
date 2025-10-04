@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { BsGrid, BsCalendarCheck, BsClock, BsBoxArrowRight } from "react-icons/bs";
 import LogoutModal from "../student/LogoutModal";
-import "../student/Sidebar.css";
+import "./AdvisorSidebar.css";
 
 function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout = false, onExpand }) {
   const handleClick = (e) => {

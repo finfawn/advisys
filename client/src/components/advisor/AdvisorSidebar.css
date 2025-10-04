@@ -1,0 +1,210 @@
+/* Sidebar Component Styles */
+
+.dash-sidebar {
+  position: sticky;
+  top: 60px; /* approx height of topbar */
+  align-self: start;
+  height: calc(100vh - 60px);
+  background: #f8fafc;
+  border-right: 1px solid rgba(0,0,0,0.06);
+  padding: 12px 10px;
+  min-width: 200px; /* ensure sidebar is wide enough for text */
+  transition: min-width 240ms ease;
+  /* unified sizes for active icon background */
+  --sb-ico-bg: 2rem;
+  --sb-ico-radius: 10px;
+  /* fixed icon column width so icons don't move */
+  --sb-ico-col: 2rem;
+}
+
+.sidebar-collapsed {
+  min-width: 60px; /* narrow width when collapsed */
+}
+
+.sb-list { 
+  list-style: none; 
+  margin: 0; 
+  padding: 0; 
+}
+
+.sb-item { 
+  margin: 6px 0; 
+}
+
+.sb-link { 
+  display: flex; 
+  align-items: center; 
+  gap: 12px; 
+  padding: 10px 12px; 
+  border-radius: 10px; 
+  color: inherit; 
+  text-decoration: none;
+  font-size: 1rem; 
+  line-height: 1;
+  /* Button-specific styles */
+  background: none;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+}
+
+.sb-icon {
+  display: grid;
+  place-items: center;
+  width: var(--sb-ico-col);
+  height: var(--sb-ico-col);
+  font-size: 1em;    /* ensure react-icons inherits this size */
+  flex-shrink: 0;    /* prevent icon from shrinking */
+}
+
+.sb-icon svg {
+  width: 1em;
+  height: 1em;
+  display: block;    /* remove baseline gap */
+}
+
+.sb-text { 
+  white-space: nowrap; 
+  display: inline-block;
+  min-width: 0;                    /* allow text to shrink if needed */
+  flex: 1;                         /* take available space */
+  transition: opacity 240ms ease, transform 240ms ease, width 240ms ease, max-width 240ms ease; 
+}
+
+/* Collapsed state: hide text with smooth animation */
+.sidebar-collapsed .sb-text { 
+  opacity: 0; 
+  transform: translateX(-4px);
+  width: 0;
+  overflow: hidden;
+  flex: 0;
+  max-width: 0;
+}
+
+.sb-item.active .sb-link {
+  background: transparent; /* remove full-width pill */
+  color: #2d5bd1;
+  font-weight: 600;
+}
+
+.sb-item.active .sb-icon {
+  background: #eaf1ff;
+  border: 1px solid rgba(45, 91, 209, .25);
+  width: var(--sb-ico-bg);
+  height: var(--sb-ico-bg);
+  border-radius: var(--sb-ico-radius);
+  transition: background 180ms ease, border-color 180ms ease, width 200ms ease, height 200ms ease;
+}
+
+.sb-link:hover { 
+  background: transparent; 
+}
+
+.sb-sep { 
+  height: 1px; 
+  background: rgba(0,0,0,0.06); 
+  margin: 12px 0; 
+}
+
+/* Collapsed state: keep same alignment/padding so icons don't move */
+.sidebar-collapsed .sb-link {
+  justify-content: flex-start;   /* ensure same alignment as expanded */
+  column-gap: 12px;              /* keep space reserved for label column */
+  padding: 10px 12px;            /* same padding as expanded */
+}
+
+/* Optional hover state for non-active items (keep consistent square on hover) */
+.sb-item:not(.active) .sb-link:hover .sb-icon {
+  background: #eef2f7;
+  border: 1px solid rgba(0,0,0,0.06);
+  width: var(--sb-ico-bg);
+  height: var(--sb-ico-bg);
+  border-radius: var(--sb-ico-radius);
+}
+
+/* Logout Button Styles */
+.logout-item .logout-link {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.logout-item .logout-link:hover {
+  background: transparent; /* same as other nav items */
+  color: #b91c1c;
+}
+
+.logout-item .logout-link:hover .logout-icon {
+  background: #fecaca;
+  border: 1px solid rgba(220, 38, 38, 0.2);
+  width: var(--sb-ico-bg);
+  height: var(--sb-ico-bg);
+  border-radius: var(--sb-ico-radius);
+}
+
+.logout-item .logout-icon {
+  color: #dc2626;
+}
+
+.logout-item .logout-link:active {
+  background: transparent;
+  transform: none; /* remove press effect to match other items */
+}
+
+/* Logout button focus state */
+.logout-item .logout-link:focus {
+  outline: none;
+}
+
+/* Mobile Responsive Sidebar */
+@media (max-width: 768px) {
+  .dash-sidebar {
+    position: fixed;
+    top: 56px; /* Mobile topbar height */
+    left: 0;
+    height: calc(100vh - 56px);
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 240ms ease;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    min-width: 240px;
+  }
+
+  .dash-sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* Always show labels on mobile */
+  .dash-sidebar.sidebar-collapsed {
+    min-width: 240px;
+  }
+
+  .dash-sidebar.sidebar-collapsed .sb-text {
+    opacity: 1;
+    transform: translateX(0);
+    width: auto;
+    flex: 1;
+    max-width: none;
+  }
+}
+
+/* Mobile overlay backdrop */
+.mobile-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+}

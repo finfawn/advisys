@@ -1,6 +1,6 @@
 import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsCheckCircle, BsXCircle, BsChevronRight, BsTrash } from "react-icons/bs";
-import "../../student/HistoryCard.css";
+import "./AdvisorHistoryCard.css";
 
 function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
   const formatDate = (dateString) => {
