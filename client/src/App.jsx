@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "./contexts/SidebarContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import Home from "./pages/Home";
 
 // Student pages
@@ -19,8 +20,9 @@ import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
 
 function App() {
   return (
-    <SidebarProvider>
-      <Router>
+    <NotificationProvider>
+      <SidebarProvider>
+        <Router>
         <Routes>
           {/* Home */}
           <Route path="/" element={<Home />} />
@@ -41,8 +43,9 @@ function App() {
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
-      </Router>
-    </SidebarProvider>
+        </Router>
+      </SidebarProvider>
+    </NotificationProvider>
   );
 }
 

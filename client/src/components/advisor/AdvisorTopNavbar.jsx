@@ -2,12 +2,16 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BsBell, BsPersonCircle, BsChevronDown, BsGear, BsBoxArrowRight } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
+import NotificationModal from "../NotificationModal";
+import { useNotifications } from "../../contexts/NotificationContext";
 import "./AdvisorTopNavbar.css";
 
 function AdvisorTopNavbar() {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const dropdownRef = useRef(null);
+  const { unreadCount } = useNotifications();
 
   // Mock advisor data - in real app, this would come from context/state
   const advisorName = "Dr. Sarah Johnson";
@@ -21,6 +25,11 @@ function AdvisorTopNavbar() {
     // Handle logout logic here
     console.log('Logout clicked');
     setIsDropdownOpen(false);
+  };
+
+  const handleNotificationClick = () => {
+    setIsNotificationOpen(!isNotificationOpen);
+    setIsDropdownOpen(false); // Close user dropdown if open
   };
 
   // Close dropdown when clicking outside
@@ -51,9 +60,13 @@ function AdvisorTopNavbar() {
       </div>
 
       <div className="advisor-topbar-right">
-        <button className="notification-btn" aria-label="Notifications">
+        <button 
+          className="notification-btn" 
+          aria-label="Notifications"
+          onClick={handleNotificationClick}
+        >
           <BsBell className="bell-icon" />
-          <span className="notification-dot"></span>
+          {unreadCount > 0 && <span className="notification-dot"></span>}
         </button>
         {/* User Profile Dropdown */}
         <div className="user-dropdown" ref={dropdownRef}>
@@ -109,6 +122,13 @@ function AdvisorTopNavbar() {
           )}
         </div>
       </div>
+
+      {/* Notification Modal */}
+      <NotificationModal 
+        isOpen={isNotificationOpen}
+        onClose={() => setIsNotificationOpen(false)}
+        userType="advisor"
+      />
     </header>
   );
 }

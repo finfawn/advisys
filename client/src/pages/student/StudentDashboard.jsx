@@ -9,6 +9,7 @@ import AdvisorCard from "../../components/student/AdvisorCard";
 import CompactConsultationCard from "../../components/student/CompactConsultationCard";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
+import NotificationDemo from "../../components/NotificationDemo";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentDashboard.css";
 
@@ -412,6 +413,16 @@ export default function StudentDashboard() {
                   </div>
                 );
               })()}
+            </div>
+          </section>
+
+          {/* Notification Demo Section */}
+          <section className="section-block">
+            <div className="section-panel">
+              <div className="section-head">
+                <div className="section-title mb-0">Notification System Demo</div>
+              </div>
+              <NotificationDemo />
             </div>
           </section>
         </main>
