@@ -12,6 +12,7 @@
   grid-template-columns: 240px 1fr;
   /* sidebar + main */
   transition: grid-template-columns 240ms ease;
+  position: relative;
 }
 
 .advisor-dash-body.collapsed {
@@ -134,9 +135,20 @@
 }
 
 @media (max-width: 768px) {
+  /* On mobile, hide sidebar from grid flow */
+  .advisor-dash-body {
+    grid-template-columns: 1fr;
+    overflow-x: hidden;
+  }
+
+  .advisor-dash-body.collapsed {
+    grid-template-columns: 1fr;
+  }
+
   .advisor-dash-main {
     padding: 16px;
     gap: 16px;
+    height: calc(100vh - 56px);
   }
 
   .dashboard-row:first-child,
@@ -146,14 +158,13 @@
 
   .stacked-cards {
     grid-row: auto;
-    flex-direction: row; /* Change to horizontal layout on mobile */
-    gap: 12px; /* Reduce gap for mobile */
+    flex-direction: row;
+    gap: 12px;
   }
 
-  /* Make stacked cards take equal width on mobile */
   .stacked-cards > .dashboard-card {
     flex: 1;
-    min-height: 150px; /* Reduce height for mobile */
+    min-height: 150px;
   }
 
   .advisor-header {
@@ -170,18 +181,97 @@
     font-size: 1.5rem;
   }
 
-  /* Mobile styles for consultation mode and average session cards */
   .consultation-mode-content {
-    min-height: 120px; /* Reduce height for mobile */
+    min-height: 120px;
   }
 
   .average-session-length {
-    min-height: 80px; /* Reduce height for mobile */
-    font-size: 2rem; /* Smaller font for mobile */
+    min-height: 80px;
+    font-size: 2rem;
   }
 
   .average-session-length span {
-    font-size: 1rem; /* Smaller span font for mobile */
+    font-size: 1rem;
+  }
+
+  /* Card adjustments for mobile */
+  .advisor-dash-wrap .dashboard-card {
+    padding: 16px;
+  }
+
+  .advisor-dash-wrap .card-title {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .advisor-dash-main {
+    padding: 12px;
+    gap: 12px;
+  }
+
+  .dashboard-grid {
+    gap: 16px;
+  }
+
+  .dashboard-row {
+    gap: 12px;
+  }
+
+  /* Stack all cards vertically on small phones */
+  .stacked-cards {
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .stacked-cards > .dashboard-card {
+    min-height: 120px;
+  }
+
+  .advisor-dash-wrap .dashboard-card {
+    padding: 14px;
+  }
+
+  .advisor-dash-wrap .card-title {
+    font-size: 0.95rem;
+  }
+
+  /* Adjust donut chart for smaller screens */
+  .donut-chart-container {
+    width: 70px;
+    height: 70px;
+  }
+
+  .donut-svg {
+    width: 70px;
+    height: 70px;
+  }
+
+  .donut-percentage {
+    font-size: 1rem;
+  }
+
+  .donut-label {
+    font-size: 0.65rem;
+  }
+
+  /* Adjust text sizes */
+  .average-session-length {
+    font-size: 1.75rem;
+    min-height: 70px;
+  }
+
+  .average-session-length span {
+    font-size: 0.9rem;
+  }
+
+  .legend-text {
+    font-size: 0.8rem;
+  }
+
+  .topic-name,
+  .topic-count {
+    font-size: 0.85rem;
   }
 }
 

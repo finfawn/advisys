@@ -1,12 +1,15 @@
 import React from "react";
-import { BsBell, BsPersonCircle } from "react-icons/bs";
+import { BsBell, BsPersonCircle, BsList } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
 import "./AdvisorTopNavbar.css";
 
-function AdvisorTopNavbar() {
+function AdvisorTopNavbar({ onMenuToggle }) {
   return (
     <header className="advisor-topbar">
       <div className="advisor-topbar-left">
+        <button className="mobile-menu-btn" onClick={onMenuToggle} aria-label="Toggle menu">
+          <BsList className="menu-icon" />
+        </button>
         <div className="advisor-brand">
           <img src={Logo} alt="AdviSys" className="advisor-logo" />
           <div className="advisor-brand-title">advi<span className="advisor-brand-sys">Sys</span></div>

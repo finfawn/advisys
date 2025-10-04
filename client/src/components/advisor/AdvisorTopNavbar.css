@@ -19,6 +19,27 @@
   gap: 135px;
 }
 
+.mobile-menu-btn {
+  display: none;
+  background: transparent;
+  border: none;
+  padding: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  transition: background-color 0.2s ease;
+  align-items: center;
+  justify-content: center;
+}
+
+.mobile-menu-btn:hover {
+  background-color: #f3f4f6;
+}
+
+.menu-icon {
+  font-size: 24px;
+  color: #374151;
+}
+
 .advisor-brand {
   display: flex;
   align-items: center;
@@ -126,26 +147,80 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 1024px) {
+  .advisor-topbar-left {
+    gap: 60px;
+  }
+}
+
 @media (max-width: 768px) {
   .advisor-topbar {
     padding: 12px 16px;
+    min-height: 56px;
+  }
+
+  .mobile-menu-btn {
+    display: flex;
+    margin-right: 8px;
+  }
+  
+  .advisor-topbar-left {
+    gap: 20px;
+  }
+
+  .advisor-greeting {
+    display: none;
   }
   
   .welcome-text {
-    font-size: 20px;
+    font-size: 18px;
   }
   
   .faculty-name {
     font-size: 14px;
   }
+
+  .advisor-logo {
+    width: 30px;
+    height: 30px;
+  }
+
+  .advisor-brand-title {
+    font-size: 1rem;
+  }
 }
 
 @media (max-width: 480px) {
-  .advisor-topbar-right {
+  .advisor-topbar {
+    padding: 10px 12px;
+  }
+
+  .advisor-topbar-left {
     gap: 12px;
+  }
+
+  .advisor-topbar-right {
+    gap: 8px;
   }
   
   .faculty-name {
     display: none;
+  }
+
+  .notification-btn {
+    padding: 6px;
+  }
+
+  .user-avatar {
+    width: 36px;
+    height: 36px;
+  }
+
+  .avatar-icon {
+    font-size: 20px;
+  }
+
+  .bell-icon {
+    font-size: 18px;
   }
 }

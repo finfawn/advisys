@@ -155,3 +155,56 @@
 .logout-item .logout-link:focus {
   outline: none;
 }
+
+/* Mobile Responsive Sidebar */
+@media (max-width: 768px) {
+  .dash-sidebar {
+    position: fixed;
+    top: 56px; /* Mobile topbar height */
+    left: 0;
+    height: calc(100vh - 56px);
+    z-index: 1000;
+    transform: translateX(-100%);
+    transition: transform 240ms ease;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    min-width: 240px;
+  }
+
+  .dash-sidebar.sidebar-open {
+    transform: translateX(0);
+  }
+
+  /* Always show labels on mobile */
+  .dash-sidebar.sidebar-collapsed {
+    min-width: 240px;
+  }
+
+  .dash-sidebar.sidebar-collapsed .sb-text {
+    opacity: 1;
+    transform: translateX(0);
+    width: auto;
+    flex: 1;
+    max-width: none;
+  }
+}
+
+/* Mobile overlay backdrop */
+.mobile-sidebar-overlay {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 240ms ease;
+}
+
+@media (max-width: 768px) {
+  .mobile-sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+  }
+}

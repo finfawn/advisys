@@ -10,15 +10,27 @@ import "./AdvisorConsultations.css";
 
 export default function AdvisorConsultations() {
   const [collapsed, setCollapsed] = useState(false);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const navigate = useNavigate();
 
   const toggleSidebar = () => setCollapsed(v => !v);
 
   const handleNavigation = (page) => {
+    // Close mobile menu on navigation
+    setMobileMenuOpen(false);
+    
     if (page === 'dashboard') navigate('/advisor-dashboard');
     else if (page === 'consultations') navigate('/advisor-dashboard/consultations');
     else if (page === 'availability') navigate('/advisor-dashboard/availability');
     else if (page === 'logout') console.log('Logout');
+  };
+
+  const handleMenuToggle = () => {
+    setMobileMenuOpen(prev => !prev);
+  };
+
+  const handleOverlayClick = () => {
+    setMobileMenuOpen(false);
   };
 
   const initialUpcoming = useMemo(() => ([
@@ -131,9 +143,21 @@ export default function AdvisorConsultations() {
 
   return (
     <div className="advisor-dash-wrap">
-      <AdvisorTopNavbar />
+      <AdvisorTopNavbar onMenuToggle={handleMenuToggle} />
+      
+      {/* Mobile overlay */}
+      <div 
+        className={`mobile-sidebar-overlay ${mobileMenuOpen ? 'active' : ''}`}
+        onClick={handleOverlayClick}
+      />
+      
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <AdvisorSidebar 
+          collapsed={collapsed} 
+          onToggle={toggleSidebar} 
+          onNavigate={handleNavigation}
+          className={mobileMenuOpen ? 'sidebar-open' : ''}
+        />
 
         <main className="advisor-dash-main">
           {/* Grid layout: Tab content + Upcoming card side-by-side */}

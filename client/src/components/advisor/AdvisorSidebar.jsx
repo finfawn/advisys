@@ -39,7 +39,7 @@ function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout
   );
 }
 
-function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
+function AdvisorSidebar({ collapsed, onToggle, onNavigate, className = '' }) {
   const location = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
@@ -91,7 +91,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
   return (
     <>
       <aside
-        className={`dash-sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}
+        className={`dash-sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${className}`}
         title="Click to collapse/expand sidebar"
         role="button"
         tabIndex={0}

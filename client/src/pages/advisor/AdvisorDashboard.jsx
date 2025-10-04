@@ -15,9 +15,13 @@ import "./AdvisorDashboard.css";
 export default function AdvisorDashboard() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
+    
+    // Close mobile menu on navigation
+    setMobileMenuOpen(false);
     
     if (page === 'dashboard') {
       navigate('/advisor-dashboard');
@@ -31,13 +35,32 @@ export default function AdvisorDashboard() {
     }
   };
 
+  const handleMenuToggle = () => {
+    setMobileMenuOpen(prev => !prev);
+  };
+
+  const handleOverlayClick = () => {
+    setMobileMenuOpen(false);
+  };
+
   return (
     <div className="advisor-dash-wrap">
-      <AdvisorTopNavbar />
+      <AdvisorTopNavbar onMenuToggle={handleMenuToggle} />
+
+      {/* Mobile overlay */}
+      <div 
+        className={`mobile-sidebar-overlay ${mobileMenuOpen ? 'active' : ''}`}
+        onClick={handleOverlayClick}
+      />
 
       {/* Body */}
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <AdvisorSidebar 
+          collapsed={collapsed} 
+          onToggle={toggleSidebar} 
+          onNavigate={handleNavigation}
+          className={mobileMenuOpen ? 'sidebar-open' : ''}
+        />
 
         {/* Content */}
         <main className="advisor-dash-main">
