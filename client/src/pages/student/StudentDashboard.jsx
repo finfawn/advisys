@@ -163,10 +163,11 @@ export default function StudentDashboard() {
   );
 
   const handleJoinConsultation = (consultation) => {
-    if (consultation.mode === 'online' && consultation.meetingLink) {
-      window.open(consultation.meetingLink, '_blank');
+    // Navigate to appropriate details page based on consultation mode
+    if (consultation.mode === 'online') {
+      navigate(`/student-dashboard/consultations/online/${consultation.id}`);
     } else {
-      console.log('Show details for in-person consultation:', consultation);
+      navigate(`/student-dashboard/consultations/${consultation.id}`);
     }
   };
 
@@ -293,6 +294,7 @@ export default function StudentDashboard() {
                       consultation={consultation}
                       onActionClick={() => handleJoinConsultation(consultation)}
                       onDelete={() => console.log('Delete consultation:', consultation.id)}
+                      onCancel={() => console.log('Cancel consultation:', consultation.id)}
                     />
                   ))}
                 </div>

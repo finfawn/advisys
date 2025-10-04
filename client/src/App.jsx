@@ -9,6 +9,8 @@ import AdvisorListPage from "./pages/student/AdvisorListPage";
 import AdvisorProfilePage from "./pages/student/AdvisorProfilePage";
 import MyConsultationsPage from "./pages/student/MyConsultationsPage";
 import ConsultationDetailsPage from "./pages/student/ConsultationDetailsPage";
+import OnlineConsultationDetailsPage from "./pages/student/OnlineConsultationDetailsPage";
+import HistoryConsultationDetailsPage from "./pages/HistoryConsultationDetailsPage";
 import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 
 // Advisor pages
@@ -29,6 +31,8 @@ function App() {
           <Route path="/student-dashboard/advisors/:advisorId" element={<AdvisorProfilePage />} />
           <Route path="/student-dashboard/consultations" element={<MyConsultationsPage />} />
           <Route path="/student-dashboard/consultations/:consultationId" element={<ConsultationDetailsPage />} />
+          <Route path="/student-dashboard/consultations/online/:consultationId" element={<OnlineConsultationDetailsPage />} />
+          <Route path="/student-dashboard/consultations/history/:consultationId" element={<HistoryConsultationDetailsPage />} />
           <Route path="/student-dashboard/settings" element={<StudentSettingsPage />} />
 
           {/* Advisor routes */}

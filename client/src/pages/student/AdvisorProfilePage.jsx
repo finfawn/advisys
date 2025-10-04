@@ -2,9 +2,6 @@ import React, { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   BsPersonCircle, 
-  BsEnvelope, 
-  BsLinkedin, 
-  BsGoogle, 
   BsCalendarCheck,
   BsClock,
   BsBook,
@@ -32,9 +29,6 @@ export default function AdvisorProfilePage() {
     department: "Department of Computer Science",
     avatar: null, // Would be a URL in real app
     status: "Available", // Available, Unavailable, Busy
-    email: "maria.santos@university.edu",
-    linkedin: "https://linkedin.com/in/maria-santos",
-    googleScholar: "https://scholar.google.com/citations?user=maria-santos",
     bio: "Dr. Maria Santos is a distinguished professor specializing in artificial intelligence and machine learning. With over 15 years of experience in academia, she has published numerous papers in top-tier conferences and journals. She is passionate about mentoring students and helping them navigate their academic and research journeys.",
     researchInterests: [
       "Artificial Intelligence",
@@ -143,31 +137,7 @@ export default function AdvisorProfilePage() {
                     <p className="advisor-department">{advisorData.department}</p>
                   )}
                   
-                  <div className="courses-section">
-                    <div className="course-tags">
-                      {advisorData.coursesTaught.map((course, index) => {
-                        // Extract course short name (e.g., "CS 101" from "CS 101: Introduction to Programming")
-                        const courseShortName = course.split(':')[0].trim();
-                        return (
-                          <span key={index} className="course-tag">
-                            {courseShortName}
-                          </span>
-                        );
-                      })}
-                    </div>
-                  </div>
                   
-                  <div className="contact-icons">
-                    <a href={`mailto:${advisorData.email}`} className="contact-icon" title="Email">
-                      <BsEnvelope />
-                    </a>
-                    <a href={advisorData.linkedin} target="_blank" rel="noopener noreferrer" className="contact-icon" title="LinkedIn">
-                      <BsLinkedin />
-                    </a>
-                    <a href={advisorData.googleScholar} target="_blank" rel="noopener noreferrer" className="contact-icon" title="Google Scholar">
-                      <BsGoogle />
-                    </a>
-                  </div>
                 </div>
               </div>
             </section>

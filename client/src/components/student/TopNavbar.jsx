@@ -48,6 +48,10 @@ function TopNavbar() {
           <img src={Logo} alt="AdviSys" className="brand-logo" />
           <div className="brand-title">advi<span className="brand-sys">Sys</span></div>
         </div>
+        <div className="student-greeting">
+          <span className="greeting-text">Hi, {studentName}</span>
+          <h1 className="welcome-text">Welcome</h1>
+        </div>
       </div>
 
       <div className="tb-center">
@@ -58,8 +62,9 @@ function TopNavbar() {
       </div>
 
       <div className="tb-right">
-        <button className="icon-plain" aria-label="Notifications">
-          <BsBell />
+        <button className="notification-btn" aria-label="Notifications">
+          <BsBell className="bell-icon" />
+          <span className="notification-dot"></span>
         </button>
         
         {/* User Profile Dropdown */}

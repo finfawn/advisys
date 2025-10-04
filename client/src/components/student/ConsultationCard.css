@@ -283,6 +283,17 @@
   transform: translateY(-1px);
 }
 
+.consultation-card-action-btn.details {
+  background: #3b82f6;
+  color: white;
+}
+
+.consultation-card-action-btn.details:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+}
+
 .consultation-card-action-btn.reschedule {
   background: #f59e0b;
   color: white;

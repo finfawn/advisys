@@ -274,6 +274,59 @@
   font-size: 1.2rem;
 }
 
+/* Meeting Link Section */
+.meeting-link-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meeting-link-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #f0f9ff;
+  border-radius: 12px;
+  border: 1px solid #bae6fd;
+}
+
+.meeting-icon {
+  color: #0ea5e9;
+  font-size: 1.2rem;
+  flex-shrink: 0;
+}
+
+.meeting-details {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1;
+}
+
+.meeting-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #0369a1;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.meeting-link-text {
+  font-weight: 500;
+  color: #0c4a6e;
+  word-break: break-all;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9rem;
+}
+
+.meeting-subtitle {
+  font-size: 0.75rem;
+  color: #6b7280;
+  font-weight: 400;
+  font-style: italic;
+}
+
 /* Student Request Section */
 .request-category {
   display: inline-flex;
@@ -382,6 +435,20 @@
   transition: all 0.2s ease;
   text-decoration: none;
   background: white;
+}
+
+.action-btn.join-meeting {
+  background: #10b981;
+  color: white;
+  border-color: #10b981;
+  order: -1; /* Show join button first */
+}
+
+.action-btn.join-meeting:hover {
+  background: #059669;
+  border-color: #059669;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
 }
 
 .action-btn.add-calendar {

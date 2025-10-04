@@ -14,7 +14,7 @@
 /* Allow mouse events for hover interaction when needed */
 .squares-canvas.interactive {
   pointer-events: auto;
-  cursor: crosshair; /* More appropriate cursor for grid interaction */
+  cursor: default; /* Normal cursor for grid interaction */
 }
 
 .squares-canvas.interactive:hover {

@@ -1,9 +1,42 @@
-import React from "react";
-import { BsBell, BsPersonCircle } from "react-icons/bs";
+import React, { useState, useRef, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { BsBell, BsPersonCircle, BsChevronDown, BsGear, BsBoxArrowRight } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
 import "./AdvisorTopNavbar.css";
 
 function AdvisorTopNavbar() {
+  const navigate = useNavigate();
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+
+  // Mock advisor data - in real app, this would come from context/state
+  const advisorName = "Dr. Sarah Johnson";
+
+  const handleSettingsClick = () => {
+    navigate('/advisor-dashboard/settings');
+    setIsDropdownOpen(false);
+  };
+
+  const handleLogout = () => {
+    // Handle logout logic here
+    console.log('Logout clicked');
+    setIsDropdownOpen(false);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+
   return (
     <header className="advisor-topbar">
       <div className="advisor-topbar-left">
@@ -12,7 +45,7 @@ function AdvisorTopNavbar() {
           <div className="advisor-brand-title">advi<span className="advisor-brand-sys">Sys</span></div>
         </div>
         <div className="advisor-greeting">
-          <span className="greeting-text">Hi, Instructor name</span>
+          <span className="greeting-text">Hi, {advisorName}</span>
           <h1 className="welcome-text">Welcome</h1>
         </div>
       </div>
@@ -22,10 +55,59 @@ function AdvisorTopNavbar() {
           <BsBell className="bell-icon" />
           <span className="notification-dot"></span>
         </button>
-        <div className="user-avatar">
-          <BsPersonCircle className="avatar-icon" />
+        {/* User Profile Dropdown */}
+        <div className="user-dropdown" ref={dropdownRef}>
+          <button 
+            className="user-dropdown-trigger"
+            onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+            aria-expanded={isDropdownOpen}
+            aria-haspopup="true"
+          >
+            <div className="avatar small" aria-hidden>
+              <BsPersonCircle />
+            </div>
+            <span className="user-name d-none d-md-inline">{advisorName}</span>
+            <BsChevronDown className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
+          </button>
+          
+          {isDropdownOpen && (
+            <div className="user-dropdown-menu">
+              <div className="dropdown-header">
+                <div className="dropdown-user-info">
+                  <div className="dropdown-avatar">
+                    <BsPersonCircle />
+                  </div>
+                  <div className="dropdown-user-details">
+                    <div className="dropdown-user-name">{advisorName}</div>
+                    <div className="dropdown-user-role">Advisor</div>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="dropdown-divider"></div>
+              
+              <div className="dropdown-items">
+                <button 
+                  className="dropdown-item"
+                  onClick={handleSettingsClick}
+                >
+                  <BsGear className="dropdown-item-icon" />
+                  <span>Settings</span>
+                </button>
+                
+                <div className="dropdown-divider"></div>
+                
+                <button 
+                  className="dropdown-item logout-item"
+                  onClick={handleLogout}
+                >
+                  <BsBoxArrowRight className="dropdown-item-icon" />
+                  <span>Logout</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
-        <span className="faculty-name">Faculty name</span>
       </div>
     </header>
   );
