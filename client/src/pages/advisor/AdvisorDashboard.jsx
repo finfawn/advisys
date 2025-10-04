@@ -6,7 +6,7 @@ import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import TotalConsultationsCard from "../../components/advisor/dashboard/TotalConsultationsCard";
 import ConsultationModeCard from "../../components/advisor/dashboard/ConsultationModeCard";
 import AverageSessionCard from "../../components/advisor/dashboard/AverageSessionCard";
-import UpcomingConsultationsCard from "../../components/advisor/dashboard/UpcomingConsultationsCard";
+import UpcomingConsultationsCard from "../../components/advisor/UpcomingConsultationsCard";
 import ConsultationTrendCard from "../../components/advisor/dashboard/ConsultationTrendCard";
 import TopTopicsCard from "../../components/advisor/dashboard/TopTopicsCard";
 import { useSidebar } from "../../contexts/SidebarContext";
