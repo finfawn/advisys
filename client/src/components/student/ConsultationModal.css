@@ -862,13 +862,11 @@ select.form-control {
 
 /* Summary Container */
 .summary-container {
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   padding: 20px;
   margin-bottom: 20px;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
   text-align: left;
 }
 
@@ -892,60 +890,50 @@ select.form-control {
 .summary-card-item {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 10px;
   padding: 12px;
-  background: rgba(248, 250, 252, 0.8);
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  animation: summaryItemSlideIn 0.5s ease-out;
+  background: transparent;
+  border-radius: 0;
+  border: none;
+  transition: all 0.2s ease;
 }
 
-@keyframes summaryItemSlideIn {
-  from {
-    opacity: 0;
-    transform: translateX(-20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
 
 
 .summary-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: 14px;
   flex-shrink: 0;
 }
 
 .faculty-icon {
-  background: #6b8cc7;
-  color: white;
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
 .location-icon {
-  background: #f59e0b;
-  color: white;
+  background: #fef3c7;
+  color: #d97706;
 }
 
 .calendar-icon {
-  background: #9442a8;
-  color: white;
+  background: #f3e8ff;
+  color: #7c3aed;
 }
 
 .mode-icon {
-  color: inherit;
+  background: #f1f5f9;
+  color: #475569;
 }
 
 .category-icon {
-  background: #5ca3e6;
-  color: white;
+  background: #dcfce7;
+  color: #166534;
 }
 
 .summary-content {
@@ -975,9 +963,9 @@ select.form-control {
 /* Description Section */
 .summary-description {
   padding: 16px;
-  background: rgba(248, 250, 252, 0.8);
-  border-radius: 12px;
-  border: 1px solid rgba(0, 0, 0, 0.05);
+  background: #ffffff;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
 }
 
 .summary-description .summary-label {
