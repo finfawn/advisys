@@ -14,6 +14,7 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 // Advisor pages
 import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
 import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
+import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
 
 function App() {
   return (
@@ -34,6 +35,7 @@ function App() {
           {/* Advisor routes */}
           <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
           <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
+          <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
