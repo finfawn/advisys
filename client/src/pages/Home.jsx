@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from "react";
 import { Container, Row, Col, Button, Badge } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { FaPlay, FaArrowRight, FaRegCircle } from "react-icons/fa";
+import { FaPlay, FaArrowRight, FaRegCircle, FaGraduationCap, FaChalkboardTeacher, FaBuilding } from "react-icons/fa";
 import { BsCalendarCheck, BsPeople, BsFileEarmarkText, BsBarChart, BsClock, BsPersonCircle } from "react-icons/bs";
+import { HiOutlineUser, HiOutlineCalendar, HiOutlineVideoCamera, HiOutlineDocumentText } from "react-icons/hi";
 import Logo from "../assets/logo.png";
-import AdvisorCard from "../components/student/AdvisorCard";
 import AuthModal from "../components/student/AuthModal";
 import Squares from "../components/Squares";
 import "./Home.css";
@@ -116,66 +116,152 @@ function Home() {
           </Container>
         </div>
 
-        {/* Available Today (Glass Cards) */}
-        <Container className="px-3 px-md-4 available-section" style={{ maxWidth: 1280, margin: "50px auto 0" }}>
-          <div className="text-center mb-3">
-            <h3 className="fw-bold mb-1">Meet Your Advisors</h3>
-            <div className="text-muted">Browse the list of faculty members available for consultation.</div>
-          </div>
-          <div className="d-flex align-items-center justify-content-between mb-3">
-            <h5 className="mb-0 fw-semibold">Available Today</h5>
-            <button 
-              onClick={() => navigate('/student-dashboard/advisors')} 
-              className="view-all-link"
-              style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
-            >
-              View All ▸
-            </button>
+        {/* Who Is AdviSys For? Section */}
+        <Container className="px-3 px-md-4 who-is-for-section" style={{ maxWidth: 1280, margin: "50px auto 0" }}>
+          <div className="text-center mb-5">
+            <h2 className="fw-bold mb-3">Who Is AdviSys For?</h2>
           </div>
           <Row className="g-4">
-            {Array.from({ length: 3 }).map((_, idx) => (
-              <Col md={4} key={idx}>
-                <AdvisorCard 
-                  name="Lorem Ipsum"
-                  title="Academic Title"
-                  status="Available"
-                  schedule="Tue, Thu"
-                  time="10:00 AM–01:00 PM"
-                  mode="In-person/Online"
-                  onBookClick={() => console.log('Book consultation clicked')}
-                />
-              </Col>
-            ))}
+            <Col md={4}>
+              <div className="target-card h-100">
+                <div className="target-icon-wrap">
+                  <FaGraduationCap />
+                </div>
+                <h4 className="target-title">For Students</h4>
+                <p className="target-description">
+                  Schedule consultations easily with your assigned faculty and keep track of your notes and summaries — all in one platform.
+                </p>
+              </div>
+            </Col>
+            <Col md={4}>
+              <div className="target-card h-100">
+                <div className="target-icon-wrap">
+                  <FaChalkboardTeacher />
+                </div>
+                <h4 className="target-title">For Faculty</h4>
+                <p className="target-description">
+                  Manage consultation requests efficiently and automatically generate signed summaries for documentation.
+                </p>
+              </div>
+            </Col>
+            <Col md={4}>
+              <div className="target-card h-100">
+                <div className="target-icon-wrap">
+                  <FaBuilding />
+                </div>
+                <h4 className="target-title">For Departments</h4>
+                <p className="target-description">
+                  Simplify record-keeping with organized digital summaries and consultation analytics for each semester.
+                </p>
+              </div>
+            </Col>
           </Row>
+        </Container>
+
+        {/* How It Works Section */}
+        <Container className="px-3 px-md-4 how-it-works-section" style={{ maxWidth: 1280, margin: "80px auto 0" }}>
+          <div className="text-center mb-5">
+            <h2 className="fw-bold mb-3">How It Works</h2>
+            <p className="how-it-works-subtitle">
+              AdviSys streamlines the consultation process in just a few simple steps.
+            </p>
+          </div>
+          <Row className="g-4">
+            <Col sm={6} lg={3}>
+              <div className="step-card h-100">
+                <div className="step-number">1</div>
+                <div className="step-icon-wrap">
+                  <HiOutlineUser />
+                </div>
+                <h5 className="step-title">Sign In</h5>
+                <p className="step-description">
+                  Log in using your account.
+                </p>
+              </div>
+            </Col>
+            <Col sm={6} lg={3}>
+              <div className="step-card h-100">
+                <div className="step-number">2</div>
+                <div className="step-icon-wrap">
+                  <HiOutlineCalendar />
+                </div>
+                <h5 className="step-title">Book a Consultation</h5>
+                <p className="step-description">
+                  Select a faculty and schedule a preferred slot (online or in-person).
+                </p>
+              </div>
+            </Col>
+            <Col sm={6} lg={3}>
+              <div className="step-card h-100">
+                <div className="step-number">3</div>
+                <div className="step-icon-wrap">
+                  <HiOutlineVideoCamera />
+                </div>
+                <h5 className="step-title">Join the Session</h5>
+                <p className="step-description">
+                  Attend your consultation and take real-time notes.
+                </p>
+              </div>
+            </Col>
+            <Col sm={6} lg={3}>
+              <div className="step-card h-100">
+                <div className="step-number">4</div>
+                <div className="step-icon-wrap">
+                  <HiOutlineDocumentText />
+                </div>
+                <h5 className="step-title">Receive Summary</h5>
+                <p className="step-description">
+                  Get auto-generated consultation summary for record-keeping.
+                </p>
+              </div>
+            </Col>
+          </Row>
+        </Container>
+
+        {/* CTA Section */}
+        <Container className="px-3 px-md-4 cta-section" style={{ maxWidth: 1280, margin: "80px auto 0" }}>
+          <div className="cta-content">
+            <div className="cta-left">
+              <div className="cta-shapes">
+                <div className="shape shape-1"></div>
+                <div className="shape shape-2"></div>
+                <div className="shape shape-3"></div>
+                <div className="shape shape-4"></div>
+              </div>
+            </div>
+            <div className="cta-right">
+              <h2 className="cta-title">Ready to simplify your consultations?</h2>
+              <p className="cta-subtitle">
+                Your academic consultations should serve you, not the other way around. We're here to help streamline the process.
+              </p>
+              <div className="cta-buttons">
+                <Button 
+                  variant="primary" 
+                  size="lg" 
+                  className="cta-primary-btn"
+                  onClick={() => setShowRegister(true)}
+                >
+                  Get Started
+                  <span className="btn-accent"></span>
+                </Button>
+                <Button 
+                  variant="outline-light" 
+                  size="lg" 
+                  className="cta-secondary-btn"
+                  onClick={() => setShowRegister(true)}
+                >
+                  Login
+                </Button>
+              </div>
+            </div>
+          </div>
         </Container>
 
         {/* Footer */}
         <footer className="site-footer">
           <Container className="px-3 px-md-4" style={{ maxWidth: 1280, margin: "0 auto" }}>
-            <div className="d-flex flex-column flex-md-row align-items-center justify-content-between gap-3">
-              <div className="small text-muted"> 2025 AdviSys</div>
-              <div className="footer-links small">
-                <button 
-                  onClick={() => navigate('/student-dashboard/advisors')} 
-                  className="me-3"
-                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
-                >
-                  Privacy
-                </button>
-                <button 
-                  onClick={() => navigate('/student-dashboard/advisors')} 
-                  className="me-3"
-                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
-                >
-                  Terms
-                </button>
-                <button 
-                  onClick={() => navigate('/student-dashboard/advisors')}
-                  style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
-                >
-                  Contact
-                </button>
-              </div>
+            <div className="text-center">
+              <div className="small text-muted">© 2025 AdviSys</div>
             </div>
           </Container>
         </footer>
