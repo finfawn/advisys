@@ -12,12 +12,18 @@ import "./Home.css";
 function Home() {
   const [scrolled, setScrolled] = useState(false);
   const [showRegister, setShowRegister] = useState(false);
+  const [initialAuthMode, setInitialAuthMode] = useState("register");
   const navigate = useNavigate();
 
 
   const handleAuthSuccess = (authData) => {
     console.log("Authentication successful:", authData);
     // Handle successful authentication (redirect, set user state, etc.)
+  };
+
+  const openAuthModal = (mode) => {
+    setInitialAuthMode(mode);
+    setShowRegister(true);
   };
 
 
@@ -41,7 +47,7 @@ function Home() {
           </div>
 
           {/* CTA placeholder */}
-          <Button className="nav-cta" onClick={() => setShowRegister(true)}>Login / Signup</Button>
+          <Button className="nav-cta" onClick={() => openAuthModal("register")}>Login / Signup</Button>
         </Container>
       </div>
 
@@ -75,7 +81,7 @@ function Home() {
                     AdviSys is a web‑based academic consultation management system designed to simplify the
                     process of scheduling, managing, and documenting student–faculty consultations.
                   </p>
-                  <Button variant="light" className="rounded-pill banner-cta-btn" onClick={() => setShowRegister(true)}>Get Started</Button>
+                  <Button variant="light" className="rounded-pill banner-cta-btn" onClick={() => openAuthModal("register")}>Get Started</Button>
                 </Col>
               </Row>
             </Container>
@@ -239,7 +245,7 @@ function Home() {
                   variant="primary" 
                   size="lg" 
                   className="cta-primary-btn"
-                  onClick={() => setShowRegister(true)}
+                  onClick={() => openAuthModal("register")}
                 >
                   Get Started
                   <span className="btn-accent"></span>
@@ -248,7 +254,7 @@ function Home() {
                   variant="outline-light" 
                   size="lg" 
                   className="cta-secondary-btn"
-                  onClick={() => setShowRegister(true)}
+                  onClick={() => openAuthModal("login")}
                 >
                   Login
                 </Button>
@@ -272,6 +278,7 @@ function Home() {
         isOpen={showRegister}
         onClose={() => setShowRegister(false)}
         onAuthSuccess={handleAuthSuccess}
+        initialAuthMode={initialAuthMode}
       />
     </>
   );

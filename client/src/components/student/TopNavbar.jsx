@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsSearch, BsBell, BsPersonCircle, BsChevronDown, BsPerson, BsGear, BsBoxArrowRight } from "react-icons/bs";
+import { BsSearch, BsBell, BsPersonCircle, BsChevronDown, BsPerson, BsGear, BsBoxArrowRight, BsX } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
 import NotificationModal from "../NotificationModal";
 import { useNotifications } from "../../contexts/NotificationContext";
@@ -10,11 +10,28 @@ function TopNavbar() {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [showSearchResults, setShowSearchResults] = useState(false);
   const dropdownRef = useRef(null);
+  const searchRef = useRef(null);
   const { unreadCount } = useNotifications();
 
   // Mock student data - in real app, this would come from context/state
   const studentName = "John Michael Santos";
+
+  // Mock faculty data for search
+  const facultyData = [
+    { id: 1, name: "Dr. Maria Santos", title: "Professor of Computer Science", department: "Computer Science", courses: ["CS 101", "CS 301", "CS 401"] },
+    { id: 2, name: "Prof. John Cruz", title: "Associate Professor of Mathematics", department: "Mathematics", courses: ["MATH 101", "MATH 201", "MATH 301"] },
+    { id: 3, name: "Ms. Sarah Reyes", title: "Assistant Professor of Physics", department: "Physics", courses: ["PHYS 101", "PHYS 201"] },
+    { id: 4, name: "Dr. Michael Dela Cruz", title: "Professor of Chemistry", department: "Chemistry", courses: ["CHEM 101", "CHEM 201", "CHEM 301"] },
+    { id: 5, name: "Prof. Lisa Garcia", title: "Associate Professor of Biology", department: "Biology", courses: ["BIO 101", "BIO 201"] },
+    { id: 6, name: "Dr. Robert Martinez", title: "Professor of Engineering", department: "Engineering", courses: ["ENG 101", "ENG 201", "ENG 301"] },
+    { id: 7, name: "Dr. Jennifer Lee", title: "Professor of Psychology", department: "Psychology", courses: ["PSY 101", "PSY 201", "PSY 301"] },
+    { id: 8, name: "Prof. David Kim", title: "Associate Professor of Statistics", department: "Statistics", courses: ["STAT 101", "STAT 201"] }
+  ];
 
   const handleLogoClick = () => {
     navigate('/');
@@ -34,6 +51,54 @@ function TopNavbar() {
   const handleNotificationClick = () => {
     setIsNotificationOpen(!isNotificationOpen);
     setIsDropdownOpen(false); // Close user dropdown if open
+  };
+
+  // Search functionality
+  const handleSearchChange = (e) => {
+    const query = e.target.value;
+    setSearchQuery(query);
+    
+    if (query.trim().length > 0) {
+      const results = facultyData.filter(faculty => 
+        faculty.name.toLowerCase().includes(query.toLowerCase()) ||
+        faculty.title.toLowerCase().includes(query.toLowerCase()) ||
+        faculty.department.toLowerCase().includes(query.toLowerCase()) ||
+        faculty.courses.some(course => course.toLowerCase().includes(query.toLowerCase()))
+      );
+      setSearchResults(results.slice(0, 5)); // Limit to 5 results
+      setShowSearchResults(true);
+    } else {
+      setSearchResults([]);
+      setShowSearchResults(false);
+    }
+  };
+
+  const handleSearchFocus = () => {
+    setIsSearchFocused(true);
+    if (searchQuery.trim().length > 0) {
+      setShowSearchResults(true);
+    }
+  };
+
+  const handleSearchBlur = () => {
+    // Delay hiding results to allow clicking on them
+    setTimeout(() => {
+      setIsSearchFocused(false);
+      setShowSearchResults(false);
+    }, 200);
+  };
+
+  const handleSearchResultClick = (faculty) => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowSearchResults(false);
+    navigate(`/student-dashboard/advisors/${faculty.id}`);
+  };
+
+  const clearSearch = () => {
+    setSearchQuery("");
+    setSearchResults([]);
+    setShowSearchResults(false);
   };
 
   // Close dropdown when clicking outside
@@ -64,9 +129,57 @@ function TopNavbar() {
       </div>
 
       <div className="tb-center">
-        <div className="search-box">
+        <div className="search-box" ref={searchRef}>
           <BsSearch className="search-ic" />
-          <input placeholder="Find faculty" aria-label="Find faculty" />
+          <input 
+            type="text"
+            placeholder="Find faculty" 
+            aria-label="Find faculty"
+            value={searchQuery}
+            onChange={handleSearchChange}
+            onFocus={handleSearchFocus}
+            onBlur={handleSearchBlur}
+          />
+          {searchQuery && (
+            <button 
+              className="clear-search-btn"
+              onClick={clearSearch}
+              aria-label="Clear search"
+            >
+              <BsX />
+            </button>
+          )}
+          
+          {/* Search Results Dropdown */}
+          {showSearchResults && searchResults.length > 0 && (
+            <div className="search-results">
+              {searchResults.map((faculty) => (
+                <div 
+                  key={faculty.id}
+                  className="search-result-item"
+                  onClick={() => handleSearchResultClick(faculty)}
+                >
+                  <div className="result-avatar">
+                    <BsPersonCircle />
+                  </div>
+                  <div className="result-info">
+                    <div className="result-name">{faculty.name}</div>
+                    <div className="result-title">{faculty.title}</div>
+                    <div className="result-department">{faculty.department}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {showSearchResults && searchQuery.trim().length > 0 && searchResults.length === 0 && (
+            <div className="search-results">
+              <div className="no-results">
+                <div className="no-results-text">No faculty found</div>
+                <div className="no-results-sub">Try searching by name, department, or course</div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

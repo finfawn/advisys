@@ -12,6 +12,20 @@
   align-items: flex-start;
   justify-content: flex-end;
   padding: 80px 20px 20px 20px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.notification-modal-backdrop.closing {
+  animation: fadeOut 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .notification-modal {
@@ -27,6 +41,10 @@
   animation: slideInFromRight 0.3s ease-out;
 }
 
+.notification-modal.closing {
+  animation: slideOutToRight 0.3s ease-in;
+}
+
 @keyframes slideInFromRight {
   from {
     opacity: 0;
@@ -35,6 +53,26 @@
   to {
     opacity: 1;
     transform: translateX(0);
+  }
+}
+
+@keyframes slideOutToRight {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(100%);
+  }
+}
+
+@keyframes fadeOut {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
   }
 }
 

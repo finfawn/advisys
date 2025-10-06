@@ -3,8 +3,8 @@ import { useNavigate } from "react-router-dom";
 import Logo from "../../assets/logo.png";
 import "./AuthModal.css";
 
-function AuthModal({ isOpen, onClose, onAuthSuccess }) {
-  const [authMode, setAuthMode] = useState("register"); // "register" | "login"
+function AuthModal({ isOpen, onClose, onAuthSuccess, initialAuthMode = "register" }) {
+  const [authMode, setAuthMode] = useState(initialAuthMode); // "register" | "login"
   const [role, setRole] = useState("student");
   const navigate = useNavigate();
   const initialForm = {
@@ -37,6 +37,11 @@ function AuthModal({ isOpen, onClose, onAuthSuccess }) {
     const raf = requestAnimationFrame(measureHeight);
     return () => cancelAnimationFrame(raf);
   }, [role, errors, form.firstName, form.lastName, form.email, form.password, form.program, form.department]);
+
+  // Update authMode when initialAuthMode prop changes
+  useEffect(() => {
+    setAuthMode(initialAuthMode);
+  }, [initialAuthMode]);
 
   // Clear errors whenever switching between Register/Login so warnings don't bleed over
   useEffect(() => {

@@ -6,6 +6,7 @@ import "./NotificationModal.css";
 function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const modalRef = useRef(null);
   const [activeTab, setActiveTab] = useState("all");
+  const [isClosing, setIsClosing] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
 
   // Sample notifications based on user type
@@ -125,7 +126,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (modalRef.current && !modalRef.current.contains(event.target)) {
-        onClose();
+        handleClose();
       }
     };
 
@@ -136,13 +137,13 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   // Close modal on Escape key
   useEffect(() => {
     const handleEscape = (event) => {
       if (event.key === 'Escape') {
-        onClose();
+        handleClose();
       }
     };
 
@@ -153,7 +154,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     return () => {
       document.removeEventListener('keydown', handleEscape);
     };
-  }, [isOpen, onClose]);
+  }, [isOpen]);
 
   const handleNotificationClick = (notification) => {
     // Mark as read using context
@@ -165,6 +166,15 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
 
   const handleMarkAllAsRead = () => {
     markAllAsRead();
+  };
+
+  const handleClose = () => {
+    setIsClosing(true);
+    // Wait for animation to complete before actually closing
+    setTimeout(() => {
+      onClose();
+      setIsClosing(false); // Reset for next time
+    }, 300); // Match the animation duration
   };
 
   const formatTimestamp = (timestamp) => {
@@ -199,8 +209,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   if (!isOpen) return null;
 
   return (
-    <div className="notification-modal-backdrop">
-      <div className="notification-modal" ref={modalRef}>
+    <div className={`notification-modal-backdrop ${isClosing ? 'closing' : ''}`}>
+      <div className={`notification-modal ${isClosing ? 'closing' : ''}`} ref={modalRef}>
         {/* Header */}
         <div className="notification-header">
           <div className="notification-title">
@@ -212,7 +222,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
           </div>
           <button 
             className="notification-close-btn"
-            onClick={onClose}
+            onClick={handleClose}
             aria-label="Close notifications"
           >
             <BsX />
