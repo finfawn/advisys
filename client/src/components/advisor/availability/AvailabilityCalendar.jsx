@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+﻿import React, { useState } from "react";
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import "./AvailabilityCalendar.css";
+import CreateAvailabilityModal from "./CreateAvailabilityModal";
 
 const localizer = momentLocalizer(moment);
 
@@ -13,6 +14,9 @@ export default function AvailabilityCalendar() {
   const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 5));
   // Controlled view so toolbar view buttons work reliably
   const [currentView, setCurrentView] = useState('month');
+  // Modal state for creating availability
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [createDefaults, setCreateDefaults] = useState({ date: null, start: null, end: null });
 
   // Sample month: October 2025
   // Build events that match the design: a day mode label + repeating availability chips + a few holidays
@@ -114,8 +118,8 @@ export default function AvailabilityCalendar() {
     console.log('Selected event:', event);
   };
   const handleSelectSlot = (slotInfo) => {
-    const title = window.prompt('Create new availability block:');
-    if (title) setEvents((prev) => ([...prev, { id: prev.length + 1, title, start: slotInfo.start, end: slotInfo.end, type: 'available' }]));
+    setCreateDefaults({ date: slotInfo.start, start: slotInfo.start, end: slotInfo.end });
+    setIsCreateOpen(true);
   };
   return (
     <div className="availability-calendar-wrapper">
@@ -140,6 +144,28 @@ export default function AvailabilityCalendar() {
           views={["month", "week", "day", "agenda"]}
           defaultView="month"
           popup
+        />
+        <CreateAvailabilityModal
+          isOpen={isCreateOpen}
+          onClose={() => setIsCreateOpen(false)}
+          initialDate={createDefaults.date}
+          initialStart={createDefaults.start}
+          initialEnd={createDefaults.end}
+          onCreate={(payload) => {
+            setEvents((prev) => ([
+              ...prev,
+              {
+                id: Date.now(),
+                title: payload.title,
+                start: payload.start,
+                end: payload.end,
+                type: 'available',
+                modeChoice: payload.mode,
+                room: payload.room || "",
+              },
+            ]));
+            setIsCreateOpen(false);
+          }}
         />
       </div>
     </div>
