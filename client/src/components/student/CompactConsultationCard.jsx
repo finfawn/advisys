@@ -2,7 +2,7 @@ import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
 import "./CompactConsultationCard.css";
 
-function CompactConsultationCard({ consultation, onActionClick, onDelete }) {
+function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -32,20 +32,16 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete }) {
   const getActionButtonText = () => {
     if (consultation.status === 'pending') {
       return 'Cancel';
-    } else if (consultation.mode === 'online') {
-      return 'Join';
     } else {
-      return 'Details';
+      return 'View Details';
     }
   };
 
   const getActionButtonClass = () => {
     if (consultation.status === 'pending') {
       return 'compact-card-action-btn cancel';
-    } else if (consultation.mode === 'online') {
-      return 'compact-card-action-btn online';
     } else {
-      return 'compact-card-action-btn in-person';
+      return 'compact-card-action-btn details';
     }
   };
 
@@ -64,6 +60,13 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete }) {
     e.stopPropagation();
     console.log('Reschedule consultation:', consultation.id);
     // Add reschedule logic here
+  };
+
+  const handleCancelConsultation = (e) => {
+    e.stopPropagation();
+    if (onCancel) {
+      onCancel(consultation);
+    }
   };
 
   const statusInfo = getStatusInfo();
@@ -108,10 +111,14 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete }) {
         <div className="compact-action">
           <button 
             className={getActionButtonClass()}
-            onClick={onActionClick}
+            onClick={consultation.status === 'pending' ? handleCancelConsultation : onActionClick}
           >
             {getActionButtonText()}
-            <BsChevronRight className="action-icon" />
+            {consultation.status === 'pending' ? (
+              <BsXCircle className="cancel-icon" />
+            ) : (
+              <BsChevronRight className="action-icon" />
+            )}
           </button>
         </div>
       )}

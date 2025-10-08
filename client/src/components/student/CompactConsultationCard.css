@@ -221,6 +221,17 @@
   transform: translateY(-1px);
 }
 
+.compact-card-action-btn.details {
+  background: #3b82f6;
+  color: white;
+}
+
+.compact-card-action-btn.details:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
+}
+
 .compact-card-action-btn.reschedule {
   background: #f59e0b;
   color: white;

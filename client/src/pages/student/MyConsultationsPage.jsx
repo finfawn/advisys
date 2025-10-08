@@ -7,6 +7,7 @@ import Sidebar from "../../components/student/Sidebar";
 import ConsultationCard from "../../components/student/ConsultationCard";
 import HistoryCard from "../../components/student/HistoryCard";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
+import CancelConsultationModal from "../../components/student/CancelConsultationModal";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./MyConsultationsPage.css";
 
@@ -14,6 +15,8 @@ export default function MyConsultationsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const [activeTab, setActiveTab] = useState("upcoming");
   const [upcomingFilter, setUpcomingFilter] = useState("all");
+  const [requestFilter, setRequestFilter] = useState("all");
+  const [historyFilter, setHistoryFilter] = useState("all");
   const [historyPage, setHistoryPage] = useState(1);
   const [showAllHistory, setShowAllHistory] = useState(false);
   const [consultationHistory, setConsultationHistory] = useState([]);
@@ -23,6 +26,9 @@ export default function MyConsultationsPage() {
   const [deletedDeclinedItems, setDeletedDeclinedItems] = useState([]);
   const [declinedUndoTimeout, setDeclinedUndoTimeout] = useState(null);
   const [requestConsultationsState, setRequestConsultationsState] = useState([]);
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [consultationToCancel, setConsultationToCancel] = useState(null);
+  const [isCancelling, setIsCancelling] = useState(false);
   const navigate = useNavigate();
 
   const handleNavigation = (page) => {
@@ -385,6 +391,18 @@ export default function MyConsultationsPage() {
     return upcomingConsultations.filter(consultation => consultation.mode === upcomingFilter);
   }, [upcomingConsultations, upcomingFilter]);
 
+  // Filter request consultations
+  const filteredRequests = useMemo(() => {
+    if (requestFilter === "all") return requestConsultationsState;
+    return requestConsultationsState.filter(consultation => consultation.mode === requestFilter);
+  }, [requestConsultationsState, requestFilter]);
+
+  // Filter history consultations
+  const filteredHistory = useMemo(() => {
+    if (historyFilter === "all") return consultationHistory;
+    return consultationHistory.filter(consultation => consultation.mode === historyFilter);
+  }, [consultationHistory, historyFilter]);
+
   // Delete functions with undo functionality
   const handleDeleteHistoryItem = (consultation) => {
     // Clear any existing undo timeout
@@ -503,6 +521,14 @@ export default function MyConsultationsPage() {
     setUpcomingFilter(e.target.value);
   };
 
+  const handleRequestFilterChange = (e) => {
+    setRequestFilter(e.target.value);
+  };
+
+  const handleHistoryFilterChange = (e) => {
+    setHistoryFilter(e.target.value);
+  };
+
 
   const handleNewConsultation = () => {
     console.log('Opening new consultation booking flow');
@@ -511,30 +537,41 @@ export default function MyConsultationsPage() {
   };
 
   const handleJoinConsultation = (consultation) => {
-    if (consultation.mode === 'online' && consultation.meetingLink) {
-      window.open(consultation.meetingLink, '_blank');
+    // Navigate to appropriate details page based on consultation mode
+    if (consultation.mode === 'online') {
+      navigate(`/student-dashboard/consultations/online/${consultation.id}`);
     } else {
-      // Navigate to consultation details page for in-person consultations
       navigate(`/student-dashboard/consultations/${consultation.id}`);
     }
   };
 
   const handleViewHistoryDetails = (consultation) => {
     console.log('Viewing details for consultation:', consultation);
-    // Here you could open a modal or navigate to a details page
-    // For now, we'll just log the consultation details
-    alert(`Consultation Details:\n\nTopic: ${consultation.topic}\nFaculty: ${consultation.faculty.name}\nDate: ${consultation.date}\nTime: ${consultation.time}\nMode: ${consultation.mode}\nStatus: ${consultation.status}`);
+    navigate(`/student-dashboard/consultations/history/${consultation.id}`);
   };
 
   const handleCancelConsultation = (consultation) => {
-    console.log('Cancelling consultation:', consultation);
-    // Here you would implement the cancel logic
-    // For now, we'll just show a confirmation and remove it from the list
-    if (window.confirm(`Are you sure you want to cancel the consultation "${consultation.topic}" with ${consultation.faculty.name}?`)) {
+    setConsultationToCancel(consultation);
+    setShowCancelModal(true);
+  };
+
+  const handleConfirmCancel = (reason) => {
+    setIsCancelling(true);
+    // In a real app, this would make an API call with the reason
+    setTimeout(() => {
+      console.log('Consultation cancelled:', consultationToCancel.id, 'Reason:', reason);
       // Remove from upcoming consultations
-      setRequestConsultationsState(prev => prev.filter(item => item.id !== consultation.id));
-      // You might want to add it to a cancelled state or send to backend
-      console.log('Consultation cancelled:', consultation.id);
+      setRequestConsultationsState(prev => prev.filter(item => item.id !== consultationToCancel.id));
+      setShowCancelModal(false);
+      setConsultationToCancel(null);
+      setIsCancelling(false);
+    }, 1000);
+  };
+
+  const handleCloseCancelModal = () => {
+    if (!isCancelling) {
+      setShowCancelModal(false);
+      setConsultationToCancel(null);
     }
   };
 
@@ -633,12 +670,21 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Consultation Requests</h2>
                   <div className="section-controls">
-                    <span className="section-count">{requestConsultationsState.length} requests</span>
+                    <select 
+                      className="filter-dropdown"
+                      value={requestFilter}
+                      onChange={handleRequestFilterChange}
+                    >
+                      <option value="all">All</option>
+                      <option value="online">Online</option>
+                      <option value="in-person">In-Person</option>
+                    </select>
+                    <span className="section-count">{filteredRequests.length} requests</span>
                   </div>
                 </div>
                 
                 <div className="consultations-grid">
-                  {requestConsultationsState.map(consultation => (
+                  {filteredRequests.map(consultation => (
                     <ConsultationCard
                       key={consultation.id}
                       consultation={consultation}
@@ -648,7 +694,7 @@ export default function MyConsultationsPage() {
                     />
                   ))}
                   
-                  {requestConsultationsState.length === 0 && (
+                  {filteredRequests.length === 0 && (
                     <div className="no-consultations">
                       <BsClockHistory className="no-consultations-icon" />
                       <h3>No pending requests</h3>
@@ -698,7 +744,16 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Consultation History</h2>
                   <div className="section-controls">
-                    {consultationHistory.length > 0 && (
+                    <select 
+                      className="filter-dropdown"
+                      value={historyFilter}
+                      onChange={handleHistoryFilterChange}
+                    >
+                      <option value="all">All</option>
+                      <option value="online">Online</option>
+                      <option value="in-person">In-Person</option>
+                    </select>
+                    {filteredHistory.length > 0 && (
                       <Button 
                         variant="outline-danger" 
                         size="sm"
@@ -709,14 +764,14 @@ export default function MyConsultationsPage() {
                         Delete All
                       </Button>
                     )}
-                    <span className="section-count">{consultationHistory.length} past sessions</span>
+                    <span className="section-count">{filteredHistory.length} past sessions</span>
                   </div>
                 </div>
                 
-                {consultationHistory.length > 0 ? (
+                {filteredHistory.length > 0 ? (
                   <>
                     <div className="history-consultations-grid">
-                      {consultationHistory.map(consultation => (
+                      {filteredHistory.map(consultation => (
                         <HistoryCard
                           key={consultation.id}
                           consultation={consultation}
@@ -773,6 +828,17 @@ export default function MyConsultationsPage() {
         confirmText="Delete All"
         cancelText="Cancel"
       />
+
+      {/* Cancel Consultation Modal */}
+      {consultationToCancel && (
+        <CancelConsultationModal
+          isOpen={showCancelModal}
+          onClose={handleCloseCancelModal}
+          onConfirm={handleConfirmCancel}
+          consultation={consultationToCancel}
+          isCancelling={isCancelling}
+        />
+      )}
     </div>
   );
 }

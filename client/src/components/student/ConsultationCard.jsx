@@ -32,20 +32,16 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
   const getActionButtonText = () => {
     if (consultation.status === 'pending') {
       return 'Cancel';
-    } else if (consultation.mode === 'online') {
-      return 'Join';
     } else {
-      return 'Details';
+      return 'View Details';
     }
   };
 
   const getActionButtonClass = () => {
     if (consultation.status === 'pending') {
       return 'consultation-card-action-btn cancel';
-    } else if (consultation.mode === 'online') {
-      return 'consultation-card-action-btn online';
     } else {
-      return 'consultation-card-action-btn in-person';
+      return 'consultation-card-action-btn details';
     }
   };
 
@@ -150,10 +146,14 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
           ) : (
             <button 
               className={getActionButtonClass()}
-              onClick={onActionClick}
+              onClick={consultation.status === 'pending' ? handleCancelConsultation : onActionClick}
             >
               {getActionButtonText()}
-              <BsChevronRight className="action-icon" />
+              {consultation.status === 'pending' ? (
+                <BsXCircle className="cancel-icon" />
+              ) : (
+                <BsChevronRight className="action-icon" />
+              )}
             </button>
           )}
         </div>

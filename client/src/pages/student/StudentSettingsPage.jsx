@@ -97,10 +97,6 @@ export default function StudentSettingsPage() {
     // Implement change password functionality
   };
 
-  const handleExportData = () => {
-    console.log('Export data clicked');
-    // Implement data export functionality
-  };
 
   const handleDeleteAccount = () => {
     console.log('Delete account clicked');
@@ -407,20 +403,6 @@ export default function StudentSettingsPage() {
                         </div>
                       </div>
 
-                      <div className="security-category">
-                        <h3 className="category-title">Data Management</h3>
-                        <div className="settings-card">
-                          <div className="setting-item">
-                            <div className="setting-info">
-                              <h4 className="setting-title">Export Data</h4>
-                              <p className="setting-description">Download a copy of your personal data and consultation history</p>
-                            </div>
-                            <Button variant="outline-secondary" size="sm" onClick={handleExportData} className="action-btn">
-                              Export Data
-                            </Button>
-                          </div>
-                        </div>
-                      </div>
 
                       <div className="security-category">
                         <h3 className="category-title">Account Actions</h3>

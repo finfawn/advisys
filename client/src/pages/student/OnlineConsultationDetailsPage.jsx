@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { 
   BsPersonCircle, 
   BsClock, 
-  BsGeoAlt, 
+  BsCameraVideo, 
   BsCheckCircle, 
   BsXCircle, 
   BsChevronLeft,
@@ -12,46 +12,49 @@ import {
   BsListCheck,
   BsFileText,
   BsTag,
-  BsCalendarEvent
+  BsCalendarEvent,
+  BsBoxArrowUpRight
 } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
+import JitsiMeetCall from "../../components/student/JitsiMeetCall";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./ConsultationDetailsPage.css";
 
-export default function ConsultationDetailsPage() {
+export default function OnlineConsultationDetailsPage() {
   const { consultationId } = useParams();
   const navigate = useNavigate();
   const { collapsed, toggleSidebar } = useSidebar();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [inCall, setInCall] = useState(false);
 
   // Mock data - in a real app, this would come from an API based on consultationId
   const consultationData = {
-    id: consultationId || "2",
-    date: "2025-10-08",
-    time: "2:00 PM - 2:30 PM",
-    topic: "Research Project Discussion",
+    id: consultationId || "1",
+    date: "2025-10-05",
+    time: "10:00 AM - 10:30 AM",
+    topic: "Course Selection for Next Semester",
     faculty: {
-      name: "Prof. John Cruz",
-      title: "Associate Professor of Mathematics",
-      department: "Department of Mathematics",
+      name: "Dr. Maria Santos",
+      title: "Professor of Computer Science",
+      department: "Department of Computer Science",
       avatar: null,
-      email: "john.cruz@university.edu"
+      email: "maria.santos@university.edu"
     },
-    mode: "in-person",
+    mode: "online",
     status: "approved",
-    location: "Room 205, Math Building",
-    studentNotes: "I need help with the statistical analysis for my research project. I'm working on analyzing survey data from 200 participants and need guidance on choosing the right statistical tests and interpreting the results. I've prepared my data in Excel and have some preliminary analysis but want to make sure I'm on the right track.",
-    category: "Research Guidance",
+    meetingLink: "https://meet.google.com/abc-defg-hij",
+    studentNotes: "I need help choosing my courses for next semester. I'm a computer science major in my junior year and I'm interested in specializing in artificial intelligence. I've already taken the basic programming courses and want to know which advanced courses would be best for my career goals. I'm also considering taking some electives in mathematics and statistics.",
+    category: "Academic Planning",
     duration: "30 minutes",
-    bookingDate: "2025-09-25",
+    bookingDate: "2025-09-20",
     guidelines: [
-      "Bring your laptop with the data files",
-      "Prepare specific questions about your analysis",
-      "Have a clear research question ready",
-      "Bring any preliminary results you've already calculated"
+      "Test your internet connection and camera/microphone beforehand",
+      "Have your course catalog and degree requirements ready",
+      "Prepare a list of questions about specific courses",
+      "Have your academic transcript available for reference"
     ]
   };
 
@@ -65,6 +68,14 @@ export default function ConsultationDetailsPage() {
     } else if (page === 'logout') {
       console.log('Logout');
     }
+  };
+
+  const handleJoinMeeting = () => {
+    setInCall(true);
+  };
+
+  const handleLeaveCall = () => {
+    setInCall(false);
   };
 
   const handleCancelConsultation = () => {
@@ -139,9 +150,9 @@ export default function ConsultationDetailsPage() {
                         <BsCheckCircle />
                         <span>Approved</span>
                       </span>
-                      <span className="mode-badge in-person">
-                        <BsGeoAlt />
-                        <span>In-Person</span>
+                      <span className="mode-badge online">
+                        <BsCameraVideo />
+                        <span>Online</span>
                       </span>
                     </div>
                   </div>
@@ -178,16 +189,22 @@ export default function ConsultationDetailsPage() {
             <div className="consultation-details-grid">
               {/* Left Column */}
               <div className="consultation-details-left">
-                {/* Location Section */}
+                {/* Meeting Link Section */}
                 <section className="consultation-details-section">
                   <h2 className="section-title">
-                    <BsGeoAlt className="section-icon" />
-                    Location
+                    <BsCameraVideo className="section-icon" />
+                    Meeting Information
                   </h2>
                   <div className="section-content">
-                    <div className="location-info">
-                      <BsGeoAlt className="location-icon" />
-                      <span className="location-text">{consultationData.location}</span>
+                    <div className="meeting-link-info">
+                      <div className="meeting-link-container">
+                        <BsCameraVideo className="meeting-icon" />
+                        <div className="meeting-details">
+                          <span className="meeting-label">Video Conference</span>
+                          <span className="meeting-link-text">Secure AdviSys Video Call</span>
+                          <span className="meeting-subtitle">Powered by Jitsi Meet</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </section>
@@ -240,6 +257,13 @@ export default function ConsultationDetailsPage() {
                   <div className="section-content">
                     <div className="action-buttons">
                       <button 
+                        className="action-btn join-meeting"
+                        onClick={handleJoinMeeting}
+                      >
+                        <BsBoxArrowUpRight />
+                        Join Meeting
+                      </button>
+                      <button 
                         className="action-btn cancel-consultation"
                         onClick={handleCancelConsultation}
                         disabled={isCancelling}
@@ -273,7 +297,7 @@ export default function ConsultationDetailsPage() {
                       </div>
                       <div className="info-item">
                         <span className="info-label">Mode</span>
-                        <span className="info-value">In-Person</span>
+                        <span className="info-value">Online</span>
                       </div>
                     </div>
                   </div>
@@ -292,7 +316,16 @@ export default function ConsultationDetailsPage() {
         consultation={consultationData}
         isCancelling={isCancelling}
       />
+
+      {/* Jitsi Meet Call */}
+      {inCall && (
+        <JitsiMeetCall
+          roomName={`consultation-${consultationData.id}`}
+          displayName="Student"
+          onClose={handleLeaveCall}
+          consultationData={consultationData}
+        />
+      )}
     </div>
   );
 }
-
