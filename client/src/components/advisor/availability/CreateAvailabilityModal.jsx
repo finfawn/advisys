@@ -27,9 +27,29 @@ export default function CreateAvailabilityModal({
   initialStart, // Date
   initialEnd, // Date
 }) {
-  const baseDate = initialDate || new Date();
-  const baseStart = initialStart || new Date(baseDate.setHours(9, 0, 0, 0));
-  const baseEnd = initialEnd || new Date(baseDate.setHours(11, 0, 0, 0));
+  const baseDate = initialDate ? new Date(initialDate) : new Date();
+  const baseStart = initialStart
+    ? new Date(initialStart)
+    : new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth(),
+        baseDate.getDate(),
+        9,
+        0,
+        0,
+        0
+      );
+  const baseEnd = initialEnd
+    ? new Date(initialEnd)
+    : new Date(
+        baseDate.getFullYear(),
+        baseDate.getMonth(),
+        baseDate.getDate(),
+        11,
+        0,
+        0,
+        0
+      );
 
   const [year, setYear] = useState(baseDate.getFullYear());
   const [month, setMonth] = useState(baseDate.getMonth()); // 0..11
@@ -73,6 +93,26 @@ export default function CreateAvailabilityModal({
       setError("");
     }
   }, [isOpen]);
+
+  // Sync internal state when the modal opens or when the initial date/time props change
+  useEffect(() => {
+    if (isOpen) {
+      const d = initialDate ? new Date(initialDate) : new Date();
+      setYear(d.getFullYear());
+      setMonth(d.getMonth());
+      setDay(d.getDate());
+
+      const s = initialStart
+        ? new Date(initialStart)
+        : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 9, 0, 0, 0);
+      const e = initialEnd
+        ? new Date(initialEnd)
+        : new Date(d.getFullYear(), d.getMonth(), d.getDate(), 11, 0, 0, 0);
+
+      setStartTime(toTimeValue(s));
+      setEndTime(toTimeValue(e));
+    }
+  }, [isOpen, initialDate, initialStart, initialEnd]);
 
   const handleSubmit = (e) => {
     e?.preventDefault();

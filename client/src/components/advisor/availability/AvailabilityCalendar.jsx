@@ -1,4 +1,4 @@
-﻿import React, { useState } from "react";
+import React, { useState } from "react";
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -60,7 +60,9 @@ export default function AvailabilityCalendar() {
     if (event.type === 'holiday') return <div className="holiday-event">Holiday</div>;
     if (event.type === 'available') {
       const timeText = `${moment(event.start).format('h:mm')}-${moment(event.end).format('h:mm a')}`;
-      return <div className="availability-chip">{timeText}</div>;
+      const modeLabel = event.mode === 'face_to_face' ? 'Face to face' : (event.mode ? 'Online' : '');
+      const roomText = event.mode === 'face_to_face' && event.room ? ` • ${event.room}` : '';
+      return <div className="availability-chip">{modeLabel ? `${timeText} • ${modeLabel}${roomText}` : timeText}</div>;
     }
     return <div className="availability-chip">{event.title}</div>;
   };
@@ -123,7 +125,7 @@ export default function AvailabilityCalendar() {
   };
   return (
     <div className="availability-calendar-wrapper">
-      
+
 
       <div className="calendar-container">
         <Calendar
@@ -160,7 +162,7 @@ export default function AvailabilityCalendar() {
                 start: payload.start,
                 end: payload.end,
                 type: 'available',
-                modeChoice: payload.mode,
+                mode: payload.mode,
                 room: payload.room || "",
               },
             ]));
