@@ -11,6 +11,8 @@ export default function AvailabilityCalendar() {
   const d = (y, m, day, h = 0, min = 0) => new Date(y, m, day, h, min);
   // Controlled current date for navigation
   const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 5));
+  // Controlled view so toolbar view buttons work reliably
+  const [currentView, setCurrentView] = useState('month');
 
   // Sample month: October 2025
   // Build events that match the design: a day mode label + repeating availability chips + a few holidays
@@ -129,11 +131,14 @@ export default function AvailabilityCalendar() {
           style={{ height: 740 }}
           eventPropGetter={eventPropGetter}
           components={{ event: AvailabilityEvent, toolbar: CustomToolbar }}
+          view={currentView}
+          onView={(v) => setCurrentView(v)}
           onNavigate={(newDate) => setCurrentDate(newDate)}
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleSelectSlot}
           selectable
           views={["month", "week", "day", "agenda"]}
+          defaultView="month"
           popup
         />
       </div>
