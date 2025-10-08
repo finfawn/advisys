@@ -1,6 +1,7 @@
 import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider } from "./contexts/SidebarContext";
+import { NotificationProvider } from "./contexts/NotificationContext";
 import Home from "./pages/Home";
 
 // Student pages
@@ -18,29 +19,31 @@ import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
 
 function App() {
   return (
-    <SidebarProvider>
-      <Router>
-        <Routes>
-          {/* Home */}
-          <Route path="/" element={<Home />} />
+    <NotificationProvider>
+      <SidebarProvider>
+        <Router>
+          <Routes>
+            {/* Home */}
+            <Route path="/" element={<Home />} />
 
-          {/* Student routes */}
-          <Route path="/student-dashboard" element={<StudentDashboard />} />
-          <Route path="/student-dashboard/advisors" element={<AdvisorListPage />} />
-          <Route path="/student-dashboard/advisors/:advisorId" element={<AdvisorProfilePage />} />
-          <Route path="/student-dashboard/consultations" element={<MyConsultationsPage />} />
-          <Route path="/student-dashboard/consultations/:consultationId" element={<ConsultationDetailsPage />} />
-          <Route path="/student-dashboard/settings" element={<StudentSettingsPage />} />
+            {/* Student routes */}
+            <Route path="/student-dashboard" element={<StudentDashboard />} />
+            <Route path="/student-dashboard/advisors" element={<AdvisorListPage />} />
+            <Route path="/student-dashboard/advisors/:advisorId" element={<AdvisorProfilePage />} />
+            <Route path="/student-dashboard/consultations" element={<MyConsultationsPage />} />
+            <Route path="/student-dashboard/consultations/:consultationId" element={<ConsultationDetailsPage />} />
+            <Route path="/student-dashboard/settings" element={<StudentSettingsPage />} />
 
-          {/* Advisor routes */}
-          <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
-          <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
-          <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
-          {/* Fallback */}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
-      </Router>
-    </SidebarProvider>
+            {/* Advisor routes */}
+            <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
+            <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
+            <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
+            {/* Fallback */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+      </SidebarProvider>
+    </NotificationProvider>
   );
 }
 

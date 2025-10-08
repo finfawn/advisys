@@ -9,6 +9,8 @@ const localizer = momentLocalizer(moment);
 export default function AvailabilityCalendar() {
   // Helper to build dates
   const d = (y, m, day, h = 0, min = 0) => new Date(y, m, day, h, min);
+  // Controlled current date for navigation
+  const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 5));
 
   // Sample month: October 2025
   // Build events that match the design: a day mode label + repeating availability chips + a few holidays
@@ -57,31 +59,43 @@ export default function AvailabilityCalendar() {
     return <div className="availability-chip">{event.title}</div>;
   };
 
-  // Custom toolbar for month/year navigation
-  const CustomToolbar = (toolbar) => {
-    const goToPrevMonth = () => toolbar.onNavigate('PREV');
-    const goToNextMonth = () => toolbar.onNavigate('NEXT');
-    const goToToday = () => toolbar.onNavigate('TODAY');
-    const goToPrevYear = () => toolbar.onNavigate('DATE', moment(toolbar.date).subtract(1, 'year').toDate());
-    const goToNextYear = () => toolbar.onNavigate('DATE', moment(toolbar.date).add(1, 'year').toDate());
+  // Custom toolbar for month navigation + year dropdown
+  const CustomToolbar = (props) => {
+    const { views, view, onView } = props;
+    const year = currentDate.getFullYear();
+    const monthLabel = moment(currentDate).format('MMMM');
+    const years = Array.from({ length: 11 }, (_, i) => year - 5 + i); // ±5 years around current
+
+    const goToPrevMonth = () => setCurrentDate(moment(currentDate).subtract(1, 'month').toDate());
+    const goToNextMonth = () => setCurrentDate(moment(currentDate).add(1, 'month').toDate());
+    const goToToday = () => setCurrentDate(new Date());
+    const onYearChange = (e) => setCurrentDate(moment(currentDate).year(Number(e.target.value)).toDate());
 
     return (
       <div className="rbc-toolbar">
         <span className="rbc-btn-group">
-          <button type="button" onClick={goToPrevYear}>« Year</button>
           <button type="button" onClick={goToPrevMonth}>‹ Month</button>
           <button type="button" onClick={goToToday}>Today</button>
           <button type="button" onClick={goToNextMonth}>Month ›</button>
-          <button type="button" onClick={goToNextYear}>Year »</button>
         </span>
-        <span className="rbc-toolbar-label">{toolbar.label}</span>
+
+        <span className="rbc-toolbar-label">
+          {monthLabel}
+          {' '}
+          <select className="rbc-year-select" value={year} onChange={onYearChange}>
+            {years.map((y) => (
+              <option key={y} value={y}>{y}</option>
+            ))}
+          </select>
+        </span>
+
         <span className="rbc-btn-group">
-          {Array.isArray(toolbar.views) && toolbar.views.map((v) => (
+          {Array.isArray(views) && views.map((v) => (
             <button
               key={v}
               type="button"
-              className={toolbar.view === v ? 'rbc-active' : ''}
-              onClick={() => toolbar.onView(v)}
+              className={view === v ? 'rbc-active' : ''}
+              onClick={() => onView(v)}
             >
               {v.charAt(0).toUpperCase() + v.slice(1)}
             </button>
@@ -94,13 +108,11 @@ export default function AvailabilityCalendar() {
   // Selection handlers
   const handleSelectEvent = (event) => {
     console.log('Selected event:', event);
-    alert(`Event: ${event.title}`);
   };
   const handleSelectSlot = (slotInfo) => {
     const title = window.prompt('Create new availability block:');
     if (title) setEvents((prev) => ([...prev, { id: prev.length + 1, title, start: slotInfo.start, end: slotInfo.end, type: 'available' }]));
   };
-
   return (
     <div className="availability-calendar-wrapper">
       <div className="calendar-legend">
@@ -121,17 +133,18 @@ export default function AvailabilityCalendar() {
       <div className="calendar-container">
         <Calendar
           localizer={localizer}
+          date={currentDate}
           events={events}
           startAccessor="start"
           endAccessor="end"
           style={{ height: 740 }}
           eventPropGetter={eventPropGetter}
           components={{ event: AvailabilityEvent, toolbar: CustomToolbar }}
+          onNavigate={(newDate) => setCurrentDate(newDate)}
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleSelectSlot}
           selectable
           views={["month", "week", "day", "agenda"]}
-          step={30}
           popup
         />
       </div>
