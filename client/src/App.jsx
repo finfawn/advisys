@@ -41,6 +41,7 @@ function App() {
           {/* Advisor routes */}
           <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
           <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
+          <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
