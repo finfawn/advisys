@@ -65,6 +65,8 @@ export default function AvailabilityCalendar() {
     const year = currentDate.getFullYear();
     const monthLabel = moment(currentDate).format('MMMM');
     const years = Array.from({ length: 11 }, (_, i) => year - 5 + i); // ±5 years around current
+    const prevMonthLabel = moment(currentDate).subtract(1, 'month').format('MMMM');
+    const nextMonthLabel = moment(currentDate).add(1, 'month').format('MMMM');
 
     const goToPrevMonth = () => setCurrentDate(moment(currentDate).subtract(1, 'month').toDate());
     const goToNextMonth = () => setCurrentDate(moment(currentDate).add(1, 'month').toDate());
@@ -74,9 +76,9 @@ export default function AvailabilityCalendar() {
     return (
       <div className="rbc-toolbar">
         <span className="rbc-btn-group">
-          <button type="button" onClick={goToPrevMonth}>‹ Month</button>
+          <button type="button" onClick={goToPrevMonth}>{prevMonthLabel}</button>
           <button type="button" onClick={goToToday}>Today</button>
-          <button type="button" onClick={goToNextMonth}>Month ›</button>
+          <button type="button" onClick={goToNextMonth}>{nextMonthLabel}</button>
         </span>
 
         <span className="rbc-toolbar-label">
@@ -115,20 +117,7 @@ export default function AvailabilityCalendar() {
   };
   return (
     <div className="availability-calendar-wrapper">
-      <div className="calendar-legend">
-        <div className="legend-item">
-          <span className="legend-dot consultation"></span>
-          <span className="legend-text">Consultations</span>
-        </div>
-        <div className="legend-item">
-          <span className="legend-dot available"></span>
-          <span className="legend-text">Available</span>
-        </div>
-        <div className="legend-item">
-          <span className="legend-dot blocked"></span>
-          <span className="legend-text">Blocked</span>
-        </div>
-      </div>
+      
 
       <div className="calendar-container">
         <Calendar
