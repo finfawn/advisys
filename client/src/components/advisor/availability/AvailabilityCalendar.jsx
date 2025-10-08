@@ -13,7 +13,7 @@ export default function AvailabilityCalendar() {
   // Sample month: October 2025
   // Build events that match the design: a day mode label + repeating availability chips + a few holidays
   const [events, setEvents] = useState([
-    // Day mode labels (all-day; rendered as teal text labels)
+    // Day mode labels
     { id: 1, title: 'Online', start: d(2025, 9, 1), end: d(2025, 9, 1), allDay: true, type: 'mode', mode: 'online' },
     { id: 2, title: 'In-person/Online', start: d(2025, 9, 2), end: d(2025, 9, 2), allDay: true, type: 'mode', mode: 'hybrid' },
     { id: 3, title: 'In-person/Online', start: d(2025, 9, 3), end: d(2025, 9, 3), allDay: true, type: 'mode', mode: 'hybrid' },
@@ -28,60 +28,77 @@ export default function AvailabilityCalendar() {
     { id: 12, title: 'In-person', start: d(2025, 9, 21), end: d(2025, 9, 21), allDay: true, type: 'mode', mode: 'inperson' },
     { id: 13, title: 'Online', start: d(2025, 9, 28), end: d(2025, 9, 28), allDay: true, type: 'mode', mode: 'online' },
 
-    // Availability chips (repeating 4:00–8:00 pm to mimic the stacked chips)
-    ...[1,2,3,5,6,7,8,10,11,12,13,14,20,21,22,23,24,26,27,28].flatMap((day, idxBase) => ([
-      { id: 100 + idxBase*3 + 1, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
-      { id: 100 + idxBase*3 + 2, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
-      { id: 100 + idxBase*3 + 3, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
+    // Availability chips
+    ...[1,2,3,5,6,7,8,10,11,12,13,14,20,21,22,23,24,26,27,28].flatMap((day, i) => ([
+      { id: 100 + i*3 + 1, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
+      { id: 100 + i*3 + 2, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
+      { id: 100 + i*3 + 3, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
     ])),
 
-    // Holidays (rendered as a gray card in the day)
+    // Holidays
     { id: 9001, title: 'Holiday', start: d(2025, 9, 9), end: d(2025, 9, 9), allDay: true, type: 'holiday' },
     { id: 9002, title: 'Holiday', start: d(2025, 9, 19), end: d(2025, 9, 19), allDay: true, type: 'holiday' },
   ]);
 
-  // Use class names to style per event type; keep background transparent so our custom renderer drives visuals
+  // Class-based styling
   const eventPropGetter = (event) => ({
     className: `ev-${event.type} ${event.mode ? `mode-${event.mode}` : ''}`,
     style: {}
   });
 
-  // Custom renderer to match chips/labels in the month cells
+  // Event renderer
   const AvailabilityEvent = ({ event }) => {
-    if (event.type === 'mode') {
-      return <span className={`day-mode-label ${event.mode}`}>{event.title}</span>;
-    }
-    if (event.type === 'holiday') {
-      return <div className="holiday-event">Holiday</div>;
-    }
+    if (event.type === 'mode') return <span className={`day-mode-label ${event.mode}`}>{event.title}</span>;
+    if (event.type === 'holiday') return <div className="holiday-event">Holiday</div>;
     if (event.type === 'available') {
       const timeText = `${moment(event.start).format('h:mm')}-${moment(event.end).format('h:mm a')}`;
       return <div className="availability-chip">{timeText}</div>;
     }
-    // Fallback
     return <div className="availability-chip">{event.title}</div>;
   };
 
-  // Handle event selection
-  const handleSelectEvent = (event) => {
-    console.log('Selected event:', event);
-    alert(`Event: ${event.title}\nTime: ${moment(event.start).format('MMM D, h:mm A')} - ${moment(event.end).format('h:mm A')}`);
+  // Custom toolbar for month/year navigation
+  const CustomToolbar = (toolbar) => {
+    const goToPrevMonth = () => toolbar.onNavigate('PREV');
+    const goToNextMonth = () => toolbar.onNavigate('NEXT');
+    const goToToday = () => toolbar.onNavigate('TODAY');
+    const goToPrevYear = () => toolbar.onNavigate('DATE', moment(toolbar.date).subtract(1, 'year').toDate());
+    const goToNextYear = () => toolbar.onNavigate('DATE', moment(toolbar.date).add(1, 'year').toDate());
+
+    return (
+      <div className="rbc-toolbar">
+        <span className="rbc-btn-group">
+          <button type="button" onClick={goToPrevYear}>« Year</button>
+          <button type="button" onClick={goToPrevMonth}>‹ Month</button>
+          <button type="button" onClick={goToToday}>Today</button>
+          <button type="button" onClick={goToNextMonth}>Month ›</button>
+          <button type="button" onClick={goToNextYear}>Year »</button>
+        </span>
+        <span className="rbc-toolbar-label">{toolbar.label}</span>
+        <span className="rbc-btn-group">
+          {Array.isArray(toolbar.views) && toolbar.views.map((v) => (
+            <button
+              key={v}
+              type="button"
+              className={toolbar.view === v ? 'rbc-active' : ''}
+              onClick={() => toolbar.onView(v)}
+            >
+              {v.charAt(0).toUpperCase() + v.slice(1)}
+            </button>
+          ))}
+        </span>
+      </div>
+    );
   };
 
-  // Handle slot selection (clicking on empty calendar space)
+  // Selection handlers
+  const handleSelectEvent = (event) => {
+    console.log('Selected event:', event);
+    alert(`Event: ${event.title}`);
+  };
   const handleSelectSlot = (slotInfo) => {
-    console.log('Selected slot:', slotInfo);
     const title = window.prompt('Create new availability block:');
-    if (title) {
-      const newEvent = {
-        id: events.length + 1,
-        title,
-        start: slotInfo.start,
-        end: slotInfo.end,
-        type: 'available'
-      };
-      setEvents([...events, newEvent]);
-    }
+    if (title) setEvents((prev) => ([...prev, { id: prev.length + 1, title, start: slotInfo.start, end: slotInfo.end, type: 'available' }]));
   };
 
   return (
@@ -109,15 +126,13 @@ export default function AvailabilityCalendar() {
           endAccessor="end"
           style={{ height: 740 }}
           eventPropGetter={eventPropGetter}
-          components={{ event: AvailabilityEvent }}
+          components={{ event: AvailabilityEvent, toolbar: CustomToolbar }}
           onSelectEvent={handleSelectEvent}
           onSelectSlot={handleSelectSlot}
           selectable
           views={["month", "week", "day", "agenda"]}
-          defaultView="month"
           step={30}
           popup
-          defaultDate={new Date(2025, 9, 5)}
         />
       </div>
     </div>
