@@ -5,6 +5,17 @@
     flex-direction: column;
     gap: 1.5rem;
   }
+
+  .add-availability-btn{
+    background-color: #3B9AB8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 0.5rem 1rem;
+    font-weight: 500;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+  }
   
   /* Calendar Legend */
   .calendar-legend {

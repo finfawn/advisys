@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Calendar, momentLocalizer } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
@@ -7,7 +7,7 @@ import CreateAvailabilityModal from "./CreateAvailabilityModal";
 
 const localizer = momentLocalizer(moment);
 
-export default function AvailabilityCalendar() {
+export default function AvailabilityCalendar({ openCreateSignal = 0 }) {
   // Helper to build dates
   const d = (y, m, day, h = 0, min = 0) => new Date(y, m, day, h, min);
   // Controlled current date for navigation
@@ -17,6 +17,14 @@ export default function AvailabilityCalendar() {
   // Modal state for creating availability
   const [isCreateOpen, setIsCreateOpen] = useState(false);
   const [createDefaults, setCreateDefaults] = useState({ date: null, start: null, end: null });
+  
+  // Open create modal when parent triggers the signal
+  useEffect(() => {
+    if (openCreateSignal > 0) {
+      setCreateDefaults({ date: currentDate, start: null, end: null });
+      setIsCreateOpen(true);
+    }
+  }, [openCreateSignal]);
 
   // Sample month: October 2025
   // Build events that match the design: a day mode label + repeating availability chips + a few holidays
@@ -153,18 +161,19 @@ export default function AvailabilityCalendar() {
           initialDate={createDefaults.date}
           initialStart={createDefaults.start}
           initialEnd={createDefaults.end}
-          onCreate={(payload) => {
+          onCreate={(payloads) => {
+            const arr = Array.isArray(payloads) ? payloads : [payloads];
             setEvents((prev) => ([
               ...prev,
-              {
-                id: Date.now(),
-                title: payload.title,
-                start: payload.start,
-                end: payload.end,
+              ...arr.map((p, idx) => ({
+                id: Date.now() + idx,
+                title: p.title,
+                start: p.start,
+                end: p.end,
                 type: 'available',
-                mode: payload.mode,
-                room: payload.room || "",
-              },
+                mode: p.mode,
+                room: p.room || "",
+              }))
             ]));
             setIsCreateOpen(false);
           }}

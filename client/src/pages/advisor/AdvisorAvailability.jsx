@@ -10,16 +10,15 @@ export default function AdvisorAvailability() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [openCreateSignal, setOpenCreateSignal] = useState(0);
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
-    
     setMobileMenuOpen(false);
-    
     if (page === 'dashboard') {
       navigate('/advisor-dashboard');
     } else if (page === 'consultations') {
-      navigate('/advisor-dashboard/consultations'); 
+      navigate('/advisor-dashboard/consultations');
     } else if (page === 'availability') {
       navigate('/advisor-dashboard/availability');
     } else if (page === 'logout') {
@@ -57,17 +56,18 @@ export default function AdvisorAvailability() {
         {/* Content */}
         <main className="advisor-dash-main">
           <div className="availability-header">
-            <div className="availability-title-section">
-              <h1 className="availability-title">My Availability</h1>
-              <p className="availability-subtitle">Manage your consultation schedule and availability</p>
-            </div>
-            <button className="add-availability-btn">
-              + Add Availability
+            
+            <button
+              className="add-availability-btn"
+              onClick={() => setOpenCreateSignal((s) => s + 1)}
+              type="button"
+            >
+              <span className="add-availability-label" > Edit Availability</span>
             </button>
           </div>
 
           {/* Calendar Component */}
-          <AvailabilityCalendar />
+          <AvailabilityCalendar openCreateSignal={openCreateSignal} />
         </main>
       </div>
     </div>
