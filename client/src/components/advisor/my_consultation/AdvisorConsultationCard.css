@@ -1,0 +1,74 @@
+/* Advisor Consultation Card responsive overrides */
+
+/* Scope tweaks to advisor variant only */
+.advisor-card {
+  /* Prevent content spill on very small widths */
+  overflow: hidden;
+}
+
+/* Compact header on narrow screens */
+@media (max-width: 768px) {
+  .advisor-card .consultation-card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .advisor-card .consultation-card-topic {
+    font-size: 1.05rem;
+  }
+
+  .advisor-card .consultation-card-time {
+    font-size: 0.9rem;
+  }
+
+  .advisor-card .consultation-card-faculty {
+    padding: 0.6rem;
+  }
+
+  .advisor-card .faculty-avatar {
+    width: 36px;
+    height: 36px;
+    font-size: 1.05rem;
+  }
+
+  .advisor-card .consultation-card-location {
+    font-size: 0.85rem;
+  }
+
+  .advisor-card .consultation-card-footer {
+    padding-top: 0.6rem;
+  }
+
+  .advisor-card .consultation-card-action-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .advisor-card .declined-actions .consultation-card-action-btn {
+    padding: 0.6rem 0.8rem;
+    font-size: 0.9rem;
+  }
+}
+
+/* Extra small devices */
+@media (max-width: 480px) {
+  .advisor-card .consultation-card-topic {
+    font-size: 1rem;
+  }
+
+  .advisor-card .consultation-card-time {
+    font-size: 0.85rem;
+  }
+
+  .advisor-card .faculty-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 1rem;
+  }
+
+  .advisor-card .consultation-card-action-btn {
+    padding: 0.55rem 0.75rem;
+    font-size: 0.85rem;
+  }
+}

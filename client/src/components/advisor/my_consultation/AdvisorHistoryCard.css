@@ -1,0 +1,277 @@
+/* HistoryCard.css - Matching ConsultationCard styling */
+.history-card {
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: visible;
+  min-height: 280px;
+  height: auto;
+  transition: border-color 0.2s ease;
+}
+
+.history-card:hover {
+  border-color: #667eea;
+}
+
+.history-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+
+.status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.4rem 0.8rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.status-badge svg {
+  color: inherit;
+}
+
+.status-badge.status-completed {
+  background: #d1ecf1;
+  color: #0c5460;
+  border: 1px solid #bee5eb;
+}
+
+.status-badge.status-cancelled {
+  background: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+.history-card-mode-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f8f9fa;
+  color: #666;
+  padding: 0.4rem 0.8rem;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #e1e5e9;
+}
+
+.mode-icon {
+  font-size: 0.9rem;
+  color: inherit;
+}
+
+.history-delete-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1;
+  padding: 0.75rem 1rem;
+  background: white;
+  border: 1px solid #dc3545;
+  border-radius: 8px;
+  color: #dc3545;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  gap: 0.5rem;
+}
+
+.history-delete-btn:hover {
+  background: #dc3545;
+  color: white;
+  transform: translateY(-1px);
+}
+
+.delete-icon {
+  font-size: 1rem;
+}
+
+
+.history-card-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.history-card-topic {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: #1a1a1a;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.history-card-time {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.95rem;
+}
+
+.time-icon {
+  font-size: 1rem;
+  color: #667eea;
+}
+
+.history-card-faculty {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 1px solid #e1e5e9;
+}
+
+.faculty-avatar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  background: #667eea;
+  color: white;
+  border-radius: 50%;
+  font-size: 1.2rem;
+}
+
+.faculty-info {
+  flex: 1;
+}
+
+.faculty-name {
+  font-weight: 600;
+  color: #1a1a1a;
+  font-size: 0.95rem;
+  margin-bottom: 0.2rem;
+}
+
+.faculty-title {
+  color: #666;
+  font-size: 0.85rem;
+  line-height: 1.3;
+}
+
+.history-card-location {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #666;
+  font-size: 0.9rem;
+  padding: 0.5rem 0.75rem;
+  background: #fff3cd;
+  border: 1px solid #ffeaa7;
+  border-radius: 6px;
+}
+
+.history-card-location .location-icon {
+  font-size: 0.9rem;
+  color: #f39c12;
+  background: none !important;
+}
+
+.history-card-footer {
+  margin-top: 0.75rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e1e5e9;
+  display: flex;
+  gap: 0.75rem;
+}
+
+.history-card-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex: 1;
+  padding: 0.75rem 1rem;
+  border: 1px solid #667eea;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.history-card-action-btn.view-details {
+  background: #667eea;
+  color: white;
+}
+
+.history-card-action-btn.view-details:hover {
+  background: #5a6fd8;
+  transform: translateY(-1px);
+}
+
+.action-icon {
+  font-size: 0.9rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .history-card {
+    padding: 1.25rem;
+  }
+  
+  .history-card-header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  
+  .history-card-mode-badge {
+    align-self: flex-end;
+  }
+  
+  .history-card-footer {
+    flex-direction: row;
+    gap: 0.5rem;
+  }
+  
+  .history-card-topic {
+    font-size: 1.1rem;
+  }
+  
+  .history-card-faculty {
+    padding: 0.6rem;
+  }
+  
+  .faculty-avatar {
+    width: 35px;
+    height: 35px;
+    font-size: 1.1rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .history-card {
+    padding: 1rem;
+  }
+  
+  .history-card-topic {
+    font-size: 1rem;
+  }
+  
+  .history-card-faculty {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.5rem;
+  }
+  
+  .faculty-info {
+    text-align: center;
+  }
+}

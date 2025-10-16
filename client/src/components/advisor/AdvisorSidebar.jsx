@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useLocation } from "react-router-dom";
 import { BsGrid, BsCalendarCheck, BsClock, BsBoxArrowRight } from "react-icons/bs";
 import LogoutModal from "../student/LogoutModal";
-import "../student/Sidebar.css";
+import "./AdvisorSidebar.css";
 
 function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout = false, onExpand }) {
   const handleClick = (e) => {
@@ -39,7 +39,7 @@ function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout
   );
 }
 
-function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
+function AdvisorSidebar({ collapsed, onToggle, onNavigate, className = '' }) {
   const location = useLocation();
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   
@@ -91,7 +91,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
   return (
     <>
       <aside
-        className={`dash-sidebar ${collapsed ? 'sidebar-collapsed' : ''}`}
+        className={`dash-sidebar ${collapsed ? 'sidebar-collapsed' : ''} ${className}`}
         title="Click to collapse/expand sidebar"
         role="button"
         tabIndex={0}
