@@ -19,6 +19,9 @@ import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
 import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
 import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
 
+// Admin pages
+import AdminDashboard from "./pages/admin/AdminDashboard";
+
 function App() {
   return (
     <NotificationProvider>
@@ -42,6 +45,10 @@ function App() {
           <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
           <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
           <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
+
+          {/* Admin routes */}
+          <Route path="/admin-dashboard" element={<AdminDashboard />} />
+          
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
