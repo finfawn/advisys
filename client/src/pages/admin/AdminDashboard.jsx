@@ -18,6 +18,8 @@ export default function AdminDashboard() {
     setMobileMenuOpen(false);
     if (page === 'dashboard') {
       navigate('/admin-dashboard');
+    } else if (page === 'manage-users') {
+      navigate('/admin-dashboard/manage-users');
     }
   };
 
@@ -28,14 +30,14 @@ export default function AdminDashboard() {
       <AdminTopNavbar />
 
       {/* Mobile overlay */}
-      <div 
+      <div
         className={`mobile-sidebar-overlay ${mobileMenuOpen ? 'active' : ''}`}
         onClick={handleOverlayClick}
       />
 
       {/* Body */}
       <div className={`admin-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <AdminSidebar 
+        <AdminSidebar
           collapsed={collapsed}
           onToggle={toggleSidebar}
           onNavigate={handleNavigation}
@@ -48,7 +50,7 @@ export default function AdminDashboard() {
             <div className="grid-left-top">
               <AdminTotalConsultationsCard />
             </div>
-            <div className="grid-right-topics" style={{gridRow: 'span 2'}}>
+            <div className="grid-right-topics" style={{ gridRow: 'span 2' }}>
               <AdminTopTopicsCard />
             </div>
             <div className="grid-left-bottom">

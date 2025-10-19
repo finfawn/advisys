@@ -56,8 +56,8 @@ function AdminTopNavbar() {
       </div>
 
       <div className="admin-topbar-right">
-        <button 
-          className="notification-btn" 
+        <button
+          className="notification-btn"
           aria-label="Notifications"
           onClick={handleNotificationClick}
         >
@@ -66,7 +66,7 @@ function AdminTopNavbar() {
         </button>
 
         <div className="user-dropdown" ref={dropdownRef}>
-          <button 
+          <button
             className="user-dropdown-trigger"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
             aria-expanded={isDropdownOpen}
@@ -95,7 +95,7 @@ function AdminTopNavbar() {
               <div className="dropdown-divider"></div>
 
               <div className="dropdown-items">
-                <button 
+                <button
                   className="dropdown-item"
                   onClick={handleSettingsClick}
                 >
@@ -105,7 +105,7 @@ function AdminTopNavbar() {
 
                 <div className="dropdown-divider"></div>
 
-                <button 
+                <button
                   className="dropdown-item logout-item"
                   onClick={handleLogout}
                 >
@@ -118,7 +118,7 @@ function AdminTopNavbar() {
         </div>
       </div>
 
-      <NotificationModal 
+      <NotificationModal
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         userType="admin"
