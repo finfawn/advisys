@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsPersonCircle } from "react-icons/bs";
 import { useSidebar } from "../../contexts/SidebarContext";
 import AdminTopNavbar from "../../components/admin/AdminTopNavbar";
 import AdminSidebar from "../../components/admin/AdminSidebar";
+import AdminManageLeftTabs from "../../components/admin/manage/AdminManageLeftTabs";
+import AdminManageFilters from "../../components/admin/manage/AdminManageFilters";
+import AdminManageUserList from "../../components/admin/manage/AdminManageUserList";
 import "./AdminManageUsers.css";
 
 export default function AdminManageUsers() {
@@ -11,7 +13,6 @@ export default function AdminManageUsers() {
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("students");
-  const [activeFilter, setActiveFilter] = useState("year");
   const [search, setSearch] = useState("");
 
   const students = Array.from({ length: 8 }).map((_, i) => ({
@@ -27,6 +28,10 @@ export default function AdminManageUsers() {
   }));
 
   const list = activeTab === "students" ? students : faculty;
+  const query = search.trim().toLowerCase();
+  const filteredList = query
+    ? list.filter((item) => item.name.toLowerCase().includes(query))
+    : list;
 
   const handleNavigation = (page) => {
     setMobileMenuOpen(false);
@@ -56,68 +61,18 @@ export default function AdminManageUsers() {
           <div className="dashboard-card manage-users-card">
             <div className="manage-grid">
               {/* Left filter column */}
-              <aside className="manage-left">
-                <button
-                  type="button"
-                  className={`left-pill ${activeTab === 'students' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('students')}
-                >
-                  Students
-                </button>
-                <button
-                  type="button"
-                  className={`left-pill ${activeTab === 'faculty' ? 'active' : ''}`}
-                  onClick={() => setActiveTab('faculty')}
-                >
-                  Faculty
-                </button>
-              </aside>
+              <AdminManageLeftTabs activeTab={activeTab} onChange={setActiveTab} />
 
               {/* Main content */}
               <section className="manage-right">
                 {/* Top filters */}
-                <div className="manage-filters">
-                  <div className="segmented">
-                    <button
-                      className={`seg-btn ${activeFilter === 'year' ? 'active' : ''}`}
-                      onClick={() => setActiveFilter('year')}
-                    >
-                      Year
-                    </button>
-                    <button
-                      className={`seg-btn ${activeFilter === 'subject' ? 'active' : ''}`}
-                      onClick={() => setActiveFilter('subject')}
-                    >
-                      Subject
-                    </button>
-                  </div>
-                  <input
-                    className="manage-search"
-                    placeholder="De Gusman"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
-                </div>
+                <AdminManageFilters search={search} onSearchChange={setSearch} />
 
                 {/* List */}
-                <div className="manage-list">
-                  {list.map((item) => (
-                    <div key={item.id} className="manage-row">
-                      <div className="col name-col">
-                        <span className="avatar"><BsPersonCircle /></span>
-                        <span className="name-text">{item.name}</span>
-                      </div>
-                      <div className="col year-col">
-                        {activeTab === 'students' ? item.year : '—'}
-                      </div>
-                      <div className="col actions-col">
-                        <button className="pill-btn">View</button>
-                        <button className="pill-btn">History</button>
-                        <button className="pill-btn danger">Deactivate</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <AdminManageUserList
+                  items={filteredList}
+                  isStudent={activeTab === 'students'}
+                />
               </section>
             </div>
           </div>
