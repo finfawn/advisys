@@ -22,6 +22,7 @@ import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManageUsers from "./pages/admin/AdminManageUsers";
+import AdminAppointments from "./pages/admin/AdminAppointments";
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
           {/* Admin routes */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />
           <Route path="/admin-dashboard/manage-users" element={<AdminManageUsers />} />
+          <Route path="/admin-dashboard/appointments" element={<AdminAppointments />} />
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />

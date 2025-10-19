@@ -6,6 +6,7 @@ import AdminSidebar from "../../components/admin/AdminSidebar";
 import AdminManageLeftTabs from "../../components/admin/manage/AdminManageLeftTabs";
 import AdminManageFilters from "../../components/admin/manage/AdminManageFilters";
 import AdminManageUserList from "../../components/admin/manage/AdminManageUserList";
+import AdminUserHistoryModal from "../../components/admin/manage/AdminUserHistoryModal";
 import "./AdminManageUsers.css";
 
 export default function AdminManageUsers() {
@@ -14,20 +15,29 @@ export default function AdminManageUsers() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyUser, setHistoryUser] = useState(null);
+  const [historyItems, setHistoryItems] = useState([]);
 
-  const students = Array.from({ length: 8 }).map((_, i) => ({
-    id: i + 1,
-    name: `Student ${i + 1}`,
-    year: "1st Year",
-  }));
+  const [studentsData, setStudentsData] = useState(
+    Array.from({ length: 8 }).map((_, i) => ({
+      id: i + 1,
+      name: `Student ${i + 1}`,
+      year: "1st Year",
+      active: true,
+    }))
+  );
 
-  const faculty = Array.from({ length: 8 }).map((_, i) => ({
-    id: i + 1,
-    name: `Faculty ${i + 1}`,
-    dept: "Department",
-  }));
+  const [facultyData, setFacultyData] = useState(
+    Array.from({ length: 8 }).map((_, i) => ({
+      id: i + 1,
+      name: `Faculty ${i + 1}`,
+      dept: "Department",
+      active: true,
+    }))
+  );
 
-  const list = activeTab === "students" ? students : faculty;
+  const list = activeTab === "students" ? studentsData : facultyData;
   const query = search.trim().toLowerCase();
   const filteredList = query
     ? list.filter((item) => item.name.toLowerCase().includes(query))
@@ -37,6 +47,60 @@ export default function AdminManageUsers() {
     setMobileMenuOpen(false);
     if (page === 'dashboard') navigate('/admin-dashboard');
     if (page === 'manage-users') navigate('/admin-dashboard/manage-users');
+    if (page === 'appointments') navigate('/admin-dashboard/appointments');
+  };
+
+  const handleToggleActive = (item) => {
+    if (activeTab === 'students') {
+      setStudentsData((prev) =>
+        prev.map((u) => (u.id === item.id ? { ...u, active: !u.active } : u))
+      );
+    } else {
+      setFacultyData((prev) =>
+        prev.map((u) => (u.id === item.id ? { ...u, active: !u.active } : u))
+      );
+    }
+  };
+
+  const generateMockConsultations = (user) => {
+    // Simple mock data per user for demo purposes
+    const baseId = user.id * 1000;
+    return [
+      {
+        id: baseId + 1,
+        status: 'completed',
+        mode: 'online',
+        topic: 'Course planning session',
+        date: '2025-09-10',
+        time: '10:00 AM',
+        faculty: { name: 'Dr. Smith', title: 'Advisor', avatar: '👤' },
+      },
+      {
+        id: baseId + 2,
+        status: 'completed',
+        mode: 'in-person',
+        topic: 'Internship guidance',
+        date: '2025-08-22',
+        time: '2:30 PM',
+        location: 'Advising Office 2F',
+        faculty: { name: 'Prof. Lee', title: 'Faculty Advisor', avatar: '👤' },
+      },
+      {
+        id: baseId + 3,
+        status: 'cancelled',
+        mode: 'online',
+        topic: 'Thesis topic discussion',
+        date: '2025-07-05',
+        time: '9:00 AM',
+        faculty: { name: 'Dr. Gomez', title: 'Program Chair', avatar: '👤' },
+      },
+    ];
+  };
+
+  const handleHistory = (item) => {
+    setHistoryUser(item);
+    setHistoryItems(generateMockConsultations(item));
+    setHistoryOpen(true);
   };
 
   return (
@@ -72,6 +136,15 @@ export default function AdminManageUsers() {
                 <AdminManageUserList
                   items={filteredList}
                   isStudent={activeTab === 'students'}
+                  onToggleActive={handleToggleActive}
+                  onHistory={handleHistory}
+                />
+
+                <AdminUserHistoryModal
+                  open={historyOpen}
+                  user={historyUser}
+                  consultations={historyItems}
+                  onClose={() => setHistoryOpen(false)}
                 />
               </section>
             </div>

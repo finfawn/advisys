@@ -1,7 +1,7 @@
 import React from "react";
 import AdminManageUserRow from "./AdminManageUserRow";
 
-export default function AdminManageUserList({ items, isStudent, onView, onHistory, onDeactivate }) {
+export default function AdminManageUserList({ items, isStudent, onView, onHistory, onToggleActive }) {
   if (!items || items.length === 0) {
     return (
       <div className="manage-list">
@@ -25,7 +25,7 @@ export default function AdminManageUserList({ items, isStudent, onView, onHistor
           isStudent={isStudent}
           onView={onView}
           onHistory={onHistory}
-          onDeactivate={onDeactivate}
+          onToggleActive={onToggleActive}
         />
       ))}
     </div>

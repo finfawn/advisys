@@ -129,7 +129,6 @@
   color: #2d5bd1;
   flex-shrink: 0;
 }
-
 .manage-row .name-text {
   font-weight: 700;
   color: #1f2937;
@@ -138,6 +137,20 @@
 .manage-row .year-col {
   color: #374151;
   font-weight: 600;
+}
+
+/* Inactive state styling */
+.manage-row.inactive {
+  background: #f9fafb;
+}
+.manage-row.inactive .name-text,
+.manage-row.inactive .year-col {
+  color: #9ca3af;
+}
+
+.manage-row.inactive .avatar {
+  background: #f3f4f6;
+  color: #9ca3af;
 }
 
 .actions-col {
@@ -160,8 +173,6 @@
   background: #fde8e8;
   color: #b91c1c;
 }
-
-/* Responsive */
 @media (max-width: 992px) {
   .manage-grid {
     grid-template-columns: 1fr;
@@ -172,6 +183,7 @@
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
   }
+
 }
 
 @media (max-width: 640px) {
@@ -187,4 +199,83 @@
   .manage-search {
     min-width: 140px;
   }
+}
+
+/* Admin History Modal */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.admin-modal {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  width: min(840px, 92vw);
+  max-height: 80vh;
+  overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+  display: flex;
+  flex-direction: column;
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.admin-modal-title {
+  margin: 0;
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: #1f2937;
+}
+
+.admin-modal-close {
+  border: none;
+  background: transparent;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+  color: #6b7280;
+}
+
+.admin-modal-close:hover {
+  color: #111827;
+}
+
+.admin-modal-body {
+  padding: 16px;
+  overflow: auto;
+}
+
+.history-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+
+@media (min-width: 768px) {
+  .history-list {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+  .empty-state {
+    padding: 24px;
+    text-align: center;
+    color: #6b7280;
+  }
+
+/* In modal, hide student HistoryCard delete button */
+.admin-modal .history-delete-btn {
+  display: none;
 }

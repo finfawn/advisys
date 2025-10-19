@@ -20,6 +20,8 @@ export default function AdminDashboard() {
       navigate('/admin-dashboard');
     } else if (page === 'manage-users') {
       navigate('/admin-dashboard/manage-users');
+    } else if (page === 'appointments') {
+      navigate('/admin-dashboard/appointments');
     }
   };
 

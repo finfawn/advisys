@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { BsGrid, BsBoxArrowRight, BsPeople } from "react-icons/bs";
+import { BsGrid, BsBoxArrowRight, BsPeople, BsCalendar } from "react-icons/bs";
 import LogoutModal from "../student/LogoutModal";
 import "./AdminSidebar.css";
 
@@ -64,6 +64,7 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, classNam
     const path = location.pathname;
     if (page === 'dashboard') return path === '/admin-dashboard';
     if (page === 'manage-users') return path === '/admin-dashboard/manage-users';
+    if (page === 'appointments') return path === '/admin-dashboard/appointments';
     return false;
   };
 
@@ -93,6 +94,14 @@ export default function AdminSidebar({ collapsed, onToggle, onNavigate, classNam
             collapsed={collapsed}
             active={isActive('manage-users')}
             onClick={() => handleNavigation('manage-users')}
+            onExpand={handleExpand}
+          />
+          <NavItem 
+            icon={BsCalendar}
+            label="Appointments"
+            collapsed={collapsed}
+            active={isActive('appointments')}
+            onClick={() => handleNavigation('appointments')}
             onExpand={handleExpand}
           />
           <div className="sb-sep" />
