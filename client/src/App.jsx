@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Home from "./pages/Home";
+import AuthPage from "./pages/AuthPage";
 
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -27,6 +28,7 @@ function App() {
         <Routes>
           {/* Home */}
           <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<AuthPage />} />
 
           {/* Student routes */}
           <Route path="/student-dashboard" element={<StudentDashboard />} />
