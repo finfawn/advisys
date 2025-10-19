@@ -1,0 +1,29 @@
+/* Admin Daily Consultations Card */
+.admin-daily-consultations-card {
+  height: 240px;
+}
+
+.admin-daily-consultations-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.admin-daily-consultations-card .period-select select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 6px 10px;
+  font-weight: 600;
+  color: #374151;
+}
+
+/* Ensure the inner chart fills the card */
+.admin-daily-consultations-card .chart-container {
+  width: 100%;
+  height: calc(100% - 40px);
+}

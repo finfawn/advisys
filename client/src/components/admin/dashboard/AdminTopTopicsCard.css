@@ -1,0 +1,14 @@
+/* Admin Top Topics Card */
+/* Header typography mirrors advisor card */
+.admin-topics-card .card-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/* Chart container like advisor */
+.admin-topics-card .admin-topics-chart-container {
+  height: 240px;
+  width: 100%;
+}
+
+/* legacy list styles removed in favor of chart */

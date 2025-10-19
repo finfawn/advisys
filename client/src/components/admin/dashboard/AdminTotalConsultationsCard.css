@@ -1,0 +1,37 @@
+/* Admin Total Consultations Card */
+.admin-total-consultations-card {
+  height: 300px;
+}
+
+.admin-total-consultations-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.admin-total-consultations-card .legend-inline {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  color: #6b7280;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.admin-total-consultations-card .legend-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 6px;
+}
+
+.admin-total-consultations-card .legend-dot.online { background: #22d3ee; }
+.admin-total-consultations-card .legend-dot.inperson { background: #f43f5e; }
+
+/* Ensure the inner chart fills the card */
+.admin-total-consultations-card .chart-container {
+  width: 100%;
+  height: calc(100% - 40px);
+}
