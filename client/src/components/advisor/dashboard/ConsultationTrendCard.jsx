@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { BsChevronDown } from "react-icons/bs";
 import "./ConsultationTrendCard.css";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../lightswind/dropdown-menu";
 
 export default function ConsultationTrendCard() {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
@@ -62,23 +65,28 @@ export default function ConsultationTrendCard() {
   };
 
   return (
-    <div className="dashboard-card consultation-trend-card">
-      <div className="card-header">
-        <h3 className="card-title">Consultation Trend</h3>
-        <div className="dropdown-container">
-          <select 
-            className="period-dropdown"
-            value={selectedPeriod}
-            onChange={(e) => handlePeriodChange(e.target.value)}
-          >
-            <option value="week">Week</option>
-            <option value="month">Month</option>
-          </select>
+    <Card hoverable className="consultation-trend-card">
+      <CardHeader spacing="default" className="pb-2">
+        <div className="card-header">
+          <CardTitle size="default" className="card-title">Consultation Trend</CardTitle>
+          <div className="dropdown-container">
+            <DropdownMenu>
+              <DropdownMenuTrigger className="period-dropdown-lightswind">
+                <span>{selectedPeriod === "week" ? "Week" : "Month"}</span>
+                <BsChevronDown className="dropdown-icon" />
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={() => handlePeriodChange("week")}>Week</DropdownMenuItem>
+                <DropdownMenuItem onClick={() => handlePeriodChange("month")}>Month</DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
         </div>
-      </div>
-      <div className="chart-container">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={currentData} margin={{ top: 20, right: 20, left: -20, bottom: -10 }}>
+      </CardHeader>
+      <CardContent padding="default" removeTopPadding>
+        <div className="chart-container">
+          <ResponsiveContainer width="100%" height="100%">
+            <LineChart data={currentData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis 
               dataKey={xAxisKey} 
@@ -126,9 +134,10 @@ export default function ConsultationTrendCard() {
               activeDot={{ r: 5, stroke: '#94a3b8', strokeWidth: 2, fill: '#fff' }}
               name={selectedPeriod === "week" ? "Last Week" : previousMonth}
             />
-          </LineChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      </CardContent>
+    </Card>
   );
 }

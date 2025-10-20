@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 import AuthPage from "./AuthPage";
 import "./Home.css";
 import HomeSidebar from "../components/HomeSidebar";
+import Footer from "../components/Footer";
+import HamburgerMenuOverlay from "../lightswind/hamburger-menu-overlay";
 
 function Home() {
   const navigate = useNavigate();
@@ -36,6 +38,7 @@ function Home() {
         inline: "nearest"
       });
       setActiveSection(sectionId);
+      // close handled by overlay component itself
       
       // Reset flag after navigation completes
       setTimeout(() => {
@@ -97,10 +100,34 @@ function Home() {
     <>
       <div className="h-screen bg-[#e1e5f2] overflow-hidden">
         <div className="w-full h-full flex">
-          <HomeSidebar activeSection={activeSection} onSelect={handleSelect} />
+          {/* Desktop Sidebar */}
+          <div className="hidden md:block">
+            <HomeSidebar activeSection={activeSection} onSelect={handleSelect} />
+          </div>
 
-          <main className="flex-1 overflow-y-auto scroll-smooth">
-            <div className="snap-y snap-mandatory">
+          <main className="flex-1 overflow-y-auto scroll-smooth relative">
+            {/* Mobile Hamburger Overlay */}
+            <div className="md:hidden fixed top-0 left-0 w-full z-50">
+              <HamburgerMenuOverlay
+                items={[
+                  { label: "Home", onClick: () => handleSelect("hero") },
+                  { label: "What's Inside", onClick: () => handleSelect("features") },
+                  { label: "How it Works", onClick: () => handleSelect("how-it-works") },
+                  { label: "Sign In", onClick: () => navigate("/auth") },
+                ]}
+                buttonTop="30px"
+                buttonLeft="30px"
+                buttonSize="md"
+                buttonColor="#111827"
+                overlayBackground="#111827"
+                textColor="#ffffff"
+                fontSize="lg"
+                menuAlignment="left"
+                enableBlur={false}
+                zIndex={40}
+              />
+            </div>
+            <div className="md:snap-y md:snap-mandatory">
               <div id="hero">
                 <HeroSection onGetStarted={() => navigate("/auth")} />
               </div>
@@ -110,6 +137,7 @@ function Home() {
               <div id="how-it-works">
                 <HowItWorksSection />
               </div>
+              <Footer />
             </div>
           </main>
         </div>

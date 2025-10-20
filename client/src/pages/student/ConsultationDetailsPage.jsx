@@ -16,6 +16,8 @@ import {
 } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
+import Dock from "../../lightswind/dock";
+import { HomeIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon } from "../../components/icons/Heroicons";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./ConsultationDetailsPage.css";
@@ -113,9 +115,26 @@ export default function ConsultationDetailsPage() {
       <TopNavbar />
       
       <div className={`consultation-details-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <div className="hidden md:block">
+          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        </div>
         
-        <main className="consultation-details-main">
+        <main className="consultation-details-main relative">
+          {/* Mobile Dock */}
+          <div className="md:hidden">
+            <Dock
+              items={[
+                { icon: <HomeIcon className="w-5 h-5" />, label: "Dashboard", onClick: () => handleNavigation('dashboard') },
+                { icon: <UsersIcon className="w-5 h-5" />, label: "Advisors", onClick: () => handleNavigation('advisors') },
+                { icon: <CalendarDaysIcon className="w-5 h-5" />, label: "Consultations", onClick: () => handleNavigation('consultations'), active: true },
+                { icon: <ArrowRightOnRectangleIcon className="w-5 h-5" />, label: "Logout", onClick: () => handleNavigation('logout') },
+              ]}
+              panelHeight={56}
+              baseItemSize={44}
+              magnification={64}
+              className="backdrop-blur bg-white/80 border-gray-200"
+            />
+          </div>
           {/* Back Button */}
           <div className="consultation-details-back">
             <button 

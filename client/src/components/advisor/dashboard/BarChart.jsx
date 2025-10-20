@@ -25,13 +25,13 @@ export default function CustomBarChart({ data }) {
   console.log("Chart data:", chartData);
 
   return (
-    <div className="container" style={{ height: '400px', width: '100%' }}>
+    <div className="container">
       {/* --- Bar Chart Section - Expanded to fill all space --- */}
-      <div className="barChartContainer" style={{ height: '400px', width: '100%' }}>
+      <div className="barChartContainer">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart 
             data={chartData} 
-            margin={{ top: 20, right: 30, left: 20, bottom: 20 }}
+            margin={{ top: 10, right: 10, left: -15, bottom: 5 }}
           >
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis 

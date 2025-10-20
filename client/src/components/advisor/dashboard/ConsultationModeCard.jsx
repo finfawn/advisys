@@ -1,6 +1,7 @@
 import React from "react";
 import CustomPieChart from "./PieChart";
 import "./ConsultationModeCard.css";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
 
 export default function ConsultationModeCard() {
   const data = [
@@ -9,13 +10,15 @@ export default function ConsultationModeCard() {
   ];
 
   return (
-    <div className="dashboard-card consultation-mode-card">
-      <div className="card-header">
-        <h3 className="card-title">Consultation Mode</h3>
-      </div>
-      <div className="consultation-mode-content">
-        <CustomPieChart data={data} />
-      </div>
-    </div>
+    <Card hoverable className="consultation-mode-card">
+      <CardHeader spacing="default" className="pb-2">
+        <CardTitle size="default" className="card-title">Consultation Mode</CardTitle>
+      </CardHeader>
+      <CardContent padding="default" removeTopPadding>
+        <div className="consultation-mode-content">
+          <CustomPieChart data={data} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

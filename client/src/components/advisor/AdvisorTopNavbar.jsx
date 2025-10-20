@@ -17,13 +17,14 @@ function AdvisorTopNavbar() {
   const advisorName = "Dr. Sarah Johnson";
 
   const handleSettingsClick = () => {
-    navigate('/advisor-dashboard/settings');
+    navigate('/advisor-dashboard/profile');
     setIsDropdownOpen(false);
   };
 
   const handleLogout = () => {
     // Handle logout logic here
     console.log('Logout clicked');
+    navigate('/login');
     setIsDropdownOpen(false);
   };
 
@@ -47,13 +48,18 @@ function AdvisorTopNavbar() {
   }, []);
 
   return (
-    <header className="advisor-topbar">
+    <header className="advisor-topbar advisor-top-nav">
       <div className="advisor-topbar-left">
-        <div className="advisor-brand">
+        {/* Space for hamburger menu on mobile */}
+        <div className="hamburger-spacer md:hidden"></div>
+        
+        {/* Logo - Desktop only */}
+        <div className="advisor-brand hidden md:flex">
           <img src={Logo} alt="AdviSys" className="advisor-logo" />
           <div className="advisor-brand-title">advi<span className="advisor-brand-sys">Sys</span></div>
         </div>
-        <div className="advisor-greeting">
+        
+        <div className="advisor-greeting hidden md:block">
           <span className="greeting-text">Hi, {advisorName}</span>
           <h1 className="welcome-text">Welcome</h1>
         </div>
@@ -68,8 +74,9 @@ function AdvisorTopNavbar() {
           <BsBell className="bell-icon" />
           {unreadCount > 0 && <span className="notification-dot"></span>}
         </button>
-        {/* User Profile Dropdown */}
-        <div className="user-dropdown" ref={dropdownRef}>
+        
+        {/* User Profile Dropdown - Desktop only */}
+        <div className="user-dropdown hidden md:block" ref={dropdownRef}>
           <button 
             className="user-dropdown-trigger"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -105,7 +112,7 @@ function AdvisorTopNavbar() {
                   onClick={handleSettingsClick}
                 >
                   <BsGear className="dropdown-item-icon" />
-                  <span>Settings</span>
+                  <span>Profile</span>
                 </button>
                 
                 <div className="dropdown-divider"></div>

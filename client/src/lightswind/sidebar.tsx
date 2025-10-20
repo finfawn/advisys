@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import { BsChevronRight as ChevronRight, BsChevronLeft as ChevronLeft } from "react-icons/bs";
 import { motion, useInView, HTMLMotionProps } from "framer-motion";
 import { twMerge } from "tailwind-merge";
 import clsx from "clsx";

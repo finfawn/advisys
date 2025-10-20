@@ -46,6 +46,7 @@ interface DockItemProps {
   distance: number;
   spring: { mass: number; stiffness: number; damping: number };
   badgeCount?: number;
+  isActive?: boolean;
 }
 
 function DockItem({
@@ -58,6 +59,7 @@ function DockItem({
   distance,
   spring,
   badgeCount,
+  isActive,
 }: DockItemProps) {
   const ref = useRef<HTMLDivElement>(null);
   const isHovered = useMotionValue(0);
@@ -87,11 +89,12 @@ function DockItem({
       onFocus={() => isHovered.set(1)}
       onBlur={() => isHovered.set(0)}
       onClick={onClick}
-      className="relative inline-flex items-center justify-center rounded-full 
-      bg-background    shadow-md  "
+      className={`relative inline-flex items-center justify-center rounded-full 
+      bg-background shadow-md border ${isActive ? "border-blue-400 bg-blue-50 text-blue-700" : "border-gray-200"}`}
       tabIndex={0}
       role="button"
       aria-haspopup="true"
+      aria-current={isActive ? "page" : undefined}
     >
       <div className="flex items-center justify-center">{icon}</div>
       {badgeCount !== undefined && badgeCount > 0 && (
@@ -124,6 +127,7 @@ interface DockItem {
   label: string;
   onClick: () => void;
   badgeCount?: number;
+  active?: boolean;
 }
 
 interface DockProps {
@@ -175,10 +179,10 @@ export default function Dock({
           isHovered.set(0);
           mouseX.set(Infinity);
         }}
-        className={`absolute bottom-2 left-1/2 -translate-x-1/2 transform 
+        className={`fixed left-1/2 -translate-x-1/2 transform z-50
             flex items-end gap-4 w-fit rounded-2xl 
             border-2 border   px-4 pb-2 ${className}`}
-        style={{ height: panelHeight }}
+        style={{ height: panelHeight, bottom: `calc(env(safe-area-inset-bottom, 0px) + 8px)` }}
         role="toolbar"
         aria-label="Application dock"
       >
@@ -194,6 +198,7 @@ export default function Dock({
             distance={distance}
             spring={spring}
             badgeCount={item.badgeCount}
+            isActive={!!item.active}
           />
         ))}
       </motion.div>

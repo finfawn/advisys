@@ -161,12 +161,12 @@ function AuthPage({ embedded = false }) {
           <div className="flex items-center justify-between pt-2">
             <button
               type="button"
-              className="text-sm text-gray-600 hover:underline"
+              className="inline-flex items-center justify-center h-10 md:h-11 px-3 md:px-4 rounded-xl border border-blue-400/70 text-xs md:text-sm text-gray-700 bg-white hover:bg-blue-50 transition-colors"
               onClick={() => setMode(mode === "login" ? "register" : "login")}
             >
               {mode === "login" ? "Create account" : "Have an account? Sign in"}
             </button>
-            <RippleButton text={mode === "login" ? "Sign In" : "Register"} width="140px" height="44px" bgColor="#3a6bb8" circleColor="#60a5fa" />
+            <RippleButton text={mode === "login" ? "Sign In" : "Register"} width="120px" height="40px" bgColor="#3a6bb8" circleColor="#60a5fa" />
           </div>
         </form>
       </div>

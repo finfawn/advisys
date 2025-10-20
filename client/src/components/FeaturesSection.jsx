@@ -51,7 +51,7 @@ function CardReveal({ children, delay = 0 }) {
 
 function FeaturesSection() {
   return (
-    <section className="snap-start shrink-0 w-full h-screen flex items-center px-8 bg-white">
+    <section className="md:snap-start shrink-0 w-full min-h-screen flex items-center px-8 py-16 bg-white overflow-hidden">
       <div className="w-full max-w-7xl mx-auto">
         <div className="text-center mb-16">
           <ScrollReveal size="2xl" align="center" variant="default" baseRotation={0}>

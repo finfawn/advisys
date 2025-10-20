@@ -41,7 +41,7 @@ function StepReveal({ children, delay = 0 }) {
 
 function HowItWorksSection() {
   return (
-    <section className="snap-start shrink-0 w-full h-screen flex items-center px-8 bg-white">
+    <section className="md:snap-start shrink-0 w-full min-h-screen flex items-center px-8 py-16 bg-white overflow-hidden">
       <div className="w-full max-w-7xl mx-auto">
         <div className="mb-16">
           <ScrollReveal size="2xl" align="left" variant="default" baseRotation={0}>

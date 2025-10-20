@@ -1,7 +1,7 @@
 "use client";
 import React, { useState, useEffect, useRef } from "react";
 import { cn } from "../lib/utils";
-import { Menu, X } from "lucide-react";
+import { BsList as Menu, BsX as X } from "react-icons/bs";
 
 export interface MenuItem {
   label: string;
@@ -21,8 +21,12 @@ export interface HamburgerMenuOverlayProps {
   buttonSize?: "sm" | "md" | "lg";
   /** Button background color */
   buttonColor?: string;
+  /** Button background color on mobile */
+  buttonColorMobile?: string;
   /** Overlay background color/gradient */
   overlayBackground?: string;
+  /** Overlay background on mobile */
+  overlayBackgroundMobile?: string;
   /** Menu text color */
   textColor?: string;
   /** Menu font size */
@@ -59,6 +63,8 @@ export interface HamburgerMenuOverlayProps {
   enableBlur?: boolean;
   /** Z-index for overlay */
   zIndex?: number;
+  /** Button size on mobile */
+  buttonSizeMobile?: "sm" | "md" | "lg";
 }
 
 export const HamburgerMenuOverlay: React.FC<HamburgerMenuOverlayProps> = ({
@@ -67,7 +73,9 @@ export const HamburgerMenuOverlay: React.FC<HamburgerMenuOverlayProps> = ({
   buttonLeft = "60px",
   buttonSize = "md",
   buttonColor = "#6c8cff",
+  buttonColorMobile,
   overlayBackground = "#6c8cff",
+  overlayBackgroundMobile,
   textColor = "#ffffff",
   fontSize = "md",
   fontFamily = '"Krona One", monospace',
@@ -86,6 +94,7 @@ export const HamburgerMenuOverlay: React.FC<HamburgerMenuOverlayProps> = ({
   menuDirection = "vertical",
   enableBlur = false,
   zIndex = 1000,
+  buttonSizeMobile,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const navRef = useRef<HTMLDivElement>(null);
@@ -95,6 +104,12 @@ export const HamburgerMenuOverlay: React.FC<HamburgerMenuOverlayProps> = ({
     sm: "w-10 h-10",
     md: "w-12 h-12",
     lg: "w-16 h-16",
+  };
+
+  const buttonSizePx: Record<"sm" | "md" | "lg", { w: number; h: number }> = {
+    sm: { w: 40, h: 40 }, // Tailwind w-10 h-10
+    md: { w: 48, h: 48 }, // Tailwind w-12 h-12
+    lg: { w: 64, h: 64 }, // Tailwind w-16 h-16
   };
 
   const fontSizes = {
@@ -181,6 +196,8 @@ export const HamburgerMenuOverlay: React.FC<HamburgerMenuOverlayProps> = ({
             border: none;
             cursor: pointer;
             transition: all 0.3s ease;
+            width: ${buttonSizePx[buttonSize].w}px;
+            height: ${buttonSizePx[buttonSize].h}px;
           }
           
           .hamburger-button-${zIndex}:hover {
@@ -260,10 +277,13 @@ export const HamburgerMenuOverlay: React.FC<HamburgerMenuOverlayProps> = ({
             .hamburger-button-${zIndex} {
               left: 30px;
               top: 30px;
+              ${buttonColorMobile ? `background: ${buttonColorMobile};` : ""}
+              ${buttonSizeMobile ? `width: ${buttonSizePx[buttonSizeMobile].w}px; height: ${buttonSizePx[buttonSizeMobile].h}px;` : ""}
             }
             
             .hamburger-overlay-${zIndex} {
               clip-path: circle(0px at 30px 30px);
+              ${overlayBackgroundMobile ? `background: ${overlayBackgroundMobile};` : ""}
             }
             
             .hamburger-overlay-${zIndex}.open {

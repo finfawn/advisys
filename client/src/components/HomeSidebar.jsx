@@ -10,7 +10,7 @@ function HomeSidebar({ activeSection, onSelect }) {
   ];
 
   return (
-    <aside className="w-96 shrink-0 home-sidebar home-sidebar-rail sticky top-0 h-screen px-12 py-8 flex flex-col relative">
+    <aside className="w-72 md:w-96 shrink-0 home-sidebar home-sidebar-rail sticky top-0 md:h-screen px-6 md:px-12 py-6 md:py-8 flex flex-col relative bg-white md:bg-transparent">
       <div className="home-menu-center">
         <ul className="select-none list-none m-0 p-0 w-full flex flex-col items-start gap-6">
           {menuItems.map((item) => (

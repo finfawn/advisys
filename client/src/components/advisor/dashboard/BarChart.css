@@ -1,15 +1,18 @@
 /* Container */
 .container {
     padding: 0 4px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
   }
   
   /* Bar Chart Section */
   .barChartContainer {
-    height: 140px;
-    display: flex;
-    align-items: flex-end;
+    height: 400px;
+    width: 100%;
+    display: block;
     position: relative;
-    margin-bottom: 25px;
+    margin-bottom: 0;
   }
   
   /* Axis Container */

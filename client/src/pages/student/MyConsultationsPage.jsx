@@ -4,6 +4,8 @@ import { Button } from "react-bootstrap";
 import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsTrash, BsListCheck, BsClockHistory, BsCheckCircle } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
+import Dock from "../../lightswind/dock";
+import { HomeIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon } from "../../components/icons/Heroicons";
 import ConsultationCard from "../../components/student/ConsultationCard";
 import HistoryCard from "../../components/student/HistoryCard";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
@@ -581,10 +583,27 @@ export default function MyConsultationsPage() {
 
       {/* Body */}
       <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <div className="hidden md:block">
+          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        </div>
 
         {/* Content */}
-        <main className="dash-main">
+        <main className="dash-main relative">
+          {/* Mobile Dock */}
+          <div className="md:hidden">
+            <Dock
+              items={[
+                { icon: <HomeIcon className="w-5 h-5" />, label: "Dashboard", onClick: () => handleNavigation('dashboard') },
+                { icon: <UsersIcon className="w-5 h-5" />, label: "Advisors", onClick: () => handleNavigation('advisors') },
+                { icon: <CalendarDaysIcon className="w-5 h-5" />, label: "Consultations", onClick: () => handleNavigation('consultations'), active: true },
+                { icon: <ArrowRightOnRectangleIcon className="w-5 h-5" />, label: "Logout", onClick: () => handleNavigation('logout') },
+              ]}
+              panelHeight={56}
+              baseItemSize={44}
+              magnification={64}
+              className="backdrop-blur bg-white/80 border-gray-200"
+            />
+          </div>
           {/* Page Header */}
           <div className="page-header">
             <div className="page-title-section">

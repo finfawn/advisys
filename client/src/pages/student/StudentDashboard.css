@@ -1,3 +1,13 @@
+.dash-main {
+	/* Space for mobile dock to avoid overlap */
+	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+}
+
+@media (min-width: 768px) {
+	.dash-main {
+		padding-bottom: 0;
+	}
+}
 /* Layout container */
 .dash-wrap {
   min-height: 100vh;

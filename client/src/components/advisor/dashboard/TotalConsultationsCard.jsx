@@ -2,6 +2,7 @@ import React from "react";
 import { BsPeopleFill } from "react-icons/bs";
 import CustomBarChart from "./BarChart";
 import "./TotalConsultationsCard.css";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
 
 export default function TotalConsultationsCard() {
   const data = [
@@ -12,21 +13,23 @@ export default function TotalConsultationsCard() {
   ];
 
   return (
-    <div className="dashboard-card total-consultations-card">
-      <div className="card-header">
+    <Card hoverable className="total-consultations-card">
+      <CardHeader spacing="default" className="pb-2">
         <div className="header-content">
           <div className="icon-circle">
             <BsPeopleFill size={30} />
           </div>
           <div>
             <div className="total-count">583</div>
-            <div className="total-label">Total Consultations Completed</div>
+            <CardTitle size="default" className="total-label">Total Consultations Completed</CardTitle>
           </div>
         </div>
-      </div>
-      <div className="bar-chart-wrapper">
-        <CustomBarChart data={data} />
-      </div>
-    </div>
+      </CardHeader>
+      <CardContent padding="default" removeTopPadding>
+        <div className="bar-chart-wrapper">
+          <CustomBarChart data={data} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }
