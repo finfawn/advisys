@@ -4,8 +4,6 @@ import { Button } from "react-bootstrap";
 import AdvisorCard from "../../components/student/AdvisorCard";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
-import Dock from "../../lightswind/dock";
-import { HomeIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon } from "../../components/icons/Heroicons";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorListPage.css";
 
@@ -228,21 +226,6 @@ export default function AdvisorListPage() {
 
         {/* Content */}
         <main className="dash-main relative">
-          {/* Mobile Dock */}
-          <div className="md:hidden">
-            <Dock
-              items={[
-                { icon: <HomeIcon className="w-5 h-5" />, label: "Dashboard", onClick: () => handleNavigation('dashboard') },
-                { icon: <UsersIcon className="w-5 h-5" />, label: "Advisors", onClick: () => handleNavigation('advisors'), active: true },
-                { icon: <CalendarDaysIcon className="w-5 h-5" />, label: "Consultations", onClick: () => handleNavigation('consultations') },
-                { icon: <ArrowRightOnRectangleIcon className="w-5 h-5" />, label: "Logout", onClick: () => handleNavigation('logout') },
-              ]}
-              panelHeight={56}
-              baseItemSize={44}
-              magnification={64}
-              className="backdrop-blur bg-white/80 border-gray-200"
-            />
-          </div>
           <div className="advisor-list-container">
             {/* Page Header */}
             <div className="page-header">

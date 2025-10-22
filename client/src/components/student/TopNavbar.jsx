@@ -1,7 +1,9 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsSearch, BsBell, BsPersonCircle, BsChevronDown, BsPerson, BsGear, BsBoxArrowRight, BsX } from "react-icons/bs";
+import { BsSearch, BsBell, BsPersonCircle, BsChevronDown, BsGear, BsBoxArrowRight, BsX } from "react-icons/bs";
+import { HomeIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../icons/Heroicons";
 import Logo from "../../assets/logo.png";
+import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import NotificationModal from "../NotificationModal";
 import { useNotifications } from "../../contexts/NotificationContext";
 import "./TopNavbar.css";
@@ -11,7 +13,6 @@ function TopNavbar() {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [isSearchFocused, setIsSearchFocused] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
   const [showSearchResults, setShowSearchResults] = useState(false);
   const dropdownRef = useRef(null);
@@ -43,14 +44,66 @@ function TopNavbar() {
   };
 
   const handleLogout = () => {
-    // Handle logout logic here
     console.log('Logout clicked');
+    navigate('/login');
     setIsDropdownOpen(false);
   };
 
+  const handleMenuNavigation = (page) => {
+    console.log('Navigating to:', page);
+    
+    if (page === 'home') {
+      navigate('/');
+    } else if (page === 'dashboard') {
+      navigate('/student-dashboard');
+    } else if (page === 'advisors') {
+      navigate('/student-dashboard/advisors');
+    } else if (page === 'consultations') {
+      navigate('/student-dashboard/consultations');
+    } else if (page === 'profile') {
+      navigate('/student-dashboard/profile');
+    } else if (page === 'logout') {
+      console.log('Logout');
+      navigate('/login');
+    }
+  };
+
+  const menuItems = [
+    { 
+      label: "Home", 
+      icon: <HomeIcon className="w-6 h-6" />, 
+      onClick: () => handleMenuNavigation('home') 
+    },
+    { 
+      label: "Dashboard", 
+      icon: <HomeIcon className="w-6 h-6" />, 
+      onClick: () => handleMenuNavigation('dashboard') 
+    },
+    { 
+      label: "Advisors", 
+      icon: <UsersIcon className="w-6 h-6" />, 
+      onClick: () => handleMenuNavigation('advisors') 
+    },
+    { 
+      label: "Consultations", 
+      icon: <CalendarDaysIcon className="w-6 h-6" />, 
+      onClick: () => handleMenuNavigation('consultations') 
+    },
+    { 
+      label: "Profile", 
+      icon: <Cog6ToothIcon className="w-6 h-6" />, 
+      onClick: () => handleMenuNavigation('profile') 
+    },
+    { 
+      label: "Logout", 
+      icon: <ArrowRightOnRectangleIcon className="w-6 h-6" />, 
+      onClick: () => handleMenuNavigation('logout') 
+    },
+  ];
+
   const handleNotificationClick = () => {
     setIsNotificationOpen(!isNotificationOpen);
-    setIsDropdownOpen(false); // Close user dropdown if open
+    setIsDropdownOpen(false);
   };
 
   // Search functionality
@@ -74,7 +127,6 @@ function TopNavbar() {
   };
 
   const handleSearchFocus = () => {
-    setIsSearchFocused(true);
     if (searchQuery.trim().length > 0) {
       setShowSearchResults(true);
     }
@@ -83,7 +135,6 @@ function TopNavbar() {
   const handleSearchBlur = () => {
     // Delay hiding results to allow clicking on them
     setTimeout(() => {
-      setIsSearchFocused(false);
       setShowSearchResults(false);
     }, 200);
   };
@@ -115,14 +166,60 @@ function TopNavbar() {
     };
   }, []);
 
+
   return (
-    <header className="dash-topbar">
+    <>
+      {/* Hamburger Menu Overlay - Mobile Only */}
+      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+        <style>{`
+          .square-hamburger-btn {
+            border-radius: 8px !important;
+            pointer-events: auto !important;
+          }
+          .square-hamburger-btn * {
+            pointer-events: auto !important;
+          }
+          .hamburger-overlay-9999 {
+            pointer-events: auto !important;
+          }
+          .hamburger-button-9999 {
+            pointer-events: auto !important;
+          }
+        `}</style>
+        <HamburgerMenuOverlay
+          items={menuItems}
+          buttonTop="12px"
+          buttonLeft="16px"
+          buttonSize="md"
+          buttonColor="#111827"
+          buttonColorMobile="#111827"
+          overlayBackground="#111827"
+          overlayBackgroundMobile="#111827"
+          textColor="#ffffff"
+          fontSize="lg"
+          fontWeight="normal"
+          animationDuration={0.5}
+          staggerDelay={0.08}
+          menuAlignment="left"
+          enableBlur={false}
+          zIndex={9999}
+          buttonSizeMobile="md"
+          buttonClassName="square-hamburger-btn"
+        />
+      </div>
+
+      <header className="dash-topbar">
       <div className="tb-left">
-        <div className="brand clickable-brand" onClick={handleLogoClick}>
+        {/* Space for hamburger menu on mobile */}
+        <div className="hamburger-spacer md:hidden"></div>
+        
+        {/* Logo - Desktop only */}
+        <div className="brand clickable-brand hidden md:flex" onClick={handleLogoClick}>
           <img src={Logo} alt="AdviSys" className="brand-logo" />
           <div className="brand-title">advi<span className="brand-sys">Sys</span></div>
         </div>
-        <div className="student-greeting">
+        
+        <div className="student-greeting hidden md:block">
           <span className="greeting-text">Hi, {studentName}</span>
           <h1 className="welcome-text">Welcome</h1>
         </div>
@@ -193,8 +290,8 @@ function TopNavbar() {
           {unreadCount > 0 && <span className="notification-dot"></span>}
         </button>
         
-        {/* User Profile Dropdown */}
-        <div className="user-dropdown" ref={dropdownRef}>
+        {/* User Profile Dropdown - Desktop only */}
+        <div className="user-dropdown hidden md:block" ref={dropdownRef}>
           <button 
             className="user-dropdown-trigger"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -254,7 +351,8 @@ function TopNavbar() {
         onClose={() => setIsNotificationOpen(false)}
         userType="student"
       />
-    </header>
+      </header>
+    </>
   );
 }
 

@@ -1,5 +1,8 @@
 import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsCheckCircle, BsXCircle, BsChevronRight, BsTrash } from "react-icons/bs";
+import { Card, CardHeader, CardContent, CardFooter } from "../../../lightswind/card";
+import { Badge } from "../../../lightswind/badge";
+import { Button } from "../../../lightswind/button";
 import "./AdvisorHistoryCard.css";
 
 function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
@@ -47,67 +50,61 @@ function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
   };
 
   return (
-    <div className="history-card">
-      <div className="history-card-header">
-        <span className={`status-badge ${statusInfo.class}`}>
+    <Card hoverable className="advisor-history-card-new h-full flex flex-col">
+      <CardHeader spacing="compact" className="flex-row justify-between items-start pb-3">
+        <Badge 
+          variant={
+            consultation.status === 'completed' ? 'success' : 
+            consultation.status === 'cancelled' ? 'destructive' : 
+            'success'
+          } 
+          className="flex items-center gap-1.5"
+        >
           {statusInfo.icon}
-          <span className="status-text">{statusInfo.text}</span>
-        </span>
-        <div className="history-card-mode-badge">
-          {consultation.mode === 'online' ? (
-            <BsCameraVideo className="mode-icon" />
-          ) : (
-            <BsGeoAlt className="mode-icon" />
-          )}
-          <span className="mode-text">
-            {consultation.mode === 'online' ? 'Online' : 'In-Person'}
-          </span>
+          {statusInfo.text}
+        </Badge>
+        <Badge variant="outline" className="flex items-center gap-1.5">
+          {consultation.mode === 'online' ? <BsCameraVideo className="w-3.5 h-3.5" /> : <BsGeoAlt className="w-3.5 h-3.5" />}
+          {consultation.mode === 'online' ? 'Online' : 'In-Person'}
+        </Badge>
+      </CardHeader>
+
+      <CardContent className="space-y-3 flex-1">
+        <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.topic}</h3>
+        
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <BsClock className="w-4 h-4 text-blue-600" />
+          <span>{formatDate(consultation.date)} • {consultation.time}</span>
         </div>
-      </div>
-
-      <div className="history-card-content">
-        <h3 className="history-card-topic">{consultation.topic}</h3>
-
-        <div className="history-card-time">
-          <BsClock className="time-icon" />
-          <span className="time-text">{formatDate(consultation.date)} • {consultation.time}</span>
-        </div>
-
-        <div className="history-card-faculty">
-          <div className="faculty-avatar">
+        
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0">
             {(consultation.student && consultation.student.avatar) || <BsPersonCircle />}
           </div>
-          <div className="faculty-info">
-            <div className="faculty-name">{consultation.student?.name || 'Student'}</div>
-            <div className="faculty-title">{consultation.student?.title || 'Student'}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-gray-900 text-sm truncate">{consultation.student?.name || 'Student'}</div>
+            <div className="text-xs text-gray-600 truncate">{consultation.student?.title || 'Student'}</div>
           </div>
         </div>
-
+        
         {consultation.mode === 'in-person' && consultation.location && (
-          <div className="history-card-location">
-            <BsGeoAlt className="location-icon" />
-            <span className="location-text">{consultation.location}</span>
+          <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-amber-50 border border-amber-200 rounded-md">
+            <BsGeoAlt className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span className="truncate">{consultation.location}</span>
           </div>
         )}
-      </div>
+      </CardContent>
 
-      <div className="history-card-footer">
-        <button
-          className={getActionButtonClass()}
-          onClick={handleViewDetails}
-        >
-          {getActionButtonText()}
-          <BsChevronRight className="action-icon" />
-        </button>
-        <button
-          className="history-delete-btn"
-          onClick={handleDelete}
-          title="Delete consultation"
-        >
-          <BsTrash className="delete-icon" />
-        </button>
-      </div>
-    </div>
+      <CardFooter className="pt-3 gap-2" align="between">
+        <Button size="sm" className="flex-1" onClick={handleViewDetails}>
+          View Details
+          <BsChevronRight className="w-4 h-4 ml-1" />
+        </Button>
+        <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDelete}>
+          <BsTrash className="w-4 h-4" />
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }
 

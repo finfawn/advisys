@@ -1,16 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import Calendar from "react-calendar";
-import "react-calendar/dist/Calendar.css";
 import { Button } from "react-bootstrap";
 import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck, BsBookmark } from "react-icons/bs";
 import { FaUserTie } from "react-icons/fa";
 import AdvisorCard from "../../components/student/AdvisorCard";
 import CompactConsultationCard from "../../components/student/CompactConsultationCard";
+import CustomCalendar from "../../components/student/CustomCalendar";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
-import Dock from "../../lightswind/dock";
-import { HomeIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon } from "../../components/icons/Heroicons";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentDashboard.css";
 
@@ -185,24 +182,10 @@ export default function StudentDashboard() {
 
         {/* Content */}
         <main className="dash-main relative">
-          {/* Mobile Dock */}
-          <div className="md:hidden">
-            <Dock
-              items={[
-                { icon: <HomeIcon className="w-5 h-5" />, label: "Dashboard", onClick: () => handleNavigation('dashboard'), active: true },
-                { icon: <UsersIcon className="w-5 h-5" />, label: "Advisors", onClick: () => handleNavigation('advisors') },
-                { icon: <CalendarDaysIcon className="w-5 h-5" />, label: "Consultations", onClick: () => handleNavigation('consultations') },
-                { icon: <ArrowRightOnRectangleIcon className="w-5 h-5" />, label: "Logout", onClick: () => handleNavigation('logout') },
-              ]}
-              panelHeight={56}
-              baseItemSize={44}
-              magnification={64}
-              className="backdrop-blur bg-white/80 border-gray-200"
-            />
-          </div>
-          <div className="row g-3 align-items-stretch">
-            {/* Left column (display/banner) */}
-            <div className="col-12 col-lg-8">
+          {/* Bento Grid Layout */}
+          <div className="bento-grid-main">
+            {/* Banner Section - Large Bento */}
+            <div className="bento-item bento-banner">
               <section className="hero-wrap h-100">
                 <div className="hero-decor" aria-hidden />
                 {(() => {
@@ -293,8 +276,8 @@ export default function StudentDashboard() {
               </section>
             </div>
 
-            {/* Right column: Upcoming */}
-            <div className="col-12 col-lg-4">
+            {/* Upcoming Consultations - Medium Bento */}
+            <div className="bento-item bento-upcoming">
               <aside className="upcoming h-100">
                 <div className="up-header">
                   <span>Upcoming Consultations</span>
@@ -320,11 +303,11 @@ export default function StudentDashboard() {
               </aside>
             </div>
           </div>
-          {/* Below main sections */}
-          <section className="dash-sections">
-          {/* Quick Stats */}
-          <div className="section-block">
-            <div className="stats-grid">
+
+          {/* Stats Bento Grid */}
+          <div className="bento-grid-stats">
+            {/* Completed Consultations - Small Bento */}
+            <div className="bento-item bento-stat">
               <div className="stat-card">
                 <div className="stat-icon"><BsCheckCircle /></div>
                 <div className="stat-body">
@@ -333,6 +316,10 @@ export default function StudentDashboard() {
                   <div className="stat-sub">Total sessions finished</div>
                 </div>
               </div>
+            </div>
+
+            {/* Hours Spent - Small Bento */}
+            <div className="bento-item bento-stat">
               <div className="stat-card">
                 <div className="stat-icon"><BsClock /></div>
                 <div className="stat-body">
@@ -341,6 +328,10 @@ export default function StudentDashboard() {
                   <div className="stat-sub">Cumulative consultation time</div>
                 </div>
               </div>
+            </div>
+
+            {/* Top Topic - Small Bento */}
+            <div className="bento-item bento-stat">
               <div className="stat-card">
                 <div className="stat-icon"><BsBookmark /></div>
                 <div className="stat-body">
@@ -351,6 +342,9 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
+
+          {/* Below main sections */}
+          <section className="dash-sections">
 
           {/* Available Today - adapted from homepage */}
             <div className="section-block">
@@ -388,45 +382,98 @@ export default function StudentDashboard() {
 
           {/* Date-based availability */}
           <section className="section-block">
-            <div className="section-panel">
-              <div className="section-head">
-                <div className="section-title mb-0">Find by Date</div>
-              </div>
+            <div className="calendar-section-wrapper">
               {(() => {
                 const today = new Date();
                 const [selectedDate, setSelectedDate] = useState(today);
+                
+                // Helper to get date string for a specific day offset
+                const getDateString = (daysOffset) => {
+                  const date = new Date(today);
+                  date.setDate(date.getDate() + daysOffset);
+                  return date.toISOString().slice(0,10);
+                };
+                
                 const advisorsByDate = {
-                  // yyyy-mm-dd → advisors
-                  [today.toISOString().slice(0,10)]: [
+                  // Today - both online and in-person (should show green dot for online priority)
+                  [getDateString(0)]: [
                     { name: "Dr. Santos", slots: "10:00 AM – 12:00 PM", mode: "Online" },
                     { name: "Prof. Cruz", slots: "1:00 PM – 3:00 PM", mode: "In-person" },
                   ],
+                  // Tomorrow - online only (green dot)
+                  [getDateString(1)]: [
+                    { name: "Dr. Lee", slots: "9:00 AM – 11:00 AM", mode: "Online" },
+                  ],
+                  // Day after tomorrow - in-person only (blue dot)
+                  [getDateString(2)]: [
+                    { name: "Prof. Martinez", slots: "2:00 PM – 4:00 PM", mode: "In-person" },
+                  ],
+                  // 3 days from now - online only (green dot)
+                  [getDateString(3)]: [
+                    { name: "Dr. Kim", slots: "10:00 AM – 12:00 PM", mode: "Online" },
+                    { name: "Prof. Garcia", slots: "3:00 PM – 5:00 PM", mode: "Online" },
+                  ],
+                  // 5 days from now - in-person only (blue dot)
+                  [getDateString(5)]: [
+                    { name: "Dr. Reyes", slots: "11:00 AM – 1:00 PM", mode: "In-person" },
+                  ],
+                  // 7 days from now - both types (green dot for online priority)
+                  [getDateString(7)]: [
+                    { name: "Prof. Dela Cruz", slots: "8:00 AM – 10:00 AM", mode: "In-person" },
+                    { name: "Dr. Johnson", slots: "1:00 PM – 3:00 PM", mode: "Online" },
+                  ],
                 };
-                const key = selectedDate.toISOString().slice(0,10);
-                const list = advisorsByDate[key] || [
-                  { name: "Ms. Reyes", slots: "9:00 AM – 10:30 AM", mode: "Online" },
-                  { name: "Mr. Dela Cruz", slots: "2:00 PM – 4:00 PM", mode: "In-person" },
-                ];
+                const key = selectedDate ? selectedDate.toISOString().slice(0,10) : '';
+                const list = advisorsByDate[key] || [];
+                
+                const formatSelectedDate = (date) => {
+                  if (!date) return '';
+                  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                  return date.toLocaleDateString('en-US', options);
+                };
 
                 return (
-                  <div className="date-grid">
-                    <div className="date-col calendar-card">
-                      <Calendar onChange={setSelectedDate} value={selectedDate} className="dash-calendar" />
+                  <div className="modern-date-grid">
+                    <div className="modern-calendar-card">
+                      <CustomCalendar 
+                        selectedDate={selectedDate}
+                        onDateSelect={setSelectedDate}
+                        availabilityData={advisorsByDate}
+                      />
                     </div>
-                    <div className="advisors-col avail-panel">
-                      <div className="avail-head">Available Faculty</div>
-                      <ul className="date-adv-list">
-                        {list.map((a, i) => (
-                          <li key={i} className="date-adv-item">
-                            <div className="avatar small"><BsPersonCircle /></div>
-                            <div className="deta">
-                              <div className="nm">{a.name}</div>
-                              <div className="sl small text-muted">{a.slots}</div>
+                    <div className="modern-availability-card">
+                      <div className="availability-header">
+                        <h3 className="selected-date-title">{formatSelectedDate(selectedDate)}</h3>
+                      </div>
+                      <div className="availability-content">
+                        {list.length > 0 ? (
+                          <ul className="faculty-list">
+                            {list.map((a, i) => (
+                              <li key={i} className="faculty-item">
+                                <div className="faculty-avatar"><BsPersonCircle /></div>
+                                <div className="faculty-info">
+                                  <div className="faculty-name">{a.name}</div>
+                                  <div className="faculty-time">{a.slots}</div>
+                                </div>
+                                <span className={`consultation-mode ${a.mode === "Online" ? "online" : "in-person"}`}>{a.mode}</span>
+                              </li>
+                            ))}
+                          </ul>
+                        ) : (
+                          <div className="no-availability">
+                            <div className="no-availability-icon">
+                              <BsPeople />
                             </div>
-                            <span className={`mode-pill ${a.mode === "Online" ? "on" : "in"}`}>{a.mode}</span>
-                          </li>
-                        ))}
-                      </ul>
+                            <div className="no-availability-title">No advisors available</div>
+                            <div className="no-availability-text">No faculty advisors have availability on this date</div>
+                            <div className="availability-actions">
+                              <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
+                                Browse All Advisors
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
                     </div>
                   </div>
                 );

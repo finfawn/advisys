@@ -1,5 +1,8 @@
 import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
+import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
+import { Badge } from "../../lightswind/badge";
+import { Button } from "../../lightswind/button";
 import "./ConsultationCard.css";
 
 function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
@@ -72,111 +75,93 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
   const statusInfo = getStatusInfo();
 
   return (
-    <div className="consultation-card">
-      <div className="consultation-card-header">
-        <span className={`status-badge ${statusInfo.class}`}>
+    <Card hoverable className="consultation-card-new h-full flex flex-col">
+      <CardHeader spacing="compact" className="flex-row justify-between items-start pb-3">
+        <Badge 
+          variant={
+            consultation.status === 'approved' ? 'default' : 
+            consultation.status === 'pending' ? 'warning' : 
+            consultation.status === 'completed' ? 'success' :
+            'destructive'
+          } 
+          className="flex items-center gap-1.5"
+        >
           {statusInfo.icon}
-          <span className="status-text">{statusInfo.text}</span>
-        </span>
-        <div className="consultation-card-mode-badge">
-          {consultation.mode === 'online' ? (
-            <BsCameraVideo className="mode-icon" />
-          ) : (
-            <BsGeoAlt className="mode-icon" />
-          )}
-          <span className="mode-text">
-            {consultation.mode === 'online' ? 'Online' : 'In-Person'}
-          </span>
-        </div>
-      </div>
+          {statusInfo.text}
+        </Badge>
+        <Badge variant="outline" className="flex items-center gap-1.5">
+          {consultation.mode === 'online' ? <BsCameraVideo className="w-3.5 h-3.5" /> : <BsGeoAlt className="w-3.5 h-3.5" />}
+          {consultation.mode === 'online' ? 'Online' : 'In-Person'}
+        </Badge>
+      </CardHeader>
       
-      <div className="consultation-card-content">
-        <h3 className="consultation-card-topic">{consultation.topic}</h3>
+      <CardContent className="space-y-3 flex-1">
+        <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.topic}</h3>
         
-        <div className="consultation-card-time">
-          <BsClock className="time-icon" />
-          <span className="time-text">{formatDate(consultation.date)} • {consultation.time}</span>
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <BsClock className="w-4 h-4 text-blue-600" />
+          <span>{formatDate(consultation.date)} • {consultation.time}</span>
         </div>
         
-        <div className="consultation-card-faculty">
-          <div className="faculty-avatar">
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0">
             {consultation.faculty.avatar}
           </div>
-          <div className="faculty-info">
-            <div className="faculty-name">{consultation.faculty.name}</div>
-            <div className="faculty-title">{consultation.faculty.title}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-gray-900 text-sm truncate">{consultation.faculty.name}</div>
+            <div className="text-xs text-gray-600 truncate">{consultation.faculty.title}</div>
           </div>
         </div>
         
+        {/* Location badge for in-person */}
         {consultation.mode === 'in-person' && consultation.location && (
-          <div className="consultation-card-location">
-            <BsGeoAlt className="location-icon" />
-            <span className="location-text">{consultation.location}</span>
+          <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-amber-50 border border-amber-200 rounded-md">
+            <BsGeoAlt className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span className="truncate">{consultation.location}</span>
           </div>
         )}
         
+        {/* Decline reason section */}
         {consultation.status === 'declined' && consultation.declineReason && (
-          <div className="consultation-card-decline-reason">
-            <div className="decline-reason-label">Reason:</div>
-            <div className="decline-reason-text">{consultation.declineReason}</div>
+          <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
+            <div className="text-xs font-semibold text-red-700 mb-1">Reason:</div>
+            <div className="text-xs text-red-600">{consultation.declineReason}</div>
           </div>
         )}
-      </div>
+      </CardContent>
       
-      {shouldShowActionButton() && (
-        <div className="consultation-card-footer">
-          {consultation.status === 'approved' ? (
-            <>
-              <button 
-                className={getActionButtonClass()}
-                onClick={onActionClick}
-              >
-                {getActionButtonText()}
-                <BsChevronRight className="action-icon" />
-              </button>
-              <button 
-                className="consultation-card-action-btn cancel"
-                onClick={handleCancelConsultation}
-                title="Cancel consultation"
-              >
-                <BsXCircle className="cancel-icon" />
-                Cancel
-              </button>
-            </>
-          ) : (
-            <button 
-              className={getActionButtonClass()}
-              onClick={consultation.status === 'pending' ? handleCancelConsultation : onActionClick}
-            >
-              {getActionButtonText()}
-              {consultation.status === 'pending' ? (
-                <BsXCircle className="cancel-icon" />
-              ) : (
-                <BsChevronRight className="action-icon" />
-              )}
-            </button>
-          )}
-        </div>
+      {consultation.status === 'approved' && (
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1" onClick={onActionClick}>
+            View Details
+            <BsChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleCancelConsultation}>
+            <BsXCircle className="w-4 h-4" />
+          </Button>
+        </CardFooter>
+      )}
+      
+      {consultation.status === 'pending' && (
+        <CardFooter className="pt-3 gap-2 justify-center" align="center">
+          <Button size="sm" variant="outline" className="w-full text-red-600 border-red-600 hover:bg-red-600 hover:text-white" onClick={handleCancelConsultation}>
+            Cancel
+            <BsXCircle className="w-4 h-4 ml-1" />
+          </Button>
+        </CardFooter>
       )}
       
       {consultation.status === 'declined' && (
-        <div className="consultation-card-footer declined-actions">
-          <button 
-            className="consultation-card-action-btn delete"
-            onClick={handleDeleteConsultation}
-            title="Delete consultation"
-          >
-            <BsTrash className="delete-icon" />
-          </button>
-          <button 
-            className="consultation-card-action-btn reschedule"
-            onClick={handleRescheduleConsultation}
-          >
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" variant="outline" className="flex-1 text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
+            <BsTrash className="w-4 h-4" />
+          </Button>
+          <Button size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={handleRescheduleConsultation}>
             Reschedule
-          </button>
-        </div>
+          </Button>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 }
 

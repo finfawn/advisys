@@ -1,0 +1,155 @@
+/* Decline Modal Styles */
+.decline-modal {
+  max-width: 600px;
+  width: 90vw;
+}
+
+.decline-modal-title {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.decline-icon {
+  color: #dc2626;
+  font-size: 1.75rem;
+}
+
+.decline-modal-body {
+  padding: 1rem 0;
+}
+
+.consultation-info {
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0 0 0.25rem 0;
+}
+
+.info-value {
+  font-size: 1rem;
+  color: #1f2937;
+  margin: 0 0 0.75rem 0;
+}
+
+.info-value:last-child {
+  margin-bottom: 0;
+}
+
+.reason-section {
+  margin-top: 1.5rem;
+}
+
+.reason-label {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #374151;
+  margin-bottom: 1rem;
+}
+
+.reason-options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.reason-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem;
+  border: 2px solid #e5e7eb;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reason-option:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.reason-option:has(.reason-radio:checked) {
+  border-color: #3b82f6;
+  background: #eff6ff;
+}
+
+.reason-radio {
+  margin-top: 0.125rem;
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+  accent-color: #3b82f6;
+  flex-shrink: 0;
+}
+
+.reason-text {
+  font-size: 0.9rem;
+  color: #374151;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.custom-reason-input {
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  resize: vertical;
+  transition: all 0.2s ease;
+}
+
+.custom-reason-input:focus {
+  outline: none;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+.custom-reason-input::placeholder {
+  color: #9ca3af;
+}
+
+.decline-modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e5e7eb;
+}
+
+/* Responsive */
+@media (max-width: 640px) {
+  .decline-modal {
+    max-width: 95vw;
+  }
+
+  .decline-modal-title {
+    font-size: 1.25rem;
+  }
+
+  .decline-icon {
+    font-size: 1.5rem;
+  }
+
+  .reason-option {
+    padding: 0.75rem;
+  }
+
+  .reason-text {
+    font-size: 0.85rem;
+  }
+}

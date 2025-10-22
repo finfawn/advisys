@@ -17,10 +17,10 @@
   background: white;
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-  max-width: 500px;
-  width: 100%;
-  max-height: 90vh;
-  overflow-y: auto;
+  max-width: 600px !important;
+  width: 90vw;
+  max-height: 85vh !important;
+  overflow-y: auto !important;
   animation: modalSlideIn 0.3s ease-out;
 }
 
@@ -35,6 +35,25 @@
   }
 }
 
+/* Custom scrollbar for modal */
+.cancel-consultation-modal::-webkit-scrollbar {
+  width: 8px;
+}
+
+.cancel-consultation-modal::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 4px;
+}
+
+.cancel-consultation-modal::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 4px;
+}
+
+.cancel-consultation-modal::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
 .modal-header {
   display: flex;
   align-items: center;
@@ -43,15 +62,19 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.modal-title-section {
+.cancel-modal-title {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 0.5rem;
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #1f2937;
 }
 
 .modal-warning-icon {
-  color: #f59e0b;
+  color: #dc2626;
   font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
 .modal-title {

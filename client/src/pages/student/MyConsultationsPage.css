@@ -1,5 +1,30 @@
 /* MyConsultationsPage.css */
 
+/* Mobile: Add padding for fixed navbar and fix layout */
+@media (max-width: 768px) {
+  .dash-wrap {
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+  
+  .dash-body {
+    padding-top: 56px;
+    grid-template-columns: 1fr !important;
+    display: block !important;
+    height: auto !important;
+    min-height: calc(100vh - 56px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  
+  .dash-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+  }
+}
+
 
 /* Page Header */
 .page-header {
@@ -189,7 +214,7 @@
 /* Sections */
 .consultations-section {
   margin-bottom: 1.5rem;
-  padding: 0 0.5rem;
+  padding: 0;
 }
 
 .section-header {
@@ -215,13 +240,17 @@
 
 .filter-dropdown {
   padding: 0.5rem 1rem;
-  border: 2px solid #e1e5e9;
-  border-radius: 6px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
   background: white;
-  color: #333;
+  color: #475569;
   font-size: 0.9rem;
+  font-weight: 500;
   cursor: pointer;
-  transition: border-color 0.3s ease;
+  transition: all 0.2s ease;
+  min-width: 120px;
+  width: auto;
+  text-transform: capitalize;
 }
 
 .filter-dropdown:focus {
@@ -263,32 +292,49 @@
 /* Upcoming Consultations Grid */
 .consultations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.875rem;
   margin-bottom: 1.5rem;
 }
 
 /* Responsive Grid Layout */
-@media (min-width: 1200px) {
+@media (max-width: 999px) {
   .consultations-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1199px) {
-  .consultations-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
   }
 }
 
 @media (max-width: 767px) {
+  .consultations-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 639px) {
   .consultations-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
 }
 
-/* Add New Consultation Card */
+/* Add New Consultation Card - New Lightswind Style */
+.add-consultation-card-new {
+  border: 2px dashed #cbd5e1;
+  background: #f8fafc;
+  transition: all 0.3s ease;
+  min-height: 280px;
+}
+
+.add-consultation-card-new:hover {
+  border-color: #3b82f6;
+  background: #eff6ff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
+}
+
+/* Legacy Add New Consultation Card */
 .add-consultation-card {
   background: #f8f9fa;
   border: 2px dashed #dee2e6;
@@ -447,24 +493,26 @@
 
 .history-consultations-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 0.875rem;
 }
 
 /* Responsive Grid Layout for History */
-@media (min-width: 1200px) {
+@media (max-width: 999px) {
   .history-consultations-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 1199px) {
-  .history-consultations-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
   }
 }
 
 @media (max-width: 767px) {
+  .history-consultations-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+@media (max-width: 639px) {
   .history-consultations-grid {
     grid-template-columns: 1fr;
     gap: 1rem;

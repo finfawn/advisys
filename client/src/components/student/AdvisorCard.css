@@ -1,5 +1,17 @@
 /* AdvisorCard Component Styles - Unified Glass Card Design */
 
+.advisor-card-new {
+  transition: all 0.2s ease !important;
+  border: 2px solid transparent !important;
+  transform: none !important;
+}
+
+.advisor-card-new:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+  transform: none !important;
+}
+
 .advisor-card {
   background: rgba(255, 255, 255, 0.55);
   border: 1px solid rgba(0, 0, 0, 0.1);

@@ -1,4 +1,18 @@
-/* HistoryCard.css - Matching ConsultationCard styling */
+/* AdvisorHistoryCard.css - Matching HistoryCard styling */
+
+/* New Lightswind-style card with custom hover */
+.advisor-history-card-new {
+  transition: all 0.2s ease !important;
+  border: 2px solid transparent !important;
+  transform: none !important;
+}
+
+.advisor-history-card-new:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+  transform: none !important;
+}
+
 .history-card {
   background: white;
   border-radius: 8px;
