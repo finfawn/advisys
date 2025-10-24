@@ -366,10 +366,8 @@ export default function MyConsultationsPage() {
     });
     
     const history = allConsultations.filter(consultation => {
-      const consultationDate = new Date(consultation.date);
-      consultationDate.setHours(0, 0, 0, 0);
-      // Past consultations or completed/cancelled statuses
-      return consultationDate < today || consultation.status === 'completed' || consultation.status === 'cancelled';
+      // Only completed and cancelled consultations
+      return consultation.status === 'completed' || consultation.status === 'cancelled';
     });
     
     console.log('Filtered results:', { upcoming: upcoming.length, requests: requests.length, history: history.length });
@@ -768,12 +766,12 @@ export default function MyConsultationsPage() {
                 
                 {filteredHistory.length > 0 ? (
                   <>
-                    <div className="history-consultations-grid">
+                    <div className="consultations-grid">
                       {filteredHistory.map(consultation => (
-                        <HistoryCard
+                        <ConsultationCard
                           key={consultation.id}
                           consultation={consultation}
-                          onViewDetails={handleViewHistoryDetails}
+                          onActionClick={() => handleViewHistoryDetails(consultation)}
                           onDelete={handleDeleteHistoryItem}
                         />
                       ))}

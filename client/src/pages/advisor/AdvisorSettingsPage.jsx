@@ -5,25 +5,27 @@ import {
   BsPersonCircle, BsBell, BsShield, BsGear, 
   BsCheck, BsX, BsPencil, BsSave
 } from "react-icons/bs";
-import TopNavbar from "../../components/student/TopNavbar";
-import Sidebar from "../../components/student/Sidebar";
+import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
+import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
-import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import { useSidebar } from "../../contexts/SidebarContext";
-import "./StudentSettingsPage.css";
+import "./AdvisorSettingsPage.css";
 
-export default function StudentSettingsPage() {
+export default function AdvisorSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
 
-  // Mock student data
-  const [studentData, setStudentData] = useState({
-    firstName: "John Michael",
-    lastName: "Santos",
-    studentId: "2023-12345",
-    program: "Bachelor of Science in Computer Science",
-    yearLevel: "3rd Year",
-    email: "john.santos@student.university.edu",
+  // Mock advisor data
+  const [advisorData, setAdvisorData] = useState({
+    firstName: "Sarah",
+    lastName: "Johnson",
+    employeeId: "FAC-2024-001",
+    department: "Computer Science",
+    position: "Associate Professor",
+    email: "sarah.johnson@university.edu",
+    officeLocation: "Room 305, CS Building",
+    phoneNumber: "+1 (555) 123-4567",
     profilePicture: null
   });
 
@@ -31,24 +33,28 @@ export default function StudentSettingsPage() {
   const [settings, setSettings] = useState({
     // Notification Settings
     emailNotifications: true,
-    consultationReminders: true
+    consultationReminders: true,
+    newRequestNotifications: true,
+    // Availability Settings
+    autoAcceptRequests: false,
+    maxDailyConsultations: 5
   });
 
   const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState({ ...studentData });
+  const [editData, setEditData] = useState({ ...advisorData });
   const [activeSection, setActiveSection] = useState("profile");
 
   const handleNavigation = (page) => {
     if (page === 'home') {
       navigate('/');
     } else if (page === 'dashboard') {
-      navigate('/student-dashboard');
-    } else if (page === 'advisors') {
-      navigate('/student-dashboard/advisors');
+      navigate('/advisor-dashboard');
     } else if (page === 'consultations') {
-      navigate('/student-dashboard/consultations');
+      navigate('/advisor-dashboard/consultations');
+    } else if (page === 'availability') {
+      navigate('/advisor-dashboard/availability');
     } else if (page === 'profile') {
-      navigate('/student-dashboard/profile');
+      navigate('/advisor-dashboard/profile');
     } else if (page === 'logout') {
       console.log('Logout');
       navigate('/login');
@@ -57,24 +63,22 @@ export default function StudentSettingsPage() {
 
   const handleEdit = () => {
     setIsEditing(true);
-    setEditData({ ...studentData });
+    setEditData({ ...advisorData });
   };
 
   const handleSave = () => {
-    // Clean up the old profile picture URL if it's being replaced
-    if (studentData.profilePicture && studentData.profilePicture !== editData.profilePicture) {
-      URL.revokeObjectURL(studentData.profilePicture);
+    if (advisorData.profilePicture && advisorData.profilePicture !== editData.profilePicture) {
+      URL.revokeObjectURL(advisorData.profilePicture);
     }
-    setStudentData({ ...editData });
+    setAdvisorData({ ...editData });
     setIsEditing(false);
   };
 
   const handleCancel = () => {
-    // Clean up any new profile picture URL that was created during editing
-    if (editData.profilePicture && editData.profilePicture !== studentData.profilePicture) {
+    if (editData.profilePicture && editData.profilePicture !== advisorData.profilePicture) {
       URL.revokeObjectURL(editData.profilePicture);
     }
-    setEditData({ ...studentData });
+    setEditData({ ...advisorData });
     setIsEditing(false);
   };
 
@@ -104,40 +108,13 @@ export default function StudentSettingsPage() {
     // Implement change password functionality
   };
 
-
-  const handleDeleteAccount = () => {
-    console.log('Delete account clicked');
-    // Implement account deletion functionality
-  };
-
-  // Profile picture handlers
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
+  const handleProfilePictureChange = (e) => {
+    const file = e.target.files[0];
     if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
-        return;
-      }
-
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setEditData(prev => ({ ...prev, profilePicture: previewUrl }));
+      const imageUrl = URL.createObjectURL(file);
+      handleInputChange('profilePicture', imageUrl);
     }
   };
-
-
-  const settingsSections = [
-    { id: "profile", label: "Profile", icon: BsPersonCircle },
-    { id: "notifications", label: "Notifications", icon: BsBell },
-    { id: "security", label: "Security", icon: BsShield }
-  ];
 
   const menuItems = [
     { 
@@ -156,9 +133,9 @@ export default function StudentSettingsPage() {
       onClick: () => handleNavigation('consultations') 
     },
     { 
-      label: "Advisors", 
-      icon: <UsersIcon className="w-6 h-6" />, 
-      onClick: () => handleNavigation('advisors') 
+      label: "Availability", 
+      icon: <ClockIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('availability') 
     },
     { 
       label: "Profile", 
@@ -173,8 +150,8 @@ export default function StudentSettingsPage() {
   ];
 
   return (
-    <div className="dash-wrap">
-      <TopNavbar />
+    <div className="advisor-dash-wrap">
+      <AdvisorTopNavbar />
 
       {/* Hamburger Menu Overlay - Mobile Only */}
       <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
@@ -215,12 +192,12 @@ export default function StudentSettingsPage() {
         />
       </div>
 
-      <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
+      <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
         <div className="hidden md:block">
-          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+          <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 
-        <main className="dash-main">
+        <main className="advisor-dash-main">
           <div className="settings-container">
             {/* Page Header */}
             <div className="settings-header">
@@ -228,27 +205,34 @@ export default function StudentSettingsPage() {
               <p className="settings-subtitle">Manage your account settings and preferences</p>
             </div>
 
+            {/* Settings Content */}
             <div className="settings-content">
-              {/* Settings Sidebar */}
+              {/* Sidebar Navigation */}
               <div className="settings-sidebar">
-                <nav className="settings-nav">
-                  {settingsSections.map((section) => {
-                    const Icon = section.icon;
-                    return (
-                      <button
-                        key={section.id}
-                        className={`settings-nav-item ${activeSection === section.id ? 'active' : ''}`}
-                        onClick={() => setActiveSection(section.id)}
-                      >
-                        <Icon className="nav-icon" />
-                        <span>{section.label}</span>
-                      </button>
-                    );
-                  })}
-                </nav>
+                <button
+                  className={`settings-nav-item ${activeSection === "profile" ? "active" : ""}`}
+                  onClick={() => setActiveSection("profile")}
+                >
+                  <BsPersonCircle className="nav-icon" />
+                  <span>Profile</span>
+                </button>
+                <button
+                  className={`settings-nav-item ${activeSection === "notifications" ? "active" : ""}`}
+                  onClick={() => setActiveSection("notifications")}
+                >
+                  <BsBell className="nav-icon" />
+                  <span>Notifications</span>
+                </button>
+                <button
+                  className={`settings-nav-item ${activeSection === "security" ? "active" : ""}`}
+                  onClick={() => setActiveSection("security")}
+                >
+                  <BsShield className="nav-icon" />
+                  <span>Security</span>
+                </button>
               </div>
 
-              {/* Settings Content */}
+              {/* Main Content Area */}
               <div className="settings-panel">
                 {/* Profile Section */}
                 {activeSection === "profile" && (
@@ -259,18 +243,18 @@ export default function StudentSettingsPage() {
                         <p className="section-description">Manage your personal details and account information</p>
                       </div>
                       {!isEditing ? (
-                        <Button size="sm" onClick={handleEdit}>
-                          <BsPencil className="w-4 h-4 mr-1" />
+                        <Button variant="primary" className="edit-btn" onClick={handleEdit}>
+                          <BsPencil className="btn-icon" />
                           Edit Profile
                         </Button>
                       ) : (
                         <div className="edit-actions">
-                          <Button size="sm" variant="outline" onClick={handleCancel}>
-                            <BsX className="w-4 h-4 mr-1" />
+                          <Button variant="outline-secondary" className="cancel-btn" onClick={handleCancel}>
+                            <BsX className="btn-icon" />
                             Cancel
                           </Button>
-                          <Button size="sm" onClick={handleSave}>
-                            <BsSave className="w-4 h-4 mr-1" />
+                          <Button variant="primary" className="save-btn" onClick={handleSave}>
+                            <BsSave className="btn-icon" />
                             Save Changes
                           </Button>
                         </div>
@@ -280,8 +264,8 @@ export default function StudentSettingsPage() {
                     {/* Profile Picture */}
                     <div className="profile-picture-section">
                       <div className="profile-picture-container">
-                        {(isEditing ? editData.profilePicture : studentData.profilePicture) ? (
-                          <img src={isEditing ? editData.profilePicture : studentData.profilePicture} alt="Profile" className="profile-picture" />
+                        {editData.profilePicture ? (
+                          <img src={editData.profilePicture} alt="Profile" className="profile-picture" />
                         ) : (
                           <div className="profile-picture-placeholder">
                             <BsPersonCircle />
@@ -297,7 +281,7 @@ export default function StudentSettingsPage() {
                             id="profile-upload"
                             type="file"
                             accept="image/*"
-                            onChange={handleFileUpload}
+                            onChange={handleProfilePictureChange}
                             style={{ display: 'none' }}
                           />
                         </div>
@@ -318,7 +302,7 @@ export default function StudentSettingsPage() {
                               onChange={(e) => handleInputChange('firstName', e.target.value)}
                             />
                           ) : (
-                            <div className="info-value">{studentData.firstName}</div>
+                            <div className="info-value">{advisorData.firstName}</div>
                           )}
                         </div>
                         <div className="info-field">
@@ -331,52 +315,76 @@ export default function StudentSettingsPage() {
                               onChange={(e) => handleInputChange('lastName', e.target.value)}
                             />
                           ) : (
-                            <div className="info-value">{studentData.lastName}</div>
+                            <div className="info-value">{advisorData.lastName}</div>
                           )}
                         </div>
                       </div>
 
                       <div className="info-grid">
                         <div className="info-field">
-                          <label className="info-label">Student ID</label>
-                          <div className="info-value">{studentData.studentId}</div>
+                          <label className="info-label">Employee ID</label>
+                          <div className="info-value">{advisorData.employeeId}</div>
                         </div>
                         <div className="info-field">
-                          <label className="info-label">Year Level</label>
+                          <label className="info-label">Position</label>
                           {isEditing ? (
-                            <select
+                            <input
+                              type="text"
                               className="info-input"
-                              value={editData.yearLevel}
-                              onChange={(e) => handleInputChange('yearLevel', e.target.value)}
-                            >
-                              <option value="1st Year">1st Year</option>
-                              <option value="2nd Year">2nd Year</option>
-                              <option value="3rd Year">3rd Year</option>
-                              <option value="4th Year">4th Year</option>
-                              <option value="Graduate">Graduate</option>
-                            </select>
+                              value={editData.position}
+                              onChange={(e) => handleInputChange('position', e.target.value)}
+                            />
                           ) : (
-                            <div className="info-value">{studentData.yearLevel}</div>
+                            <div className="info-value">{advisorData.position}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="info-grid">
+                        <div className="info-field">
+                          <label className="info-label">Department</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="info-input"
+                              value={editData.department}
+                              onChange={(e) => handleInputChange('department', e.target.value)}
+                            />
+                          ) : (
+                            <div className="info-value">{advisorData.department}</div>
+                          )}
+                        </div>
+                        <div className="info-field">
+                          <label className="info-label">Office Location</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="info-input"
+                              value={editData.officeLocation}
+                              onChange={(e) => handleInputChange('officeLocation', e.target.value)}
+                            />
+                          ) : (
+                            <div className="info-value">{advisorData.officeLocation}</div>
                           )}
                         </div>
                       </div>
 
                       <div className="info-field full-width">
-                        <label className="info-label">Program</label>
-                        <div className="info-value">{studentData.program}</div>
+                        <label className="info-label">Email Address</label>
+                        <div className="info-value">{advisorData.email}</div>
                       </div>
 
                       <div className="info-field full-width">
-                        <label className="info-label">Email Address</label>
+                        <label className="info-label">Phone Number</label>
                         {isEditing ? (
                           <input
-                            type="email"
+                            type="tel"
                             className="info-input"
-                            value={editData.email}
-                            onChange={(e) => handleInputChange('email', e.target.value)}
+                            value={editData.phoneNumber}
+                            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
                           />
                         ) : (
-                          <div className="info-value">{studentData.email}</div>
+                          <div className="info-value">{advisorData.phoneNumber}</div>
                         )}
                       </div>
                     </div>
@@ -419,11 +427,54 @@ export default function StudentSettingsPage() {
                           <span className="toggle-slider"></span>
                         </label>
                       </div>
+
+                      <div className="setting-item">
+                        <div className="setting-info">
+                          <h4 className="setting-title">New Request Notifications</h4>
+                          <p className="setting-description">Get notified when students request consultations</p>
+                        </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={settings.newRequestNotifications}
+                            onChange={() => handleToggleSetting('newRequestNotifications')}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+
+                      <div className="setting-item">
+                        <div className="setting-info">
+                          <h4 className="setting-title">Auto-Accept Requests</h4>
+                          <p className="setting-description">Automatically accept consultation requests within your availability</p>
+                        </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={settings.autoAcceptRequests}
+                            onChange={() => handleToggleSetting('autoAcceptRequests')}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
+                      </div>
+
+                      <div className="setting-item">
+                        <div className="setting-info">
+                          <h4 className="setting-title">Maximum Daily Consultations</h4>
+                          <p className="setting-description">Set the maximum number of consultations per day</p>
+                        </div>
+                        <input
+                          type="number"
+                          min="1"
+                          max="20"
+                          className="number-input"
+                          value={settings.maxDailyConsultations}
+                          onChange={(e) => handleSettingChange('maxDailyConsultations', parseInt(e.target.value))}
+                        />
+                      </div>
                     </div>
                   </div>
                 )}
-
-
 
                 {/* Security Section */}
                 {activeSection === "security" && (
@@ -437,7 +488,7 @@ export default function StudentSettingsPage() {
                           <h4 className="security-title">Password</h4>
                           <p className="security-description">Last changed 3 months ago</p>
                         </div>
-                        <Button variant="outline" onClick={handleChangePassword}>
+                        <Button variant="outline-primary" onClick={handleChangePassword}>
                           Change Password
                         </Button>
                       </div>

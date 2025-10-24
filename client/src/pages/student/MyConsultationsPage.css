@@ -493,8 +493,11 @@
 
 .history-consultations-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr) !important;
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.875rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Responsive Grid Layout for History */
@@ -580,6 +583,8 @@
   .consultations-section {
     padding: 0 0.25rem;
     margin-bottom: 1.25rem;
+    height: auto !important;
+    overflow: visible !important;
   }
   
   .section-header {

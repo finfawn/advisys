@@ -7,6 +7,12 @@
   color: #1f2937;
 }
 
+@media (max-width: 768px) {
+  .profile-wrap {
+    min-height: auto;
+  }
+}
+
 /* Body layout with animated sidebar width */
 .profile-body {
   display: grid;

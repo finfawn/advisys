@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "react-bootstrap";
-import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck, BsBookmark } from "react-icons/bs";
+import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck, BsBookmark, BsChevronDown } from "react-icons/bs";
 import { FaUserTie } from "react-icons/fa";
 import AdvisorCard from "../../components/student/AdvisorCard";
 import CompactConsultationCard from "../../components/student/CompactConsultationCard";
 import CustomCalendar from "../../components/student/CustomCalendar";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentDashboard.css";
 
@@ -182,6 +183,31 @@ export default function StudentDashboard() {
 
         {/* Content */}
         <main className="dash-main relative">
+          {/* Mobile Sticky Upcoming Consultations - Only visible on mobile */}
+          <div className="md:hidden mobile-upcoming-sticky">
+            <Collapsible defaultOpen={false}>
+              <CollapsibleTrigger className="mobile-upcoming-trigger">
+                <div className="flex items-center justify-between w-full">
+                  <h3 className="font-semibold text-base">Upcoming Consultations</h3>
+                  <BsChevronDown className="chevron-icon" />
+                </div>
+              </CollapsibleTrigger>
+              <CollapsibleContent>
+                <div className="mobile-upcoming-content">
+                  {upcomingConsultations.slice(0, 3).map(consultation => (
+                    <CompactConsultationCard
+                      key={consultation.id}
+                      consultation={consultation}
+                      onActionClick={() => handleJoinConsultation(consultation)}
+                      onDelete={() => console.log('Delete consultation:', consultation.id)}
+                      onCancel={() => console.log('Cancel consultation:', consultation.id)}
+                    />
+                  ))}
+                </div>
+              </CollapsibleContent>
+            </Collapsible>
+          </div>
+
           {/* Bento Grid Layout */}
           <div className="bento-grid-main">
             {/* Banner Section - Large Bento */}
@@ -276,8 +302,8 @@ export default function StudentDashboard() {
               </section>
             </div>
 
-            {/* Upcoming Consultations - Medium Bento */}
-            <div className="bento-item bento-upcoming">
+            {/* Upcoming Consultations - Medium Bento - Hidden on mobile */}
+            <div className="bento-item bento-upcoming hidden md:block">
               <aside className="upcoming h-100">
                 <div className="up-header">
                   <span>Upcoming Consultations</span>

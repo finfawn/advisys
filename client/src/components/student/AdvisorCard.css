@@ -4,6 +4,9 @@
   transition: all 0.2s ease !important;
   border: 2px solid transparent !important;
   transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .advisor-card-new:hover {
@@ -20,11 +23,16 @@
   -webkit-backdrop-filter: blur(8px);
   padding: 25px;
   width: 100%;
+  max-width: 100%;
   height: 100%;
   display: flex;
   flex-direction: column;
   transition: border-color 0.2s ease;
+  box-sizing: border-box;
+  overflow: hidden;
+  contain: layout;
 }
+
 
 .advisor-card:hover {
   border-color: #667eea;
@@ -186,6 +194,11 @@
   display: flex;
   gap: 8px;
   margin-top: auto;
+  width: 100%;
+  max-width: 100%;
+  flex-wrap: wrap;
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .advisor-card-button {
@@ -194,12 +207,16 @@
   font-weight: 600;
   font-size: 0.9rem;
   flex: 1;
+  min-width: 0;
   transition: all 0.2s ease;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
   border: 1px solid;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .advisor-card-button.primary {
@@ -235,22 +252,180 @@
 }
 
 /* Responsive adjustments */
+@media (max-width: 768px) {
+  .advisor-card-button {
+    padding: 8px 12px;
+    font-size: 0.85rem;
+    gap: 4px;
+  }
+}
+
+/* Fix desktop card height and remove extra space */
+@media (min-width: 769px) {
+  .advisor-card-new {
+    height: auto !important;
+    min-height: 320px;
+  }
+  
+  /* Add more space above buttons */
+  .advisor-card-new > div:last-child {
+    margin-top: 24px !important;
+    padding-top: 16px !important;
+  }
+}
+
 @media (max-width: 576px) {
   .advisor-card {
-    padding: 16px;
+    padding: 12px;
   }
   
   .advisor-card-avatar {
     width: 40px;
     height: 40px;
-    font-size: 22px;
+    font-size: 20px;
   }
   
   .advisor-card-name {
-    font-size: 0.95rem;
+    font-size: 0.9rem;
   }
   
   .advisor-card-title {
-    font-size: 0.85rem;
+    font-size: 0.8rem;
+  }
+  
+  .advisor-card-actions {
+    gap: 6px;
+  }
+  
+  .advisor-card-button {
+    padding: 8px 8px;
+    font-size: 0.75rem;
+    gap: 3px;
+  }
+  
+  .advisor-card-button svg {
+    font-size: 0.8rem;
+  }
+}
+
+/* Extra small phones (320px - 360px) */
+@media (max-width: 360px) {
+  /* Override Lightswind Card component */
+  .advisor-card-new {
+    max-width: 100% !important;
+    width: 100% !important;
+    overflow: hidden !important;
+  }
+  
+  .advisor-card {
+    padding: 6px;
+  }
+  
+  .advisor-card-header {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  
+  .advisor-card-avatar {
+    width: 32px;
+    height: 32px;
+    font-size: 16px;
+  }
+  
+  .advisor-card-name {
+    font-size: 0.8rem;
+    line-height: 1.2;
+  }
+  
+  .advisor-card-title {
+    font-size: 0.7rem;
+    line-height: 1.2;
+  }
+  
+  .advisor-card-courses {
+    margin-bottom: 8px;
+  }
+  
+  .advisor-course-tags {
+    gap: 3px;
+  }
+  
+  .advisor-course-tag {
+    font-size: 0.55rem;
+    padding: 2px 4px;
+    border-radius: 8px;
+  }
+  
+  .advisor-card-meta {
+    font-size: 0.7rem;
+    padding-top: 10px;
+    margin-top: 2px;
+  }
+  
+  .advisor-card-meta-icon {
+    font-size: 14px;
+  }
+  
+  .advisor-card-actions {
+    gap: 4px;
+    flex-direction: column;
+    margin-top: 8px;
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .advisor-card-button {
+    padding: 5px 4px;
+    font-size: 0.65rem;
+    width: 100% !important;
+    gap: 2px;
+    flex: 0 0 100%;
+    min-width: 0;
+    max-width: 100% !important;
+    white-space: normal;
+    word-break: break-word;
+    line-height: 1.3;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    box-sizing: border-box !important;
+  }
+  
+  .advisor-card-button svg {
+    font-size: 0.7rem;
+  }
+  
+  /* Make buttons smaller but keep horizontal */
+  .advisor-card-new > div:last-child button,
+  .advisor-card-new > div:last-child .flex-1 {
+    flex: 1 1 auto !important;
+    min-width: 0 !important;
+    font-size: 0.7rem !important;
+    padding: 6px 5px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  /* Reduce gap in CardFooter */
+  .advisor-card-new > div:last-child {
+    gap: 4px !important;
+    padding: 8px 6px !important;
+  }
+  
+  /* Make button icons smaller */
+  .advisor-card-new > div:last-child button svg {
+    width: 0.7rem !important;
+    height: 0.7rem !important;
+    margin-right: 2px !important;
+  }
+  
+  .consultation-mode-display {
+    padding: 2px 5px;
+    font-size: 0.6rem;
+    border-radius: 10px;
+  }
+  
+  .consultation-mode-display svg {
+    font-size: 0.6rem;
   }
 }

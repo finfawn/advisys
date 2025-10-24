@@ -1,11 +1,90 @@
 .dash-main {
 	/* Space for mobile dock to avoid overlap */
-	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 80px);
+	padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
 }
 
 @media (min-width: 768px) {
 	.dash-main {
 		padding-bottom: 0;
+	}
+}
+
+/* Mobile Sticky Upcoming Consultations */
+.mobile-upcoming-sticky {
+  position: sticky;
+  top: 0; /* Stick at top of scrollable area */
+  z-index: 100;
+  background: #f5f7fb;
+  margin: -12px -12px 16px -12px; /* Negative margin extends to edges */
+  padding: 12px 12px;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-upcoming-trigger {
+  width: 100%;
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-upcoming-trigger .chevron-icon {
+  transition: transform 0.3s ease;
+  font-size: 18px;
+  color: #6b7280;
+}
+
+.mobile-upcoming-trigger[data-state="open"] .chevron-icon {
+  transform: rotate(180deg);
+}
+
+.mobile-upcoming-content {
+  margin-top: 8px;
+}
+
+/* Mobile viewport adjustments for browser UI */
+@media (max-width: 767.98px) {
+	.dash-wrap {
+		min-height: 100vh;
+		min-height: -webkit-fill-available;
+		height: 100vh;
+		height: -webkit-fill-available;
+		width: 100%;
+		max-width: 100vw;
+		overflow-x: hidden;
+	}
+	
+	.dash-body {
+		height: calc(100vh - 56px);
+		height: calc(-webkit-fill-available - 56px);
+		width: 100%;
+		max-width: 100vw;
+		overflow: visible; /* Allow sticky positioning to work */
+		padding-top: 56px; /* Account for fixed navbar */
+	}
+	
+	.dash-main {
+		padding: 12px;
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
+		height: calc(100vh - 56px);
+		overflow-y: auto;
+		overflow-x: hidden;
+		-webkit-overflow-scrolling: touch;
+		width: 100%;
+		max-width: 100vw;
+		box-sizing: border-box;
+	}
+}
+
+/* Extra small phones (320px - 360px) */
+@media (max-width: 360px) {
+	.dash-main {
+		padding: 6px;
+		padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 20px);
 	}
 }
 
@@ -15,8 +94,32 @@
 .bento-grid-main {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 12px;
+  margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 576px) {
+  .bento-grid-main {
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bento-grid-main {
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+}
+
+@media (min-width: 768px) {
+  .bento-grid-main {
+    gap: 16px;
+    margin-bottom: 16px;
+  }
 }
 
 @media (min-width: 992px) {
@@ -30,14 +133,31 @@
 .bento-grid-stats {
   display: grid;
   grid-template-columns: 1fr;
-  gap: 16px;
-  margin-bottom: 16px;
+  gap: 10px;
+  margin-bottom: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 576px) {
+  .bento-grid-stats {
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bento-grid-stats {
+    gap: 6px;
+    margin-bottom: 8px;
+  }
 }
 
 @media (min-width: 576px) {
   .bento-grid-stats {
     grid-template-columns: repeat(3, 1fr);
-    gap: 16px;
+    gap: 12px;
   }
 }
 
@@ -53,6 +173,21 @@
   border-radius: 20px;
   overflow: hidden;
   transition: transform 0.3s ease, box-shadow 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 576px) {
+  .bento-item {
+    border-radius: 16px;
+  }
+}
+
+@media (max-width: 360px) {
+  .bento-item {
+    border-radius: 14px;
+  }
 }
 
 .bento-item:hover {
@@ -61,7 +196,13 @@
 
 /* Banner Bento - Large */
 .bento-banner {
-  min-height: 320px;
+  min-height: 280px;
+}
+
+@media (min-width: 768px) {
+  .bento-banner {
+    min-height: 320px;
+  }
 }
 
 @media (min-width: 992px) {
@@ -72,7 +213,13 @@
 
 /* Upcoming Consultations Bento - Medium */
 .bento-upcoming {
-  min-height: 320px;
+  min-height: 280px;
+}
+
+@media (min-width: 768px) {
+  .bento-upcoming {
+    min-height: 320px;
+  }
 }
 
 @media (min-width: 992px) {
@@ -83,7 +230,13 @@
 
 /* Stat Bento - Small */
 .bento-stat {
-  min-height: 120px;
+  min-height: 100px;
+}
+
+@media (min-width: 768px) {
+  .bento-stat {
+    min-height: 120px;
+  }
 }
 
 .bento-stat .stat-card {
@@ -99,10 +252,15 @@
 /* Layout container */
 .dash-wrap {
   min-height: 100vh;
+  min-height: -webkit-fill-available;
   height: 100vh;
+  width: 100%;
+  max-width: 100vw;
   background: #f5f7fb;
   color: #1f2937;
   overflow: hidden;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 
 /* Body layout with animated sidebar width */
@@ -111,9 +269,22 @@
   grid-template-columns: 240px 1fr; /* sidebar + main */
   transition: grid-template-columns 240ms ease;
   height: calc(100vh - 64px); /* Subtract navbar height */
+  width: 100%;
+  max-width: 100vw;
   overflow: hidden;
+  overflow-x: hidden;
+  box-sizing: border-box;
 }
 .dash-body.collapsed { grid-template-columns: 76px 1fr; }
+
+/* Mobile: single column, no sidebar */
+@media (max-width: 767.98px) {
+  .dash-body {
+    grid-template-columns: 1fr;
+    height: 100vh;
+    height: -webkit-fill-available;
+  }
+}
 
 /* Main uses Bootstrap grid inside */
 .dash-main {
@@ -123,6 +294,9 @@
   overflow-y: auto;
   overflow-x: hidden;
   height: 100%;
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Hide scrollbar for main content on desktop for cleaner look */
@@ -168,6 +342,7 @@
 .hero-wrap .glass-card {
   position: relative;
   width: 100%;
+  max-width: 100%;
   display: grid;
   grid-template-columns: 160px 1fr;
   gap: 16px;
@@ -178,6 +353,8 @@
   border: 1px solid rgba(0,0,0,0.08);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 .hero-wrap .glass-card:hover {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
@@ -239,13 +416,44 @@
 }
 
 /* --- Sections below hero --- */
-.dash-sections { padding: 0; }
-.section-block { background: transparent; margin-top: 16px; }
+.dash-sections { 
+  padding: 0;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+.section-block { 
+  background: transparent; 
+  margin-top: 12px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (min-width: 768px) {
+  .section-block { margin-top: 16px; }
+}
 .section-title { font-weight: 700; margin-bottom: 10px; padding: 0 2px; }
 .section-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 10px; }
 .section-head .view-all-link { color: #2d5bd1; text-decoration: none; }
 /* Panel container to house Available Today */
-.section-panel { background: #fff; border: 1px solid rgba(0,0,0,0.08); border-radius: 20px; padding: 20px; box-shadow: none; }
+.section-panel { 
+  background: #fff; 
+  border: 1px solid rgba(0,0,0,0.08); 
+  border-radius: 20px; 
+  padding: 20px; 
+  box-shadow: none;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767.98px) {
+  .section-panel {
+    padding: 16px;
+    border-radius: 16px;
+  }
+}
 
 /* Quick Stats - Legacy (kept for compatibility) */
 .section-block .stats-grid { 
@@ -268,79 +476,266 @@
 }
 .stat-card {
   display: grid; 
-  grid-template-columns: 48px 1fr; 
+  grid-template-columns: 44px 1fr; 
   align-items: center; 
-  gap: 12px;
-  padding: 20px; 
-  border-radius: 16px; 
+  gap: 10px;
+  padding: 14px; 
+  border-radius: 14px; 
   background: #fff;
   border: 1px solid rgba(0,0,0,0.08);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.3s ease;
-  min-height: 120px;
+  min-height: 100px;
+}
+
+@media (min-width: 768px) {
+  .stat-card {
+    grid-template-columns: 48px 1fr;
+    gap: 12px;
+    padding: 20px;
+    border-radius: 16px;
+    min-height: 120px;
+  }
+}
+
+@media (max-width: 360px) {
+  .stat-card {
+    grid-template-columns: 40px 1fr;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 12px;
+    min-height: 90px;
+  }
 }
 .stat-card:hover { 
   border-color: rgba(0,0,0,0.12);
   box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
 }
 .stat-icon { 
-  width: 52px; 
-  height: 52px; 
-  border-radius: 14px; 
+  width: 44px; 
+  height: 44px; 
+  border-radius: 12px; 
   display: grid; 
   place-items: center; 
   background: linear-gradient(135deg, #f3f5f9 0%, #e8ecf4 100%); 
   color: #2d5bd1; 
   border: 1px solid rgba(0,0,0,0.08); 
   flex-shrink: 0;
-  font-size: 1.3rem;
+  font-size: 1.1rem;
+}
+
+@media (min-width: 768px) {
+  .stat-icon {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 360px) {
+  .stat-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
 }
 .stat-body { 
   min-width: 0; /* Allow text to wrap properly */
 }
 .stat-body .stat-label { 
   font-weight: 600; 
-  font-size: 0.8rem;
+  font-size: 0.7rem;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.3px;
   color: #6b7280;
-  margin-bottom: 4px;
+  margin-bottom: 3px;
+}
+
+@media (min-width: 768px) {
+  .stat-body .stat-label {
+    font-size: 0.8rem;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+  }
+}
+
+@media (max-width: 360px) {
+  .stat-body .stat-label {
+    font-size: 0.65rem;
+    letter-spacing: 0.2px;
+  }
 }
 .stat-body .stat-value { 
   font-weight: 800; 
-  font-size: 1.75rem; 
+  font-size: 1.5rem; 
   color: #1f2937;
-  line-height: 1.2;
+  line-height: 1.1;
   margin-bottom: 2px;
   word-break: break-word;
+}
+
+@media (min-width: 768px) {
+  .stat-body .stat-value {
+    font-size: 1.75rem;
+    line-height: 1.2;
+  }
+}
+
+@media (max-width: 360px) {
+  .stat-body .stat-value {
+    font-size: 1.35rem;
+  }
 }
 .stat-body .stat-value.small {
   font-size: 1rem;
 }
 .stat-body .stat-sub { 
   color: #6b7280; 
-  font-size: 0.85rem; 
-  line-height: 1.3;
+  font-size: 0.75rem; 
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .stat-body .stat-sub {
+    font-size: 0.85rem;
+    line-height: 1.3;
+  }
+}
+
+@media (max-width: 360px) {
+  .stat-body .stat-sub {
+    font-size: 0.7rem;
+  }
 }
 
 /* Available Today (fixed 4-slot grid) */
-.available-fixed-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px; }
-@media (max-width: 991.98px) { .available-fixed-grid { grid-template-columns: 1fr; } }
+.available-fixed-grid { 
+  display: grid; 
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Ensure cards in available grid don't overflow */
+.available-fixed-grid .advisor-card-new {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.available-fixed-grid .advisor-card-new button {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+@media (max-width: 1200px) { 
+  .available-fixed-grid { 
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+  } 
+}
+@media (max-width: 991.98px) { 
+  .available-fixed-grid { 
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  } 
+}
+@media (max-width: 576px) { 
+  .available-fixed-grid { 
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  
+  /* Force buttons to fit within card on mobile */
+  .available-fixed-grid .advisor-card-new > div:last-child button {
+    max-width: 100% !important;
+    min-width: 0 !important;
+    font-size: 0.7rem !important;
+    padding: 6px 8px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+}
 
 /* Responsive: stack media above text on small screens */
 @media (max-width: 576px) {
-  .glass-card {
-    grid-template-columns: 1fr;
-    text-align: center;
-    padding: 20px;
+  .hero-wrap .glass-card {
+    grid-template-columns: 1fr !important;
+    text-align: center !important;
+    padding: 24px 16px !important;
+    margin: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
   }
-  .gc-content { text-align: center; }
-  .gc-icon { width: 96px; height: 96px; margin: 0 auto; }
+  
+  /* Hide icon on mobile */
+  .gc-media,
+  .gc-icon { 
+    display: none !important;
+  }
+  
+  .gc-content { 
+    text-align: center !important;
+    padding: 0;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 12px;
+    width: 100%;
+  }
+  
+  .gc-title { 
+    font-size: 1.25rem !important;
+    margin: 0 0 8px 0 !important;
+    text-align: center !important;
+  }
+  
+  .gc-sub { 
+    font-size: 0.9rem !important;
+    margin: 0 0 12px 0 !important;
+    text-align: center !important;
+  }
+  
+  .gc-cta { 
+    font-size: 0.95rem !important;
+    padding: 12px 24px !important;
+    margin: 0 auto !important;
+  }
+}
+
+@media (max-width: 360px) {
+  .glass-card {
+    padding: 20px 12px;
+  }
+  
+  .gc-title {
+    font-size: 1rem;
+  }
+  
+  .gc-sub {
+    font-size: 0.8rem;
+  }
+  
+  .btn-gradient {
+    padding: 9px 14px;
+    font-size: 0.8rem;
+  }
 }
 
 /* ===== Modern Calendar Section ===== */
 .calendar-section-wrapper {
   width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .modern-date-grid { 
@@ -349,6 +744,16 @@
   grid-template-columns: 1fr; 
   gap: 20px;
   margin-bottom: 40px; /* Space after calendar */
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 767.98px) {
+  .modern-date-grid {
+    gap: 12px;
+    margin-bottom: 20px;
+  }
 }
 
 @media (min-width: 992px) { 
@@ -374,6 +779,17 @@
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   display: flex;
   flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+  .modern-calendar-card {
+    padding: 16px;
+    border-radius: 12px;
+  }
 }
 
 @media (min-width: 992px) {
@@ -755,8 +1171,20 @@
 /* Responsive Adjustments */
 @media (max-width: 768px) {
   .modern-calendar-card {
-    padding: 20px;
-    min-height: 500px;
+    padding: 16px;
+    min-height: auto;
+  }
+  
+  /* Override desktop heights on mobile - let CustomCalendar.css control sizing */
+  .modern-calendar-card td,
+  .calendar-wrapper td {
+    height: auto !important;
+    min-height: auto !important;
+  }
+  
+  .modern-calendar-card button,
+  .calendar-wrapper button {
+    min-height: auto !important;
   }
   
   .lightswind-calendar .rdp-day {
@@ -782,7 +1210,8 @@
 
 @media (max-width: 576px) {
   .modern-calendar-card {
-    min-height: 400px;
+    min-height: auto;
+    padding: 12px;
   }
   
   .lightswind-calendar .rdp-day {
@@ -811,6 +1240,16 @@
   display: flex; 
   flex-direction: column; 
   box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+  .modern-availability-card {
+    border-radius: 12px;
+  }
 }
 
 .availability-header { 
@@ -999,6 +1438,16 @@
   flex-direction: column;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+@media (max-width: 767.98px) {
+  .upcoming {
+    border-radius: 16px;
+  }
 }
 .upcoming:hover {
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);

@@ -19,6 +19,7 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
 import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
 import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
+import AdvisorSettingsPage from "./pages/advisor/AdvisorSettingsPage";
 
 function App() {
   return (
@@ -39,11 +40,13 @@ function App() {
           <Route path="/student-dashboard/consultations/online/:consultationId" element={<OnlineConsultationDetailsPage />} />
           <Route path="/student-dashboard/consultations/history/:consultationId" element={<HistoryConsultationDetailsPage />} />
           <Route path="/student-dashboard/settings" element={<StudentSettingsPage />} />
+          <Route path="/student-dashboard/profile" element={<StudentSettingsPage />} />
 
           {/* Advisor routes */}
           <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
           <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
           <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
+          <Route path="/advisor-dashboard/profile" element={<AdvisorSettingsPage />} />
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

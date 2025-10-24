@@ -186,12 +186,19 @@
 }
 
 @media (max-width: 768px) {
+  .advisor-dash-wrap {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  
   /* On mobile, hide sidebar from grid flow */
   .advisor-dash-body {
     grid-template-columns: 1fr;
     overflow-x: hidden;
     gap: 0;
     padding-top: calc(56px + env(safe-area-inset-top, 0px)); /* Account for fixed navbar + safe area */
+    height: auto;
   }
 
   .advisor-dash-body.collapsed {
@@ -201,8 +208,8 @@
   .advisor-dash-main {
     padding: 16px;
     padding-left: 16px;
-    height: calc(100vh - 56px);
-    overflow-y: auto;
+    height: auto;
+    overflow-y: visible;
   }
 
   /* Mobile: Single column layout with auto rows */

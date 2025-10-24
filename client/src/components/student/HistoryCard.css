@@ -5,6 +5,9 @@
   transition: all 0.2s ease !important;
   border: 2px solid transparent !important;
   transform: none !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
 }
 
 .history-card-new:hover {

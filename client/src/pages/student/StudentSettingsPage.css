@@ -1,21 +1,31 @@
 /* StudentSettingsPage Styles */
 
+/* Use existing dash classes from StudentDashboard.css */
+/* No need to redefine wrapper classes */
+
 .settings-container {
   padding: 0;
   max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
-/* Page Header */
-.page-header {
+@media (max-width: 768px) {
+  .settings-container {
+    padding: 0 8px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+}
+
+/* Settings Header */
+.settings-header {
   margin-bottom: 32px;
   padding: 0 4px;
 }
 
-.page-title-section {
-  flex: 1;
-}
-
-.page-title {
+.settings-title {
   font-size: 2rem;
   font-weight: 700;
   color: #1f2937;
@@ -23,7 +33,7 @@
   line-height: 1.2;
 }
 
-.page-subtitle {
+.settings-subtitle {
   color: #6b7280;
   font-size: 1rem;
   margin: 0;
@@ -36,6 +46,9 @@
   grid-template-columns: 280px 1fr;
   gap: 32px;
   min-height: 600px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Settings Sidebar */
@@ -88,26 +101,32 @@
   flex-shrink: 0;
 }
 
-/* Settings Main Content */
-.settings-main {
+/* Settings Panel */
+.settings-panel {
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+.settings-section {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 /* Section Headers */
-.section-header {
+.section-header-row {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 32px;
+  margin-bottom: 24px;
   gap: 16px;
-}
-
-.section-title-group {
-  flex: 1;
 }
 
 .section-title {
@@ -161,38 +180,35 @@
   flex-shrink: 0;
 }
 
-/* Form Sections */
-.form-section {
-  margin-bottom: 32px;
+/* Info Section */
+.info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
-.form-section:last-child {
-  margin-bottom: 0;
-}
-
-.form-section-title {
+.info-section-title {
   font-size: 1rem;
   font-weight: 600;
   color: #374151;
-  margin: 0 0 16px 0;
+  margin: 0 0 8px 0;
   padding-bottom: 6px;
   border-bottom: 1px solid #e5e7eb;
 }
 
-/* Info Grid Layout */
 .info-grid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 12px;
 }
 
-.info-item {
+.info-field {
   display: flex;
   flex-direction: column;
   gap: 4px;
 }
 
-.info-item.full-width {
+.info-field.full-width {
   grid-column: 1 / -1;
 }
 
@@ -254,38 +270,46 @@ select.info-input {
   font-style: italic;
 }
 
-/* Notifications Content */
-.notifications-content {
+/* Notification Settings */
+.notification-settings {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 16px;
 }
 
-.notification-category {
+/* Security Settings */
+.security-settings {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
 }
 
-.category-title {
-  font-size: 1.1rem;
+.security-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+
+.security-info {
+  flex: 1;
+  margin-right: 16px;
+}
+
+.security-title {
+  font-size: 1rem;
   font-weight: 600;
-  color: #374151;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+}
+
+.security-description {
+  font-size: 0.875rem;
+  color: #6b7280;
   margin: 0;
-  padding: 0 4px;
-}
-
-/* Security Content */
-.security-content {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.security-category {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
 }
 
 .danger-card {
@@ -675,37 +699,41 @@ input:checked + .toggle-slider:before {
 @media (max-width: 768px) {
   .settings-content {
     grid-template-columns: 1fr;
-    gap: 20px;
+    gap: 16px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
   .settings-sidebar {
     order: 2;
+    width: 100%;
+    max-width: 100%;
+    padding: 16px;
   }
   
-  .settings-main {
+  .settings-panel {
     order: 1;
+    padding: 16px;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
   }
   
-  .settings-nav {
-    flex-direction: row;
-    overflow-x: auto;
-    gap: 8px;
-    padding-bottom: 8px;
+  .section-header-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
   }
   
   .settings-nav-item {
-    white-space: nowrap;
-    flex-shrink: 0;
+    padding: 10px 14px;
+    font-size: 0.85rem;
   }
   
-  .section-header {
+  .section-header-row {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
-  }
-  
-  .section-actions {
-    justify-content: flex-start;
   }
   
   .profile-content {
@@ -743,17 +771,27 @@ input:checked + .toggle-slider:before {
 
   .info-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
   }
-
-  .info-item.full-width {
-    grid-column: 1;
+  
+  .info-field {
+    width: 100%;
+    max-width: 100%;
+  }
+  
+  .info-input,
+  .info-value {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    font-size: 0.875rem;
   }
   
   .setting-item {
     flex-direction: column;
     align-items: stretch;
-    gap: 16px;
+    gap: 12px;
+    padding: 16px;
   }
   
   .setting-info {
@@ -766,24 +804,42 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 576px) {
-  .page-title {
-    font-size: 1.75rem;
+  .settings-container {
+    padding: 0 4px;
   }
   
-  .page-subtitle {
-    font-size: 0.9rem;
+  .settings-title {
+    font-size: 1.5rem;
   }
   
-  .settings-main {
-    padding: 20px;
+  .settings-subtitle {
+    font-size: 0.875rem;
+  }
+  
+  .settings-panel {
+    padding: 12px;
   }
   
   .settings-sidebar {
-    padding: 16px;
+    padding: 12px;
   }
   
   .section-title {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
+  }
+  
+  .info-section-title {
+    font-size: 0.9rem;
+  }
+  
+  .info-label {
+    font-size: 0.7rem;
+  }
+  
+  .info-input,
+  .info-value {
+    font-size: 0.8rem;
+    padding: 6px 10px;
   }
   
   .profile-content {

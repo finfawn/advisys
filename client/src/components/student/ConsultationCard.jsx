@@ -161,6 +161,30 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
           </Button>
         </CardFooter>
       )}
+      
+      {consultation.status === 'completed' && (
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1" onClick={onActionClick}>
+            View Details
+            <BsChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
+            <BsTrash className="w-4 h-4" />
+          </Button>
+        </CardFooter>
+      )}
+      
+      {consultation.status === 'cancelled' && (
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1" onClick={onActionClick}>
+            View Details
+            <BsChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
+            <BsTrash className="w-4 h-4" />
+          </Button>
+        </CardFooter>
+      )}
     </Card>
   );
 }
