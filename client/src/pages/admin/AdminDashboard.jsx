@@ -14,8 +14,8 @@ export default function AdminDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   const handleNavigation = (page) => {
-    // Close mobile menu on navigation
-    setMobileMenuOpen(false);
+    console.log('Navigating to:', page);
+    
     if (page === 'dashboard') {
       navigate('/admin-dashboard');
     } else if (page === 'manage-users') {
@@ -25,26 +25,20 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleOverlayClick = () => setMobileMenuOpen(false);
-
   return (
     <div className="admin-dash-wrap">
       <AdminTopNavbar />
 
-      {/* Mobile overlay */}
-      <div
-        className={`mobile-sidebar-overlay ${mobileMenuOpen ? 'active' : ''}`}
-        onClick={handleOverlayClick}
-      />
-
       {/* Body */}
       <div className={`admin-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <AdminSidebar
-          collapsed={collapsed}
-          onToggle={toggleSidebar}
-          onNavigate={handleNavigation}
-          className={mobileMenuOpen ? 'sidebar-open' : ''}
-        />
+        {/* Sidebar - Hidden on mobile, visible on desktop */}
+        <div className="hidden md:block">
+          <AdminSidebar
+            collapsed={collapsed}
+            onToggle={toggleSidebar}
+            onNavigate={handleNavigation}
+          />
+        </div>
 
         {/* Content */}
         <main className="admin-dash-main">

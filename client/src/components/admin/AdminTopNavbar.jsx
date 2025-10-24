@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import { BsBell, BsPersonCircle, BsChevronDown, BsGear, BsBoxArrowRight } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
 import NotificationModal from "../NotificationModal";
+import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
 import { useNotifications } from "../../contexts/NotificationContext";
 import "./AdminTopNavbar.css";
 
@@ -32,6 +34,51 @@ function AdminTopNavbar() {
     setIsDropdownOpen(false);
   };
 
+  const handleNavigation = (page) => {
+    console.log('Navigating to:', page);
+    
+    if (page === 'home') {
+      navigate('/');
+    } else if (page === 'dashboard') {
+      navigate('/admin-dashboard');
+    } else if (page === 'manage-users') {
+      navigate('/admin-dashboard/manage-users');
+    } else if (page === 'appointments') {
+      navigate('/admin-dashboard/appointments');
+    } else if (page === 'logout') {
+      console.log('Logout');
+      navigate('/login');
+    }
+  };
+
+  const menuItems = [
+    { 
+      label: "Home", 
+      icon: <HomeIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('home') 
+    },
+    { 
+      label: "Dashboard", 
+      icon: <ChartBarIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('dashboard') 
+    },
+    { 
+      label: "Manage Users", 
+      icon: <UsersIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('manage-users') 
+    },
+    { 
+      label: "Appointments", 
+      icon: <CalendarDaysIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('appointments') 
+    },
+    { 
+      label: "Logout", 
+      icon: <ArrowRightOnRectangleIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('logout') 
+    },
+  ];
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
@@ -43,13 +90,58 @@ function AdminTopNavbar() {
   }, []);
 
   return (
-    <header className="admin-topbar">
+    <>
+      {/* Hamburger Menu Overlay - Mobile Only */}
+      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+        <style>{`
+          .square-hamburger-btn {
+            border-radius: 8px !important;
+            pointer-events: auto !important;
+          }
+          .square-hamburger-btn * {
+            pointer-events: auto !important;
+          }
+          .hamburger-overlay-9999 {
+            pointer-events: auto !important;
+          }
+          .hamburger-button-9999 {
+            pointer-events: auto !important;
+          }
+        `}</style>
+        <HamburgerMenuOverlay
+          items={menuItems}
+          buttonTop="12px"
+          buttonLeft="16px"
+          buttonSize="md"
+          buttonColor="#111827"
+          buttonColorMobile="#111827"
+          overlayBackground="#111827"
+          overlayBackgroundMobile="#111827"
+          textColor="#ffffff"
+          fontSize="md"
+          fontWeight="normal"
+          animationDuration={0.5}
+          staggerDelay={0.08}
+          menuAlignment="left"
+          enableBlur={false}
+          zIndex={9999}
+          buttonSizeMobile="md"
+          buttonClassName="square-hamburger-btn"
+        />
+      </div>
+
+      <header className="admin-topbar admin-top-nav">
       <div className="admin-topbar-left">
-        <div className="admin-brand">
+        {/* Space for hamburger menu on mobile */}
+        <div className="hamburger-spacer md:hidden"></div>
+        
+        {/* Logo - Desktop only */}
+        <div className="admin-brand hidden md:flex">
           <img src={Logo} alt="AdviSys" className="admin-logo" />
           <div className="admin-brand-title">advi<span className="admin-brand-sys">Sys</span></div>
         </div>
-        <div className="admin-greeting">
+        
+        <div className="admin-greeting hidden md:block">
           <span className="greeting-text">Hi, {adminName}</span>
           <h1 className="welcome-text">Welcome</h1>
         </div>
@@ -65,7 +157,8 @@ function AdminTopNavbar() {
           {unreadCount > 0 && <span className="notification-dot"></span>}
         </button>
 
-        <div className="user-dropdown" ref={dropdownRef}>
+        {/* User Profile Dropdown - Desktop only */}
+        <div className="user-dropdown hidden md:block" ref={dropdownRef}>
           <button
             className="user-dropdown-trigger"
             onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -118,12 +211,14 @@ function AdminTopNavbar() {
         </div>
       </div>
 
+      {/* Notification Modal */}
       <NotificationModal
         isOpen={isNotificationOpen}
         onClose={() => setIsNotificationOpen(false)}
         userType="admin"
       />
     </header>
+    </>
   );
 }
 

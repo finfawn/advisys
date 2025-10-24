@@ -6,6 +6,23 @@
   overflow: hidden;
 }
 
+/* Ensure hamburger menu is visible on mobile */
+@media (max-width: 767px) {
+  .admin-dash-wrap .md\:hidden {
+    display: block !important;
+  }
+}
+
+@media (min-width: 768px) {
+  .admin-dash-wrap .md\:hidden {
+    display: none !important;
+  }
+  
+  .admin-dash-wrap .hidden.md\:block {
+    display: block !important;
+  }
+}
+
 /* Body layout with animated sidebar width */
 .admin-dash-body {
   display: grid;
@@ -76,6 +93,7 @@
   .admin-dash-body {
     grid-template-columns: 1fr;
     overflow-x: hidden;
+    padding-top: 56px; /* Account for fixed navbar */
   }
 
   .admin-dash-body.collapsed {

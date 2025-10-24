@@ -180,7 +180,7 @@ export default function AdvisorSettingsPage() {
           overlayBackground="#111827"
           overlayBackgroundMobile="#111827"
           textColor="#ffffff"
-          fontSize="lg"
+          fontSize="md"
           fontWeight="normal"
           animationDuration={0.5}
           staggerDelay={0.08}

@@ -34,18 +34,15 @@ export default function AdminAppointments() {
     <div className="admin-dash-wrap">
       <AdminTopNavbar />
 
-      <div
-        className={`mobile-sidebar-overlay ${mobileMenuOpen ? 'active' : ''}`}
-        onClick={() => setMobileMenuOpen(false)}
-      />
-
       <div className={`admin-dash-body ${collapsed ? 'collapsed' : ''}`}>
-        <AdminSidebar
-          collapsed={collapsed}
-          onToggle={toggleSidebar}
-          onNavigate={handleNavigation}
-          className={mobileMenuOpen ? 'sidebar-open' : ''}
-        />
+        {/* Sidebar - Hidden on mobile, visible on desktop */}
+        <div className="hidden md:block">
+          <AdminSidebar
+            collapsed={collapsed}
+            onToggle={toggleSidebar}
+            onNavigate={handleNavigation}
+          />
+        </div>
 
         <main className="admin-dash-main">
           <div className="appointments-filters">

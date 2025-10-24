@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BsSearch, BsBell, BsPersonCircle, BsChevronDown, BsGear, BsBoxArrowRight, BsX } from "react-icons/bs";
-import { HomeIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../icons/Heroicons";
+import { HomeIcon, ChartBarIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../icons/Heroicons";
 import Logo from "../../assets/logo.png";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import NotificationModal from "../NotificationModal";
@@ -76,7 +76,7 @@ function TopNavbar() {
     },
     { 
       label: "Dashboard", 
-      icon: <HomeIcon className="w-6 h-6" />, 
+      icon: <ChartBarIcon className="w-6 h-6" />, 
       onClick: () => handleMenuNavigation('dashboard') 
     },
     { 
@@ -196,7 +196,7 @@ function TopNavbar() {
           overlayBackground="#111827"
           overlayBackgroundMobile="#111827"
           textColor="#ffffff"
-          fontSize="lg"
+          fontSize="md"
           fontWeight="normal"
           animationDuration={0.5}
           staggerDelay={0.08}
