@@ -1,9 +1,12 @@
 import React, { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "react-bootstrap";
 import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsTrash, BsListCheck, BsClockHistory, BsCheckCircle } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
+import { Card, CardContent } from '../../lightswind/card';
+import { Badge } from '../../lightswind/badge';
+import { Button } from '../../lightswind/button';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../lightswind/select';
 import ConsultationCard from "../../components/student/ConsultationCard";
 import HistoryCard from "../../components/student/HistoryCard";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
@@ -32,15 +35,14 @@ export default function MyConsultationsPage() {
   const navigate = useNavigate();
 
   const handleNavigation = (page) => {
+    console.log('Navigating to:', page);
+    
     if (page === 'dashboard') {
       navigate('/student-dashboard');
     } else if (page === 'advisors') {
       navigate('/student-dashboard/advisors');
     } else if (page === 'consultations') {
       navigate('/student-dashboard/consultations');
-    } else if (page === 'logout') {
-      // Handle logout
-      console.log('Logout');
     }
   };
 
@@ -364,10 +366,8 @@ export default function MyConsultationsPage() {
     });
     
     const history = allConsultations.filter(consultation => {
-      const consultationDate = new Date(consultation.date);
-      consultationDate.setHours(0, 0, 0, 0);
-      // Past consultations or completed/cancelled statuses
-      return consultationDate < today || consultation.status === 'completed' || consultation.status === 'cancelled';
+      // Only completed and cancelled consultations
+      return consultation.status === 'completed' || consultation.status === 'cancelled';
     });
     
     console.log('Filtered results:', { upcoming: upcoming.length, requests: requests.length, history: history.length });
@@ -517,17 +517,6 @@ export default function MyConsultationsPage() {
     setDeletedDeclinedItems(prev => prev.filter(item => item.id !== consultation.id));
   };
 
-  const handleUpcomingFilterChange = (e) => {
-    setUpcomingFilter(e.target.value);
-  };
-
-  const handleRequestFilterChange = (e) => {
-    setRequestFilter(e.target.value);
-  };
-
-  const handleHistoryFilterChange = (e) => {
-    setHistoryFilter(e.target.value);
-  };
 
 
   const handleNewConsultation = () => {
@@ -581,10 +570,12 @@ export default function MyConsultationsPage() {
 
       {/* Body */}
       <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <div className="hidden md:block">
+          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        </div>
 
         {/* Content */}
-        <main className="dash-main">
+        <main className="dash-main relative">
           {/* Page Header */}
           <div className="page-header">
             <div className="page-title-section">
@@ -629,15 +620,16 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Upcoming Consultations</h2>
                   <div className="section-controls">
-                    <select 
-                      className="filter-dropdown"
-                      value={upcomingFilter}
-                      onChange={handleUpcomingFilterChange}
-                    >
-                      <option value="all">All</option>
-                      <option value="online">Online</option>
-                      <option value="in-person">In-Person</option>
-                    </select>
+                    <Select value={upcomingFilter} onValueChange={setUpcomingFilter}>
+                      <SelectTrigger className="filter-dropdown">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="in-person">In-Person</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <span className="section-count">{filteredUpcoming.length} upcoming</span>
                   </div>
                 </div>
@@ -653,13 +645,15 @@ export default function MyConsultationsPage() {
                   ))}
                   
                   {/* Add New Consultation Card */}
-                  <div className="add-consultation-card" onClick={handleNewConsultation}>
-                    <div className="add-consultation-content">
-                      <BsPlus className="add-consultation-icon" />
-                      <h3 className="add-consultation-title">Add New Consultation</h3>
-                      <p className="add-consultation-subtitle">Book a new consultation session</p>
-                    </div>
-                  </div>
+                  <Card hoverable className="add-consultation-card-new cursor-pointer h-full" onClick={handleNewConsultation}>
+                    <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
+                      <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                        <BsPlus className="text-4xl text-blue-600" />
+                      </div>
+                      <h3 className="text-lg font-semibold text-gray-900">Add New Consultation</h3>
+                      <p className="text-sm text-gray-600 text-center">Book a new consultation session</p>
+                    </CardContent>
+                  </Card>
                 </div>
               </section>
             )}
@@ -670,15 +664,16 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Consultation Requests</h2>
                   <div className="section-controls">
-                    <select 
-                      className="filter-dropdown"
-                      value={requestFilter}
-                      onChange={handleRequestFilterChange}
-                    >
-                      <option value="all">All</option>
-                      <option value="online">Online</option>
-                      <option value="in-person">In-Person</option>
-                    </select>
+                    <Select value={requestFilter} onValueChange={setRequestFilter}>
+                      <SelectTrigger className="filter-dropdown">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="in-person">In-Person</SelectItem>
+                      </SelectContent>
+                    </Select>
                     <span className="section-count">{filteredRequests.length} requests</span>
                   </div>
                 </div>
@@ -744,23 +739,24 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Consultation History</h2>
                   <div className="section-controls">
-                    <select 
-                      className="filter-dropdown"
-                      value={historyFilter}
-                      onChange={handleHistoryFilterChange}
-                    >
-                      <option value="all">All</option>
-                      <option value="online">Online</option>
-                      <option value="in-person">In-Person</option>
-                    </select>
+                    <Select value={historyFilter} onValueChange={setHistoryFilter}>
+                      <SelectTrigger className="filter-dropdown">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All</SelectItem>
+                        <SelectItem value="online">Online</SelectItem>
+                        <SelectItem value="in-person">In-Person</SelectItem>
+                      </SelectContent>
+                    </Select>
                     {filteredHistory.length > 0 && (
                       <Button 
-                        variant="outline-danger" 
+                        variant="outline"
                         size="sm"
-                        className="delete-all-btn"
+                        className="delete-all-btn text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
                         onClick={handleDeleteAllHistory}
                       >
-                        <BsTrash className="btn-icon" />
+                        <BsTrash className="w-4 h-4 mr-1" />
                         Delete All
                       </Button>
                     )}
@@ -770,12 +766,12 @@ export default function MyConsultationsPage() {
                 
                 {filteredHistory.length > 0 ? (
                   <>
-                    <div className="history-consultations-grid">
+                    <div className="consultations-grid">
                       {filteredHistory.map(consultation => (
-                        <HistoryCard
+                        <ConsultationCard
                           key={consultation.id}
                           consultation={consultation}
-                          onViewDetails={handleViewHistoryDetails}
+                          onActionClick={() => handleViewHistoryDetails(consultation)}
                           onDelete={handleDeleteHistoryItem}
                         />
                       ))}

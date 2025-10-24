@@ -220,10 +220,12 @@ export default function AdvisorListPage() {
 
       {/* Body */}
       <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <div className="hidden md:block">
+          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        </div>
 
         {/* Content */}
-        <main className="dash-main">
+        <main className="dash-main relative">
           <div className="advisor-list-container">
             {/* Page Header */}
             <div className="page-header">

@@ -8,6 +8,10 @@
   border-bottom: 1px solid rgba(0,0,0,0.06);
   transition: background-color 0.2s ease;
   min-height: 55px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .compact-consultation-card:last-child {

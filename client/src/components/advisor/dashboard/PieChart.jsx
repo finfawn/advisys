@@ -32,12 +32,13 @@ export default function CustomPieChart({ data }) {
   return (
     <div style={{ 
       width: '100%', 
-      height: '350px',
+      height: '100%',
       display: 'flex', 
       justifyContent: 'center', 
       alignItems: 'center',
-      padding: '20px',
-      boxSizing: 'border-box'
+      padding: '4px',
+      boxSizing: 'border-box',
+      minHeight: '200px'
     }}>
       <ResponsiveContainer width="100%" height="100%">
         <PieChart>
@@ -46,7 +47,7 @@ export default function CustomPieChart({ data }) {
             cx="50%"
             cy="50%"
             labelLine={false}
-            outerRadius="85%"
+            outerRadius="90%"
             innerRadius={0}
             fill="#8884d8"
             dataKey="value"

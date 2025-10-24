@@ -1,6 +1,7 @@
 import React from "react";
 import "./TopTopicsCard.css";
 import AreaChartComponent from "./AreaChart";
+import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
 
 export default function TopTopicsCard() {
   const topics = [
@@ -11,13 +12,15 @@ export default function TopTopicsCard() {
   ];
 
   return (
-    <div className="dashboard-card topics-card">
-      <div className="card-header">
-        <h3 className="card-title">Top Consultation Topics</h3>
-      </div>
-      <div className="topics-chart-container">
-        <AreaChartComponent data={topics} />
-      </div>
-    </div>
+    <Card hoverable className="topics-card">
+      <CardHeader spacing="default" className="pb-2">
+        <CardTitle size="default" className="card-title">Top Consultation Topics</CardTitle>
+      </CardHeader>
+      <CardContent padding="default" removeTopPadding>
+        <div className="topics-chart-container">
+          <AreaChartComponent data={topics} />
+        </div>
+      </CardContent>
+    </Card>
   );
 }

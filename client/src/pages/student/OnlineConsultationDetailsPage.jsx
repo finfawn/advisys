@@ -124,9 +124,11 @@ export default function OnlineConsultationDetailsPage() {
       <TopNavbar />
       
       <div className={`consultation-details-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <div className="hidden md:block">
+          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        </div>
         
-        <main className="consultation-details-main">
+        <main className="consultation-details-main relative">
           {/* Back Button */}
           <div className="consultation-details-back">
             <button 

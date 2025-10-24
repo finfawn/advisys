@@ -1,8 +1,34 @@
 /* AdvisorListPage Styles */
 
 .advisor-list-container {
-  padding: 0;
+  padding: 0 16px;
+  width: 100%;
   max-width: 100%;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+/* Ensure no horizontal scrollbar on desktop */
+@media (min-width: 769px) {
+  .advisor-list-container {
+    overflow-x: visible;
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 768px) {
+  .dash-main {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    padding: 16px 8px !important;
+  }
+  
+  .advisor-list-container {
+    padding: 0 8px;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
 }
 
 /* Page Header */
@@ -11,8 +37,11 @@
   justify-content: space-between;
   align-items: flex-start;
   margin-bottom: 32px;
-  padding: 0 4px;
+  padding: 0;
   gap: 24px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 .page-title-section {
@@ -75,6 +104,10 @@
 /* Advisor Sections */
 .advisor-section {
   margin-bottom: 48px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  overflow: hidden;
 }
 
 .advisor-section:last-child {
@@ -86,7 +119,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 24px;
-  padding: 0 4px;
+  padding: 0;
 }
 
 .section-controls {
@@ -118,6 +151,10 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 24px;
   margin-bottom: 32px;
+  padding-bottom: 3rem;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Responsive Grid */
@@ -155,7 +192,10 @@
 @media (max-width: 768px) {
   .advisor-grid {
     grid-template-columns: 1fr;
-    gap: 16px;
+    gap: 12px;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
   }
   
   .page-title {
@@ -168,16 +208,20 @@
   
   .advisor-section {
     margin-bottom: 32px;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
   }
 }
 
 @media (max-width: 576px) {
   .advisor-list-container {
-    padding: 0;
+    padding: 0 10px;
+    overflow-x: hidden;
   }
   
   .page-header {
-    margin-bottom: 24px;
+    margin-bottom: 20px;
   }
   
   .page-title {
@@ -205,12 +249,54 @@
   }
 }
 
+/* Extra small phones (320px - 360px) */
+@media (max-width: 360px) {
+  .advisor-list-container {
+    padding: 0 4px;
+  }
+  
+  .page-header {
+    margin-bottom: 16px;
+  }
+  
+  .page-title {
+    font-size: 1.35rem;
+  }
+  
+  .page-subtitle {
+    font-size: 0.85rem;
+  }
+  
+  .section-title {
+    font-size: 1.15rem;
+  }
+  
+  .section-count {
+    font-size: 0.8rem;
+    padding: 3px 10px;
+  }
+  
+  .advisor-grid {
+    gap: 10px;
+  }
+  
+  .advisor-section {
+    margin-bottom: 24px;
+  }
+  
+  .filter-dropdown {
+    font-size: 0.8rem;
+    padding: 6px 10px;
+    min-width: 140px;
+  }
+}
+
 /* Load More Section */
 .load-more-section {
   display: flex;
   justify-content: center;
   margin-top: 32px;
-  padding: 0 4px;
+  padding: 0;
 }
 
 .load-more-btn {

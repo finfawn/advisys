@@ -1,5 +1,8 @@
 import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
+import { Card, CardHeader, CardContent, CardFooter } from "../../../lightswind/card";
+import { Badge } from "../../../lightswind/badge";
+import { Button } from "../../../lightswind/button";
 import "../../student/ConsultationCard.css";
 import "./AdvisorConsultationCard.css";
 
@@ -89,104 +92,90 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   };
 
   return (
-    <div className="consultation-card advisor-card">
-      <div className="consultation-card-header">
-        <span className={`status-badge ${statusInfo.class}`}>
+    <Card hoverable className="advisor-consultation-card-new h-full flex flex-col">
+      <CardHeader spacing="compact" className="flex-row justify-between items-start pb-3">
+        <Badge 
+          variant={
+            consultation.status === 'approved' ? 'default' : 
+            consultation.status === 'pending' ? 'warning' : 
+            consultation.status === 'completed' ? 'success' :
+            'destructive'
+          } 
+          className="flex items-center gap-1.5"
+        >
           {statusInfo.icon}
-          <span className="status-text">{statusInfo.text}</span>
-        </span>
-        <div className="consultation-card-mode-badge">
-          {consultation.mode === 'online' ? (
-            <BsCameraVideo className="mode-icon" />
-          ) : (
-            <BsGeoAlt className="mode-icon" />
-          )}
-          <span className="mode-text">
-            {consultation.mode === 'online' ? 'Online' : 'In-Person'}
-          </span>
+          {statusInfo.text}
+        </Badge>
+        <Badge variant="outline" className="flex items-center gap-1.5">
+          {consultation.mode === 'online' ? <BsCameraVideo className="w-3.5 h-3.5" /> : <BsGeoAlt className="w-3.5 h-3.5" />}
+          {consultation.mode === 'online' ? 'Online' : 'In-Person'}
+        </Badge>
+      </CardHeader>
+
+      <CardContent className="space-y-3 flex-1">
+        <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.topic}</h3>
+        
+        <div className="flex items-center gap-2 text-sm text-gray-600">
+          <BsClock className="w-4 h-4 text-blue-600" />
+          <span>{formatDate(consultation)} • {consultation.time}</span>
         </div>
-      </div>
-
-      <div className="consultation-card-content">
-        <h3 className="consultation-card-topic">{consultation.topic}</h3>
-
-        <div className="consultation-card-time">
-          <BsClock className="time-icon" />
-          <span className="time-text">{formatDate(consultation)} • {consultation.time}</span>
-        </div>
-
-        <div className="consultation-card-faculty">
-          <div className="faculty-avatar">
+        
+        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
+          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0">
             {(consultation.student && consultation.student.avatar) || <BsPersonCircle />}
           </div>
-          <div className="faculty-info">
-            <div className="faculty-name">{consultation.student?.name || 'Student'}</div>
-            <div className="faculty-title">{consultation.student?.title || 'Student'}</div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-gray-900 text-sm truncate">{consultation.student?.name || 'Student'}</div>
+            <div className="text-xs text-gray-600 truncate">{consultation.student?.title || 'Student'}</div>
           </div>
         </div>
-
+        
         {consultation.mode === 'in-person' && consultation.location && (
-          <div className="consultation-card-location">
-            <BsGeoAlt className="location-icon" />
-            <span className="location-text">{consultation.location}</span>
+          <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-amber-50 border border-amber-200 rounded-md">
+            <BsGeoAlt className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <span className="truncate">{consultation.location}</span>
           </div>
         )}
-
+        
         {consultation.status === 'declined' && consultation.declineReason && (
-          <div className="consultation-card-decline-reason">
-            <div className="decline-reason-label">Reason:</div>
-            <div className="decline-reason-text">{consultation.declineReason}</div>
+          <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
+            <div className="text-xs font-semibold text-red-700 mb-1">Reason:</div>
+            <div className="text-xs text-red-600">{consultation.declineReason}</div>
           </div>
         )}
-      </div>
+      </CardContent>
 
       {shouldShowSingleAction() && (
-        <div className="consultation-card-footer">
-          <button
-            className={getActionButtonClass()}
-            onClick={handlePrimaryClick}
-          >
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
             {getActionButtonText()}
-            <BsChevronRight className="action-icon" />
-          </button>
-        </div>
+            <BsChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+        </CardFooter>
       )}
 
       {consultation.status === 'pending' && (
-        <div className="declined-actions">
-          <button
-            className="consultation-card-action-btn online"
-            onClick={handlePrimaryClick}
-          >
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1 bg-green-600 hover:bg-green-700" onClick={handlePrimaryClick}>
             Approve
-          </button>
-          <button
-            className="consultation-card-action-btn delete"
-            onClick={handleDecline}
-          >
+          </Button>
+          <Button size="sm" variant="outline" className="flex-1 text-red-600 border-red-600 hover:bg-red-600 hover:text-white" onClick={handleDecline}>
             Decline
-          </button>
-        </div>
+          </Button>
+        </CardFooter>
       )}
 
       {consultation.status === 'declined' && (
-        <div className="declined-actions">
-          <button
-            className="consultation-card-action-btn delete"
-            onClick={handleDelete}
-            title="Delete"
-          >
-            <BsTrash className="delete-icon" />
-          </button>
-          <button
-            className="consultation-card-action-btn reschedule"
-            onClick={() => onActionClick?.(consultation)}
-          >
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" variant="outline" className="flex-1 text-red-600 border-red-300 hover:bg-red-50" onClick={handleDelete}>
+            <BsTrash className="w-4 h-4" />
+          </Button>
+          <Button size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={() => onActionClick?.(consultation)}>
             Review
-          </button>
-        </div>
+          </Button>
+        </CardFooter>
       )}
-    </div>
+    </Card>
   );
 }
 

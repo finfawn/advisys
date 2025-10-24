@@ -26,6 +26,10 @@ export default function AreaChartComponent({ data, colors = ["#3b82f6", "#10b981
           tickLine={false}
           tick={{ fontSize: 12, fill: '#6b7280' }}
           interval={0}
+          tickFormatter={(value) => {
+            // Truncate text if too long
+            return value.length > 10 ? value.substring(0, 10) + '...' : value;
+          }}
         />
         <YAxis 
           axisLine={false}

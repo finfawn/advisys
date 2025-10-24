@@ -1,3 +1,18 @@
+/* AdvisorConsultationCard.css */
+
+/* New Lightswind-style card with custom hover */
+.advisor-consultation-card-new {
+  transition: all 0.2s ease !important;
+  border: 2px solid transparent !important;
+  transform: none !important;
+}
+
+.advisor-consultation-card-new:hover {
+  border-color: #3b82f6 !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+  transform: none !important;
+}
+
 /* Advisor Consultation Card responsive overrides */
 
 /* Scope tweaks to advisor variant only */

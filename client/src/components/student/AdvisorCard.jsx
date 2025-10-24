@@ -1,6 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BsPersonCircle, BsClock, BsEye, BsCameraVideo, BsGeoAlt, BsLaptop } from "react-icons/bs";
+import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
+import { Badge } from "../../lightswind/badge";
+import { Button } from "../../lightswind/button";
 import ConsultationModal from "./ConsultationModal";
 import "./AdvisorCard.css";
 
@@ -84,74 +87,81 @@ function AdvisorCard({
 
   return (
     <>
-      <div className="advisor-card">
-        <div className="advisor-card-header">
-          <div className="advisor-card-avatar">
-            <BsPersonCircle />
+      <Card hoverable className="advisor-card-new h-full flex flex-col">
+        <CardHeader spacing="compact" className="pb-3">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl flex-shrink-0">
+              <BsPersonCircle />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="font-semibold text-gray-900 text-base truncate">{name}</div>
+              <div className="text-sm text-gray-600 truncate">{title}</div>
+            </div>
           </div>
-          <div className="advisor-card-info">
-            <div className="advisor-card-name">{name}</div>
-            <div className="advisor-card-title">{title}</div>
-          </div>
-        </div>
+        </CardHeader>
         
-        <div className="advisor-card-courses">
-          <div className="advisor-course-tags">
-            {coursesTaught.map((course, index) => (
-              <span key={index} className="advisor-course-tag">
-                {course}
-              </span>
-            ))}
+        <CardContent className="space-y-3 flex-1">
+          <div className="advisor-card-courses">
+            <div className="flex flex-wrap gap-1.5">
+              {coursesTaught.map((course, index) => (
+                <Badge key={index} variant="outline" size="sm" className="text-xs">
+                  {course}
+                </Badge>
+              ))}
+            </div>
           </div>
-        </div>
-        
-        <div className="advisor-card-meta">
-          <BsClock className="advisor-card-meta-icon" />
-          <div className="advisor-card-meta-content">
-            <div>{schedule}</div>
-            <div>{time}</div>
-            {modeInfo.showSeparate ? (
-              <div className="separate-mode-badges">
-                <div className="consultation-mode-display online-mode">
-                  <div className="mode-icons">
-                    <BsCameraVideo />
-                  </div>
-                  <span className="mode-text">Online</span>
+          
+          <div className="advisor-card-meta">
+            <BsClock className="w-4 h-4 text-blue-600 flex-shrink-0" />
+            <div className="flex-1 text-sm text-gray-700">
+              <div className="font-medium">{schedule}</div>
+              <div className="text-gray-600">{time}</div>
+              {modeInfo.showSeparate ? (
+                <div className="flex gap-2 mt-2">
+                  <Badge variant="info" size="sm" className="flex items-center gap-1">
+                    <BsCameraVideo className="w-3 h-3" />
+                    Online
+                  </Badge>
+                  <Badge variant="warning" size="sm" className="flex items-center gap-1">
+                    <BsGeoAlt className="w-3 h-3" />
+                    In-Person
+                  </Badge>
                 </div>
-                <div className="consultation-mode-display inperson-mode">
-                  <div className="mode-icons">
-                    <BsGeoAlt />
-                  </div>
-                  <span className="mode-text">In-Person</span>
+              ) : (
+                <div className="mt-2">
+                  <Badge 
+                    variant={modeInfo.class === 'online-mode' ? 'info' : modeInfo.class === 'inperson-mode' ? 'warning' : 'secondary'} 
+                    size="sm" 
+                    className="flex items-center gap-1 w-fit"
+                  >
+                    {modeInfo.icons}
+                    {modeInfo.text}
+                  </Badge>
                 </div>
-              </div>
-            ) : (
-              <div className={`consultation-mode-display ${modeInfo.class}`}>
-                <div className="mode-icons">
-                  {modeInfo.icons}
-                </div>
-                <span className="mode-text">{modeInfo.text}</span>
-              </div>
-            )}
+              )}
+            </div>
           </div>
-        </div>
+        </CardContent>
         
-        <div className="advisor-card-actions">
-          <button 
-            className="advisor-card-button secondary"
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button 
+            size="sm"
+            variant="outline"
+            className="flex-1"
             onClick={handleViewProfile}
           >
-            <BsEye />
+            <BsEye className="w-4 h-4 mr-1" />
             View Profile
-          </button>
-          <button 
-            className="advisor-card-button primary"
+          </Button>
+          <Button 
+            size="sm"
+            className="flex-1"
             onClick={handleBookClick}
           >
-            Book a consultation
-          </button>
-        </div>
-      </div>
+            Book Consultation
+          </Button>
+        </CardFooter>
+      </Card>
 
       <ConsultationModal
         isOpen={isModalOpen}

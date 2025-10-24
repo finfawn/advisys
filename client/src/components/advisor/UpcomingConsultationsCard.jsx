@@ -1,6 +1,7 @@
 import React from "react";
 import { BsClock, BsChevronRight } from "react-icons/bs";
 import "./UpcomingConsultationsCard.css";
+import { Card, CardHeader, CardTitle, CardContent } from "../../lightswind/card";
 
 export default function UpcomingConsultationsCard() {
   const consultations = [
@@ -62,18 +63,20 @@ export default function UpcomingConsultationsCard() {
   };
 
   return (
-    <div className="upcoming-consultations-card">
-      <div className="upcoming-card-header">
-        <h3 className="upcoming-card-title">Upcoming Consultations</h3>
-        <a href="#" className="upcoming-view-all">
-          View All
-          <BsChevronRight className="view-all-icon" />
-        </a>
-      </div>
-      
-      <div className="upcoming-consultations-list">
-        {consultations.map((consultation, index) => (
-          <div key={consultation.id} className="compact-consultation-card">
+    <Card hoverable className="upcoming-consultations-card">
+      <CardHeader spacing="default" className="pb-2">
+        <div className="upcoming-card-header">
+          <CardTitle size="default" className="upcoming-card-title">Upcoming Consultations</CardTitle>
+          <a href="#" className="upcoming-view-all">
+            View All
+            <BsChevronRight className="view-all-icon" />
+          </a>
+        </div>
+      </CardHeader>
+      <CardContent padding="default" removeTopPadding>
+        <div className="upcoming-consultations-list">
+          {consultations.map((consultation, index) => (
+            <div key={consultation.id} className="compact-consultation-card">
             <div className="compact-date-section">
               <div className="compact-date">
                 <div className="compact-dow">{formatDate(consultation.date).split(' ')[0]}</div>
@@ -108,9 +111,10 @@ export default function UpcomingConsultationsCard() {
                 <BsChevronRight className="action-icon" />
               </button>
             </div>
-          </div>
-        ))}
-      </div>
-    </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
+    </Card>
   );
 }

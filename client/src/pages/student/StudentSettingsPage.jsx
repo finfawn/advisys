@@ -7,6 +7,8 @@ import {
 } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
+import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentSettingsPage.css";
 
@@ -37,14 +39,19 @@ export default function StudentSettingsPage() {
   const [activeSection, setActiveSection] = useState("profile");
 
   const handleNavigation = (page) => {
-    if (page === 'dashboard') {
+    if (page === 'home') {
+      navigate('/');
+    } else if (page === 'dashboard') {
       navigate('/student-dashboard');
     } else if (page === 'advisors') {
       navigate('/student-dashboard/advisors');
     } else if (page === 'consultations') {
       navigate('/student-dashboard/consultations');
+    } else if (page === 'profile') {
+      navigate('/student-dashboard/profile');
     } else if (page === 'logout') {
       console.log('Logout');
+      navigate('/login');
     }
   };
 
@@ -132,23 +139,93 @@ export default function StudentSettingsPage() {
     { id: "security", label: "Security", icon: BsShield }
   ];
 
+  const menuItems = [
+    { 
+      label: "Home", 
+      icon: <HomeIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('home') 
+    },
+    { 
+      label: "Dashboard", 
+      icon: <ChartBarIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('dashboard') 
+    },
+    { 
+      label: "Consultations", 
+      icon: <CalendarDaysIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('consultations') 
+    },
+    { 
+      label: "Advisors", 
+      icon: <UsersIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('advisors') 
+    },
+    { 
+      label: "Profile", 
+      icon: <Cog6ToothIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('profile') 
+    },
+    { 
+      label: "Logout", 
+      icon: <ArrowRightOnRectangleIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('logout') 
+    },
+  ];
+
   return (
     <div className="dash-wrap">
       <TopNavbar />
 
-      {/* Body */}
-      <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+      {/* Hamburger Menu Overlay - Mobile Only */}
+      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+        <style>{`
+          .square-hamburger-btn {
+            border-radius: 8px !important;
+            pointer-events: auto !important;
+          }
+          .square-hamburger-btn * {
+            pointer-events: auto !important;
+          }
+          .hamburger-overlay-9999 {
+            pointer-events: auto !important;
+          }
+          .hamburger-button-9999 {
+            pointer-events: auto !important;
+          }
+        `}</style>
+        <HamburgerMenuOverlay
+          items={menuItems}
+          buttonTop="12px"
+          buttonLeft="16px"
+          buttonSize="md"
+          buttonColor="#111827"
+          buttonColorMobile="#111827"
+          overlayBackground="#111827"
+          overlayBackgroundMobile="#111827"
+          textColor="#ffffff"
+          fontSize="lg"
+          fontWeight="normal"
+          animationDuration={0.5}
+          staggerDelay={0.08}
+          menuAlignment="left"
+          enableBlur={false}
+          zIndex={9999}
+          buttonSizeMobile="md"
+          buttonClassName="square-hamburger-btn"
+        />
+      </div>
 
-        {/* Content */}
+      <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
+        <div className="hidden md:block">
+          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        </div>
+
         <main className="dash-main">
           <div className="settings-container">
             {/* Page Header */}
-            <div className="page-header">
-              <div className="page-title-section">
-                <h1 className="page-title">Settings</h1>
-                <p className="page-subtitle">Manage your account settings and preferences</p>
-              </div>
+            <div className="settings-header">
+              <h1 className="settings-title">Settings</h1>
+              <p className="settings-subtitle">Manage your account settings and preferences</p>
             </div>
 
             <div className="settings-content">
@@ -172,150 +249,135 @@ export default function StudentSettingsPage() {
               </div>
 
               {/* Settings Content */}
-              <div className="settings-main">
+              <div className="settings-panel">
                 {/* Profile Section */}
                 {activeSection === "profile" && (
                   <div className="settings-section">
-                    <div className="section-header">
-                      <div className="section-title-group">
+                    <div className="section-header-row">
+                      <div>
                         <h2 className="section-title">Profile Information</h2>
                         <p className="section-description">Manage your personal details and account information</p>
                       </div>
-                      <div className="section-actions">
-                        {!isEditing ? (
-                          <Button variant="primary" size="sm" onClick={handleEdit} className="edit-profile-btn">
-                            <BsPencil className="me-2" />
-                            Edit Profile
+                      {!isEditing ? (
+                        <Button size="sm" onClick={handleEdit}>
+                          <BsPencil className="w-4 h-4 mr-1" />
+                          Edit Profile
+                        </Button>
+                      ) : (
+                        <div className="edit-actions">
+                          <Button size="sm" variant="outline" onClick={handleCancel}>
+                            <BsX className="w-4 h-4 mr-1" />
+                            Cancel
                           </Button>
+                          <Button size="sm" onClick={handleSave}>
+                            <BsSave className="w-4 h-4 mr-1" />
+                            Save Changes
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Profile Picture */}
+                    <div className="profile-picture-section">
+                      <div className="profile-picture-container">
+                        {(isEditing ? editData.profilePicture : studentData.profilePicture) ? (
+                          <img src={isEditing ? editData.profilePicture : studentData.profilePicture} alt="Profile" className="profile-picture" />
                         ) : (
-                          <div className="edit-actions">
-                            <Button variant="outline-secondary" size="sm" onClick={handleCancel}>
-                              <BsX className="me-2" />
-                              Cancel
-                            </Button>
-                            <Button variant="success" size="sm" onClick={handleSave}>
-                              <BsSave className="me-2" />
-                              Save Changes
-                            </Button>
+                          <div className="profile-picture-placeholder">
+                            <BsPersonCircle />
                           </div>
                         )}
                       </div>
+                      {isEditing && (
+                        <div className="profile-picture-actions">
+                          <label htmlFor="profile-upload" className="upload-label">
+                            Change Photo
+                          </label>
+                          <input
+                            id="profile-upload"
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileUpload}
+                            style={{ display: 'none' }}
+                          />
+                        </div>
+                      )}
                     </div>
 
-                    <div className="profile-content">
-                      <div className="profile-picture-section">
-                        <div className="profile-picture-container">
-                          <div className="profile-picture">
-                            {(isEditing ? editData.profilePicture : studentData.profilePicture) ? (
-                              <img src={isEditing ? editData.profilePicture : studentData.profilePicture} alt="Profile" />
-                            ) : (
-                              <div className="profile-placeholder">
-                                <BsPersonCircle />
-                              </div>
-                            )}
-                          </div>
-                          {isEditing && (
-                            <div className="profile-actions">
-                              <input
-                                type="file"
-                                accept="image/*"
-                                onChange={handleFileUpload}
-                                className="file-input"
-                                id="profile-upload"
-                              />
-                              <label htmlFor="profile-upload" className="upload-btn">
-                                <BsPencil className="me-1" />
-                                {editData.profilePicture ? 'Change Photo' : 'Add Photo'}
-                              </label>
-                            </div>
+                    {/* Personal Information */}
+                    <div className="info-section">
+                      <h3 className="info-section-title">Personal Information</h3>
+                      <div className="info-grid">
+                        <div className="info-field">
+                          <label className="info-label">First Name</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="info-input"
+                              value={editData.firstName}
+                              onChange={(e) => handleInputChange('firstName', e.target.value)}
+                            />
+                          ) : (
+                            <div className="info-value">{studentData.firstName}</div>
                           )}
                         </div>
-                        <div className="profile-info">
-                          <h3 className="profile-name">{studentData.firstName} {studentData.lastName}</h3>
-                          <p className="profile-role">BSIT Student • {studentData.yearLevel}</p>
+                        <div className="info-field">
+                          <label className="info-label">Last Name</label>
+                          {isEditing ? (
+                            <input
+                              type="text"
+                              className="info-input"
+                              value={editData.lastName}
+                              onChange={(e) => handleInputChange('lastName', e.target.value)}
+                            />
+                          ) : (
+                            <div className="info-value">{studentData.lastName}</div>
+                          )}
                         </div>
                       </div>
 
-                      <div className="profile-form">
-                        <div className="form-section">
-                          <h3 className="form-section-title">Personal Information</h3>
-                          <div className="info-grid">
-                            <div className="info-item">
-                              <div className="info-label">First Name</div>
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  value={editData.firstName}
-                                  onChange={(e) => handleInputChange('firstName', e.target.value)}
-                                  className="info-input"
-                                />
-                              ) : (
-                                <div className="info-value">{studentData.firstName}</div>
-                              )}
-                            </div>
-                            <div className="info-item">
-                              <div className="info-label">Last Name</div>
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  value={editData.lastName}
-                                  onChange={(e) => handleInputChange('lastName', e.target.value)}
-                                  className="info-input"
-                                />
-                              ) : (
-                                <div className="info-value">{studentData.lastName}</div>
-                              )}
-                            </div>
-                            <div className="info-item">
-                              <div className="info-label">Student ID</div>
-                              {isEditing ? (
-                                <input
-                                  type="text"
-                                  value={editData.studentId}
-                                  onChange={(e) => handleInputChange('studentId', e.target.value)}
-                                  className="info-input"
-                                />
-                              ) : (
-                                <div className="info-value">{studentData.studentId}</div>
-                              )}
-                            </div>
-                            <div className="info-item">
-                              <div className="info-label">Year Level</div>
-                              {isEditing ? (
-                                <select
-                                  value={editData.yearLevel}
-                                  onChange={(e) => handleInputChange('yearLevel', e.target.value)}
-                                  className="info-input"
-                                >
-                                  <option value="1st Year">1st Year</option>
-                                  <option value="2nd Year">2nd Year</option>
-                                  <option value="3rd Year">3rd Year</option>
-                                  <option value="4th Year">4th Year</option>
-                                  <option value="Graduate">Graduate</option>
-                                </select>
-                              ) : (
-                                <div className="info-value">{studentData.yearLevel}</div>
-                              )}
-                            </div>
-                            <div className="info-item full-width">
-                              <div className="info-label">Program</div>
-                              <div className="info-value program-value">{studentData.program}</div>
-                            </div>
-                            <div className="info-item full-width">
-                              <div className="info-label">Email Address</div>
-                              {isEditing ? (
-                                <input
-                                  type="email"
-                                  value={editData.email}
-                                  onChange={(e) => handleInputChange('email', e.target.value)}
-                                  className="info-input"
-                                />
-                              ) : (
-                                <div className="info-value">{studentData.email}</div>
-                              )}
-                            </div>
-                          </div>
+                      <div className="info-grid">
+                        <div className="info-field">
+                          <label className="info-label">Student ID</label>
+                          <div className="info-value">{studentData.studentId}</div>
                         </div>
+                        <div className="info-field">
+                          <label className="info-label">Year Level</label>
+                          {isEditing ? (
+                            <select
+                              className="info-input"
+                              value={editData.yearLevel}
+                              onChange={(e) => handleInputChange('yearLevel', e.target.value)}
+                            >
+                              <option value="1st Year">1st Year</option>
+                              <option value="2nd Year">2nd Year</option>
+                              <option value="3rd Year">3rd Year</option>
+                              <option value="4th Year">4th Year</option>
+                              <option value="Graduate">Graduate</option>
+                            </select>
+                          ) : (
+                            <div className="info-value">{studentData.yearLevel}</div>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="info-field full-width">
+                        <label className="info-label">Program</label>
+                        <div className="info-value">{studentData.program}</div>
+                      </div>
+
+                      <div className="info-field full-width">
+                        <label className="info-label">Email Address</label>
+                        {isEditing ? (
+                          <input
+                            type="email"
+                            className="info-input"
+                            value={editData.email}
+                            onChange={(e) => handleInputChange('email', e.target.value)}
+                          />
+                        ) : (
+                          <div className="info-value">{studentData.email}</div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -324,52 +386,38 @@ export default function StudentSettingsPage() {
                 {/* Notifications Section */}
                 {activeSection === "notifications" && (
                   <div className="settings-section">
-                    <div className="section-header">
-                      <div className="section-title-group">
-                        <h2 className="section-title">Notification Preferences</h2>
-                        <p className="section-description">Choose how you want to be notified about important updates</p>
-                      </div>
-                    </div>
+                    <h2 className="section-title">Notification Preferences</h2>
+                    <p className="section-description">Manage how you receive notifications</p>
 
-                    <div className="notifications-content">
-                      <div className="notification-category">
-                        <h3 className="category-title">Communication</h3>
-                        <div className="settings-card">
-                          <div className="setting-item">
-                            <div className="setting-info">
-                              <h4 className="setting-title">Email Notifications</h4>
-                              <p className="setting-description">Receive notifications via email for important updates</p>
-                            </div>
-                            <label className="toggle-switch">
-                              <input
-                                type="checkbox"
-                                checked={settings.emailNotifications}
-                                onChange={() => handleToggleSetting('emailNotifications')}
-                              />
-                              <span className="toggle-slider"></span>
-                            </label>
-                          </div>
+                    <div className="notification-settings">
+                      <div className="setting-item">
+                        <div className="setting-info">
+                          <h4 className="setting-title">Email Notifications</h4>
+                          <p className="setting-description">Receive email updates about your consultations</p>
                         </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={settings.emailNotifications}
+                            onChange={() => handleToggleSetting('emailNotifications')}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
                       </div>
 
-                      <div className="notification-category">
-                        <h3 className="category-title">Consultations</h3>
-                        <div className="settings-card">
-                          <div className="setting-item">
-                            <div className="setting-info">
-                              <h4 className="setting-title">Consultation Reminders</h4>
-                              <p className="setting-description">Get reminded about upcoming consultation sessions</p>
-                            </div>
-                            <label className="toggle-switch">
-                              <input
-                                type="checkbox"
-                                checked={settings.consultationReminders}
-                                onChange={() => handleToggleSetting('consultationReminders')}
-                              />
-                              <span className="toggle-slider"></span>
-                            </label>
-                          </div>
+                      <div className="setting-item">
+                        <div className="setting-info">
+                          <h4 className="setting-title">Consultation Reminders</h4>
+                          <p className="setting-description">Get reminded about upcoming consultations</p>
                         </div>
+                        <label className="toggle-switch">
+                          <input
+                            type="checkbox"
+                            checked={settings.consultationReminders}
+                            onChange={() => handleToggleSetting('consultationReminders')}
+                          />
+                          <span className="toggle-slider"></span>
+                        </label>
                       </div>
                     </div>
                   </div>
@@ -380,43 +428,18 @@ export default function StudentSettingsPage() {
                 {/* Security Section */}
                 {activeSection === "security" && (
                   <div className="settings-section">
-                    <div className="section-header">
-                      <div className="section-title-group">
-                        <h2 className="section-title">Security & Privacy</h2>
-                        <p className="section-description">Manage your account security and data privacy</p>
-                      </div>
-                    </div>
+                    <h2 className="section-title">Security Settings</h2>
+                    <p className="section-description">Manage your account security</p>
 
-                    <div className="security-content">
-                      <div className="security-category">
-                        <h3 className="category-title">Account Security</h3>
-                        <div className="settings-card">
-                          <div className="setting-item">
-                            <div className="setting-info">
-                              <h4 className="setting-title">Change Password</h4>
-                              <p className="setting-description">Update your account password for better security</p>
-                            </div>
-                            <Button variant="outline-primary" size="sm" onClick={handleChangePassword} className="action-btn">
-                              Change Password
-                            </Button>
-                          </div>
+                    <div className="security-settings">
+                      <div className="security-item">
+                        <div className="security-info">
+                          <h4 className="security-title">Password</h4>
+                          <p className="security-description">Last changed 3 months ago</p>
                         </div>
-                      </div>
-
-
-                      <div className="security-category">
-                        <h3 className="category-title">Account Actions</h3>
-                        <div className="settings-card danger-card">
-                          <div className="setting-item danger">
-                            <div className="setting-info">
-                              <h4 className="setting-title">Delete Account</h4>
-                              <p className="setting-description">Permanently delete your account and all associated data. This action cannot be undone.</p>
-                            </div>
-                            <Button variant="outline-danger" size="sm" onClick={handleDeleteAccount} className="action-btn danger-btn">
-                              Delete Account
-                            </Button>
-                          </div>
-                        </div>
+                        <Button variant="outline" onClick={handleChangePassword}>
+                          Change Password
+                        </Button>
                       </div>
                     </div>
                   </div>

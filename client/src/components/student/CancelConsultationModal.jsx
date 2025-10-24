@@ -1,5 +1,7 @@
 import React, { useState } from "react";
-import { BsX, BsExclamationTriangle, BsCalendar, BsClock, BsPersonCircle } from "react-icons/bs";
+import { BsExclamationTriangle, BsCalendar, BsClock, BsPersonCircle } from "react-icons/bs";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../lightswind/dialog";
+import { Button } from "../../lightswind/button";
 import "./CancelConsultationModal.css";
 
 function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isCancelling }) {
@@ -47,21 +49,14 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
   if (!isOpen) return null;
 
   return (
-    <div className="cancel-consultation-modal-overlay">
-      <div className="cancel-consultation-modal">
-        <div className="modal-header">
-          <div className="modal-title-section">
+    <Dialog open={isOpen} onOpenChange={handleClose}>
+      <DialogContent className="cancel-consultation-modal max-w-2xl">
+        <DialogHeader>
+          <DialogTitle className="cancel-modal-title">
             <BsExclamationTriangle className="modal-warning-icon" />
-            <h2 className="modal-title">Cancel Consultation</h2>
-          </div>
-          <button 
-            className="modal-close-btn"
-            onClick={handleClose}
-            disabled={isCancelling}
-          >
-            <BsX />
-          </button>
-        </div>
+            Cancel Consultation
+          </DialogTitle>
+        </DialogHeader>
 
         <div className="modal-content">
           {!showConfirmation ? (
@@ -193,35 +188,35 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
           )}
         </div>
 
-        <div className="modal-footer">
+        <DialogFooter className="modal-footer">
           {!showConfirmation ? (
             <>
-              <button 
-                className="modal-btn modal-btn-secondary"
+              <Button 
+                variant="outline"
                 onClick={handleClose}
                 disabled={isCancelling}
               >
                 Keep Consultation
-              </button>
-              <button 
-                className="modal-btn modal-btn-primary"
+              </Button>
+              <Button 
                 onClick={handleProceedToConfirm}
                 disabled={!(reason === "other" ? customReason.trim() : reason.trim()) || isCancelling}
               >
                 Continue
-              </button>
+              </Button>
             </>
           ) : (
             <>
-              <button 
-                className="modal-btn modal-btn-secondary"
+              <Button 
+                variant="outline"
                 onClick={handleBackToReason}
                 disabled={isCancelling}
               >
                 Back
-              </button>
-              <button 
-                className="modal-btn modal-btn-danger"
+              </Button>
+              <Button 
+                variant="outline"
+                className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
                 onClick={handleConfirm}
                 disabled={isCancelling}
               >
@@ -233,12 +228,12 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
                 ) : (
                   "Yes, Cancel Consultation"
                 )}
-              </button>
+              </Button>
             </>
           )}
-        </div>
-      </div>
-    </div>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

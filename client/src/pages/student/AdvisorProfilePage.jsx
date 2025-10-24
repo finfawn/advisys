@@ -104,9 +104,11 @@ export default function AdvisorProfilePage() {
       <TopNavbar />
       
       <div className={`profile-body ${collapsed ? "collapsed" : ""}`}>
-        <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        <div className="hidden md:block">
+          <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+        </div>
         
-        <main className="profile-main">
+        <main className="profile-main relative">
           {/* Back Button */}
           <div className="profile-back">
             <button 

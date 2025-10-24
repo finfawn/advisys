@@ -1,144 +1,204 @@
+.advisor-dash-main {
+  padding: 16px;
+  padding-left: 0;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+}
+
+@media (min-width: 768px) {
+  .advisor-dash-main {
+    padding: 20px;
+    padding-left: 0;
+  }
+  
+  /* Custom scrollbar for advisor dashboard */
+  .advisor-dash-main::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .advisor-dash-main::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .advisor-dash-main::-webkit-scrollbar-thumb {
+    background: #d1d5db;
+    border-radius: 4px;
+  }
+  
+  .advisor-dash-main::-webkit-scrollbar-thumb:hover {
+    background: #9ca3af;
+  }
+}
+
 /* Advisor Dashboard Layout */
 .advisor-dash-wrap {
   height: 100vh;
   background: #f5f7fb;
   color: #1f2937;
   overflow: hidden;
+  position: relative;
 }
 
 /* Body layout with animated sidebar width */
 .advisor-dash-body {
   display: grid;
   grid-template-columns: 240px 1fr;
+  gap: 20px;
   /* sidebar + main */
   transition: grid-template-columns 240ms ease;
   position: relative;
+  height: calc(100vh - 64px); /* Subtract navbar height */
+  overflow: hidden;
 }
 
 .advisor-dash-body.collapsed {
   grid-template-columns: 76px 1fr;
 }
 
-/* Main content area */
-.advisor-dash-main {
-  padding: 24px;
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-  height: 100vh;
-  overflow-y: auto;
-  box-sizing: border-box;
-}
-
-/* Header Section */
-.advisor-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 8px;
-}
-
-.advisor-greeting h1 {
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0;
-  margin-bottom: 4px;
-}
-
-.advisor-greeting h2 {
-  font-size: 2rem;
-  font-weight: 800;
-  color: #1f2937;
-  margin: 0;
-}
-
-.advisor-nav {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
-
-.nav-icon {
-  width: 24px;
-  height: 24px;
-  color: #6b7280;
-  cursor: pointer;
-  transition: color 0.2s ease;
-}
-
-.nav-icon:hover {
-  color: #374151;
-}
-
-.faculty-name {
-  font-weight: 600;
-  color: #374151;
-  font-size: 1rem;
-}
-
-/* Dashboard Grid */
-.dashboard-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
-}
-
-.dashboard-row {
+/* Dashboard Bento Grid */
+.dashboard-bento-grid {
   display: grid;
-  gap: 20px;
-  align-items: stretch;
-  /* ensure all columns match tallest card height */
+  grid-template-columns: repeat(4, 1fr);
+  grid-template-rows: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+  height: calc(100vh - 104px);
+  width: 100%;
 }
 
-/* Top row: 3 cards + stacked cards */
-.dashboard-row:first-child {
-  grid-template-columns: 1.5fr 0.5fr 1fr;
+/* Bento Grid Items */
+.bento-item-tall {
+  grid-row: span 2;
+  grid-column: span 1;
 }
 
-/* Stacked cards container */
-.stacked-cards {
-  display: flex;
-  flex-direction: column;
-  gap: 20px;
+.bento-item-small {
+  grid-row: span 1;
+  grid-column: span 1;
+}
+
+.bento-item-wide {
+  grid-row: span 1;
+  grid-column: span 2;
+}
+
+.bento-item-extra-wide {
+  grid-row: span 1;
+  grid-column: span 3;
+}
+
+.bento-item-tall-wide {
+  grid-row: span 2;
+  grid-column: span 2;
+}
+
+/* Make cards fill their containers */
+.dashboard-bento-grid > div {
+  min-height: 0;
+  min-width: 0;
+}
+
+.dashboard-bento-grid > div > * {
   height: 100%;
-  /* fill grid row height so children can split evenly */
-}
-
-/* Split stacked cards evenly and allow inner content to layout */
-.stacked-cards>.dashboard-card {
   display: flex;
   flex-direction: column;
-  flex: 1 1 0;
-  min-height: 200px; /* Ensure minimum height for content visibility */
-  /* fix flex overflow in some browsers */
 }
 
-/* Bottom row: 2 cards */
-.dashboard-row:last-child {
-  grid-template-columns: 2fr 1fr;
-}
-
-/* Responsive Design */
+/* Responsive Bento Grid */
 @media (max-width: 1200px) {
-  .dashboard-row:first-child {
-    grid-template-columns: 1fr 1fr;
+  .dashboard-bento-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
+  
+  .dashboard-bento-grid > div {
+    grid-column: auto !important;
+    grid-row: auto !important;
+  }
+  
+  .bento-item-tall,
+  .bento-item-tall-wide {
+    grid-row: span 1;
+    grid-column: span 2;
+  }
+  
+  .bento-item-wide,
+  .bento-item-extra-wide {
+    grid-column: span 2;
+  }
+  
+  .bento-item-small {
+    grid-column: span 1;
+  }
+}
 
-  .stacked-cards {
-    grid-row: span 2;
+@media (max-width: 1024px) {
+  .dashboard-bento-grid {
+    grid-template-columns: repeat(2, 1fr);
   }
+  
+  .bento-item-tall,
+  .bento-item-tall-wide,
+  .bento-item-wide,
+  .bento-item-extra-wide {
+    grid-row: span 1;
+    grid-column: span 2;
+  }
+}
 
-  .dashboard-row:last-child {
-    grid-template-columns: 2fr 1fr;
-  }
+/* Mobile Sticky Upcoming Consultations */
+.mobile-upcoming-sticky {
+  position: sticky;
+  top: 0; /* Stick at top of scrollable area (body already has padding-top) */
+  z-index: 100;
+  background: #f5f7fb;
+  margin: -16px -16px 16px -16px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.mobile-upcoming-trigger {
+  width: 100%;
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mobile-upcoming-trigger .chevron-icon {
+  transition: transform 0.3s ease;
+  font-size: 18px;
+  color: #6b7280;
+}
+
+.mobile-upcoming-trigger[data-state="open"] .chevron-icon {
+  transform: rotate(180deg);
+}
+
+.mobile-upcoming-content {
+  margin-top: 8px;
 }
 
 @media (max-width: 768px) {
+  .advisor-dash-wrap {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  
   /* On mobile, hide sidebar from grid flow */
   .advisor-dash-body {
     grid-template-columns: 1fr;
     overflow-x: hidden;
+    gap: 0;
+    padding-top: calc(56px + env(safe-area-inset-top, 0px)); /* Account for fixed navbar + safe area */
+    height: auto;
   }
 
   .advisor-dash-body.collapsed {
@@ -147,24 +207,31 @@
 
   .advisor-dash-main {
     padding: 16px;
-    gap: 16px;
-    height: calc(100vh - 56px);
+    padding-left: 16px;
+    height: auto;
+    overflow-y: visible;
   }
 
-  .dashboard-row:first-child,
-  .dashboard-row:last-child {
+  /* Mobile: Single column layout with auto rows */
+  .dashboard-bento-grid {
     grid-template-columns: 1fr;
-  }
-
-  .stacked-cards {
-    grid-row: auto;
-    flex-direction: row;
+    grid-template-rows: auto;
+    grid-auto-rows: auto;
     gap: 12px;
+    height: auto;
   }
-
-  .stacked-cards > .dashboard-card {
-    flex: 1;
-    min-height: 150px;
+  
+  .bento-item-tall,
+  .bento-item-small,
+  .bento-item-wide,
+  .bento-item-extra-wide,
+  .bento-item-tall-wide {
+    grid-row: span 1 !important;
+    grid-column: span 1 !important;
+  }
+  
+  .dashboard-bento-grid > div > * {
+    height: auto;
   }
 
   .advisor-header {
@@ -280,7 +347,7 @@
   background: #ffffff;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 16px;
-  padding: 20px;
+  padding: 14px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
   transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
@@ -295,7 +362,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 12px;
 }
 
 .advisor-dash-wrap .card-title {
@@ -361,8 +428,7 @@
   align-items: center;
   gap: 16px;
   justify-content: center;
-  min-height: 150px;
-  flex: 1;
+  min-height: 120px;
 }
 
 /* Average Session Length Card Styles */
@@ -370,8 +436,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100px;
-  flex: 1;
+  min-height: 80px;
   font-size: 3rem;
   font-weight: 800;
   color: #1f2937;

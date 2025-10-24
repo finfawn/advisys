@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-d
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import Home from "./pages/Home";
+import AuthPage from "./pages/AuthPage";
 
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -18,6 +19,7 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
 import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
 import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
+import AdvisorSettingsPage from "./pages/advisor/AdvisorSettingsPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -32,6 +34,7 @@ function App() {
         <Routes>
           {/* Home */}
           <Route path="/" element={<Home />} />
+          <Route path="/auth" element={<AuthPage />} />
 
           {/* Student routes */}
           <Route path="/student-dashboard" element={<StudentDashboard />} />
@@ -42,6 +45,7 @@ function App() {
           <Route path="/student-dashboard/consultations/online/:consultationId" element={<OnlineConsultationDetailsPage />} />
           <Route path="/student-dashboard/consultations/history/:consultationId" element={<HistoryConsultationDetailsPage />} />
           <Route path="/student-dashboard/settings" element={<StudentSettingsPage />} />
+          <Route path="/student-dashboard/profile" element={<StudentSettingsPage />} />
 
           {/* Advisor routes */}
           <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />

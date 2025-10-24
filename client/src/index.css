@@ -1,3 +1,11 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Lightswind base variables can be customized here later */
+}
+
 :root {
   font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -20,23 +28,43 @@
 /* --- App overrides for full-width landing hero --- */
 html, body, #root {
   width: 100%;
+  max-width: 100vw;
   height: 100%;
+  box-sizing: border-box;
+}
+
+/* Mobile viewport height fix for browser UI */
+html {
+  height: 100vh;
+  height: -webkit-fill-available;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 body {
   display: block;
   place-items: initial;
   height: 100vh;
+  height: -webkit-fill-available;
   margin: 0;
   padding: 0;
   background: #e2e1ef;
   color: #212529;
   overflow-x: hidden;
   overflow-y: hidden;
+  position: relative;
 }
 
 #root {
   width: 100%;
+  max-width: 100vw;
+  overflow-x: hidden;
+  box-sizing: border-box;
+}
+
+/* Ensure all children respect box-sizing */
+*, *::before, *::after {
+  box-sizing: border-box;
 }
 
 a {
