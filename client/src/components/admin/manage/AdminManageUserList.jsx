@@ -5,11 +5,20 @@ export default function AdminManageUserList({ items, isStudent, onView, onHistor
   if (!items || items.length === 0) {
     return (
       <div className="manage-list">
+        <div className="manage-row header">
+          <div className="col name-col">Name</div>
+          <div className="col role-col">Role</div>
+          <div className="col year-col">Year Level</div>
+          <div className="col status-col">Status</div>
+          <div className="col actions-col">Actions</div>
+        </div>
         <div className="manage-row">
           <div className="col name-col">
             <span className="name-text">No users found</span>
           </div>
+          <div className="col role-col">—</div>
           <div className="col year-col">—</div>
+          <div className="col status-col">—</div>
           <div className="col actions-col" />
         </div>
       </div>
@@ -18,6 +27,13 @@ export default function AdminManageUserList({ items, isStudent, onView, onHistor
 
   return (
     <div className="manage-list">
+      <div className="manage-row header">
+        <div className="col name-col">Name</div>
+        <div className="col role-col">Role</div>
+        <div className="col year-col">Year Level</div>
+        <div className="col status-col">Status</div>
+        <div className="col actions-col">Actions</div>
+      </div>
       {items.map((item) => (
         <AdminManageUserRow
           key={item.id}

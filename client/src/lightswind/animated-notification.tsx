@@ -1,9 +1,8 @@
-
 "use client";
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { Flipper, Flipped } from 'react-flip-toolkit';
-import { X } from 'lucide-react';
+import { BsX } from 'react-icons/bs';
 import { cn } from '../lib/utils';
 
 export interface NotificationUser {
@@ -186,7 +185,7 @@ const getPriorityStyles = () => {
           }}
           className="flex-shrink-0 w-5 h-5 text-muted-foreground/50 hover:text-muted-foreground transition-all duration-200 hover:scale-110 opacity-0 group-hover:opacity-100"
         >
-          <X className="w-4 h-4" />
+          <BsX className="w-4 h-4" />
         </button>
       )}
     </div>
@@ -255,8 +254,8 @@ const AnimatedNotification: React.FC<AnimatedNotificationProps> = ({
   variant = 'glass'
 }) => {
   const [notes, setNotes] = useState<NotificationItem[]>(notifications);
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const dismissTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dismissTimeouts = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
 
   const dismissNotification = useCallback((id: string) => {
     setNotes(prev => {

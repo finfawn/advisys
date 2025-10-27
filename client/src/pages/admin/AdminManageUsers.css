@@ -6,7 +6,7 @@
 
 .manage-grid {
   display: grid;
-  grid-template-columns: 220px 1fr;
+  grid-template-columns: 240px 1fr;
   min-height: 520px;
 }
 
@@ -18,6 +18,11 @@
   flex-direction: column;
   gap: 12px;
   background: #fafafa;
+  position: sticky;
+  top: 56px;
+  align-self: start;
+  height: calc(100vh - 56px);
+  overflow: auto;
 }
 
 .left-pill {
@@ -47,7 +52,7 @@
   display: flex;
   align-items: center;
   justify-content: flex-end;
-  gap: 16px;
+  gap: 12px;
   padding: 12px 8px;
   border-bottom: 1px solid #e5e7eb;
 }
@@ -106,11 +111,17 @@
 
 .manage-row {
   display: grid;
-  grid-template-columns: 1.2fr 0.6fr 1fr;
+  grid-template-columns: 1.6fr 0.8fr 0.8fr 0.8fr 1fr;
   align-items: center;
   gap: 12px;
   padding: 12px 8px;
   border-bottom: 1px solid #e5e7eb;
+}
+
+.manage-row.header {
+  font-weight: 700;
+  color: #6b7280;
+  background: #f9fafb;
 }
 
 .manage-row .name-col {
@@ -129,6 +140,7 @@
   color: #2d5bd1;
   flex-shrink: 0;
 }
+
 .manage-row .name-text {
   font-weight: 700;
   color: #1f2937;
@@ -143,6 +155,7 @@
 .manage-row.inactive {
   background: #f9fafb;
 }
+
 .manage-row.inactive .name-text,
 .manage-row.inactive .year-col {
   color: #9ca3af;
@@ -173,6 +186,7 @@
   background: #fde8e8;
   color: #b91c1c;
 }
+
 @media (max-width: 992px) {
   .manage-grid {
     grid-template-columns: 1fr;
@@ -182,18 +196,139 @@
     flex-direction: row;
     border-right: none;
     border-bottom: 1px solid #e5e7eb;
+    position: static;
+    height: auto;
+    overflow: visible;
   }
-
 }
 
 @media (max-width: 640px) {
-  .manage-row {
-    grid-template-columns: 1fr;
-    align-items: start;
+  /* Hide table header on mobile */
+  .manage-row.header {
+    display: none;
   }
 
+  /* Transform rows into advisor-style cards */
+  .manage-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 12px 8px;
+  }
+
+  .manage-row {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    padding: 20px;
+    margin: 0;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    transition: all 0.2s ease;
+  }
+
+  .manage-row:hover {
+    border-color: #3b82f6;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
+  }
+
+  .manage-row.inactive {
+    opacity: 0.65;
+    background: #fafafa;
+  }
+
+  /* Header section with avatar and name */
+  .manage-row .name-col {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 0;
+    margin-bottom: 12px;
+  }
+
+  .manage-row .avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 32px;
+    color: #ffffff;
+    background: #3b82f6;
+    border-radius: 50%;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .manage-row .name-text {
+    flex: 1;
+    font-size: 16px;
+    font-weight: 600;
+    color: #111827;
+    min-width: 0;
+    padding-top: 2px;
+  }
+
+  /* Info section - role and year displayed inline */
+  .manage-row .role-col,
+  .manage-row .year-col {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    margin-right: 6px;
+    margin-bottom: 12px;
+    font-size: 13px;
+    background: #f3f4f6;
+    border: 1px solid #e5e7eb;
+    border-radius: 6px;
+    color: #374151;
+    font-weight: 500;
+  }
+
+  .manage-row .role-col svg,
+  .manage-row .year-col svg {
+    flex-shrink: 0;
+    color: #6b7280;
+    font-size: 14px;
+  }
+
+  /* Status badge */
+  .manage-row .status-col {
+    display: flex;
+    align-items: center;
+    margin-bottom: 16px;
+  }
+
+  /* Actions section */
   .actions-col {
-    justify-content: flex-start;
+    display: flex;
+    justify-content: stretch;
+    gap: 8px;
+    padding: 0;
+    margin-top: 4px;
+  }
+
+  .actions-col button {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* Make filters stack and fill width on mobile */
+  .manage-filters {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    padding: 16px 8px;
+  }
+  
+  .manage-filters > * {
+    width: 100%;
+  }
+  
+  .manage-filters .relative {
+    width: 100%;
   }
 
   .manage-search {
