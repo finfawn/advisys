@@ -5,17 +5,17 @@ export default function AdminManageLeftTabs({ activeTab, onChange }) {
     <aside className="manage-left">
       <button
         type="button"
-        className={`left-pill ${activeTab === 'students' ? 'active' : ''}`}
-        onClick={() => onChange('students')}
+        className={`left-pill ${activeTab === "students" ? "active" : ""}`}
+        onClick={() => onChange("students")}
       >
         Students
       </button>
       <button
         type="button"
-        className={`left-pill ${activeTab === 'faculty' ? 'active' : ''}`}
-        onClick={() => onChange('faculty')}
+        className={`left-pill ${activeTab === "advisors" ? "active" : ""}`}
+        onClick={() => onChange("advisors")}
       >
-        Faculty
+        Advisors
       </button>
     </aside>
   );

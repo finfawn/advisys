@@ -10,36 +10,39 @@ import "./Home.css";
 import HomeSidebar from "../components/HomeSidebar";
 import Footer from "../components/Footer";
 import HamburgerMenuOverlay from "../lightswind/hamburger-menu-overlay";
+import {
+  BsChatDots,
+  BsLaptop,
+  BsPeople,
+  BsGraphUp,
+  BsLightbulb,
+  BsCalendarCheck,
+} from "react-icons/bs";
 
 function Home() {
   const navigate = useNavigate();
   const [activeSection, setActiveSection] = useState("hero");
   const [isManualNavigation, setIsManualNavigation] = useState(false);
 
-  const openAuthModal = (mode) => {
-    // Navigate to full auth page instead of modal
-    navigate("/auth");
-  };
-
   const handleSelect = (sectionId) => {
     if (sectionId === "auth") {
       navigate("/auth");
       return;
     }
-    
+
     // Set flag to prevent automatic snap during manual navigation
     setIsManualNavigation(true);
-    
+
     const element = document.getElementById(sectionId);
     if (element) {
-      element.scrollIntoView({ 
-        behavior: "smooth", 
+      element.scrollIntoView({
+        behavior: "smooth",
         block: "start",
-        inline: "nearest"
+        inline: "nearest",
       });
       setActiveSection(sectionId);
       // close handled by overlay component itself
-      
+
       // Reset flag after navigation completes
       setTimeout(() => {
         setIsManualNavigation(false);
@@ -55,27 +58,27 @@ function Home() {
     }
 
     const sections = ["hero", "features", "how-it-works"];
-    
+
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const sectionId = entry.target.id;
             setActiveSection(sectionId);
-            
+
             // Scroll snap to the section when 1/3 is visible
-            entry.target.scrollIntoView({ 
-              behavior: "smooth", 
+            entry.target.scrollIntoView({
+              behavior: "smooth",
               block: "start",
-              inline: "nearest"
+              inline: "nearest",
             });
           }
         });
       },
       {
         threshold: 0.33, // Trigger when 1/3 (33%) of the section is visible
-        rootMargin: "0px 0px -10% 0px" // Add some margin for better detection
-      }
+        rootMargin: "0px 0px -10% 0px", // Add some margin for better detection
+      },
     );
 
     // Observe all sections
@@ -102,17 +105,55 @@ function Home() {
         <div className="w-full h-full flex">
           {/* Desktop Sidebar */}
           <div className="hidden md:block">
-            <HomeSidebar activeSection={activeSection} onSelect={handleSelect} />
+            <HomeSidebar
+              activeSection={activeSection}
+              onSelect={handleSelect}
+            />
           </div>
 
           <main className="flex-1 overflow-y-auto scroll-smooth relative">
+            {/* Floating Shapes and Icons - Throughout All Sections */}
+            <div className="home-floating-background">
+              {/* Geometric Shapes */}
+              <div className="home-shapes-container">
+                <div className="home-shape home-shape-circle-blue"></div>
+                <div className="home-shape home-shape-square-purple"></div>
+                <div className="home-shape home-shape-circle-pink"></div>
+                <div className="home-shape home-shape-triangle-cyan"></div>
+                <div className="home-shape home-shape-hexagon-indigo"></div>
+                <div className="home-shape home-shape-square-blue"></div>
+                <div className="home-shape home-shape-circle-yellow"></div>
+                <div className="home-shape home-shape-square-green"></div>
+                <div className="home-shape home-shape-circle-violet"></div>
+              </div>
+
+              {/* Decorative Icons */}
+              <div className="home-icons-container">
+                <BsChatDots className="home-float-icon home-icon-1" />
+                <BsLaptop className="home-float-icon home-icon-2" />
+                <BsPeople className="home-float-icon home-icon-3" />
+                <BsGraphUp className="home-float-icon home-icon-4" />
+                <BsLightbulb className="home-float-icon home-icon-5" />
+                <BsCalendarCheck className="home-float-icon home-icon-6" />
+                <BsChatDots className="home-float-icon home-icon-7" />
+                <BsLaptop className="home-float-icon home-icon-8" />
+                <BsPeople className="home-float-icon home-icon-9" />
+              </div>
+            </div>
+
             {/* Mobile Hamburger Overlay */}
             <div className="md:hidden fixed top-0 left-0 w-full z-50">
               <HamburgerMenuOverlay
                 items={[
                   { label: "Home", onClick: () => handleSelect("hero") },
-                  { label: "What's Inside", onClick: () => handleSelect("features") },
-                  { label: "How it Works", onClick: () => handleSelect("how-it-works") },
+                  {
+                    label: "What's Inside",
+                    onClick: () => handleSelect("features"),
+                  },
+                  {
+                    label: "How it Works",
+                    onClick: () => handleSelect("how-it-works"),
+                  },
                   { label: "Sign In", onClick: () => navigate("/auth") },
                 ]}
                 buttonTop="30px"
@@ -147,5 +188,3 @@ function Home() {
 }
 
 export default Home;
-
-

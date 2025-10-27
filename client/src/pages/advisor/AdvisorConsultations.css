@@ -1,304 +1,358 @@
 /* Page Header */
 .consultations-container {
-  padding: 0;
+    padding: 0;
+    overflow: visible !important;
 }
 
 .consultations-header {
-  margin-bottom: 2rem;
+    margin-bottom: 2rem;
 }
 
 .consultations-title {
-  font-size: 2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 0.5rem 0;
+    font-size: 2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
 }
 
 .consultations-subtitle {
-  font-size: 1.1rem;
-  color: #666;
-  margin: 0;
-  line-height: 1.4;
+    font-size: 1.1rem;
+    color: #666;
+    margin: 0;
+    line-height: 1.4;
 }
 
 /* Tabs (match student page styles) */
 .consultations-tabs {
-  display: flex;
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 4px;
-  margin-bottom: 1.5rem;
-  gap: 4px;
+    display: flex;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 1.5rem;
+    gap: 4px;
 }
 
 .tab-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  color: #64748b;
-  flex: 1;
-  justify-content: center;
-  position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    color: #64748b;
+    flex: 1;
+    justify-content: center;
+    position: relative;
 }
 
 .tab-button:hover {
-  background: #e2e8f0;
-  color: #475569;
+    background: #e2e8f0;
+    color: #475569;
 }
 
 .tab-button.active {
-  background: #ffffff;
-  color: #1e293b;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-weight: 600;
+    background: #ffffff;
+    color: #1e293b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
 }
 
 .tab-label {
-  font-size: 0.95rem;
+    font-size: 0.95rem;
 }
 
 .tab-count {
-  background: #e2e8f0;
-  color: #64748b;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  min-width: 24px;
-  height: 24px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+    background: #e2e8f0;
+    color: #64748b;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 24px;
+    height: 24px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .tab-button.active .tab-count {
-  background: #3b82f6;
-  color: #ffffff;
+    background: #3b82f6;
+    color: #ffffff;
 }
 
 /* Sections */
 .consultations-section {
-  margin-bottom: 1.5rem;
-  padding: 0;
+    margin-bottom: 1.5rem;
+    padding: 0;
+    position: relative;
+    overflow: visible;
 }
 
 /* Card grid for Upcoming and Requests - 4 columns */
 .consultations-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.875rem;
-  margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.875rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Responsive Grid Layout */
 @media (max-width: 999px) {
-  .consultations-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
+    .consultations-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 767px) {
-  .consultations-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
+    .consultations-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 639px) {
-  .consultations-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+    .consultations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
 
 /* Section Header */
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  gap: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+    position: relative;
+    min-height: 40px;
+    overflow: visible;
 }
 
 .section-title {
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
 }
 
 .section-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 50;
 }
 
 .filter-dropdown {
-  padding: 0.5rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: white;
-  color: #475569;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
-  width: auto;
-  text-transform: capitalize;
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+    max-width: 150px;
+    outline: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    position: relative;
+    height: 40px;
 }
 
 .filter-dropdown:hover {
-  border-color: #cbd5e1;
+    border-color: #cbd5e1;
 }
 
 .filter-dropdown:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
 .section-count {
-  font-size: 0.9rem;
-  color: #666;
-  font-weight: 500;
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
 }
 
 /* History Grid - 4 columns */
 .history-consultations-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr) !important;
-  gap: 0.875rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr) !important;
+    gap: 0.875rem;
 }
 
 /* Responsive Grid Layout for History */
 @media (max-width: 999px) {
-  .history-consultations-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
+    .history-consultations-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 767px) {
-  .history-consultations-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
+    .history-consultations-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 639px) {
-  .history-consultations-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+    .history-consultations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
 
 /* Responsive */
 @media (max-width: 767px) {
-  .consultations-header {
-    margin-bottom: 1.5rem;
-  }
+    .consultations-header {
+        margin-bottom: 1.5rem;
+    }
 
-  .consultations-title {
-    font-size: 1.75rem;
-  }
+    .consultations-title {
+        font-size: 1.75rem;
+    }
 
-  .consultations-subtitle {
-    font-size: 1rem;
-  }
+    .consultations-subtitle {
+        font-size: 1rem;
+    }
 
-  .consultations-tabs {
-    flex-direction: column;
-    gap: 4px;
-  }
+    .consultations-tabs {
+        flex-direction: column;
+        gap: 4px;
+    }
 
-  .tab-button {
-    justify-content: space-between;
-    padding: 10px 16px;
-  }
+    .tab-button {
+        justify-content: space-between;
+        padding: 10px 16px;
+    }
 
-  .tab-label {
-    font-size: 0.9rem;
-  }
+    .tab-label {
+        font-size: 0.9rem;
+    }
 
-  .section-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.75rem;
+        min-height: auto;
+    }
 
-  .section-title {
-    font-size: 1.4rem;
-  }
+    .section-title {
+        font-size: 1.4rem;
+    }
 
-  .section-controls {
-    width: 100%;
-    justify-content: space-between;
-  }
+    .section-controls {
+        width: 100%;
+        justify-content: space-between;
+    }
 
-  .filter-dropdown {
-    flex: 1;
-  }
+    .filter-dropdown {
+        flex: 1;
+        max-width: none;
+        height: 38px;
+    }
 
-  .section-count {
-    font-size: 0.85rem;
-  }
+    .section-count {
+        font-size: 0.85rem;
+    }
 }
 
 @media (max-width: 480px) {
-  .consultations-title {
-    font-size: 1.5rem;
-  }
+    .consultations-title {
+        font-size: 1.5rem;
+    }
 
-  .consultations-subtitle {
-    font-size: 0.95rem;
-  }
+    .consultations-subtitle {
+        font-size: 0.95rem;
+    }
 
-  .consultations-tabs {
-    padding: 3px;
-    margin-bottom: 1rem;
-  }
+    .consultations-tabs {
+        padding: 3px;
+        margin-bottom: 1rem;
+    }
 
-  .tab-button {
-    padding: 8px 12px;
-  }
+    .tab-button {
+        padding: 8px 12px;
+    }
 
-  .tab-label {
-    font-size: 0.85rem;
-  }
+    .tab-label {
+        font-size: 0.85rem;
+    }
 
-  .tab-count {
-    font-size: 0.75rem;
-    padding: 3px 6px;
-    min-width: 20px;
-    height: 20px;
-  }
+    .tab-count {
+        font-size: 0.75rem;
+        padding: 3px 6px;
+        min-width: 20px;
+        height: 20px;
+    }
 
-  .section-title {
-    font-size: 1.25rem;
-  }
+    .section-title {
+        font-size: 1.25rem;
+    }
 
-  .section-count {
-    font-size: 0.8rem;
-  }
+    .section-count {
+        font-size: 0.8rem;
+    }
 
-  .consultations-grid,
-  .history-consultations-grid {
-    gap: 0.875rem;
-  }
+    .consultations-grid,
+    .history-consultations-grid {
+        gap: 0.875rem;
+    }
 
-  .filter-dropdown {
-    font-size: 0.85rem;
-    padding: 0.4rem 0.75rem;
-  }
+    .filter-dropdown {
+        font-size: 0.85rem;
+        padding: 0.4rem 0.75rem;
+    }
+}
+
+/* Override parent overflow constraints for dropdown */
+.consultations-container,
+.consultations-container > *,
+.tab-content,
+.consultations-section {
+    overflow: visible !important;
+    position: relative;
+}
+
+/* Ensure Select dropdown portal doesn't affect parent container size */
+[data-radix-popper-content-wrapper],
+[role="listbox"],
+.select-content-portal {
+    position: fixed !important;
+    z-index: 9999 !important;
+    pointer-events: auto !important;
+}
+
+/* Fix for Select component dropdown */
+button[role="combobox"] {
+    overflow: visible !important;
+}
+
+/* Prevent layout shift when dropdown opens */
+.section-controls {
+    overflow: visible !important;
+}
+
+.section-controls > div {
+    position: relative;
+    overflow: visible !important;
+}
+
+/* Ensure section header doesn't clip dropdown */
+.section-header {
+    overflow: visible !important;
+    z-index: 1;
 }

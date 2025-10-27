@@ -16,656 +16,652 @@
     overflow-y: auto !important;
     overflow-x: hidden !important;
   }
-  
-  .dash-main {
-    width: 100% !important;
-    max-width: 100% !important;
-    overflow-x: hidden !important;
-    height: auto !important;
-  }
-}
 
+    .dash-main {
+        width: 100% !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+        height: auto !important;
+    }
+}
 
 /* Page Header */
 .page-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1.5rem;
-  padding: 0 0.5rem;
-  gap: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 1.5rem;
+    padding: 0 0.5rem;
+    gap: 1rem;
 }
 
 /* Tab Navigation */
 .consultations-tabs {
-  display: flex;
-  background: #f8fafc;
-  border-radius: 12px;
-  padding: 4px;
-  margin-bottom: 2rem;
-  gap: 4px;
+    display: flex;
+    background: #f8fafc;
+    border-radius: 12px;
+    padding: 4px;
+    margin-bottom: 2rem;
+    gap: 4px;
 }
 
 .tab-button {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 20px;
-  border: none;
-  background: transparent;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 500;
-  color: #64748b;
-  flex: 1;
-  justify-content: center;
-  position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    border: none;
+    background: transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+    color: #64748b;
+    flex: 1;
+    justify-content: center;
+    position: relative;
 }
 
 .tab-button:hover {
-  background: #e2e8f0;
-  color: #475569;
+    background: #e2e8f0;
+    color: #475569;
 }
 
 .tab-button.active {
-  background: #ffffff;
-  color: #1e293b;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-  font-weight: 600;
+    background: #ffffff;
+    color: #1e293b;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    font-weight: 600;
 }
 
 .tab-icon {
-  font-size: 1.1rem;
+    font-size: 1.1rem;
 }
 
 .tab-label {
-  font-size: 0.95rem;
+    font-size: 0.95rem;
 }
 
 .tab-count {
-  background: #e2e8f0;
-  color: #64748b;
-  padding: 4px 8px;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 600;
-  min-width: 24px;
-  height: 24px;
-  text-align: center;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
+    background: #e2e8f0;
+    color: #64748b;
+    padding: 4px 8px;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    min-width: 24px;
+    height: 24px;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 1;
 }
 
 .tab-button.active .tab-count {
-  background: #3b82f6;
-  color: #ffffff;
+    background: #3b82f6;
+    color: #ffffff;
 }
 
 .tab-content {
-  min-height: 400px;
+    min-height: 400px;
 }
 
 /* Empty States */
 .no-consultations {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 2rem;
-  text-align: center;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 2px dashed #cbd5e1;
-  margin: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 2px dashed #cbd5e1;
+    margin: 2rem 0;
 }
 
 .no-consultations-icon {
-  font-size: 3rem;
-  color: #94a3b8;
-  margin-bottom: 1rem;
+    font-size: 3rem;
+    color: #94a3b8;
+    margin-bottom: 1rem;
 }
 
 .no-consultations h3 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 0.5rem 0;
 }
 
 .no-consultations p {
-  color: #6b7280;
-  margin: 0 0 1.5rem 0;
-  max-width: 400px;
+    color: #6b7280;
+    margin: 0 0 1.5rem 0;
+    max-width: 400px;
 }
 
 .add-consultation-btn {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 12px 24px;
-  background: #3b82f6;
-  border: none;
-  border-radius: 8px;
-  color: white;
-  font-weight: 500;
-  transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 24px;
+    background: #3b82f6;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-weight: 500;
+    transition: all 0.2s ease;
 }
 
 .add-consultation-btn:hover {
-  background: #2563eb;
-  transform: translateY(-1px);
+    background: #2563eb;
+    transform: translateY(-1px);
 }
 
 .no-history {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 3rem 2rem;
-  text-align: center;
-  background: #f8fafc;
-  border-radius: 12px;
-  border: 2px dashed #cbd5e1;
-  margin: 2rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 2px dashed #cbd5e1;
+    margin: 2rem 0;
 }
 
 .no-history-icon {
-  font-size: 3rem;
-  color: #94a3b8;
-  margin-bottom: 1rem;
+    font-size: 3rem;
+    color: #94a3b8;
+    margin-bottom: 1rem;
 }
 
 .no-history h3 {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #374151;
-  margin: 0 0 0.5rem 0;
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #374151;
+    margin: 0 0 0.5rem 0;
 }
 
 .no-history p {
-  color: #6b7280;
-  margin: 0;
-  max-width: 400px;
+    color: #6b7280;
+    margin: 0;
+    max-width: 400px;
 }
 
 .page-title-section {
-  flex: 1;
+    flex: 1;
 }
 
 .page-title {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: #1f2937;
-  margin: 0 0 0.5rem 0;
-  line-height: 1.2;
+    font-size: 2.2rem;
+    font-weight: 700;
+    color: #1f2937;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.2;
 }
 
 .page-subtitle {
-  font-size: 1.1rem;
-  color: #666;
-  margin: 0;
-  line-height: 1.4;
+    font-size: 1.1rem;
+    color: #666;
+    margin: 0;
+    line-height: 1.4;
 }
-
 
 /* Sections */
 .consultations-section {
-  margin-bottom: 1.5rem;
-  padding: 0;
+    margin-bottom: 1.5rem;
+    padding: 0;
 }
 
 .section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1rem;
-  gap: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
 }
 
 .section-title {
-  font-size: 1.6rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+    font-size: 1.6rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
 }
 
 .section-controls {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
 }
 
 .filter-dropdown {
-  padding: 0.5rem 1rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: white;
-  color: #475569;
-  font-size: 0.9rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 120px;
-  width: auto;
-  text-transform: capitalize;
+    padding: 0.5rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: white;
+    color: #475569;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 120px;
+    width: auto;
+    text-transform: capitalize;
 }
 
 .filter-dropdown:focus {
-  outline: none;
-  border-color: #667eea;
+    outline: none;
+    border-color: #667eea;
 }
 
 .section-count {
-  font-size: 0.9rem;
-  color: #666;
-  font-weight: 500;
+    font-size: 0.9rem;
+    color: #666;
+    font-weight: 500;
 }
 
 .delete-all-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.4rem 0.8rem;
-  font-size: 0.8rem;
-  font-weight: 500;
-  border: 1px solid #dc3545;
-  color: #dc3545;
-  background: white;
-  border-radius: 6px;
-  transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: 1px solid #dc3545;
+    color: #dc3545;
+    background: white;
+    border-radius: 6px;
+    transition: all 0.2s ease;
 }
 
 .delete-all-btn:hover {
-  background: #dc3545;
-  color: white;
-  transform: translateY(-1px);
-  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
+    background: #dc3545;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.3);
 }
 
 .delete-all-btn .btn-icon {
-  font-size: 0.9rem;
+    font-size: 0.9rem;
 }
 
 /* Upcoming Consultations Grid */
 .consultations-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.875rem;
-  margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.875rem;
+    margin-bottom: 1.5rem;
 }
 
 /* Responsive Grid Layout */
 @media (max-width: 999px) {
-  .consultations-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
+    .consultations-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 767px) {
-  .consultations-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
+    .consultations-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 639px) {
-  .consultations-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+    .consultations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
 
 /* Add New Consultation Card - New Lightswind Style */
 .add-consultation-card-new {
-  border: 2px dashed #cbd5e1;
-  background: #f8fafc;
-  transition: all 0.3s ease;
-  min-height: 280px;
+    border: 2px dashed #cbd5e1;
+    background: #f8fafc;
+    transition: all 0.3s ease;
+    min-height: 280px;
 }
 
 .add-consultation-card-new:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
-  transform: translateY(-2px);
-  box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
+    border-color: #3b82f6;
+    background: #eff6ff;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
 }
 
 /* Legacy Add New Consultation Card */
 .add-consultation-card {
-  background: #f8f9fa;
-  border: 2px dashed #dee2e6;
-  border-radius: 8px;
-  padding: 1.5rem;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  min-height: 280px;
+    background: #f8f9fa;
+    border: 2px dashed #dee2e6;
+    border-radius: 8px;
+    padding: 1.5rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 280px;
 }
 
 .add-consultation-card:hover {
-  background: #e9ecef;
-  border-color: #667eea;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+    background: #e9ecef;
+    border-color: #667eea;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
 .add-consultation-content {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
 }
 
 .add-consultation-icon {
-  font-size: 2.5rem;
-  color: #667eea;
-  margin-bottom: 0.5rem;
+    font-size: 2.5rem;
+    color: #667eea;
+    margin-bottom: 0.5rem;
 }
 
 .add-consultation-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0;
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: #1f2937;
+    margin: 0;
 }
 
 .add-consultation-subtitle {
-  font-size: 0.9rem;
-  color: #666;
-  margin: 0;
-  line-height: 1.4;
+    font-size: 0.9rem;
+    color: #666;
+    margin: 0;
+    line-height: 1.4;
 }
 
 /* No Consultations State */
 .no-consultations {
-  text-align: center;
-  padding: 2rem 1.5rem;
-  background: #f8f9fa;
-  border-radius: 8px;
-  border: 2px dashed #dee2e6;
-  max-width: 400px;
-  margin: 0 auto;
+    text-align: center;
+    padding: 2rem 1.5rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border: 2px dashed #dee2e6;
+    max-width: 400px;
+    margin: 0 auto;
 }
 
 .no-consultations-icon {
-  font-size: 2rem;
-  color: #adb5bd;
-  margin-bottom: 0.75rem;
+    font-size: 2rem;
+    color: #adb5bd;
+    margin-bottom: 0.75rem;
 }
 
 .no-consultations p {
-  font-size: 1rem;
-  color: #666;
-  margin-bottom: 1rem;
+    font-size: 1rem;
+    color: #666;
+    margin-bottom: 1rem;
 }
 
 /* History Section */
 
 /* Undo Notification */
 .undo-notification {
-  position: fixed;
-  bottom: 20px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: #1f2937;
-  color: white;
-  border-radius: 8px;
-  padding: 0;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  z-index: 1000;
-  min-width: 300px;
-  max-width: 500px;
-  animation: slideUp 0.3s ease-out;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    border-radius: 8px;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 500px;
+    animation: slideUp 0.3s ease-out;
 }
 
 .undo-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px 16px;
-  gap: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    gap: 12px;
 }
 
 .undo-message {
-  flex: 1;
-  font-size: 0.9rem;
-  font-weight: 500;
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
 }
 
 .undo-btn {
-  background: #667eea;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  padding: 6px 12px;
-  font-size: 0.85rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  white-space: nowrap;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
 }
 
 .undo-btn:hover {
-  background: #5a6fd8;
+    background: #5a6fd8;
 }
 
 .undo-timer {
-  height: 3px;
-  background: rgba(255, 255, 255, 0.2);
-  border-radius: 0 0 8px 8px;
-  overflow: hidden;
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
 }
 
 .undo-timer-bar {
-  height: 100%;
-  background: #667eea;
-  width: 100%;
-  animation: countdown 5s linear forwards;
-  transform-origin: left;
+    height: 100%;
+    background: #667eea;
+    width: 100%;
+    animation: countdown 5s linear forwards;
+    transform-origin: left;
 }
 
 @keyframes slideUp {
-  from {
-    opacity: 0;
-    transform: translateX(-50%) translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(-50%) translateY(0);
-  }
+    from {
+        opacity: 0;
+        transform: translateX(-50%) translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
 }
 
 @keyframes countdown {
-  from {
-    transform: scaleX(1);
-  }
-  to {
-    transform: scaleX(0);
-  }
+    from {
+        transform: scaleX(1);
+    }
+    to {
+        transform: scaleX(0);
+    }
 }
 
 .history-consultations-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 0.875rem;
-  width: 100%;
-  max-width: 100%;
-  box-sizing: border-box;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.875rem;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
 }
 
 /* Responsive Grid Layout for History */
 @media (max-width: 999px) {
-  .history-consultations-grid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
+    .history-consultations-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 767px) {
-  .history-consultations-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-  }
+    .history-consultations-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+    }
 }
 
 @media (max-width: 639px) {
-  .history-consultations-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
+    .history-consultations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
 }
 
 /* Load More Section */
 .load-more-section {
-  text-align: center;
-  margin-top: 1.5rem;
+    text-align: center;
+    margin-top: 1.5rem;
 }
 
 .load-more-btn {
-  padding: 0.75rem 2rem;
-  border: 2px solid #667eea;
-  color: #667eea;
-  background: white;
-  border-radius: 8px;
-  font-weight: 600;
-  transition: all 0.3s ease;
+    padding: 0.75rem 2rem;
+    border: 2px solid #667eea;
+    color: #667eea;
+    background: white;
+    border-radius: 8px;
+    font-weight: 600;
+    transition: all 0.3s ease;
 }
 
 .load-more-btn:hover {
-  background: #667eea;
-  color: white;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+    background: #667eea;
+    color: white;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
 }
 
 /* No History State */
 .no-history {
-  text-align: center;
-  padding: 3rem 2rem;
-  background: #f8f9fa;
-  border-radius: 12px;
-  border: 2px dashed #dee2e6;
+    text-align: center;
+    padding: 3rem 2rem;
+    background: #f8f9fa;
+    border-radius: 12px;
+    border: 2px dashed #dee2e6;
 }
 
 .no-history-icon {
-  font-size: 3rem;
-  color: #adb5bd;
-  margin-bottom: 1rem;
+    font-size: 3rem;
+    color: #adb5bd;
+    margin-bottom: 1rem;
 }
 
 .no-history p {
-  font-size: 1.1rem;
-  color: #666;
-  margin: 0;
+    font-size: 1.1rem;
+    color: #666;
+    margin: 0;
 }
 
 /* Responsive Design */
 @media (max-width: 768px) {
-  .page-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 1rem;
-    padding: 0 0.25rem;
-  }
-  
-  .page-title {
-    font-size: 2rem;
-  }
-  
-  
-  .consultations-section {
-    padding: 0 0.25rem;
-    margin-bottom: 1.25rem;
-    height: auto !important;
-    overflow: visible !important;
-  }
-  
-  .section-header {
-    flex-direction: column;
-    align-items: stretch;
-    gap: 0.75rem;
-    margin-bottom: 0.75rem;
-  }
-  
-  .section-controls {
-    justify-content: space-between;
-  }
-  
-  .consultations-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
-  .add-consultation-card {
-    min-height: 150px;
-    padding: 1rem;
-  }
-  
-  .add-consultation-icon {
-    font-size: 2rem;
-  }
-  
-  .add-consultation-title {
-    font-size: 1rem;
-  }
-  
-  .add-consultation-subtitle {
-    font-size: 0.85rem;
-  }
-  
+    .page-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 1rem;
+        padding: 0 0.25rem;
+    }
+
+    .page-title {
+        font-size: 2rem;
+    }
+
+    .consultations-section {
+        padding: 0 0.25rem;
+        margin-bottom: 1.25rem;
+        height: auto !important;
+        overflow: visible !important;
+    }
+
+    .section-header {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .section-controls {
+        justify-content: space-between;
+    }
+
+    .consultations-grid {
+        grid-template-columns: 1fr;
+        gap: 1rem;
+    }
+
+    .add-consultation-card {
+        min-height: 150px;
+        padding: 1rem;
+    }
+
+    .add-consultation-icon {
+        font-size: 2rem;
+    }
+
+    .add-consultation-title {
+        font-size: 1rem;
+    }
+
+    .add-consultation-subtitle {
+        font-size: 0.85rem;
+    }
 }
 
 @media (max-width: 480px) {
-  .page-header {
-    padding: 0 0.125rem;
-  }
-  
-  .consultations-section {
-    padding: 0 0.125rem;
-    margin-bottom: 1rem;
-  }
-  
-  .page-title {
-    font-size: 1.75rem;
-  }
-  
-  .section-title {
-    font-size: 1.5rem;
-  }
-  
-  .consultations-grid {
-    grid-template-columns: 1fr;
-  }
-  
-  .add-consultation-card {
-    min-height: 120px;
-    padding: 0.75rem;
-  }
-  
-  .add-consultation-icon {
-    font-size: 1.75rem;
-  }
-  
-  .add-consultation-title {
-    font-size: 0.95rem;
-  }
-  
-  .add-consultation-subtitle {
-    font-size: 0.8rem;
-  }
-  
-  .undo-notification {
-    left: 10px;
-    right: 10px;
-    transform: none;
-    min-width: auto;
-    max-width: none;
-  }
+    .page-header {
+        padding: 0 0.125rem;
+    }
+
+    .consultations-section {
+        padding: 0 0.125rem;
+        margin-bottom: 1rem;
+    }
+
+    .page-title {
+        font-size: 1.75rem;
+    }
+
+    .section-title {
+        font-size: 1.5rem;
+    }
+
+    .consultations-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .add-consultation-card {
+        min-height: 120px;
+        padding: 0.75rem;
+    }
+
+    .add-consultation-icon {
+        font-size: 1.75rem;
+    }
+
+    .add-consultation-title {
+        font-size: 0.95rem;
+    }
+
+    .add-consultation-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .undo-notification {
+        left: 10px;
+        right: 10px;
+        transform: none;
+        min-width: auto;
+        max-width: none;
+    }
 }
