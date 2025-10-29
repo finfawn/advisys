@@ -3,7 +3,7 @@ import { HomeIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon } from
 import "./Sidebar.css";
 import DashboardSidebar from "../shared/DashboardSidebar";
 
-function NavItem({ icon: Icon, label, collapsed, active, href, onClick, isLogout = false, onExpand }) {
+function NavItem({ icon, label, collapsed, active, href, onClick, isLogout = false, onExpand }) {
   const handleClick = (e) => {
     e.stopPropagation();
     if (onClick) {

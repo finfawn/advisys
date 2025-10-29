@@ -211,8 +211,8 @@
 
 /* Sections */
 .consultations-section {
-    margin-bottom: 1.5rem;
-    padding: 0;
+    margin-bottom: 2.5rem;
+    padding: 0 25px 75px 0 !important;
 }
 
 .section-header {
@@ -578,7 +578,7 @@
     }
 
     .consultations-section {
-        padding: 0 0.25rem;
+        padding: 100px 0.25rem 0;
         margin-bottom: 1.25rem;
         height: auto !important;
         overflow: visible !important;

@@ -2,7 +2,7 @@ import React from "react";
 import { HomeIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
 import DashboardSidebar from "../shared/DashboardSidebar";
 
-function AdvisorSidebar({ collapsed, onToggle, onNavigate, className = '' }) {
+function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
   const items = [
     { key: "advisor-dashboard", label: "Dashboard", Icon: HomeIcon },
     { key: "advisor-consultations", label: "My Consultations", Icon: CalendarDaysIcon },

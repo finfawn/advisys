@@ -1,7 +1,7 @@
 /* AdvisorListPage Styles */
 
 .advisor-list-container {
-    padding: 0 16px;
+    padding: 0 25px 0 0;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
@@ -105,11 +105,15 @@
 
 /* Advisor Sections */
 .advisor-section {
-    margin-bottom: 48px;
+    margin-bottom: 30px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
+}
+
+.advisor-section#all-faculty-list {
+    margin-bottom: 20px;
 }
 
 .advisor-section:last-child {

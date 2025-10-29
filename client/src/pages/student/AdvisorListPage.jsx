@@ -263,7 +263,7 @@ export default function AdvisorListPage() {
             </section>
 
             {/* All Faculty Section */}
-            <section className="advisor-section">
+            <section className="advisor-section" id="all-faculty-list">
               <div className="section-header">
                 <h2 className="section-title">All Faculty</h2>
                 
