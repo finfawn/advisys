@@ -1,6 +1,6 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
-import { CircleXIcon } from "lucide-react";
+import { BsXCircle } from "react-icons/bs";
 
 // --- Context and Props (with the new prop added) ---
 
@@ -188,7 +188,7 @@ const PopoverContent = React.forwardRef<HTMLDivElement, PopoverContentProps>(
             onClick={() => setOpen(false)}
             className="absolute top-2 right-2 z-10 p-1 bg-gray-200/20 backdrop-blur-sm rounded-full shadow-md hover:bg-background hover:scale-110 transition-all duration-200"
           >
-            <CircleXIcon className="w-6 h-6" />
+            <BsXCircle className="w-6 h-6" />
           </button>
           {props.children}
         </div>

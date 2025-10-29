@@ -1,5 +1,5 @@
 import React from "react";
-import { Star } from "lucide-react";
+import { BsStarFill } from "react-icons/bs";
 import { cn } from "../lib/utils"; // Adjust path if needed
 import { CountUp } from "./count-up";
 
@@ -52,7 +52,7 @@ export const TrustedUsers: React.FC<TrustedUsersProps> = ({
       <div className="flex flex-col items-start gap-1">
         <div className={`flex gap-1 ${starColorClass}`}>
           {Array.from({ length: rating }).map((_, i) => (
-            <Star key={i} fill="currentColor" className="w-4 h-4" />
+            <BsStarFill key={i} fill="currentColor" className="w-4 h-4" />
           ))}
         </div>
         <span className="text-foreground text-xs md:text-md font-medium">

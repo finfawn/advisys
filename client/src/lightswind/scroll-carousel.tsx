@@ -7,7 +7,7 @@ import React, {
 } from "react";
 import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
-import { LucideIcon } from "lucide-react";
+import { IconType } from "react-icons";
 
 // Assuming these are external, import them
 import { cn } from "../lib/utils";
@@ -17,7 +17,7 @@ gsap.registerPlugin(ScrollTrigger);
 // --- Component Props and Types ---
 // Define a type for a single feature object
 export interface FeatureItem {
-  icon: LucideIcon;
+  icon: IconType;
   title: string;
   description: string;
   image: string;

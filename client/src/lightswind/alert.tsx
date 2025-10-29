@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { cn } from "../lib/utils";
-import { AlertCircle, CheckCircle, Info, X, AlertTriangle } from "lucide-react";
+import { BsExclamationCircle, BsCheckCircle, BsInfoCircle, BsX, BsExclamationTriangle } from "react-icons/bs";
 
 const alertVariants = {
   variant: {
@@ -51,11 +51,11 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
   }, ref) => {
     // Icon mapping based on variant
     const variantIcons = {
-      default: <Info className="h-4 w-4" />,
-      destructive: <AlertCircle className="h-4 w-4" />,
-      success: <CheckCircle className="h-4 w-4" />,
-      warning: <AlertTriangle className="h-4 w-4" />,
-      info: <Info className="h-4 w-4" />
+      default: <BsInfoCircle className="h-4 w-4" />,
+      destructive: <BsExclamationCircle className="h-4 w-4" />,
+      success: <BsCheckCircle className="h-4 w-4" />,
+      warning: <BsExclamationTriangle className="h-4 w-4" />,
+      info: <BsInfoCircle className="h-4 w-4" />
     };
 
     const handleDismiss = () => {
@@ -90,7 +90,7 @@ const Alert = React.forwardRef<HTMLDivElement, AlertProps>(
             onClick={handleDismiss}
             aria-label="Dismiss alert"
           >
-            <X className="h-4 w-4" />
+            <BsX className="h-4 w-4" />
           </button>
         )}
       </div>

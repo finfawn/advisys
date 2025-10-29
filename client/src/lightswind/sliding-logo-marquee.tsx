@@ -2,7 +2,7 @@
 
 import React, { useRef, useEffect, useState } from "react";
 import { cn } from "../lib/utils";
-import { Pause, Play } from "lucide-react";
+import { BsPause, BsPlay } from "react-icons/bs";
 
 export interface SlidingLogoMarqueeItem {
   id: string;

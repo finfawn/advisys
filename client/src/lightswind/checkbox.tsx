@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { cn } from "../lib/utils";
-import { Check } from "lucide-react";
+import { BsCheck } from "react-icons/bs";
 
 export interface CheckboxProps extends React.InputHTMLAttributes<HTMLInputElement> {
   checked?: boolean;
@@ -67,7 +67,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
               "flex items-center justify-center text-current",
               "animate-in fade-in-0 zoom-in-0 duration-300"
             )}>
-              <Check className="h-4 w-4 text-white dark:text-black" />
+              <BsCheck className="h-4 w-4 text-white dark:text-black" />
             </div>
           )}
         </div>

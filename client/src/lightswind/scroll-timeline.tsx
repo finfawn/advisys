@@ -8,7 +8,7 @@ import {
 } from "framer-motion";
 import { cn } from "../lib/utils";
 import { Card, CardContent } from "./card";
-import { Calendar } from "lucide-react";
+import { BsCalendar } from "react-icons/bs";
 
 export interface TimelineEvent {
   id?: string;
@@ -372,7 +372,7 @@ export const ScrollTimeline = ({
                         {dateFormat === "badge" ? (
                           <div className="flex items-center mb-2">
                             {event.icon || (
-                              <Calendar className="h-4 w-4 mr-2 text-primary" />
+                              <BsCalendar className="h-4 w-4 mr-2 text-primary" />
                             )}
                             <span
                               className={cn(

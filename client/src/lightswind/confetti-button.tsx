@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from "react";
 import { cn } from "../lib/utils";
-import { Loader2 } from "lucide-react";
+import { BsArrowRepeat } from "react-icons/bs";
 import { cva, type VariantProps } from "class-variance-authority";
 
 // Confetti type
@@ -171,7 +171,7 @@ const ConfettiButton = React.forwardRef<HTMLButtonElement, ConfettiButtonProps>(
         disabled={loading || props.disabled}
         {...props}
       >
-        {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+        {loading && <BsArrowRepeat className="h-4 w-4 mr-2 animate-spin" />}
         {!loading && icon && iconPosition === "left" && (
           <span className="mr-1">{icon}</span>
         )}

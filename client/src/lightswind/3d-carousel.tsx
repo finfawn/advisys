@@ -7,7 +7,7 @@ import React, {
   useState,
   TouchEvent,
 } from "react";
-import { ChevronLeft, ChevronRight, ArrowRight } from "lucide-react";
+import { BsChevronLeft, BsChevronRight, BsArrowRight } from "react-icons/bs";
 import { Card, CardContent } from "@/app/component2/ui/card";
 import { useIsMobile } from "../hooks/use-mobile";
 import Link from "next/link";
@@ -179,7 +179,7 @@ const ThreeDCarousel = ({
                         }}
                       >
                         <span className="relative z-10">Learn more</span>
-                        <ArrowRight className="ml-2 w-4 h-4 relative z-10 transition-transform group-hover:translate-x-1" />
+                        <BsArrowRight className="ml-2 w-4 h-4 relative z-10 transition-transform group-hover:translate-x-1" />
                         <span className="absolute left-0 bottom-0 w-0 h-0.5 bg-gray-500 transition-all duration-300 group-hover:w-full"></span>
                       </a>
                     </div>
@@ -198,14 +198,14 @@ const ThreeDCarousel = ({
                 }
                 aria-label="Previous"
               >
-                <ChevronLeft className="w-5 h-5" />
+                <BsChevronLeft className="w-5 h-5" />
               </button>
               <button
                 className="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 bg-white/80 rounded-full flex items-center justify-center text-gray-500 hover:bg-white z-30 shadow-md transition-all hover:scale-110"
                 onClick={() => setActive((prev) => (prev + 1) % items.length)}
                 aria-label="Next"
               >
-                <ChevronRight className="w-5 h-5" />
+                <BsChevronRight className="w-5 h-5" />
               </button>
             </>
           )}

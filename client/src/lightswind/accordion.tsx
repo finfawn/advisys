@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronDown } from "lucide-react";
+import { BsChevronDown } from "react-icons/bs";
 import { cn } from "../lib/utils";
 
 interface AccordionContextType {
@@ -119,7 +119,7 @@ const AccordionTrigger = React.forwardRef<HTMLButtonElement, AccordionTriggerPro
         {...props}
       >
         {children}
-        <ChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
+        <BsChevronDown className="h-4 w-4 shrink-0 transition-transform duration-200" />
       </button>
     );
   }

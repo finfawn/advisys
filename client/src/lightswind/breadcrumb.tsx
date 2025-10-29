@@ -1,5 +1,5 @@
 import * as React from "react";
-import { ChevronRight, MoreHorizontal } from "lucide-react";
+import { BsChevronRight, BsThreeDots } from "react-icons/bs";
 import { cn } from "../lib/utils";
 
 const Breadcrumb = React.forwardRef<
@@ -100,7 +100,7 @@ const BreadcrumbSeparator = ({
     className={cn("[&>svg]:size-3.5", className)}
     {...props}
   >
-    {children ?? <ChevronRight />}
+    {children ?? <BsChevronRight />}
   </li>
 );
 BreadcrumbSeparator.displayName = "BreadcrumbSeparator";
@@ -115,7 +115,7 @@ const BreadcrumbEllipsis = ({
     className={cn("flex h-9 w-9 items-center justify-center", className)}
     {...props}
   >
-    <MoreHorizontal className="h-4 w-4" />
+    <BsThreeDots className="h-4 w-4" />
     <span className="sr-only">More</span>
   </span>
 );

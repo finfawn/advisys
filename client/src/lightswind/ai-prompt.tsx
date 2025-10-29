@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { AnimatePresence, motion } from "framer-motion";
-import { Globe, Paperclip, Plus, Send } from "lucide-react";
+import { BsGlobe, BsPaperclip, BsPlus, BsSend } from "react-icons/bs";
 
 import { cn } from "../lib/utils";
 import { Textarea } from "./textarea";
@@ -160,7 +160,7 @@ export function AiInput() {
                   onChange={handelChange}
                   className="hidden"
                 />
-                <Paperclip
+                <BsPaperclip
                   className={cn(
                     "w-4 h-4 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white transition-colors",
                     imagePreview && "text-[#ff3f17]"
@@ -179,7 +179,7 @@ export function AiInput() {
                       onClick={handelClose}
                       className="bg-[#e8e8e8] text-[#464646] absolute -top-1 -left-1 shadow-3xl rounded-full rotate-45"
                     >
-                      <Plus className="w-4 h-4" />
+                      <BsPlus className="w-4 h-4" />
                     </button>
                   </div>
                 )}
@@ -217,7 +217,7 @@ export function AiInput() {
                       damping: 25,
                     }}
                   >
-                    <Globe
+                    <BsGlobe
                       className={cn(
                         "w-4 h-4",
                         showSearch ? "text-[#ff3f17]" : "text-inherit"
@@ -254,7 +254,7 @@ export function AiInput() {
                     : "bg-black/5 dark:bg-white/5 text-black/40 dark:text-white/40 hover:text-black dark:hover:text-white"
                 )}
               >
-                <Send className="w-4 h-4" />
+                <BsSend className="w-4 h-4" />
               </button>
             </div>
           </div>

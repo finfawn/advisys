@@ -1,7 +1,7 @@
 
 import * as React from "react";
 import { cn } from "../lib/utils";
-import { X } from "lucide-react";
+import { BsX } from "react-icons/bs";
 import { cva } from "class-variance-authority";
 import { Progress } from "./progress";
 
@@ -148,7 +148,7 @@ const ToastClose = React.forwardRef<
     aria-label="Close toast"
     {...props}
   >
-    <X className="h-4 w-4" />
+    <BsX className="h-4 w-4" />
   </button>
 ));
 ToastClose.displayName = "ToastClose";

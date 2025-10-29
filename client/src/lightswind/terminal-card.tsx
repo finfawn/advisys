@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Copy, Terminal, Check } from "lucide-react";
+import { BsClipboard, BsTerminal, BsCheck } from "react-icons/bs";
 import { cn } from "../lib/utils";
 import { motion } from "framer-motion";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
@@ -59,7 +59,7 @@ const TerminalCard: React.FC<TerminalCardProps> = ({ command, language = "tsx", 
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-[#202425] rounded-t-lg text-sm font-semibold text-gray-700 dark:text-gray-400">
         <div className="flex items-center gap-2">
-          <Terminal className="w-4 h-4 text-blue-500" />
+          <BsTerminal className="w-4 h-4 text-blue-500" />
           Terminal
         </div>
         <button
@@ -67,7 +67,7 @@ const TerminalCard: React.FC<TerminalCardProps> = ({ command, language = "tsx", 
           onClick={handleCopy}
           aria-label="Copy to clipboard"
         >
-          {copied ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
+          {copied ? <BsCheck className="w-4 h-4 text-green-500" /> : <BsClipboard className="w-4 h-4" />}
         </button>
       </div>
 

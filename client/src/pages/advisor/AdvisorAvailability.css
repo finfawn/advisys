@@ -62,10 +62,137 @@
   /* Calendar Container */
   .calendar-container {
     background: white;
-    padding: 1.5rem;
+    padding: 1.5rem; /* slightly tighter to reduce overall footprint */
     border-radius: 12px;
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
     border: 1px solid #e5e7eb;
+  }
+
+  /* Fill bottom space: compute calendar height from viewport */
+  .advisor-dash-main .availability-calendar-wrapper {
+    --advisor-cal-height: calc(100vh - 240px);
+  }
+  .availability-left .custom-calendar .calendar-table {
+    height: var(--advisor-cal-height) !important;
+  }
+  .availability-left .custom-calendar .calendar-day-cell {
+    height: calc((var(--advisor-cal-height) - 60px) / 6) !important;
+    min-height: calc((var(--advisor-cal-height) - 60px) / 6) !important;
+  }
+
+  /* Advisor overrides for student CustomCalendar to fit viewport on desktop */
+  .availability-left .custom-calendar .calendar-month-year {
+    font-size: 2rem; /* smaller header on advisor */
+  }
+  .availability-left .custom-calendar .calendar-header-wrap {
+    margin-bottom: 12px;
+  }
+  .availability-left .custom-calendar .calendar-nav {
+    height: 34px;
+  }
+  .availability-left .custom-calendar .calendar-nav-btn {
+    width: 36px !important;
+    height: 34px !important;
+  }
+
+  /* Reduce day cell heights on desktop */
+  @media (min-width: 992px) {
+    .availability-left .custom-calendar .calendar-day-cell {
+      height: 95px;
+      min-height: 95px;
+    }
+    .availability-left .custom-calendar .calendar-day-button {
+      min-height: 95px;
+      padding: 10px;
+      font-size: 0.9rem;
+    }
+    .availability-left .custom-calendar .calendar-weekday {
+      padding: 12px 6px;
+      font-size: 0.82rem;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    .availability-left .custom-calendar .calendar-day-cell {
+      height: 100px;
+      min-height: 100px;
+    }
+    .availability-left .custom-calendar .calendar-day-button {
+      min-height: 100px;
+    }
+  }
+
+  /* Layout: Calendar + Day Inspector */
+  .availability-layout {
+    display: grid;
+    grid-template-columns: 1fr 360px;
+    gap: 1rem;
+    align-items: start;
+  }
+  .availability-layout.expand-calendar {
+    grid-template-columns: 1fr;
+  }
+  .availability-left {
+    min-width: 0;
+  }
+  .day-inspector {
+    position: sticky;
+    top: 0; /* align top with calendar container */
+  }
+  .day-inspector .lw-card {
+    border-radius: 12px;
+  }
+  .day-inspector-actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 12px;
+  }
+  .slots-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .slot-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #f9fafb;
+  }
+  .slot-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .slot-time {
+    font-weight: 600;
+    color: #111827;
+  }
+  .slot-mode,
+  .slot-room {
+    font-size: 0.85rem;
+    color: #4b5563;
+  }
+  .slot-actions {
+    display: flex;
+    gap: 8px;
+  }
+  .empty-state-card {
+    border: 1px dashed #d1d5db;
+    border-radius: 12px;
+    padding: 14px;
+    background: #f8fafc;
+  }
+  .empty-title {
+    font-weight: 600;
+    color: #111827;
+    margin-bottom: 4px;
+  }
+  .empty-text {
+    font-size: 0.9rem;
+    color: #6b7280;
   }
   
   /* Customize React Big Calendar */
@@ -221,7 +348,10 @@
     .calendar-container {
       padding: 1rem;
     }
-  
+    .availability-layout {
+      grid-template-columns: 1fr;
+    }
+
     .rbc-toolbar {
       flex-direction: column;
       gap: 0.75rem;

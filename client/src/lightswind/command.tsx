@@ -1,10 +1,7 @@
 import * as React from "react";
 import { cn } from "../lib/utils";
 import { Dialog, DialogContent } from "./dialog";
-import {
-  Search,
-  Loader2,
-} from "lucide-react";
+import { BsSearch, BsArrowRepeat } from "react-icons/bs";
 
 interface CommandContextType {
   value: string;
@@ -211,9 +208,9 @@ const CommandInput = React.forwardRef<HTMLInputElement, CommandInputProps>(
     return (
       <div className="flex items-center border-b   px-3" cmdk-input-wrapper="">
         {isLoading ? (
-          <Loader2 className="mr-2 h-4 w-4 animate-spin opacity-70" />
+          <BsArrowRepeat className="mr-2 h-4 w-4 animate-spin opacity-70" />
         ) : (
-          <Search className="mr-2 h-4 w-4 shrink-0 opacity-50" />
+          <BsSearch className="mr-2 h-4 w-4 shrink-0 opacity-50" />
         )}
         <input
           ref={ref}
@@ -260,7 +257,7 @@ const CommandList = React.forwardRef<HTMLDivElement, CommandListProps>(
       >
         {isLoading && props.children && (
           <div className="flex items-center justify-center py-6">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            <BsArrowRepeat className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         )}
         {!isLoading && props.children}

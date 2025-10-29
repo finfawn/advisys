@@ -9,7 +9,7 @@ import {
   animate,
   DragControls,
 } from "framer-motion";
-import { GripVertical } from "lucide-react";
+import { BsGripVertical } from "react-icons/bs";
 
 export interface DragItem {
   id: number;
@@ -89,7 +89,7 @@ function ReorderHandle({ dragControls }: { dragControls: DragControls }) {
       }}
       className="cursor-grab active:cursor-grabbing p-2 text-muted-foreground"
     >
-      <GripVertical />
+      <BsGripVertical />
     </motion.div>
   );
 }

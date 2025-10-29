@@ -9,7 +9,7 @@ import {
   ToastTitle,
   ToastViewport,
 } from "./toast";
-import { X } from "lucide-react";
+import { BsX } from "react-icons/bs";
 
 export function Toaster() {
   const { toasts } = useToast();
@@ -40,7 +40,7 @@ export function Toaster() {
               </div>
               {action}
               <ToastClose>
-                <X className="h-4 w-4" />
+                <BsX className="h-4 w-4" />
               </ToastClose>
             </Toast>
           );

@@ -314,3 +314,155 @@
     padding: 2px 4px;
   }
 }
+
+/* Custom event chips and day mode labels */
+.availability-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 9999px;
+  background: #ecfdf5; /* emerald-50 */
+  color: #065f46; /* emerald-800 */
+  border: 1px solid #10b981; /* emerald-500 */
+  box-shadow: 0 1px 2px rgba(16, 185, 129, 0.15);
+}
+
+.ev-available.mode-online .availability-chip {
+  background: #eff6ff; /* blue-50 */
+  color: #1e3a8a; /* blue-900 */
+  border-color: #3b82f6; /* blue-500 */
+  box-shadow: 0 1px 2px rgba(59, 130, 246, 0.15);
+}
+
+.ev-available.mode-face_to_face .availability-chip {
+  background: #f0fdf4; /* green-50 */
+  color: #064e3b; /* green-900 */
+  border-color: #22c55e; /* green-500 */
+  box-shadow: 0 1px 2px rgba(34, 197, 94, 0.15);
+}
+
+.holiday-event {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  background: #fee2e2; /* red-200 */
+  color: #991b1b; /* red-900 */
+  border: 1px solid #ef4444; /* red-500 */
+}
+
+.day-mode-label {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 10px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+}
+
+.day-mode-label.online {
+  background: #eff6ff; /* blue-50 */
+  color: #1e3a8a; /* blue-900 */
+  border-color: #3b82f6; /* blue-500 */
+}
+
+.day-mode-label.hybrid {
+  background: linear-gradient(90deg, #eff6ff 0%, #f5f3ff 100%);
+  color: #6b21a8; /* purple-800 */
+  border-color: #8b5cf6; /* violet-500 */
+}
+
+.day-mode-label.inperson {
+  background: #f0fdf4; /* green-50 */
+  color: #064e3b; /* green-900 */
+  border-color: #22c55e; /* green-500 */
+}
+
+/* Ensure event content doesn't overflow in month cells */
+.rbc-month-view .rbc-event-content {
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+/* Custom toolbar styling: Month Year and chevron nav */
+.availability-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.availability-month-label {
+  font-size: 1.375rem; /* ~22px */
+  font-weight: 700;
+  color: #111827; /* gray-900 */
+}
+
+.availability-nav {
+  display: inline-flex;
+  align-items: center;
+  background: #111827; /* dark */
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.availability-nav .nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+
+.availability-nav .nav-btn + .nav-btn {
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.availability-nav .nav-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Dot-based event rendering in month view */
+.rbc-month-view .rbc-event {
+  background: transparent !important;
+  border: none !important;
+  padding: 0 !important;
+  height: auto !important;
+  display: inline-flex;
+  align-items: center;
+}
+
+.rbc-month-view .rbc-row-content .rbc-event {
+  margin-right: 6px;
+}
+
+.availability-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 9999px;
+  background: #10b981; /* default green */
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.06);
+}
+
+.ev-available.mode-online .availability-dot {
+  background: #3b82f6; /* blue */
+}
+
+.ev-available.mode-face_to_face .availability-dot {
+  background: #22c55e; /* green */
+}
+
+.ev-holiday .availability-dot {
+  background: #ef4444; /* red */
+}

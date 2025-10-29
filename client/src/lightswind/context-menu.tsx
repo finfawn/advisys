@@ -1,6 +1,6 @@
 
 import * as React from "react";
-import { Check, ChevronRight, Circle } from "lucide-react";
+import { BsCheck, BsChevronRight, BsCircleFill } from "react-icons/bs";
 import { cn } from "../lib/utils";
 
 type ContextMenuContextValue = {
@@ -160,7 +160,7 @@ const ContextMenuCheckboxItem = ({ children, checked, className, ...props }: Rea
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-      {checked && <Check className="h-4 w-4" />}
+      {checked && <BsCheck className="h-4 w-4" />}
     </span>
     {children}
   </button>
@@ -175,7 +175,7 @@ const ContextMenuRadioItem = ({ children, className, ...props }: React.HTMLAttri
     {...props}
   >
     <span className="absolute left-2 flex h-3.5 w-3.5 items-center justify-center">
-      <Circle className="h-2 w-2 fill-current" />
+      <BsCircleFill className="h-2 w-2" />
     </span>
     {children}
   </button>
@@ -247,7 +247,7 @@ const ContextMenuSubTrigger = React.forwardRef<
     {...props}
   >
     {children}
-    <ChevronRight className="ml-auto h-4 w-4" />
+    <BsChevronRight className="ml-auto h-4 w-4" />
   </button>
 ));
 ContextMenuSubTrigger.displayName = "ContextMenuSubTrigger";

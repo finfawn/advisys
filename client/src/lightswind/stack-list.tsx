@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ChevronDown } from "lucide-react";
+import { BsChevronDown } from "react-icons/bs";
 
 type StackListItem = {
   icon: React.ReactNode;
@@ -73,7 +73,7 @@ export default function StackList({
             animate={{ rotate: expanded ? 180 : 0 }}
             transition={{ duration: 0.3 }}
           >
-            <ChevronDown className="w-4 h-4" />
+            <BsChevronDown className="w-4 h-4" />
           </motion.div>
         </button>
       )}
