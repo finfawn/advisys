@@ -763,3 +763,10 @@
         background: #374151;
     }
 }
+/* Desktop override: use sticky to match advisor layout */
+@media (min-width: 768px) {
+  .dash-topbar {
+    position: sticky !important;
+    top: 0;
+  }
+}

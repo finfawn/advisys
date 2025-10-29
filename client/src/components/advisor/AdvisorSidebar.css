@@ -5,7 +5,7 @@
   top: 60px; /* approx height of topbar */
   align-self: start;
   height: calc(100vh - 60px);
-  background: #f8fafc;
+  background: var(--sb-bg, #f8fafc);
   border-right: 1px solid rgba(0,0,0,0.06);
   padding: 12px 10px;
   min-width: 200px; /* ensure sidebar is wide enough for text */

@@ -15,7 +15,7 @@ import "./StudentDashboard.css";
 export default function StudentDashboard() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
-  const location = useLocation();
+  const _location = useLocation();
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -172,17 +172,17 @@ export default function StudentDashboard() {
   };
 
   return (
-    <div className="dash-wrap">
+    <div className="student-dash-wrap">
       <TopNavbar />
 
       {/* Body */}
-      <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
+      <div className={`student-dash-body ${collapsed ? "collapsed" : ""}`}>
         <div className="hidden md:block">
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 
         {/* Content */}
-        <main className="dash-main">
+        <main className="student-dash-main">
 
           {/* Mobile Sticky Upcoming Consultations - Only visible on mobile */}
           <div className="md:hidden mobile-upcoming-sticky">
@@ -209,8 +209,9 @@ export default function StudentDashboard() {
             </Collapsible>
           </div>
 
-          {/* Bento Grid Layout */}
-          <div className="bento-grid-main">
+          {/* Bento Grid Layout (wrapped to mirror advisor) */}
+          <div className="student-dashboard-bento-grid">
+            <div className="bento-grid-main">
             {/* Banner Section - Large Bento */}
             <div className="bento-item bento-banner">
               <section className="hero-wrap h-100">
@@ -329,10 +330,9 @@ export default function StudentDashboard() {
                 </div>
               </aside>
             </div>
-          </div>
-
-          {/* Stats Bento Grid */}
-          <div className="bento-grid-stats">
+            </div>
+            {/* Stats Bento Grid */}
+            <div className="bento-grid-stats">
             {/* Completed Consultations - Small Bento */}
             <div className="bento-item bento-stat">
               <div className="stat-card">
@@ -367,6 +367,7 @@ export default function StudentDashboard() {
                   <div className="stat-sub">{topTopic[1]} consultation{topTopic[1] > 1 ? 's' : ''}</div>
                 </div>
               </div>
+            </div>
             </div>
           </div>
 

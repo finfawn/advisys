@@ -1,19 +1,17 @@
 /* Sidebar Component Styles */
 
 .dash-sidebar {
-  position: sticky; /* back to in-flow sticky like homepage */
-  top: 64px; /* match desktop topbar height */
+  position: sticky;
+  top: 60px; /* match advisor topbar height */
   align-self: start;
-  height: calc(100dvh - 64px);
-  background: #f8fafc;
+  height: calc(100vh - 60px); /* align with advisor topbar */
+  /* Ensure white background even when shared CSS sets var(--sb-bg) */
+  --sb-bg: #ffffff;
+  background: #ffffff;
   border-right: 1px solid rgba(0,0,0,0.06);
-  padding: 12px 10px;
+  padding: 12px 10px; /* match advisor inner padding */
   min-width: 200px; /* ensure sidebar is wide enough for text */
   transition: min-width 240ms ease;
-  /* Hide scrollbars; sidebar content is short on desktop */
-  overflow-y: hidden;
-  overflow-x: hidden;
-  scrollbar-width: none; /* Firefox */
   /* unified sizes for active icon background */
   --sb-ico-bg: 2rem;
   --sb-ico-radius: 10px;
@@ -61,13 +59,14 @@
 }
 
 .sb-icon {
-  display: grid;
-  place-items: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
   width: var(--sb-ico-col);
   height: var(--sb-ico-col);
-  font-size: 1em;    /* ensure react-icons inherits this size */
-  flex-shrink: 0;    /* prevent icon from shrinking */
   transition: all 240ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-size: 1em;    /* ensure react-icons inherits this size */
 }
 
 .sb-icon svg {
@@ -184,7 +183,7 @@
     position: fixed;
     top: 56px; /* Mobile topbar height */
     left: 0;
-    height: calc(100dvh - 56px);
+    height: calc(100vh - 56px);
     z-index: 1000;
     transform: translateX(-100%);
     transition: transform 240ms ease;
