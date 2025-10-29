@@ -46,14 +46,15 @@ html {
 body {
     display: block;
     place-items: initial;
-    height: 100vh;
-    height: -webkit-fill-available;
+    /* Allow the document to own vertical scrolling */
+    min-height: 100dvh;
+    height: auto;
     margin: 0;
     padding: 0;
     background: #e2e1ef;
     color: #212529;
     overflow-x: hidden;
-    overflow-y: hidden;
+    overflow-y: auto;
     position: relative;
 }
 

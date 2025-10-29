@@ -100,6 +100,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }) {
 
   return (
     <>
+      <div className="dash-sidebar">
       <LWSidebarProvider expanded={!collapsed} onExpandedChange={() => onToggle && onToggle()}>
         <LWSidebar>
           <LWSidebarContent className="h-full">
@@ -153,6 +154,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }) {
           </LWSidebarContent>
         </LWSidebar>
       </LWSidebarProvider>
+      </div>
       
       <AlertDialog
         open={showLogoutModal}

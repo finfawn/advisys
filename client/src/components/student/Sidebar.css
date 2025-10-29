@@ -1,20 +1,30 @@
 /* Sidebar Component Styles */
 
 .dash-sidebar {
-  position: sticky;
-  top: 60px; /* approx height of topbar */
+  position: sticky; /* back to in-flow sticky like homepage */
+  top: 64px; /* match desktop topbar height */
   align-self: start;
-  height: calc(100vh - 60px);
+  height: calc(100dvh - 64px);
   background: #f8fafc;
   border-right: 1px solid rgba(0,0,0,0.06);
   padding: 12px 10px;
   min-width: 200px; /* ensure sidebar is wide enough for text */
   transition: min-width 240ms ease;
+  /* Hide scrollbars; sidebar content is short on desktop */
+  overflow-y: hidden;
+  overflow-x: hidden;
+  scrollbar-width: none; /* Firefox */
   /* unified sizes for active icon background */
   --sb-ico-bg: 2rem;
   --sb-ico-radius: 10px;
   /* fixed icon column width so icons don't move */
   --sb-ico-col: 2rem;
+}
+
+/* Hide WebKit scrollbars explicitly */
+.dash-sidebar::-webkit-scrollbar { 
+  width: 0; 
+  height: 0; 
 }
 
 .sidebar-collapsed {
@@ -174,12 +184,13 @@
     position: fixed;
     top: 56px; /* Mobile topbar height */
     left: 0;
-    height: calc(100vh - 56px);
+    height: calc(100dvh - 56px);
     z-index: 1000;
     transform: translateX(-100%);
     transition: transform 240ms ease;
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
     min-width: 240px;
+    overflow-y: auto; /* enable scroll within drawer on small screens */
   }
 
   .dash-sidebar.sidebar-open {

@@ -99,7 +99,19 @@ export default function AdvisorConsultations() {
       mode: "in-person",
       status: "approved",
       location: "Office 102"
-    }
+    },
+    // placeholders to visualize scrolling
+    ...Array.from({ length: 8 }, (_, i) => ({
+      id: 200 + i,
+      date: "2025-10-" + String(10 + i).padStart(2, '0'),
+      time: "1:00 PM - 1:30 PM",
+      topic: `Placeholder Topic ${i + 1}`,
+      student: { name: `Student ${i + 10}`, title: "BSCS" },
+      mode: i % 2 === 0 ? "online" : "in-person",
+      status: "approved",
+      location: i % 2 ? "Office 10" : undefined,
+      meetingLink: i % 2 === 0 ? "https://meet.google.com/abc-defg-hij" : undefined,
+    }))
   ]), []);
 
   const initialRequests = useMemo(() => ([
@@ -121,7 +133,19 @@ export default function AdvisorConsultations() {
       mode: "online",
       status: "declined",
       declineReason: "Schedule conflict"
-    }
+    },
+    // placeholders to visualize scrolling
+    ...Array.from({ length: 8 }, (_, i) => ({
+      id: 200 + i,
+      date: "2025-10-" + String(10 + i).padStart(2, '0'),
+      time: "1:00 PM - 1:30 PM",
+      topic: `Placeholder Topic ${i + 1}`,
+      student: { name: `Student ${i + 10}`, title: "BSCS" },
+      mode: i % 2 === 0 ? "online" : "in-person",
+      status: "approved",
+      location: i % 2 ? "Office 10" : undefined,
+      meetingLink: i % 2 === 0 ? "https://meet.google.com/abc-defg-hij" : undefined,
+    }))
   ]), []);
 
   const [upcomingCards, setUpcomingCards] = useState(initialUpcoming);

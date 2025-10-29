@@ -8,8 +8,10 @@
 }
 
 .dash-topbar {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 1020;
   display: flex;
   align-items: center;

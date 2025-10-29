@@ -182,7 +182,8 @@ export default function StudentDashboard() {
         </div>
 
         {/* Content */}
-        <main className="dash-main relative">
+        <main className="dash-main">
+
           {/* Mobile Sticky Upcoming Consultations - Only visible on mobile */}
           <div className="md:hidden mobile-upcoming-sticky">
             <Collapsible defaultOpen={false}>
