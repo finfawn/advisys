@@ -575,7 +575,7 @@ export default function MyConsultationsPage() {
         </div>
 
         {/* Content */}
-        <main className="dash-main relative">
+        <main className="dash-main relative student-my-consultations">
           {/* Page Header */}
           <div className="page-header">
             <div className="page-title-section">

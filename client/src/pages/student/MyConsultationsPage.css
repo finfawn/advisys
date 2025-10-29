@@ -1,6 +1,6 @@
 /* MyConsultationsPage.css */
 
-/* Mobile: Add padding for fixed navbar and fix layout */
+/* Mobile: Add padding for fixed navbar and fix layout (scoped) */
 @media (max-width: 768px) {
   .dash-wrap {
     height: auto !important;
@@ -17,16 +17,54 @@
     overflow-x: hidden !important;
   }
 
-    .dash-main {
-        width: 100% !important;
-        max-width: 100% !important;
-        overflow-x: hidden !important;
-        height: auto !important;
-    }
+  .student-my-consultations {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+    height: auto !important;
+  }
 }
 
-/* Page Header */
-.page-header {
+/* Mobile-only bottom padding fix: ensure no large gap at page end (scoped) */
+@media (max-width: 768px) {
+  .student-my-consultations {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+
+  .student-my-consultations .consultations-section {
+    padding-bottom: 0 !important; 
+    padding-right: 0 !important;
+    margin-right: 0 !important;
+  }
+
+  /* Trim trailing space from last blocks and grids */
+  .student-my-consultations .consultations-section:last-child {
+    margin-bottom: 0 !important;
+  }
+
+  .student-my-consultations .consultations-grid {
+    margin-bottom: 0 !important;
+  }
+
+  .student-my-consultations .add-consultation-card,
+  .student-my-consultations .add-consultation-card-new {
+    margin-bottom: 0 !important;
+  }
+
+  /* Remove forced content height on mobile */
+  .student-my-consultations .tab-content {
+    min-height: 0 !important;
+  }
+
+  /* Ensure empty state doesn’t add extra spacing at the end */
+  .student-my-consultations .no-consultations:last-child,
+  .student-my-consultations .no-history:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
+/* Page Header (scoped) */
+.student-my-consultations .page-header {
     display: flex;
     justify-content: space-between;
     align-items: flex-start;
@@ -35,8 +73,8 @@
     gap: 1rem;
 }
 
-/* Tab Navigation */
-.consultations-tabs {
+/* Tab Navigation (scoped) */
+.student-my-consultations .consultations-tabs {
     display: flex;
     background: #f8fafc;
     border-radius: 12px;
@@ -45,7 +83,7 @@
     gap: 4px;
 }
 
-.tab-button {
+.student-my-consultations .tab-button {
     display: flex;
     align-items: center;
     gap: 8px;
@@ -62,27 +100,27 @@
     position: relative;
 }
 
-.tab-button:hover {
+.student-my-consultations .tab-button:hover {
     background: #e2e8f0;
     color: #475569;
 }
 
-.tab-button.active {
+.student-my-consultations .tab-button.active {
     background: #ffffff;
     color: #1e293b;
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     font-weight: 600;
 }
 
-.tab-icon {
+.student-my-consultations .tab-icon {
     font-size: 1.1rem;
 }
 
-.tab-label {
+.student-my-consultations .tab-label {
     font-size: 0.95rem;
 }
 
-.tab-count {
+.student-my-consultations .tab-count {
     background: #e2e8f0;
     color: #64748b;
     padding: 4px 8px;
@@ -98,17 +136,17 @@
     line-height: 1;
 }
 
-.tab-button.active .tab-count {
+.student-my-consultations .tab-button.active .tab-count {
     background: #3b82f6;
     color: #ffffff;
 }
 
-.tab-content {
+.student-my-consultations .tab-content {
     min-height: 400px;
 }
 
-/* Empty States */
-.no-consultations {
+/* Empty States (scoped) */
+.student-my-consultations .no-consultations {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -210,9 +248,12 @@
 }
 
 /* Sections */
-.consultations-section {
+/* Desktop-only spacing for sections */
+@media (min-width: 769px) {
+  .student-my-consultations .consultations-section {
     margin-bottom: 2.5rem;
     padding: 0 25px 75px 0 !important;
+  }
 }
 
 .section-header {
@@ -287,8 +328,8 @@
     font-size: 0.9rem;
 }
 
-/* Upcoming Consultations Grid */
-.consultations-grid {
+/* Upcoming Consultations Grid (scoped) */
+.student-my-consultations .consultations-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
     gap: 0.875rem;
@@ -297,43 +338,43 @@
 
 /* Responsive Grid Layout */
 @media (max-width: 999px) {
-    .consultations-grid {
+    .student-my-consultations .consultations-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 1rem;
     }
 }
 
 @media (max-width: 767px) {
-    .consultations-grid {
+    .student-my-consultations .consultations-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
     }
 }
 
 @media (max-width: 639px) {
-    .consultations-grid {
+    .student-my-consultations .consultations-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
 }
 
-/* Add New Consultation Card - New Lightswind Style */
-.add-consultation-card-new {
+/* Add New Consultation Card - New Lightswind Style (scoped) */
+.student-my-consultations .add-consultation-card-new {
     border: 2px dashed #cbd5e1;
     background: #f8fafc;
     transition: all 0.3s ease;
     min-height: 280px;
 }
 
-.add-consultation-card-new:hover {
+.student-my-consultations .add-consultation-card-new:hover {
     border-color: #3b82f6;
     background: #eff6ff;
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
 }
 
-/* Legacy Add New Consultation Card */
-.add-consultation-card {
+/* Legacy Add New Consultation Card (scoped) */
+.student-my-consultations .add-consultation-card {
     background: #f8f9fa;
     border: 2px dashed #dee2e6;
     border-radius: 8px;
@@ -347,42 +388,42 @@
     min-height: 280px;
 }
 
-.add-consultation-card:hover {
+.student-my-consultations .add-consultation-card:hover {
     background: #e9ecef;
     border-color: #667eea;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
 
-.add-consultation-content {
+.student-my-consultations .add-consultation-content {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
 }
 
-.add-consultation-icon {
+.student-my-consultations .add-consultation-icon {
     font-size: 2.5rem;
     color: #667eea;
     margin-bottom: 0.5rem;
 }
 
-.add-consultation-title {
+.student-my-consultations .add-consultation-title {
     font-size: 1.1rem;
     font-weight: 600;
     color: #1f2937;
     margin: 0;
 }
 
-.add-consultation-subtitle {
+.student-my-consultations .add-consultation-subtitle {
     font-size: 0.9rem;
     color: #666;
     margin: 0;
     line-height: 1.4;
 }
 
-/* No Consultations State */
-.no-consultations {
+/* No Consultations State (scoped) */
+.student-my-consultations .no-consultations {
     text-align: center;
     padding: 2rem 1.5rem;
     background: #f8f9fa;
@@ -392,13 +433,13 @@
     margin: 0 auto;
 }
 
-.no-consultations-icon {
+.student-my-consultations .no-consultations-icon {
     font-size: 2rem;
     color: #adb5bd;
     margin-bottom: 0.75rem;
 }
 
-.no-consultations p {
+.student-my-consultations .no-consultations p {
     font-size: 1rem;
     color: #666;
     margin-bottom: 1rem;
@@ -406,8 +447,8 @@
 
 /* History Section */
 
-/* Undo Notification */
-.undo-notification {
+/* Undo Notification (scoped) */
+.student-my-consultations .undo-notification {
     position: fixed;
     bottom: 20px;
     left: 50%;
@@ -423,7 +464,7 @@
     animation: slideUp 0.3s ease-out;
 }
 
-.undo-content {
+.student-my-consultations .undo-content {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -431,13 +472,13 @@
     gap: 12px;
 }
 
-.undo-message {
+.student-my-consultations .undo-message {
     flex: 1;
     font-size: 0.9rem;
     font-weight: 500;
 }
 
-.undo-btn {
+.student-my-consultations .undo-btn {
     background: #667eea;
     color: white;
     border: none;
@@ -450,18 +491,18 @@
     white-space: nowrap;
 }
 
-.undo-btn:hover {
+.student-my-consultations .undo-btn:hover {
     background: #5a6fd8;
 }
 
-.undo-timer {
+.student-my-consultations .undo-timer {
     height: 3px;
     background: rgba(255, 255, 255, 0.2);
     border-radius: 0 0 8px 8px;
     overflow: hidden;
 }
 
-.undo-timer-bar {
+.student-my-consultations .undo-timer-bar {
     height: 100%;
     background: #667eea;
     width: 100%;
@@ -543,8 +584,8 @@
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
 }
 
-/* No History State */
-.no-history {
+/* No History State (scoped) */
+.student-my-consultations .no-history {
     text-align: center;
     padding: 3rem 2rem;
     background: #f8f9fa;
@@ -552,13 +593,13 @@
     border: 2px dashed #dee2e6;
 }
 
-.no-history-icon {
+.student-my-consultations .no-history-icon {
     font-size: 3rem;
     color: #adb5bd;
     margin-bottom: 1rem;
 }
 
-.no-history p {
+.student-my-consultations .no-history p {
     font-size: 1.1rem;
     color: #666;
     margin: 0;
@@ -566,98 +607,98 @@
 
 /* Responsive Design */
 @media (max-width: 768px) {
-    .page-header {
+    .student-my-consultations .page-header {
         flex-direction: column;
         align-items: stretch;
         gap: 1rem;
         padding: 0 0.25rem;
     }
 
-    .page-title {
+    .student-my-consultations .page-title {
         font-size: 2rem;
     }
 
-    .consultations-section {
+    .student-my-consultations .consultations-section {
         padding: 100px 0.25rem 0;
         margin-bottom: 1.25rem;
         height: auto !important;
         overflow: visible !important;
     }
 
-    .section-header {
+    .student-my-consultations .section-header {
         flex-direction: column;
         align-items: stretch;
         gap: 0.75rem;
         margin-bottom: 0.75rem;
     }
 
-    .section-controls {
+    .student-my-consultations .section-controls {
         justify-content: space-between;
     }
 
-    .consultations-grid {
+    .student-my-consultations .consultations-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
     }
 
-    .add-consultation-card {
+    .student-my-consultations .add-consultation-card {
         min-height: 150px;
         padding: 1rem;
     }
 
-    .add-consultation-icon {
+    .student-my-consultations .add-consultation-icon {
         font-size: 2rem;
     }
 
-    .add-consultation-title {
+    .student-my-consultations .add-consultation-title {
         font-size: 1rem;
     }
 
-    .add-consultation-subtitle {
+    .student-my-consultations .add-consultation-subtitle {
         font-size: 0.85rem;
     }
 }
 
 @media (max-width: 480px) {
-    .page-header {
+    .student-my-consultations .page-header {
         padding: 0 0.125rem;
     }
 
-    .consultations-section {
-        padding: 0 0.125rem;
-        margin-bottom: 1rem;
+    .student-my-consultations .consultations-section {
+        padding: 0;
+        margin-bottom: 0;
     }
 
-    .page-title {
+    .student-my-consultations .page-title {
         font-size: 1.75rem;
     }
 
-    .section-title {
+    .student-my-consultations .section-title {
         font-size: 1.5rem;
     }
 
-    .consultations-grid {
+    .student-my-consultations .consultations-grid {
         grid-template-columns: 1fr;
     }
 
-    .add-consultation-card {
+    .student-my-consultations .add-consultation-card {
         min-height: 120px;
         padding: 0.75rem;
     }
 
-    .add-consultation-icon {
+    .student-my-consultations .add-consultation-icon {
         font-size: 1.75rem;
     }
 
-    .add-consultation-title {
+    .student-my-consultations .add-consultation-title {
         font-size: 0.95rem;
     }
 
-    .add-consultation-subtitle {
+    .student-my-consultations .add-consultation-subtitle {
         font-size: 0.8rem;
     }
 
-    .undo-notification {
+    .student-my-consultations .undo-notification {
         left: 10px;
         right: 10px;
         transform: none;

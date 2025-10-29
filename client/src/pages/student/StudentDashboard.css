@@ -968,12 +968,14 @@
 }
 
 /* ===== Modern Calendar Section ===== */
-.calendar-section-wrapper {
+@media (min-width: 768px) {
+    .calendar-section-wrapper {
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
     padding: 0 0 75px 0;
+}
 }
 
 .modern-date-grid {
@@ -1821,3 +1823,58 @@
   .student-dashboard-bento-grid { gap: 18px; }
 }
 /* === Student Desktop Layout (mirrors advisor) === */
+
+/* --- Mobile overrides to prevent tall columns and enforce single-column stats --- */
+@media (max-width: 768px) {
+  /* Restrict desktop paddings and heights from affecting mobile */
+  .student-dash-wrap {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .student-dash-body {
+    grid-template-columns: 1fr;
+    gap: 0;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: visible;
+    /* Account for fixed TopNavbar on mobile */
+    padding-top: calc(56px + env(safe-area-inset-top, 0px));
+  }
+
+  .student-dash-body.collapsed { grid-template-columns: 1fr; }
+
+  .student-dash-main {
+    padding: 16px;
+    padding-left: 16px;
+    /* keep comfortable bottom spacing without giant gap */
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px);
+    height: auto;
+    overflow-y: visible;
+  }
+
+  /* Let the bento wrapper grow naturally on mobile */
+  .student-dashboard-bento-grid {
+    height: auto;
+    padding-top: 0;
+  }
+
+  /* Ensure stats stack vertically on small screens */
+  .bento-grid-stats {
+    grid-template-columns: 1fr;
+  }
+
+  /* Mobile Upcoming accordion: keep visible under navbar */
+  .mobile-upcoming-sticky {
+    position: sticky;
+    top: calc(56px + env(safe-area-inset-top, 0px));
+    z-index: 900;
+    margin-bottom: 12px;
+  }
+  .mobile-upcoming-content {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+}

@@ -7,6 +7,17 @@
   color: #1f2937;
 }
 
+/* Mobile-only bottom padding fix: ensure no large gap at page end */
+@media (max-width: 768px) {
+  .consultation-details-main {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+
+  .consultation-details-section:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
 /* Body layout with animated sidebar width */
 .consultation-details-body {
   display: grid;

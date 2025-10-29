@@ -112,9 +112,12 @@
     overflow: hidden;
 }
 
-.advisor-section#all-faculty-list {
+@media (min-width: 768px) {
+    .advisor-section#all-faculty-list {
     margin-bottom: 20px;
 }
+}
+
 
 .advisor-section:last-child {
     margin-bottom: 0;
@@ -253,6 +256,24 @@
         flex: 1;
         max-width: 200px;
     }
+}
+
+/* Mobile-only bottom padding fix: remove large bottom gap */
+@media (max-width: 768px) {
+  /* Ensure the main content does not leave a big bottom space */
+  .dash-main {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+
+  /* Advisor grid previously added 3rem bottom padding; trim on mobile */
+  .advisor-grid {
+    padding-bottom: 0 !important;
+  }
+
+  /* Avoid extra spacing at the end of the page */
+  .advisor-section:last-child {
+    margin-bottom: 0 !important;
+  }
 }
 
 /* Extra small phones (320px - 360px) */

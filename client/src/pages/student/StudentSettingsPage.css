@@ -10,6 +10,25 @@
   box-sizing: border-box;
 }
 
+/* Mobile-only bottom padding fix: ensure comfortable bottom spacing without large gap */
+@media (max-width: 768px) {
+  .dash-main {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+
+  /* Prevent extra trailing space at end of content */
+  .settings-section:last-child,
+  .settings-panel:last-child {
+    margin-bottom: 0 !important;
+    padding-bottom: 16px; /* small, consistent bottom spacing */
+  }
+
+  /* Remove desktop min-height to avoid large gaps on mobile */
+  .settings-content {
+    min-height: 0 !important;
+  }
+}
+
 @media (max-width: 768px) {
   .settings-container {
     padding: 0 8px;
@@ -49,6 +68,7 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+  padding-right: 30px;
 }
 
 /* Settings Sidebar */

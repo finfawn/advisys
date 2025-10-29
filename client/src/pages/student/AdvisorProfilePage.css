@@ -7,6 +7,17 @@
   color: #1f2937;
 }
 
+/* Mobile-only bottom padding fix: ensure no large gap at page end */
+@media (max-width: 768px) {
+  .profile-main {
+    padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+  }
+
+  .profile-section:last-child {
+    margin-bottom: 0 !important;
+  }
+}
+
 @media (max-width: 768px) {
   .profile-wrap {
     min-height: auto;

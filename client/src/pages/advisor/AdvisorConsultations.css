@@ -87,9 +87,13 @@
 }
 
 /* Sections */
+@media (min-width: 768px) {
+    .consultations-section{
+        padding-bottom: 65px;    
+    }
+}
+
 .consultations-section {
-    margin-bottom: 1.5rem;
-    padding: 0;
     position: relative;
     overflow: visible;
 }
