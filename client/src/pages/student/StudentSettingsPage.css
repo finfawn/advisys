@@ -185,11 +185,11 @@
   display: flex;
   align-items: center;
   gap: 24px;
-  padding: 24px;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  padding: 20px 24px;
+  background: linear-gradient(90deg, #ffffff 0%, #f8fafc 60%);
   border-radius: 16px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  border: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .profile-picture-container {
@@ -198,6 +198,23 @@
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+}
+
+/* Placeholder style alias to match JSX */
+.profile-picture-placeholder {
+  width: 100px;
+  height: 100px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #e5e7eb 0%, #d1d5db 100%);
+  border-radius: 50%;
+}
+
+.profile-picture-placeholder svg {
+  width: 50px;
+  height: 50px;
+  color: #9ca3af;
 }
 
 /* Info Section */
@@ -432,16 +449,22 @@ select.info-input {
   font-size: 1.5rem;
   font-weight: 700;
   color: #1f2937;
-  margin: 0 0 4px 0;
+  margin: 0; /* equal spacing handled by following lines */
   line-height: 1.2;
 }
 
 .profile-role {
   font-size: 0.9rem;
   color: #6b7280;
-  margin: 0;
+  margin: 6px 0 0 0; /* equal vertical gap */
   font-weight: 500;
   text-align: left;
+}
+
+.profile-meta {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 6px 0 0 0; /* equal vertical gap */
 }
 
 
@@ -826,6 +849,10 @@ input:checked + .toggle-slider:before {
 @media (max-width: 576px) {
   .settings-container {
     padding: 0 4px;
+  }
+
+  .settings-content {
+    padding-right: 0px ;
   }
   
   .settings-title {

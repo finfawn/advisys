@@ -180,6 +180,32 @@
   color: #9ca3af;
 }
 
+.profile-info {
+  flex: 1;
+}
+
+.profile-name {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0; /* equal spacing controlled below */
+  line-height: 1.2;
+}
+
+.profile-role {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 6px 0 0 0; /* equal vertical gap */
+  font-weight: 500;
+  text-align: left;
+}
+
+.profile-meta {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 6px 0 0 0; /* equal vertical gap */
+}
+
 .profile-picture-actions {
   display: flex;
   gap: 8px;
@@ -418,12 +444,86 @@ input:checked + .toggle-slider:before {
   margin: 0;
 }
 
+/* Consultation Tab */
+.consult-section { margin-top: 20px; }
+.consult-subtitle {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.consult-about-text { line-height: 1.6; color: #374151; }
+
+.consult-textarea {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  min-height: 120px;
+  resize: vertical;
+}
+
+.topics-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.topic-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  background: #eef2ff;
+  color: #4338ca;
+  border: 1px solid #e0e7ff;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+}
+
+.guidelines-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
+.guideline-item {
+  padding: 10px 12px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  color: #374151;
+}
+
+.courses-list { list-style: none; padding-left: 0; margin: 0; display: grid; gap: 6px; }
+.course-item { color: #374151; }
+
+/* Editing UX enhancements */
+.settings-section.editing .consult-textarea:focus {
+  outline: none;
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+.help-text {
+  color: #6b7280;
+  font-size: 0.8rem;
+  margin: 6px 0 0 0;
+}
+
+.section-header-row.sticky {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  padding-top: 4px;
+  padding-bottom: 8px;
+  z-index: 5;
+  border-bottom: 1px solid #f3f4f6;
+}
+
 /* Responsive Design */
 @media (max-width: 1024px) {
   .settings-content {
     grid-template-columns: 240px 1fr;
     gap: 24px;
   }
+}
+
+@media (min-width: 768px) {
+  .settings-content {
+    padding-bottom: 115px;
+  }
+  
 }
 
 @media (max-width: 768px) {

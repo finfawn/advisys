@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { 
-  BsPersonCircle, BsBell, BsShield, BsGear, 
+  BsPersonCircle, BsBell, BsShield, BsGear, BsBook,
   BsCheck, BsX, BsPencil, BsSave
 } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
@@ -41,6 +41,42 @@ export default function AdvisorSettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ ...advisorData });
   const [activeSection, setActiveSection] = useState("profile");
+  const displayData = isEditing ? editData : advisorData;
+
+  // Consultation profile state
+  const [consultationData, setConsultationData] = useState({
+    bio: "Dr. Maria Santos is a distinguished professor specializing in artificial intelligence and machine learning. With over 15 years of experience in academia, she has published numerous papers in top-tier conferences and journals. She is passionate about mentoring students and helping them navigate their academic and research journeys.",
+    topics: [
+      "Thesis Guidance",
+      "Research Methods",
+      "Programming Projects",
+      "Academic Planning",
+      "Career Advice",
+      "Technical Writing",
+      "Data Analysis",
+      "Algorithm Design"
+    ],
+    guidelines: [
+      "Book at least 2 days in advance",
+      "Prepare specific questions beforehand",
+      "Bring relevant materials (code, documents)",
+      "Maximum 1 hour per session",
+      "Follow up via email if needed"
+    ],
+    courses: [
+      "CS 101: Introduction to Programming",
+      "CS 301: Data Structures and Algorithms",
+      "CS 401: Machine Learning",
+      "CS 501: Advanced AI Topics"
+    ]
+  });
+
+  const [isEditingConsult, setIsEditingConsult] = useState(false);
+  const [editConsultation, setEditConsultation] = useState({ ...consultationData });
+  // Text buffers to preserve user newlines during editing
+  const [editTopicsText, setEditTopicsText] = useState(consultationData.topics.join("\n"));
+  const [editGuidelinesText, setEditGuidelinesText] = useState(consultationData.guidelines.join("\n"));
+  const [editCoursesText, setEditCoursesText] = useState(consultationData.courses.join("\n"));
 
   const handleNavigation = (page) => {
     if (page === 'home') {
@@ -105,6 +141,44 @@ export default function AdvisorSettingsPage() {
     console.log('Change password clicked');
     // Implement change password functionality
   };
+
+  // Consultation handlers
+  const handleEditConsultation = () => {
+    setIsEditingConsult(true);
+    setEditConsultation({ ...consultationData });
+    setEditTopicsText(consultationData.topics.join("\n"));
+    setEditGuidelinesText(consultationData.guidelines.join("\n"));
+    setEditCoursesText(consultationData.courses.join("\n"));
+  };
+
+  const handleSaveConsultation = () => {
+    const updated = {
+      ...editConsultation,
+      topics: parseLines(editTopicsText),
+      guidelines: parseLines(editGuidelinesText),
+      courses: parseLines(editCoursesText)
+    };
+    setConsultationData(updated);
+    setEditConsultation(updated);
+    setIsEditingConsult(false);
+  };
+
+  const handleCancelConsultation = () => {
+    setEditConsultation({ ...consultationData });
+    setEditTopicsText(consultationData.topics.join("\n"));
+    setEditGuidelinesText(consultationData.guidelines.join("\n"));
+    setEditCoursesText(consultationData.courses.join("\n"));
+    setIsEditingConsult(false);
+  };
+
+  const handleConsultationChange = (field, value) => {
+    setEditConsultation(prev => ({ ...prev, [field]: value }));
+  };
+
+  const parseLines = (text) => text
+    .split("\n")
+    .map(s => s.trim())
+    .filter(Boolean);
 
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
@@ -215,6 +289,13 @@ export default function AdvisorSettingsPage() {
                   <span>Profile</span>
                 </button>
                 <button
+                  className={`settings-nav-item ${activeSection === "consultation" ? "active" : ""}`}
+                  onClick={() => setActiveSection("consultation")}
+                >
+                  <BsBook className="nav-icon" />
+                  <span>Consultation</span>
+                </button>
+                <button
                   className={`settings-nav-item ${activeSection === "notifications" ? "active" : ""}`}
                   onClick={() => setActiveSection("notifications")}
                 >
@@ -268,6 +349,15 @@ export default function AdvisorSettingsPage() {
                           <div className="profile-picture-placeholder">
                             <BsPersonCircle />
                           </div>
+                        )}
+                      </div>
+                      <div className="profile-info">
+                        <h3 className="profile-name">{`${displayData.firstName} ${displayData.lastName}`}</h3>
+                        {displayData.position && (
+                          <p className="profile-role">{displayData.position}</p>
+                        )}
+                        {displayData.department && (
+                          <p className="profile-meta">{displayData.department}</p>
                         )}
                       </div>
                       {isEditing && (
@@ -475,6 +565,123 @@ export default function AdvisorSettingsPage() {
                         </Button>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Consultation Section */}
+                {activeSection === "consultation" && (
+                  <div className={`settings-section ${isEditingConsult ? 'editing' : ''}`}>
+                    <div className={`section-header-row ${isEditingConsult ? 'sticky' : ''}`}>
+                      <div>
+                        <h2 className="section-title">Consultation Profile</h2>
+                        <p className="section-description">Edit details shown on your public profile</p>
+                      </div>
+                      {!isEditingConsult ? (
+                        <Button variant="primary" className="edit-btn" onClick={handleEditConsultation}>
+                          <BsPencil className="btn-icon" />
+                          Edit
+                        </Button>
+                      ) : (
+                        <div className="edit-actions">
+                          <Button variant="outline-secondary" className="cancel-btn" onClick={handleCancelConsultation}>
+                            <BsX className="btn-icon" />
+                            Cancel
+                          </Button>
+                          <Button variant="primary" className="save-btn" onClick={handleSaveConsultation}>
+                            <BsSave className="btn-icon" />
+                            Save
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* About */}
+                    <section className="consult-section">
+                      <h3 className="consult-subtitle">About</h3>
+                      {!isEditingConsult ? (
+                        <p className="consult-about-text">{consultationData.bio}</p>
+                      ) : (
+                        <>
+                        <textarea
+                          className="consult-textarea"
+                          rows={5}
+                          value={editConsultation.bio}
+                          onChange={e => handleConsultationChange('bio', e.target.value)}
+                          placeholder="Write a concise, student-friendly overview of your background and advising approach."
+                        />
+                        <p className="help-text">Aim for 2–5 sentences. Avoid personal contact details.</p>
+                        </>
+                      )}
+                    </section>
+
+                    {/* Topics */}
+                    <section className="consult-section">
+                      <h3 className="consult-subtitle">Topics I Can Help With</h3>
+                      {!isEditingConsult ? (
+                        <div className="topics-list">
+                          {consultationData.topics.map((t, i) => (
+                            <span key={i} className="topic-tag">{t}</span>
+                          ))}
+                        </div>
+                      ) : (
+                        <>
+                        <textarea
+                          className="consult-textarea"
+                          rows={3}
+                          placeholder="Enter one topic per line"
+                          value={editTopicsText}
+                          onChange={e => setEditTopicsText(e.target.value)}
+                        />
+                        <p className="help-text">One topic per line, e.g., Thesis Guidance, Research Methods.</p>
+                        </>
+                      )}
+                    </section>
+
+                    {/* Guidelines */}
+                    <section className="consult-section">
+                      <h3 className="consult-subtitle">Preferred Consultation Guidelines</h3>
+                      {!isEditingConsult ? (
+                        <ul className="guidelines-list">
+                          {consultationData.guidelines.map((g, i) => (
+                            <li key={i} className="guideline-item">{g}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <>
+                        <textarea
+                          className="consult-textarea"
+                          rows={4}
+                          placeholder="Enter one guideline per line"
+                          value={editGuidelinesText}
+                          onChange={e => setEditGuidelinesText(e.target.value)}
+                        />
+                        <p className="help-text">Keep guidelines actionable and student-friendly.</p>
+                        </>
+                      )}
+                    </section>
+
+                    {/* Courses */}
+                    <section className="consult-section">
+                      <h3 className="consult-subtitle">Courses Taught</h3>
+                      {!isEditingConsult ? (
+                        <ul className="courses-list">
+                          {consultationData.courses.map((c, i) => (
+                            <li key={i} className="course-item">{c}</li>
+                          ))}
+                        </ul>
+                      ) : (
+                        <>
+                        <textarea
+                          className="consult-textarea"
+                          rows={4}
+                          placeholder="Enter one course per line"
+                          value={editCoursesText}
+                          onChange={e => setEditCoursesText(e.target.value)}
+                        />
+                        <p className="help-text">Include course code and title, one per line.</p>
+                        </>
+                      )}
+                    </section>
                   </div>
                 )}
               </div>

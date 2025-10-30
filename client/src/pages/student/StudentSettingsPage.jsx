@@ -20,7 +20,6 @@ export default function StudentSettingsPage() {
   const [studentData, setStudentData] = useState({
     firstName: "John Michael",
     lastName: "Santos",
-    studentId: "2023-12345",
     program: "Bachelor of Science in Computer Science",
     yearLevel: "3rd Year",
     email: "john.santos@student.university.edu",
@@ -277,31 +276,45 @@ export default function StudentSettingsPage() {
                       )}
                     </div>
 
-                    {/* Profile Picture */}
+                    {/* Profile Summary Card */}
                     <div className="profile-picture-section">
                       <div className="profile-picture-container">
                         {(isEditing ? editData.profilePicture : studentData.profilePicture) ? (
-                          <img src={isEditing ? editData.profilePicture : studentData.profilePicture} alt="Profile" className="profile-picture" />
+                          <img
+                            src={isEditing ? editData.profilePicture : studentData.profilePicture}
+                            alt="Profile"
+                            className="profile-picture"
+                          />
                         ) : (
                           <div className="profile-picture-placeholder">
                             <BsPersonCircle />
                           </div>
                         )}
+
+                        {isEditing && (
+                          <div className="profile-picture-actions">
+                            <label htmlFor="profile-upload" className="upload-label">
+                              Change Photo
+                            </label>
+                            <input
+                              id="profile-upload"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleFileUpload}
+                              style={{ display: 'none' }}
+                            />
+                          </div>
+                        )}
                       </div>
-                      {isEditing && (
-                        <div className="profile-picture-actions">
-                          <label htmlFor="profile-upload" className="upload-label">
-                            Change Photo
-                          </label>
-                          <input
-                            id="profile-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleFileUpload}
-                            style={{ display: 'none' }}
-                          />
-                        </div>
-                      )}
+
+                      {/* Textual summary */}
+                      <div className="profile-info">
+                        <h3 className="profile-name">
+                          {studentData.firstName} {studentData.lastName}
+                        </h3>
+                        <p className="profile-role">{studentData.program}</p>
+                        <p className="profile-meta">{studentData.yearLevel}</p>
+                      </div>
                     </div>
 
                     {/* Personal Information */}
@@ -337,11 +350,7 @@ export default function StudentSettingsPage() {
                       </div>
 
                       <div className="info-grid">
-                        <div className="info-field">
-                          <label className="info-label">Student ID</label>
-                          <div className="info-value">{studentData.studentId}</div>
-                        </div>
-                        <div className="info-field">
+                        <div className="info-field full-width">
                           <label className="info-label">Year Level</label>
                           {isEditing ? (
                             <select
