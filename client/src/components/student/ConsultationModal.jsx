@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { BsPersonCircle, BsCheckCircle, BsCalendar, BsClock, BsX } from "react-icons/bs";
 import { FaMapMarkerAlt, FaLaptop } from "react-icons/fa";
 import { Modal, Button, Form, Row, Col, Card, Badge } from "react-bootstrap";
@@ -6,6 +7,7 @@ import ModernCalendar from "./ModernCalendar";
 import "./ConsultationModal.css";
 
 function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations }) {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
     description: "",
@@ -179,6 +181,9 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     onClose();
     if (onNavigateToConsultations) {
       onNavigateToConsultations();
+    } else {
+      // Fallback navigation if handler not provided
+      navigate('/student-dashboard/consultations');
     }
   };
 

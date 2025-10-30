@@ -133,7 +133,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
       {consultation.status === 'approved' && (
         <CardFooter className="pt-3 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={onActionClick}>
-            View Details
+            {consultation.mode === 'online' ? 'Join' : 'Details'}
             <BsChevronRight className="w-4 h-4 ml-1" />
           </Button>
           <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleCancelConsultation}>

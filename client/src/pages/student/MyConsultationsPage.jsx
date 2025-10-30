@@ -219,6 +219,20 @@ export default function MyConsultationsPage() {
       status: "approved",
       location: "Communication Building, Office 203"
     },
+    {
+      id: 21,
+      date: "2025-11-03",
+      time: "9:30 AM - 10:00 AM",
+      topic: "Online Portfolio Review",
+      faculty: {
+        name: "Dr. Angela Gomez",
+        title: "Professor of Design",
+        avatar: <BsPersonCircle />
+      },
+      mode: "online",
+      status: "approved",
+      meetingLink: "https://meet.google.com/xyz-1234-abc"
+    },
     // Past consultations (history)
     {
       id: 13,
