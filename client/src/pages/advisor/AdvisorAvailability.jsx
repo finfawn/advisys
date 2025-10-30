@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
@@ -15,6 +15,8 @@ import "./AdvisorAvailability.css";
 export default function AdvisorAvailability() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const leftRef = useRef(null);
+  const [inspectorHeight, setInspectorHeight] = useState(null);
   const [openCreateSignal, setOpenCreateSignal] = useState(0);
   const [view, setView] = useState("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -77,6 +79,32 @@ export default function AdvisorAvailability() {
   };
 
   const [events, setEvents] = useState(buildSampleEvents());
+  const [activeSection, setActiveSection] = useState('morning');
+
+  // Keep the right inspector card the same height as the calendar container
+  useLayoutEffect(() => {
+    const container = leftRef.current?.querySelector?.('.calendar-container');
+    if (!container) return;
+
+    const update = () => {
+      const h = container.offsetHeight;
+      if (h && h !== inspectorHeight) setInspectorHeight(h);
+    };
+    update();
+
+    let ro;
+    if (typeof ResizeObserver !== 'undefined') {
+      ro = new ResizeObserver(() => update());
+      ro.observe(container);
+    } else {
+      window.addEventListener('resize', update);
+    }
+
+    return () => {
+      if (ro) ro.disconnect();
+      else window.removeEventListener('resize', update);
+    };
+  }, [leftRef, view]);
 
   const isSameDay = (a, b) => {
     if (!a || !b) return false;
@@ -86,6 +114,25 @@ export default function AdvisorAvailability() {
   const slotsForSelected = useMemo(() => {
     return events.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
   }, [events, selectedDate]);
+
+  // Group slots into morning/afternoon/evening buckets
+  const groupedSlots = useMemo(() => {
+    const groups = { morning: [], afternoon: [], evening: [] };
+    for (const slot of slotsForSelected) {
+      const hour = new Date(slot.start).getHours();
+      if (hour >= 8 && hour < 12) groups.morning.push(slot);
+      else if (hour >= 12 && hour < 16) groups.afternoon.push(slot);
+      else if (hour >= 16 && hour < 20) groups.evening.push(slot);
+      else groups.morning.push(slot); // default bucket
+    }
+    return groups;
+  }, [slotsForSelected]);
+
+  const counts = {
+    morning: groupedSlots.morning.length,
+    afternoon: groupedSlots.afternoon.length,
+    evening: groupedSlots.evening.length,
+  };
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -198,7 +245,7 @@ export default function AdvisorAvailability() {
 
           {/* Layout: Calendar + Day Inspector */}
           <div className={`availability-layout ${view === 'agenda' ? 'expand-calendar' : ''}`}>
-            <div className="availability-left">
+            <div className="availability-left" ref={leftRef}>
               <AvailabilityCalendar
                 openCreateSignal={openCreateSignal}
                 events={events}
@@ -214,7 +261,7 @@ export default function AdvisorAvailability() {
 
             {view !== 'agenda' && (
               <aside className="day-inspector">
-                <Card hoverable bordered>
+                <Card hoverable bordered className="inspector-card" style={inspectorHeight ? { height: inspectorHeight } : undefined}>
                   <CardHeader className="day-inspector-header">
                     <CardTitle>
                       {selectedDate ? moment(selectedDate).format('dddd, MMM D, YYYY') : 'Select a date'}
@@ -232,28 +279,77 @@ export default function AdvisorAvailability() {
                       </Button>
                     </div>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="inspector-content">
                     {slotsForSelected.length === 0 ? (
                       <div className="empty-state-card">
                         <div className="empty-title">No consultation slots for this day.</div>
                         <div className="empty-text">Click “+ Add Slot” to create one.</div>
                       </div>
                     ) : (
-                      <div className="slots-list">
-                        {slotsForSelected.map((slot) => (
-                          <div key={slot.id} className="slot-card">
-                            <div className="slot-info">
-                              <div className="slot-time">{moment(slot.start).format('h:mm a')} – {moment(slot.end).format('h:mm a')}</div>
-                              <div className="slot-mode">Mode: {slot.mode === 'face_to_face' ? 'In-person' : (slot.mode === 'hybrid' ? 'Both' : 'Online')}</div>
-                              <div className="slot-room">Room: {slot.mode === 'face_to_face' || slot.mode === 'hybrid' ? (slot.room || '—') : '—'}</div>
-                            </div>
-                            <div className="slot-actions">
-                              <Button variant="outline" size="sm" onClick={() => setEditEvent(slot)}>Edit</Button>
-                              <Button variant="destructive" size="sm" onClick={() => { setPendingDeleteEvent(slot); setDeleteOpen(true); }}>Delete</Button>
-                            </div>
+                      <>
+                        <div className="slot-tabs" role="tablist" aria-label="Time of day">
+                          <button
+                            id="tab-morning"
+                            role="tab"
+                            className="slot-tab"
+                            aria-selected={activeSection === 'morning'}
+                            aria-controls="panel-morning"
+                            onClick={() => setActiveSection('morning')}
+                          >
+                            Morning ({counts.morning})
+                          </button>
+                          <button
+                            id="tab-afternoon"
+                            role="tab"
+                            className="slot-tab"
+                            aria-selected={activeSection === 'afternoon'}
+                            aria-controls="panel-afternoon"
+                            onClick={() => setActiveSection('afternoon')}
+                          >
+                            Afternoon ({counts.afternoon})
+                          </button>
+                          <button
+                            id="tab-evening"
+                            role="tab"
+                            className="slot-tab"
+                            aria-selected={activeSection === 'evening'}
+                            aria-controls="panel-evening"
+                            onClick={() => setActiveSection('evening')}
+                          >
+                            Evening ({counts.evening})
+                          </button>
+                        </div>
+
+                        <div
+                          className="inspector-scroll slots-fade"
+                          role="tabpanel"
+                          id={`panel-${activeSection}`}
+                          aria-labelledby={`tab-${activeSection}`}
+                        >
+                          <div className="slots-section">
+                            {(activeSection === 'morning' ? groupedSlots.morning : activeSection === 'afternoon' ? groupedSlots.afternoon : groupedSlots.evening).length === 0 ? (
+                              <div className="empty-state-card">
+                                <div className="empty-title">No slots in this time range.</div>
+                                <div className="empty-text">Try a different tab above.</div>
+                              </div>
+                            ) : (
+                              (activeSection === 'morning' ? groupedSlots.morning : activeSection === 'afternoon' ? groupedSlots.afternoon : groupedSlots.evening).map((slot) => (
+                                <div key={slot.id} className="slot-card">
+                                  <div className="slot-info">
+                                    <div className="slot-time">{moment(slot.start).format('h:mm a')} – {moment(slot.end).format('h:mm a')}</div>
+                                    <div className="slot-mode">Mode: {slot.mode === 'face_to_face' ? 'In-person' : (slot.mode === 'hybrid' ? 'Both' : 'Online')}</div>
+                                    <div className="slot-room">Room: {slot.mode === 'face_to_face' || slot.mode === 'hybrid' ? (slot.room || '—') : '—'}</div>
+                                  </div>
+                                  <div className="slot-actions">
+                                    <Button variant="outline" size="sm" onClick={() => setEditEvent(slot)}>Edit</Button>
+                                    <Button variant="destructive" size="sm" onClick={() => { setPendingDeleteEvent(slot); setDeleteOpen(true); }}>Delete</Button>
+                                  </div>
+                                </div>
+                              ))
+                            )}
                           </div>
-                        ))}
-                      </div>
+                        </div>
+                      </>
                     )}
                   </CardContent>
                 </Card>

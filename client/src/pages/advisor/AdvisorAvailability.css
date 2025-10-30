@@ -127,7 +127,7 @@
     display: grid;
     grid-template-columns: 1fr 360px;
     gap: 1rem;
-    align-items: start;
+    align-items: stretch; /* stretch both columns to the same row height */
   }
   .availability-layout.expand-calendar {
     grid-template-columns: 1fr;
@@ -138,6 +138,34 @@
   .day-inspector {
     position: sticky;
     top: 0; /* align top with calendar container */
+    height: 100%;
+  }
+  /* Ensure the Card fills the column height and layouts as a column */
+  .day-inspector .inspector-card {
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    min-height: 0; /* allow children to shrink */
+  }
+  /* Make CardContent a flex column so the scroll region can flex */
+  .day-inspector .inspector-content {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    min-height: 0;
+    height: 100%;
+  }
+  /* Fixed-height, scrollable right panel body */
+  .day-inspector .inspector-scroll {
+    flex: 1 1 auto; /* occupy remaining height within the card */
+    min-height: 0; /* allow proper flexbox scrolling */
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-right: 0.5rem; /* avoid scrollbar overlay */
+    margin-right: -0.5rem; /* keep visual gutter symmetric */
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
   }
   .day-inspector-header {
     display: flex;
@@ -172,6 +200,48 @@
     flex-direction: column;
     gap: 10px;
   }
+
+  /* Tabs for Morning / Afternoon / Evening */
+  .slot-tabs {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px; /* tighter spacing so three pills fit in one row */
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+  }
+  .slot-tab {
+    padding: 4px 9px; /* smaller pill */
+    border: 1px solid #d1d5db;
+    background: #ffffff;
+    color: #374151;
+    border-radius: 9999px;
+    font-weight: 600;
+    font-size: 0.8rem; /* smaller text */
+    line-height: 1.1;
+    white-space: nowrap; /* keep label and count on one line */
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .slot-tab:hover { background: #f3f4f6; }
+  .slot-tab[aria-selected="true"] {
+    background: #3b82f6;
+    color: #ffffff;
+    border-color: #3b82f6;
+  }
+  .slot-tab:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: 2px;
+  }
+
+  /* Extra-compact on narrow layouts */
+  @media (max-width: 1024px) {
+    .slot-tab { font-size: 0.78rem; padding: 4px 8px; }
+    .slot-tabs { gap: 5px; }
+  }
+
+  .slots-section { display: flex; flex-direction: column; gap: 10px; }
+  .slots-fade { animation: slotsFadeIn 0.18s ease-out; }
+  @keyframes slotsFadeIn { from { opacity: 0; transform: translateY(2px); } to { opacity: 1; transform: none; } }
   .slot-card {
     display: flex;
     justify-content: space-between;
