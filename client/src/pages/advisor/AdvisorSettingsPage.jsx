@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { 
   BsPersonCircle, BsBell, BsShield, BsGear, BsBook,
-  BsCheck, BsX, BsPencil, BsSave
+  BsCheck, BsX, BsPencil, BsSave, BsChevronDown
 } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
@@ -11,6 +11,7 @@ import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorSettingsPage.css";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
 
 export default function AdvisorSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -42,6 +43,7 @@ export default function AdvisorSettingsPage() {
   const [editData, setEditData] = useState({ ...advisorData });
   const [activeSection, setActiveSection] = useState("profile");
   const displayData = isEditing ? editData : advisorData;
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
 
   // Consultation profile state
   const [consultationData, setConsultationData] = useState({
@@ -275,6 +277,52 @@ export default function AdvisorSettingsPage() {
             <div className="settings-header">
               <h1 className="settings-title">Settings</h1>
               <p className="settings-subtitle">Manage your account settings and preferences</p>
+            </div>
+
+            {/* Mobile Settings Accordion - Only visible on mobile */}
+            <div className="md:hidden mobile-settings-accordion">
+              <Collapsible open={mobileSettingsOpen} onOpenChange={setMobileSettingsOpen}>
+                <CollapsibleTrigger className="mobile-settings-trigger">
+                  <div className="flex items-center justify-between w-full">
+                    <h3 className="font-semibold text-base">Settings</h3>
+                    <BsChevronDown className="chevron-icon" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mobile-settings-content">
+                    <div className="mobile-settings-list">
+                      <button
+                        className={`settings-nav-item ${activeSection === "profile" ? "active" : ""}`}
+                        onClick={() => { setActiveSection("profile"); setMobileSettingsOpen(false); }}
+                      >
+                        <BsPersonCircle className="nav-icon" />
+                        <span>Profile</span>
+                      </button>
+                      <button
+                        className={`settings-nav-item ${activeSection === "consultation" ? "active" : ""}`}
+                        onClick={() => { setActiveSection("consultation"); setMobileSettingsOpen(false); }}
+                      >
+                        <BsBook className="nav-icon" />
+                        <span>Consultation</span>
+                      </button>
+                      <button
+                        className={`settings-nav-item ${activeSection === "notifications" ? "active" : ""}`}
+                        onClick={() => { setActiveSection("notifications"); setMobileSettingsOpen(false); }}
+                      >
+                        <BsBell className="nav-icon" />
+                        <span>Notifications</span>
+                      </button>
+                      <button
+                        className={`settings-nav-item ${activeSection === "security" ? "active" : ""}`}
+                        onClick={() => { setActiveSection("security"); setMobileSettingsOpen(false); }}
+                      >
+                        <BsShield className="nav-icon" />
+                        <span>Security</span>
+                      </button>
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
 
             {/* Settings Content */}

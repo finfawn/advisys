@@ -3,11 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { 
   BsPersonCircle, BsBell, BsShield, BsGear, 
-  BsCheck, BsX, BsPencil, BsSave
+  BsCheck, BsX, BsPencil, BsSave, BsChevronDown
 } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible.tsx";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentSettingsPage.css";
@@ -36,6 +37,7 @@ export default function StudentSettingsPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState({ ...studentData });
   const [activeSection, setActiveSection] = useState("profile");
+  const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
 
   const handleNavigation = (page) => {
     if (page === 'home') {
@@ -225,6 +227,37 @@ export default function StudentSettingsPage() {
             <div className="settings-header">
               <h1 className="settings-title">Settings</h1>
               <p className="settings-subtitle">Manage your account settings and preferences</p>
+            </div>
+
+            {/* Mobile Settings Accordion - Only visible on mobile */}
+            <div className="md:hidden mobile-settings-accordion">
+              <Collapsible open={mobileSettingsOpen} onOpenChange={setMobileSettingsOpen}>
+                <CollapsibleTrigger className="mobile-settings-trigger">
+                  <div className="flex items-center justify-between w-full">
+                    <h3 className="font-semibold text-base">Settings</h3>
+                    <BsChevronDown className="chevron-icon" />
+                  </div>
+                </CollapsibleTrigger>
+                <CollapsibleContent>
+                  <div className="mobile-settings-content">
+                    <div className="mobile-settings-list">
+                      {settingsSections.map((section) => {
+                        const Icon = section.icon;
+                        return (
+                          <button
+                            key={section.id}
+                            className={`settings-nav-item ${activeSection === section.id ? 'active' : ''}`}
+                            onClick={() => { setActiveSection(section.id); setMobileSettingsOpen(false); }}
+                          >
+                            <Icon className="nav-icon" />
+                            <span>{section.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </CollapsibleContent>
+              </Collapsible>
             </div>
 
             <div className="settings-content">

@@ -140,6 +140,38 @@
   gap: 24px;
 }
 
+/* Mobile Settings Accordion */
+.mobile-settings-accordion { margin-bottom: 12px; }
+.mobile-settings-item { margin-bottom: 12px; }
+.mobile-settings-trigger {
+  width: 100%;
+  padding: 12px 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mobile-settings-trigger .chevron-icon {
+  transition: transform 0.3s ease;
+  font-size: 18px;
+  color: #6b7280;
+}
+.mobile-settings-trigger[data-state="open"] .chevron-icon {
+  transform: rotate(180deg);
+}
+.mobile-settings-content { margin-top: 8px; }
+
+/* Mobile-only copy of sidebar card for accordion content */
+.mobile-settings-list {
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  padding: 16px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
 /* Section Headers */
 .section-header-row {
   display: flex;
@@ -754,6 +786,8 @@ input:checked + .toggle-slider:before {
     max-width: 100%;
     padding: 16px;
   }
+  /* Hide the desktop sidebar only when it is in the grid */
+  .settings-content > .settings-sidebar { display: none; }
   
   .settings-panel {
     order: 1;
