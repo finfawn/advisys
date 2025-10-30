@@ -15,11 +15,11 @@ import OnlineConsultationDetailsPage from "./pages/student/OnlineConsultationDet
 import HistoryConsultationDetailsPage from "./pages/HistoryConsultationDetailsPage";
 import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 
-// Advisor pages
-import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
-import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
-import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
-import AdvisorSettingsPage from "./pages/advisor/AdvisorSettingsPage";
+  // Advisor pages
+  import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
+  import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
+  import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
+  import AdvisorSettingsPage from "./pages/advisor/AdvisorSettingsPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -51,6 +51,7 @@ function App() {
           <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
           <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
           <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
+          <Route path="/advisor-dashboard/profile" element={<AdvisorSettingsPage />} />
 
           {/* Admin routes */}
           <Route path="/admin-dashboard" element={<AdminDashboard />} />

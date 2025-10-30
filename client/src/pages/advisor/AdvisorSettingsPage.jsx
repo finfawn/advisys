@@ -20,12 +20,10 @@ export default function AdvisorSettingsPage() {
   const [advisorData, setAdvisorData] = useState({
     firstName: "Sarah",
     lastName: "Johnson",
-    employeeId: "FAC-2024-001",
     department: "Computer Science",
     position: "Associate Professor",
     email: "sarah.johnson@university.edu",
     officeLocation: "Room 305, CS Building",
-    phoneNumber: "+1 (555) 123-4567",
     profilePicture: null
   });
 
@@ -322,10 +320,6 @@ export default function AdvisorSettingsPage() {
 
                       <div className="info-grid">
                         <div className="info-field">
-                          <label className="info-label">Employee ID</label>
-                          <div className="info-value">{advisorData.employeeId}</div>
-                        </div>
-                        <div className="info-field">
                           <label className="info-label">Position</label>
                           {isEditing ? (
                             <input
@@ -374,19 +368,7 @@ export default function AdvisorSettingsPage() {
                         <div className="info-value">{advisorData.email}</div>
                       </div>
 
-                      <div className="info-field full-width">
-                        <label className="info-label">Phone Number</label>
-                        {isEditing ? (
-                          <input
-                            type="tel"
-                            className="info-input"
-                            value={editData.phoneNumber}
-                            onChange={(e) => handleInputChange('phoneNumber', e.target.value)}
-                          />
-                        ) : (
-                          <div className="info-value">{advisorData.phoneNumber}</div>
-                        )}
-                      </div>
+                      {/* Phone Number field removed as requested */}
                     </div>
                   </div>
                 )}
