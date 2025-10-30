@@ -1,6 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useRef } from "react";
+import { BsClock } from "react-icons/bs";
 import moment from "moment";
 import "./CreateAvailabilityModal.css";
+// Removed react-time-picker in favor of typed inputs
 
 function daysInMonth(year, monthIndex) {
   // monthIndex is 0-based
@@ -21,6 +23,57 @@ function formatTime12h(date) {
 
 function formatDateHuman(date) {
   return moment(date).format("MMM D, YYYY");
+}
+
+// Round HH:mm to nearest 15 minutes
+function roundTo15(value) {
+  const [hStr, mStr] = String(value || "").split(":");
+  let h = Number(hStr);
+  let m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return value;
+  const rounded = Math.round(m / 15) * 15;
+  if (rounded === 60) {
+    h = (h + 1) % 24;
+    m = 0;
+  } else {
+    m = rounded;
+  }
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+}
+
+// Normalize typed input (e.g., "9:00 AM", "930pm", "11:30") to HH:mm
+function normalizeToHHmm(input) {
+  if (!input) return "";
+  if (input instanceof Date) {
+    const h = input.getHours();
+    const m = input.getMinutes();
+    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
+  }
+  const raw = String(input).trim();
+  const m = moment(raw, ["h:mm A", "hh:mm A", "H:mm", "HH:mm"], true);
+  if (m.isValid()) {
+    return `${String(m.hours()).padStart(2, "0")}:${String(m.minutes()).padStart(2, "0")}`;
+  }
+  const re = /^(\d{1,2})(?::?(\d{2}))?\s*(am|pm)?$/i;
+  const match = raw.match(re);
+  if (!match) return raw;
+  let h = Number(match[1]);
+  let mm = Number(match[2] || 0);
+  const ap = (match[3] || "").toLowerCase();
+  if (ap === "pm" && h !== 12) h += 12;
+  if (ap === "am" && h === 12) h = 0;
+  h = Math.max(0, Math.min(23, h));
+  mm = Math.max(0, Math.min(59, mm));
+  return `${String(h).padStart(2, "0")}:${String(mm).padStart(2, "0")}`;
+}
+
+function hhmmTo12h(hhmm) {
+  const [hStr, mStr] = String(hhmm || "").split(":");
+  const h = Number(hStr);
+  const m = Number(mStr);
+  if (Number.isNaN(h) || Number.isNaN(m)) return "";
+  const d = new Date(2000, 0, 1, h || 0, m || 0);
+  return formatTime12h(d);
 }
 
 export default function CreateAvailabilityModal({
@@ -60,6 +113,11 @@ export default function CreateAvailabilityModal({
   const [day, setDay] = useState(baseDate.getDate());
   const [startTime, setStartTime] = useState(toTimeValue(baseStart)); // HH:mm
   const [endTime, setEndTime] = useState(toTimeValue(baseEnd)); // HH:mm
+  // Draft states for deferred commit to avoid instant updates
+  const [draftStart, setDraftStart] = useState(toTimeValue(baseStart));
+  const [draftEnd, setDraftEnd] = useState(toTimeValue(baseEnd));
+  const startRef = useRef(null);
+  const endRef = useRef(null);
   const [mode, setMode] = useState("online"); // online | face_to_face
   const [room, setRoom] = useState("");
   const [error, setError] = useState("");
@@ -117,6 +175,10 @@ export default function CreateAvailabilityModal({
       setError("");
     }
   }, [isOpen]);
+
+  // Keep drafts in sync when modal opens or actual values change
+  useEffect(() => { setDraftStart(startTime || ""); }, [startTime, isOpen]);
+  useEffect(() => { setDraftEnd(endTime || ""); }, [endTime, isOpen]);
 
   // Sync internal state when the modal opens or when the initial date/time props change
   useEffect(() => {
@@ -338,10 +400,40 @@ export default function CreateAvailabilityModal({
                 </label>
                 <div className="time-grid-labeled">
                   <div className="time-field">
-                    <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} />
+                    <div className="time-input-wrapper">
+                      <input
+                        type="time"
+                        step="900"
+                        className="text-input time-input custom-icon"
+                        value={draftStart || ""}
+                        onChange={(e) => setDraftStart(e.target.value)}
+                        onBlur={() => setStartTime(roundTo15(normalizeToHHmm(draftStart)))}
+                        onKeyDown={(e) => { if (e.key === "Enter") setStartTime(roundTo15(normalizeToHHmm(draftStart))); }}
+                        aria-label="Start time"
+                        ref={startRef}
+                      />
+                      <button type="button" className="time-icon-btn" aria-label="Open start time picker" onClick={() => { const el = startRef?.current; if (!el) return; try { el.showPicker?.(); } catch {} el.focus(); }}>
+                        <BsClock />
+                      </button>
+                    </div>
                   </div>
                   <div className="time-field">
-                    <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
+                    <div className="time-input-wrapper">
+                      <input
+                        type="time"
+                        step="900"
+                        className="text-input time-input custom-icon"
+                        value={draftEnd || ""}
+                        onChange={(e) => setDraftEnd(e.target.value)}
+                        onBlur={() => setEndTime(roundTo15(normalizeToHHmm(draftEnd)))}
+                        onKeyDown={(e) => { if (e.key === "Enter") setEndTime(roundTo15(normalizeToHHmm(draftEnd))); }}
+                        aria-label="End time"
+                        ref={endRef}
+                      />
+                      <button type="button" className="time-icon-btn" aria-label="Open end time picker" onClick={() => { const el = endRef?.current; if (!el) return; try { el.showPicker?.(); } catch {} el.focus(); }}>
+                        <BsClock />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>

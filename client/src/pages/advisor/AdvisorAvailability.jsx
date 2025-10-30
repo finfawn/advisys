@@ -21,6 +21,28 @@ export default function AdvisorAvailability() {
   const [editEvent, setEditEvent] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [pendingDeleteEvent, setPendingDeleteEvent] = useState(null);
+  const [deleteAllOpen, setDeleteAllOpen] = useState(false);
+  // Undo toast state (like student pages)
+  const [undoToast, setUndoToast] = useState({ open: false, items: [], timeoutId: null, message: '' });
+
+  const showUndoToast = (items, message) => {
+    // Clear previous timer if any
+    if (undoToast.timeoutId) {
+      clearTimeout(undoToast.timeoutId);
+    }
+    const tid = setTimeout(() => {
+      setUndoToast((s) => ({ ...s, open: false, items: [], timeoutId: null, message: '' }));
+    }, 5000);
+    setUndoToast({ open: true, items, timeoutId: tid, message });
+  };
+
+  const handleUndoDelete = () => {
+    if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
+    if (undoToast.items && undoToast.items.length) {
+      setEvents((prev) => [...prev, ...undoToast.items]);
+    }
+    setUndoToast({ open: false, items: [], timeoutId: null, message: '' });
+  };
 
   // Build initial sample events (matching calendar's internal defaults)
   const buildSampleEvents = () => {
@@ -193,15 +215,24 @@ export default function AdvisorAvailability() {
             {view !== 'agenda' && (
               <aside className="day-inspector">
                 <Card hoverable bordered>
-                  <CardHeader>
+                  <CardHeader className="day-inspector-header">
                     <CardTitle>
                       {selectedDate ? moment(selectedDate).format('dddd, MMM D, YYYY') : 'Select a date'}
                     </CardTitle>
+                    <div className="header-actions">
+                      <Button variant="default" size="sm" onClick={() => setOpenCreateSignal((s) => s + 1)}>+ Add Slot</Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="reset-day-btn"
+                        disabled={!slotsForSelected.length}
+                        onClick={() => setDeleteAllOpen(true)}
+                      >
+                        Reset Day
+                      </Button>
+                    </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="day-inspector-actions">
-                      <Button variant="default" onClick={() => setOpenCreateSignal((s) => s + 1)}>+ Add Slot</Button>
-                    </div>
                     {slotsForSelected.length === 0 ? (
                       <div className="empty-state-card">
                         <div className="empty-title">No consultation slots for this day.</div>
@@ -239,18 +270,76 @@ export default function AdvisorAvailability() {
                   {pendingDeleteEvent ? `Delete the slot from ${moment(pendingDeleteEvent.start).format('h:mm a')} to ${moment(pendingDeleteEvent.end).format('h:mm a')}?` : 'Delete this slot?'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel onClick={() => { setDeleteOpen(false); setPendingDeleteEvent(null); }}>Cancel</AlertDialogCancel>
-                <AlertDialogAction onClick={() => {
-                  if (pendingDeleteEvent) {
-                    setEvents((prev) => prev.filter((ev) => ev.id !== pendingDeleteEvent.id));
-                  }
-                  setPendingDeleteEvent(null);
-                  setDeleteOpen(false);
-                }}>Delete</AlertDialogAction>
+              <AlertDialogFooter className="items-center">
+                <AlertDialogCancel 
+                  className="min-w-[110px] h-10 px-4"
+                  onClick={() => { setDeleteOpen(false); setPendingDeleteEvent(null); }}
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction 
+                  className="min-w-[110px] h-10 px-4"
+                  onClick={() => {
+                    if (pendingDeleteEvent) {
+                      const deleted = [pendingDeleteEvent];
+                      setEvents((prev) => prev.filter((ev) => ev.id !== pendingDeleteEvent.id));
+                      showUndoToast(deleted, `Slot deleted`);
+                    }
+                    setPendingDeleteEvent(null);
+                    setDeleteOpen(false);
+                  }}
+                >
+                  Delete
+                </AlertDialogAction>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
+
+          {/* Reset Day Warning Modal (admin-style) */}
+          {deleteAllOpen && (
+            <div className="admin-modal-overlay">
+              <div className="admin-modal" role="dialog" aria-modal="true">
+                <div className="admin-modal-header">
+                  <h3 className="admin-modal-title">Confirm Action</h3>
+                  <button className="admin-modal-close" onClick={() => setDeleteAllOpen(false)}>×</button>
+                </div>
+                <div className="admin-modal-body">
+                  {selectedDate
+                    ? `Are you sure you want to delete all slots for ${moment(selectedDate).format('dddd, MMM D, YYYY')}?`
+                    : 'Are you sure you want to delete all slots for this day?'}
+                </div>
+                <div className="p-3" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <Button variant="outline" onClick={() => setDeleteAllOpen(false)}>Cancel</Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      setEvents((prev) => {
+                        const toDelete = prev.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
+                        const next = prev.filter((ev) => !(ev.type === 'available' && isSameDay(ev.start, selectedDate)));
+                        showUndoToast(toDelete, `${toDelete.length} slot${toDelete.length !== 1 ? 's' : ''} deleted`);
+                        return next;
+                      });
+                      setDeleteAllOpen(false);
+                    }}
+                  >
+                    Delete All
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* Undo Toast (Advisor) */}
+          {undoToast.open && (
+            <div className="undo-notification">
+              <div className="undo-content">
+                <span className="undo-message">{undoToast.message || 'Deleted'}</span>
+                <button className="undo-btn" onClick={handleUndoDelete}>Undo</button>
+              </div>
+              <div className="undo-timer">
+                <div className="undo-timer-bar"></div>
+              </div>
+            </div>
+          )}
         </main>
       </div>
     </div>

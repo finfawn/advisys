@@ -4,6 +4,7 @@
 .modern-date-input {
   width: 100%;
   padding: 12px 14px;
+  padding-right: 40px; /* room for calendar icon */
   border: 1px solid rgba(0,0,0,0.1);
   border-radius: 10px;
   background: rgba(255,255,255,0.95);
@@ -33,6 +34,408 @@
 }
 
 /* Ensure icon aligns on date input */
-.modern-date-input + svg {
-  pointer-events: none;
+.modern-date-input + svg { pointer-events: none; z-index: 2; width: 18px; height: 18px; }
+
+/* Lightwind DayPicker wrapper */
+.lw-daypicker-wrapper {
+  width: fit-content;
+  background: rgba(255,255,255,0.9);
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  padding: 12px;
+  display: inline-block;
+  margin: 0 auto; /* center the wrapper around the calendar */
+}
+
+.lw-daypicker {
+  --rdp-accent-color: #6b8cc7;
+  --rdp-background-color: rgba(225, 233, 255, 0.5);
+  --rdp-outline: 2px solid rgba(59,130,246,0.4);
+}
+.lw-daypicker .rdp-day_selected,
+.lw-daypicker .rdp-day_selected:hover {
+  background-color: #6b8cc7;
+  color: #fff;
+}
+.lw-daypicker .rdp-caption_label {
+  font-weight: 600;
+  color: #5a7ba8;
+}
+.lw-daypicker .rdp-nav_button {
+  border-radius: 10px;
+  width: 32px;
+  height: 32px;
+  color: #6b8cc7;
+}
+.lw-daypicker .rdp-nav_button:hover { color: #5a7ba8; }
+
+/* Center the calendar grid inside its wrapper to remove right-side gap */
+.lw-daypicker { width: 100%; display: block; }
+.lw-daypicker .rdp-months { display: flex; justify-content: center; width: 100%; }
+.lw-daypicker .rdp-month { width: 100%; }
+.lw-daypicker .rdp-table { width: 100%; }
+
+/* Mode Toggle — match student Booking modal */
+.mode-toggle {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+.mode-option {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 16px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #1e293b;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+.mode-option:hover {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+.mode-option[data-state='on'] {
+  border-color: #3b82f6;
+  background: #e7efff;
+  color: #0f172a;
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+/* Modal header/content tweaks to feel like the second image */
+.slot-modal-content {
+  border-radius: 16px;
+  max-height: calc(100vh - 64px);
+  /* Move scrolling to an inner body to prevent layout overlaps */
+  overflow: hidden;
+  position: relative;
+  z-index: 50;
+  /* Remove default padding from DialogContent to eliminate top/bottom gaps */
+  padding: 0 !important;
+  /* Use flex layout so the footer can sit at the bottom when content is short */
+  display: flex;
+  flex-direction: column;
+}
+
+/* New: Inner body is the sole scroll container between sticky header/footer */
+.slot-modal-body {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0; /* allow inner children to size correctly */
+}
+.slot-modal-header {
+  position: sticky;
+  top: 0;
+  background: #ffffff;
+  padding: 12px 24px 8px;
+  z-index: 5;
+  border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Two-column grid layout for modal body */
+.slot-modal-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  /* Align with header/footer gutters; no extra top/bottom gaps */
+  padding: 0 24px 16px;
+  /* Let content define height; the body handles scroll */
+  flex: 0 0 auto;
+}
+@media (min-width: 900px) {
+  .slot-modal-grid {
+    grid-template-columns: 1.15fr 1fr;
+    align-items: start;
+  }
+}
+.slot-col-left, .slot-col-right {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.slot-col-left .lw-daypicker-wrapper {
+  /* Let the calendar scroll with content to avoid overlaying other sections */
+  position: static;
+  top: auto;
+}
+
+/* Sticky footer with summary + actions */
+.slot-modal-footer {
+  position: sticky;
+  bottom: 0;
+  background: #ffffff;
+  border-top: 1px solid rgba(0,0,0,0.06);
+  padding: 12px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  z-index: 10;
+}
+.slot-modal-footer .slot-summary-text {
+  flex: 1 1 auto;
+  font-size: 0.9rem;
+  color: #374151;
+}
+.slot-modal-footer .slot-footer-actions {
+  display: flex;
+  gap: 8px;
+}
+@media (max-width: 640px) {
+  .slot-modal-footer {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+.slot-modal-footer .slot-footer-actions { justify-content: flex-end; }
+}
+
+/* Duration pills */
+.duration-pills {
+  margin-top: 8px;
+}
+.duration-pills .segmented-option {
+  border: 2px solid #e2e8f0;
+  background: #f8fafc;
+  color: #374151;
+  border-radius: 12px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+.duration-pills .segmented-option:hover {
+  border-color: #cbd5e1;
+  background: #e2e8f0;
+  color: #1e293b;
+}
+.duration-pills .segmented-option.active,
+.duration-pills .segmented-option[aria-pressed="true"] {
+  border-color: #6b8cc7;
+  background: #6b8cc7;
+  color: #fff;
+}
+
+/* Day pill buttons */
+.day-pill {
+  border-radius: 10px;
+  font-weight: 600;
+}
+.day-pill.selected {
+  box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+/* Booking-style inputs like student modal */
+.booking-input {
+  border: 2px solid #e2e8f0 !important;
+  background: #f8fafc !important;
+  color: #374151 !important;
+  border-radius: 12px !important;
+}
+.booking-input:focus {
+  border-color: #6b8cc7 !important;
+  box-shadow: 0 0 0 3px rgba(107,140,199,0.2) !important;
+  background: #ffffff !important;
+}
+
+/* Enhancements for native time inputs */
+.time-input::-webkit-calendar-picker-indicator {
+  opacity: 0.9;
+  margin-right: 0; /* pull indicator to the edge */
+}
+.time-input::-webkit-datetime-edit-fields-wrapper {
+  padding: 0 2px;
+}
+.time-input {
+  line-height: 1.2;
+  padding-right: 0; /* ensure indicator sits at the very right */
+}
+
+/* Custom icon overlay for time inputs */
+.time-input-wrapper { position: relative; }
+.time-input.custom-icon { padding-right: 38px; }
+.time-icon-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+}
+.time-icon-btn:hover { color: #374151; }
+.time-input.custom-icon::-webkit-calendar-picker-indicator { opacity: 0; }
+
+/* Generated Slot Preview List */
+.slot-preview-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  margin-top: 8px;
+  /* Ensure uniform card heights across rows */
+  grid-auto-rows: 1fr;
+}
+@media (min-width: 900px) {
+  .slot-preview-list {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+}
+
+.slot-card {
+  display: flex;
+  align-items: center;
+  /* Keep content aligned left; actions were removed */
+  justify-content: flex-start;
+  gap: 12px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  transition: box-shadow 0.2s ease, transform 0.1s ease, border-color 0.2s ease, background 0.2s ease;
+  cursor: pointer;
+  /* Make all cards the same height within grid */
+  height: 100%;
+  min-height: 68px;
+}
+.slot-card:hover {
+  box-shadow: 0 8px 28px rgba(16,24,40,0.08);
+  transform: translateY(-1px);
+}
+.slot-card.selected {
+  border-color: #6b8cc7;
+  box-shadow: 0 0 0 3px rgba(107,140,199,0.2);
+}
+.slot-card.disabled {
+  opacity: 0.75;
+  background: #fff7f7;
+  border-color: #fecaca;
+  cursor: not-allowed;
+}
+
+.slot-card-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.slot-clock {
+  width: 28px;
+  height: 28px;
+  color: #6b7280;
+}
+.slot-time {
+  font-weight: 600;
+  color: #1f2937;
+  font-size: 15px;
+}
+.slot-modes {
+  font-size: 12px;
+  color: #6b7280;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Removed slot-card-actions since we toggle selection by clicking the card */
+/* React Time Picker styled like booking input */
+.booking-timepicker { width: 100%; }
+.booking-timepicker .react-time-picker__wrapper {
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  padding: 6px 10px;
+}
+.booking-timepicker:focus-within .react-time-picker__wrapper {
+  border-color: #6b8cc7;
+  box-shadow: 0 0 0 3px rgba(107,140,199,0.2);
+  background: #ffffff;
+}
+.booking-timepicker .react-time-picker__inputGroup__input {
+  color: #374151;
+  font-weight: 600;
+}
+/* Hide clock/clear buttons ONLY inside this consultation modal to avoid global impact */
+.slot-modal-content .booking-timepicker .react-time-picker__clear-button { display: none !important; }
+/* Hide analog clock button for a cleaner, keyboard-friendly UX in slot modal */
+.slot-modal-content .booking-timepicker .react-time-picker__clock-button { display: none !important; }
+
+/* Removed custom dropdown timepicker styles in favor of react-time-picker */
+/* Dropdown time picker (hour/minute/AMPM columns) */
+.dropdown-timepicker { position: relative; }
+.dtp-display {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 10px 12px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #f8fafc;
+  color: #374151;
+}
+.dtp-display:hover { border-color: #cbd5e1; background: #eef2f7; }
+.dtp-display:focus { outline: none; border-color: #6b8cc7; box-shadow: 0 0 0 3px rgba(107,140,199,0.2); background: #ffffff; }
+.dtp-display-text.placeholder { color: #9ca3af; }
+.dtp-icon { width: 16px; height: 16px; color: #6b7280; margin-left: auto; }
+.dtp-caret { width: 14px; height: 14px; color: #9ca3af; margin-left: 6px; }
+
+.dtp-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  box-shadow: 0 12px 28px rgba(0,0,0,0.15);
+  border-radius: 12px;
+  min-width: 280px;
+  padding: 8px;
+}
+.dtp-columns { display: grid; grid-template-columns: 1fr 1fr 0.8fr; gap: 8px; }
+.dtp-col { max-height: 200px; overflow: auto; border-right: 1px solid #eef2f7; padding-right: 6px; }
+.dtp-col:last-child { border-right: none; }
+.dtp-item { display: block; width: 100%; text-align: left; padding: 6px 8px; border-radius: 8px; background: transparent; color: #374151; }
+.dtp-item:hover { background: #f3f4f6; }
+.dtp-item.selected { background: #e7efff; color: #0f172a; font-weight: 600; }
+.dtp-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; }
+.dtp-actions .btn-cancel { background: transparent; color: #4f46e5; border: none; padding: 6px 10px; }
+.dtp-actions .btn-ok { background: #4f46e5; color: #ffffff; border: none; padding: 6px 10px; border-radius: 8px; }
+.dtp-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 8px; }
+.btn-cancel { background: transparent; color: #6b7280; padding: 6px 10px; border-radius: 8px; }
+.btn-cancel:hover { background: #f3f4f6; color: #374151; }
+.btn-ok { background: #6b8cc7; color: #fff; padding: 6px 12px; border-radius: 8px; }
+.btn-ok:hover { background: #5a7ba8; }
+/* Section wrapper for Generated Slots; align with header/footer gutters */
+.slot-preview-section { padding: 0 24px; }
+/* --- Overrides appended --- */
+/* Ensure custom clock icon is visible above input */
+.time-icon-btn { z-index: 2; }
+.time-icon-btn svg { width: 16px; height: 16px; }
+
+/* Fixed modal height; scroll inside without changing outer size */
+.slot-modal-content {
+  margin-top: 0 !important;
+  height: min(760px, calc(100vh - 64px));
+  min-height: min(760px, calc(100vh - 64px));
+  max-height: min(760px, calc(100vh - 64px));
+}
+
+/* Make mode selection filled when active */
+.mode-option[data-state='on'] {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  border-color: #3b82f6 !important;
+  box-shadow: none !important;
 }

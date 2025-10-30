@@ -139,6 +139,26 @@
     position: sticky;
     top: 0; /* align top with calendar container */
   }
+  .day-inspector-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+  }
+  .day-inspector .header-actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .day-inspector .reset-day-btn {
+    color: #dc2626;
+    border-color: #dc2626;
+  }
+  .day-inspector .reset-day-btn:hover:not([disabled]) {
+    background: #dc2626;
+    color: #ffffff;
+    border-color: #dc2626;
+  }
   .day-inspector .lw-card {
     border-radius: 12px;
   }
@@ -227,6 +247,98 @@
   .rbc-event:hover {
     opacity: 0.85;
     cursor: pointer;
+  }
+
+  /* Advisor Undo Toast (scoped) */
+  .advisor-dash-main .undo-notification {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: white;
+    border-radius: 8px;
+    padding: 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    z-index: 1100;
+    min-width: 300px;
+    max-width: 500px;
+    animation: advisor-undo-slideUp 0.3s ease-out;
+  }
+  .advisor-dash-main .undo-content {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 16px;
+    gap: 12px;
+  }
+  .advisor-dash-main .undo-message {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+  .advisor-dash-main .undo-btn {
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    white-space: nowrap;
+  }
+  .advisor-dash-main .undo-btn:hover {
+    background: #5a6fd8;
+  }
+  .advisor-dash-main .undo-timer {
+    height: 3px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 0 0 8px 8px;
+    overflow: hidden;
+  }
+  .advisor-dash-main .undo-timer-bar {
+    height: 100%;
+    background: #667eea;
+    width: 100%;
+    animation: advisor-countdown 5s linear forwards;
+    transform-origin: left;
+  }
+  @keyframes advisor-undo-slideUp {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(20px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+  @keyframes advisor-countdown {
+    from { transform: scaleX(1); }
+    to { transform: scaleX(0); }
+  }
+
+  @media (max-width: 480px) {
+    .advisor-dash-main .undo-notification {
+      left: 10px;
+      right: 10px;
+      transform: none;
+      min-width: auto;
+      max-width: none;
+      bottom: 70px; /* lift above mobile bottom UI */
+    }
+    .advisor-dash-main .undo-content {
+      padding: 10px 14px;
+    }
+    .advisor-dash-main .undo-message {
+      font-size: 0.85rem;
+    }
+    .advisor-dash-main .undo-btn {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+    }
   }
   
   .rbc-toolbar {
@@ -342,6 +454,74 @@
   .rbc-agenda-event-cell {
     font-weight: 500;
   }
+
+  /* Admin-style Modal (used for Reset Day warning) */
+  .admin-modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.15s ease-out;
+  }
+  .admin-modal {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    width: min(560px, 94vw);
+    max-height: 85vh;
+    margin: 20px 0;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    display: flex;
+    flex-direction: column;
+    animation: modalFadeIn 0.15s ease-out;
+  }
+  .admin-modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    border-bottom: 2px solid #e5e7eb;
+    background: linear-gradient(to bottom, #fafafa, #ffffff);
+  }
+  .admin-modal-title {
+    margin: 0;
+    font-weight: 700;
+    font-size: 1.25rem;
+    color: #111827;
+    letter-spacing: -0.01em;
+  }
+  .admin-modal-close {
+    border: none;
+    background: #f3f4f6;
+    font-size: 20px;
+    line-height: 1;
+    cursor: pointer;
+    color: #6b7280;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+  }
+  .admin-modal-close:hover {
+    background: #e5e7eb;
+    color: #111827;
+    transform: rotate(90deg);
+  }
+  .admin-modal-body {
+    padding: 20px;
+    overflow: auto;
+    background: #f9fafb;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes modalFadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
   
   /* Responsive Design */
   @media (max-width: 768px) {

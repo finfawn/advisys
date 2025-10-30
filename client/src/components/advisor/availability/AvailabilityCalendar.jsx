@@ -229,6 +229,7 @@ export default function AvailabilityCalendar({
           initialStart={editDefaults?.event?.start || createDefaults.start}
           initialEnd={editDefaults?.event?.end || createDefaults.end}
           editEvent={editDefaults?.event || null}
+          existingEvents={events}
           onSubmit={(payloads) => {
             const arr = Array.isArray(payloads) ? payloads : [payloads];
             // Overlap detection for create or edit

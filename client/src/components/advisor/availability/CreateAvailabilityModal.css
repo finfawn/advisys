@@ -191,7 +191,6 @@
 }
 
 .avail-form select,
-.avail-form input[type="time"],
 .text-input {
   width: 100%;
   padding: 11px 14px;
@@ -218,10 +217,43 @@
   cursor: not-allowed;
 }
 
-.avail-form input[type="time"] {
-  padding-right: 14px;
-  background-image: none;
+/* React Time Picker styled to match inputs */
+.booking-timepicker { width: 100%; }
+.booking-timepicker .react-time-picker__wrapper {
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  background: #ffffff;
+  padding: 6px 10px;
 }
+.booking-timepicker .react-time-picker__inputGroup__input {
+  color: #111827;
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+.booking-timepicker:focus-within .react-time-picker__wrapper {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  background: #ffffff;
+}
+.booking-timepicker.react-time-picker .react-time-picker__clear-button { display: none !important; }
+.booking-timepicker.react-time-picker .react-time-picker__clock-button {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  padding: 0;
+  margin-left: 6px;
+  border-radius: 8px;
+}
+.booking-timepicker.react-time-picker .react-time-picker__clock-button:hover {
+  color: #374151;
+  background: #eef2f7;
+}
+.booking-timepicker.react-time-picker .react-time-picker__clock-button svg { display: inline !important; }
 
 /* Ensure text inputs (e.g., Room) do not show the select caret */
 .text-input {
@@ -230,7 +262,6 @@
 }
 
 .avail-form select:hover,
-.avail-form input[type="time"]:hover,
 .text-input:hover {
   border-color: #9ca3af;
 }
@@ -244,11 +275,23 @@
 }
 
 .avail-form select:focus,
-.avail-form input[type="time"]:focus,
 .text-input:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+/* Native time input refinements */
+.time-input::-webkit-calendar-picker-indicator {
+  opacity: 0.9;
+  margin-right: 0; /* pull indicator to the edge */
+}
+.time-input::-webkit-datetime-edit-fields-wrapper {
+  padding: 0 2px;
+}
+.time-input {
+  line-height: 1.2;
+  padding-right: 0; /* ensure indicator sits at the very right */
 }
 
 .mode-grid {
@@ -523,3 +566,34 @@
     width: 100%;
   }
 }
+/* --- Overrides appended --- */
+/* Ensure custom time icon is visible above input */
+.time-icon-btn { z-index: 2; }
+.time-icon-btn svg { width: 16px; height: 16px; }
+
+/* Constrain availability modal below navbar and fix inner height */
+.avail-modal {
+  margin-top: var(--navbar-offset, 72px);
+  max-height: calc(100vh - var(--navbar-offset, 72px) - 24px);
+}
+
+/* Custom icon overlay for time inputs */
+.time-input-wrapper { position: relative; }
+.time-input.custom-icon { padding-right: 38px; }
+.time-icon-btn {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  background: transparent;
+  border: none;
+  color: #6b7280;
+  cursor: pointer;
+}
+.time-icon-btn:hover { color: #374151; }
+.time-input.custom-icon::-webkit-calendar-picker-indicator { opacity: 0; }
