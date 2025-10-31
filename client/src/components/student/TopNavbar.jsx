@@ -7,6 +7,7 @@ import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import NotificationModal from "../NotificationModal";
 import { useNotifications } from "../../contexts/NotificationContext";
 import "./TopNavbar.css";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 
 function TopNavbar() {
   const navigate = useNavigate();
@@ -19,8 +20,34 @@ function TopNavbar() {
   const searchRef = useRef(null);
   const { unreadCount } = useNotifications();
 
-  // Mock student data - in real app, this would come from context/state
-  const studentName = "John Michael Santos";
+  // Student display name sourced from local storage and profile API
+  const [studentName, setStudentName] = useState("");
+
+  // Load initial name from localStorage and refresh via /api/profile/me
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("advisys_user");
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.full_name) setStudentName(u.full_name);
+      }
+    } catch (_) {}
+
+    const token = localStorage.getItem("advisys_token");
+    if (!token) return;
+    const controller = new AbortController();
+    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    fetch(`${base}/api/profile/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.full_name) setStudentName(data.full_name);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   // Mock faculty data for search
   const facultyData = [
@@ -42,11 +69,14 @@ function TopNavbar() {
     navigate('/student-dashboard/settings');
     setIsDropdownOpen(false);
   };
-
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const handleLogout = () => {
-    console.log('Logout clicked');
-    navigate('/login');
+    setShowLogoutModal(true);
+  };
+  const handleLogoutConfirm = () => {
+    setShowLogoutModal(false);
     setIsDropdownOpen(false);
+    navigate('/logout');
   };
 
   const handleMenuNavigation = (page) => {
@@ -63,8 +93,7 @@ function TopNavbar() {
     } else if (page === 'profile') {
       navigate('/student-dashboard/profile');
     } else if (page === 'logout') {
-      console.log('Logout');
-      navigate('/login');
+      navigate('/logout');
     }
   };
 
@@ -220,7 +249,7 @@ function TopNavbar() {
         </div>
         
         <div className="student-greeting hidden md:block">
-          <span className="greeting-text">Hi, {studentName}</span>
+          <span className="greeting-text">Hi, {studentName || 'Student'}</span>
           <h1 className="welcome-text">Welcome</h1>
         </div>
       </div>
@@ -351,6 +380,22 @@ function TopNavbar() {
         onClose={() => setIsNotificationOpen(false)}
         userType="student"
       />
+
+      {/* Logout Confirmation Modal */}
+      <AlertDialog open={showLogoutModal} onOpenChange={(open) => { if (!open) setShowLogoutModal(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to logout? You'll need to sign in again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:items-center">
+            <AlertDialogCancel className="min-w-[96px] mt-0">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       </header>
     </>
   );

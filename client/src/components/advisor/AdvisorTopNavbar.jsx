@@ -5,6 +5,7 @@ import Logo from "../../assets/logo.png";
 import NotificationModal from "../NotificationModal";
 import { useNotifications } from "../../contexts/NotificationContext";
 import "./AdvisorTopNavbar.css";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 
 function AdvisorTopNavbar() {
   const navigate = useNavigate();
@@ -13,19 +14,46 @@ function AdvisorTopNavbar() {
   const dropdownRef = useRef(null);
   const { unreadCount } = useNotifications();
 
-  // Mock advisor data - in real app, this would come from context/state
-  const advisorName = "Dr. Sarah Johnson";
+  // Advisor display name from local storage and refreshed via profile API
+  const [advisorName, setAdvisorName] = useState("");
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem("advisys_user");
+      if (raw) {
+        const u = JSON.parse(raw);
+        if (u?.full_name) setAdvisorName(u.full_name);
+      }
+    } catch (_) {}
+
+    const token = localStorage.getItem("advisys_token");
+    if (!token) return;
+    const controller = new AbortController();
+    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    fetch(`${base}/api/profile/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.full_name) setAdvisorName(data.full_name);
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
 
   const handleSettingsClick = () => {
     navigate('/advisor-dashboard/profile');
     setIsDropdownOpen(false);
   };
-
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const handleLogout = () => {
-    // Handle logout logic here
-    console.log('Logout clicked');
-    navigate('/login');
+    setShowLogoutModal(true);
+  };
+  const handleLogoutConfirm = () => {
+    setShowLogoutModal(false);
     setIsDropdownOpen(false);
+    navigate('/logout');
   };
 
   const handleNotificationClick = () => {
@@ -86,7 +114,7 @@ function AdvisorTopNavbar() {
             <div className="avatar small" aria-hidden>
               <BsPersonCircle />
             </div>
-            <span className="user-name d-none d-md-inline">{advisorName}</span>
+            <span className="user-name d-none d-md-inline">{advisorName || 'Advisor'}</span>
             <BsChevronDown className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
           </button>
           
@@ -98,7 +126,7 @@ function AdvisorTopNavbar() {
                     <BsPersonCircle />
                   </div>
                   <div className="dropdown-user-details">
-                    <div className="dropdown-user-name">{advisorName}</div>
+                    <div className="dropdown-user-name">{advisorName || 'Advisor'}</div>
                     <div className="dropdown-user-role">Advisor</div>
                   </div>
                 </div>
@@ -136,6 +164,22 @@ function AdvisorTopNavbar() {
         onClose={() => setIsNotificationOpen(false)}
         userType="advisor"
       />
+
+      {/* Logout Confirmation Modal */}
+      <AlertDialog open={showLogoutModal} onOpenChange={(open) => { if (!open) setShowLogoutModal(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to logout? You'll need to sign in again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:items-center">
+            <AlertDialogCancel className="min-w-[96px] mt-0">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
   );
 }

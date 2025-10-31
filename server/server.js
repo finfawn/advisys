@@ -8,6 +8,8 @@ app.use(cors());
 app.use(express.json());
 
 // routes
+const authRouter = require('./routes/auth');
+app.use('/api/auth', authRouter);
 const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
 const jaasRouter = require('./routes/jaas');
@@ -16,6 +18,8 @@ const advisorsRouter = require('./routes/advisors');
 app.use('/api/advisors', advisorsRouter);
 const consultationsRouter = require('./routes/consultations');
 app.use('/api', consultationsRouter);
+const profileRouter = require('./routes/profile');
+app.use('/api/profile', profileRouter);
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));

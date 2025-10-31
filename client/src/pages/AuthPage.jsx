@@ -1,18 +1,25 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import RippleButton from "../lightswind/ripple-button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../lightswind/select";
 // role selection now uses Lightswind Select
 
 function AuthPage({ embedded = false }) {
+  const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
     firstName: "",
     lastName: "",
     email: "",
     password: "",
+    program: "",
+    yearLevel: "",
+    department: "",
   });
   const [role, setRole] = useState("student");
   const [errors, setErrors] = useState({});
+  const [submitting, setSubmitting] = useState(false);
+  const [serverError, setServerError] = useState("");
 
   const onChange = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
 
@@ -28,17 +35,64 @@ function AuthPage({ embedded = false }) {
     else if (form.password.length < 6) next.password = "Min 6 characters";
     if (mode === "register") {
       if (role === "student" && !(form.program || "").trim()) next.program = "Program is required";
+      if (role === "student" && !(form.yearLevel || "").trim()) next.yearLevel = "Year level is required";
       if (role === "advisor" && !(form.department || "").trim()) next.department = "Department is required";
     }
     setErrors(next);
     return Object.keys(next).length === 0;
   };
 
-  const onSubmit = (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     if (!validate()) return;
-    // TODO: hook up to backend
-    console.log("submit", { mode, role, form });
+    setSubmitting(true);
+    setServerError("");
+    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    try {
+      if (mode === "login") {
+        const res = await fetch(`${base}/api/auth/login`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email: form.email.trim(), password: form.password })
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Login failed");
+        localStorage.setItem("advisys_token", data.token);
+        localStorage.setItem("advisys_user", JSON.stringify(data.user));
+        if (data.user.role === "student") navigate("/student-dashboard");
+        else if (data.user.role === "advisor") navigate("/advisor-dashboard");
+        else navigate("/");
+      } else {
+        const payload = {
+          role,
+          firstName: form.firstName.trim(),
+          lastName: form.lastName.trim(),
+          email: form.email.trim(),
+          password: form.password,
+        };
+        if (role === "student") {
+          payload.program = form.program.trim();
+          payload.yearLevel = (form.yearLevel || "").trim();
+        } else if (role === "advisor") {
+          payload.department = form.department.trim();
+        }
+        const res = await fetch(`${base}/api/auth/register`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || "Registration failed");
+        localStorage.setItem("advisys_token", data.token);
+        localStorage.setItem("advisys_user", JSON.stringify(data.user));
+        if (role === "student") navigate("/student-dashboard");
+        else navigate("/advisor-dashboard");
+      }
+    } catch (err) {
+      setServerError(err.message || String(err));
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -140,6 +194,22 @@ function AuthPage({ embedded = false }) {
                     </SelectContent>
                   </Select>
                   {errors.program && <p className="mt-1 text-xs text-red-500">{errors.program}</p>}
+
+                  <div className="mt-4">
+                    <label className="block text-xs text-gray-600 mb-1">Year Level</label>
+                    <Select value={form.yearLevel || ""} onValueChange={(v) => onChange("yearLevel", v)}>
+                      <SelectTrigger className={`w-full rounded-md border px-3 py-2 text-sm ${errors.yearLevel ? "border-red-400" : "border-gray-300 bg-white"}`}>
+                        <SelectValue placeholder="Select year level" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="1">1st Year</SelectItem>
+                        <SelectItem value="2">2nd Year</SelectItem>
+                        <SelectItem value="3">3rd Year</SelectItem>
+                        <SelectItem value="4">4th Year</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {errors.yearLevel && <p className="mt-1 text-xs text-red-500">{errors.yearLevel}</p>}
+                  </div>
                 </div>
               ) : (
                 <div>
@@ -166,7 +236,10 @@ function AuthPage({ embedded = false }) {
             >
               {mode === "login" ? "Create account" : "Have an account? Sign in"}
             </button>
-            <RippleButton text={mode === "login" ? "Sign In" : "Register"} width="120px" height="40px" bgColor="#3a6bb8" circleColor="#60a5fa" />
+            <div className="flex items-center gap-3">
+              {serverError && <p className="text-xs text-red-600">{serverError}</p>}
+              <RippleButton text={submitting ? "Please wait" : (mode === "login" ? "Sign In" : "Register")} width="120px" height="40px" bgColor="#3a6bb8" circleColor="#60a5fa" />
+            </div>
           </div>
         </form>
       </div>

@@ -22,6 +22,8 @@ export default function AdminDashboard() {
       navigate('/admin-dashboard/manage-users');
     } else if (page === 'appointments') {
       navigate('/admin-dashboard/appointments');
+    } else if (page === 'logout') {
+      navigate('/logout');
     }
   };
 

@@ -33,7 +33,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
         <span className="text">{text}</span>
       </button>
 
-      <style jsx>{`
+      <style>{`
         .ripple-btn {
           font-family: Arial, Helvetica, sans-serif;
           font-weight: bold;

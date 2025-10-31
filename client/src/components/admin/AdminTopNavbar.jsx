@@ -7,6 +7,7 @@ import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
 import { useNotifications } from "../../contexts/NotificationContext";
 import "./AdminTopNavbar.css";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 
 function AdminTopNavbar() {
   const navigate = useNavigate();
@@ -23,10 +24,14 @@ function AdminTopNavbar() {
     setIsDropdownOpen(false);
   };
 
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
   const handleLogout = () => {
-    // Hook your logout logic here
-    console.log('Admin logout clicked');
+    setShowLogoutModal(true);
+  };
+  const handleLogoutConfirm = () => {
+    setShowLogoutModal(false);
     setIsDropdownOpen(false);
+    navigate('/logout');
   };
 
   const handleNotificationClick = () => {
@@ -46,8 +51,7 @@ function AdminTopNavbar() {
     } else if (page === 'appointments') {
       navigate('/admin-dashboard/appointments');
     } else if (page === 'logout') {
-      console.log('Logout');
-      navigate('/login');
+      navigate('/logout');
     }
   };
 
@@ -217,6 +221,22 @@ function AdminTopNavbar() {
         onClose={() => setIsNotificationOpen(false)}
         userType="admin"
       />
+
+      {/* Logout Confirmation Modal */}
+      <AlertDialog open={showLogoutModal} onOpenChange={(open) => { if (!open) setShowLogoutModal(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to logout? You'll need to sign in again.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:items-center">
+            <AlertDialogCancel className="min-w-[96px] mt-0">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </header>
     </>
   );

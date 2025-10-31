@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect, useLayoutEffect, useRef } from "react";
+import React, { useMemo, useState, useLayoutEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
@@ -104,7 +104,7 @@ export default function AdvisorAvailability() {
       if (ro) ro.disconnect();
       else window.removeEventListener('resize', update);
     };
-  }, [leftRef, view]);
+  }, [leftRef, view, inspectorHeight]);
 
   const isSameDay = (a, b) => {
     if (!a || !b) return false;
@@ -148,8 +148,7 @@ export default function AdvisorAvailability() {
     } else if (page === 'profile') {
       navigate('/advisor-dashboard/profile');
     } else if (page === 'logout') {
-      console.log('Logout');
-      navigate('/login');
+      navigate('/logout');
     }
   };
 

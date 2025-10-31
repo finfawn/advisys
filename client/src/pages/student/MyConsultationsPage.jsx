@@ -42,6 +42,8 @@ export default function MyConsultationsPage() {
       navigate('/student-dashboard/advisors');
     } else if (page === 'consultations') {
       navigate('/student-dashboard/consultations');
+    } else if (page === 'logout') {
+      navigate('/logout');
     }
   };
 

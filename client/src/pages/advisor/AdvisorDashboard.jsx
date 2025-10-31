@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { BsChevronRight, BsChevronDown } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
@@ -33,9 +33,7 @@ export default function AdvisorDashboard() {
     } else if (page === 'profile') {
       navigate('/advisor-dashboard/profile');
     } else if (page === 'logout') {
-      // Handle logout
-      console.log('Logout');
-      navigate('/login');
+      navigate('/logout');
     }
   };
 

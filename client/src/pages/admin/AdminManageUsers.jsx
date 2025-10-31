@@ -36,7 +36,6 @@ export default function AdminManageUsers() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyUser, setHistoryUser] = useState(null);
   const [historyItems, setHistoryItems] = useState([]);
-  const [roleFilter, setRoleFilter] = useState("all");
   const [yearFilter, setYearFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name-asc");
@@ -123,6 +122,7 @@ export default function AdminManageUsers() {
     if (page === "dashboard") navigate("/admin-dashboard");
     if (page === "manage-users") navigate("/admin-dashboard/manage-users");
     if (page === "appointments") navigate("/admin-dashboard/appointments");
+    if (page === "logout") navigate("/logout");
   };
 
   const handleToggleActive = (item) => {
@@ -228,7 +228,7 @@ export default function AdminManageUsers() {
     // Persist to backend
     try {
       await persistStatus(item.id, !previousState);
-    } catch (err) {
+    } catch {
       // Revert optimistic update on error
       if (activeTab === "students") {
         setStudentsData((prev) =>
@@ -278,7 +278,7 @@ export default function AdminManageUsers() {
     // Persist revert to backend
     try {
       await persistStatus(pendingAction.user.id, pendingAction.previousState);
-    } catch (err) {
+    } catch {
       // If revert fails, reapply change visually
       if (pendingAction.tab === "students") {
         setStudentsData((prev) =>
@@ -305,11 +305,7 @@ export default function AdminManageUsers() {
     }, 150);
   };
 
-  const handleRoleChange = (val) => {
-    setRoleFilter(val);
-    if (val === "students") setActiveTab("students");
-    else if (val === "advisors") setActiveTab("advisors");
-  };
+  
 
   // Add User form state
   const [newRole, setNewRole] = useState("student");

@@ -92,8 +92,7 @@ export default function AdvisorSettingsPage() {
     } else if (page === 'profile') {
       navigate('/advisor-dashboard/profile');
     } else if (page === 'logout') {
-      console.log('Logout');
-      navigate('/login');
+      navigate('/logout');
     }
   };
 

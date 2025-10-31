@@ -46,6 +46,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
     if (page === 'dashboard') navigate('/advisor-dashboard');
     if (page === 'availability') navigate('/advisor-dashboard/availability');
     if (page === 'settings') navigate('/advisor-dashboard/settings');
+    if (page === 'logout') navigate('/logout');
   };
 
   const formatDate = (iso) => new Date(iso).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
@@ -69,7 +70,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
             { label: "Consultations", icon: <CalendarDaysIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard/consultations') },
             { label: "Availability", icon: <ClockIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard/availability') },
             { label: "Profile", icon: <Cog6ToothIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard/settings') },
-            { label: "Logout", icon: <ArrowRightOnRectangleIcon className="w-6 h-6" />, onClick: () => navigate('/login') },
+            { label: "Logout", icon: <ArrowRightOnRectangleIcon className="w-6 h-6" />, onClick: () => navigate('/logout') },
           ]}
           buttonTop="12px"
           buttonLeft="16px"

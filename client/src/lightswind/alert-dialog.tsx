@@ -291,6 +291,7 @@ const AlertDialogAction = React.forwardRef<
   return (
     <button
       ref={ref}
+      type="button"
       className={cn(buttonVariants(), className)}
       onClick={handleClick}
       {...otherProps}
@@ -327,6 +328,7 @@ const AlertDialogCancel = React.forwardRef<
   return (
     <button
       ref={ref}
+      type="button"
       className={cn(
         buttonVariants({ variant: "outline" }),
         "mt-2 sm:mt-0",

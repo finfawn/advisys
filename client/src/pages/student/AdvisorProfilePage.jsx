@@ -58,7 +58,7 @@ export default function AdvisorProfilePage() {
     } else if (page === 'consultations') {
       navigate('/student-dashboard/consultations');
     } else if (page === 'logout') {
-      console.log('Logout');
+      navigate('/logout');
     }
   };
 

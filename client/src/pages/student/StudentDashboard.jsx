@@ -27,9 +27,88 @@ export default function StudentDashboard() {
     } else if (page === 'consultations') {
       navigate('/student-dashboard/consultations');
     } else if (page === 'logout') {
-      // Handle logout
-      console.log('Logout');
+      navigate('/logout');
     }
+  };
+
+  // Hero slides state and helpers (moved out of callback to satisfy React Hooks rules)
+  const slides = [
+    {
+      title: "Book a Consultation",
+      sub: "Reserve a slot and meet with your faculty advisor.",
+      cta: "Book Now",
+      Icon: BsCalendarCheck,
+      navigateTo: 'advisors',
+    },
+    {
+      title: "Manage Appointments",
+      sub: "Review upcoming and past sessions in one place.",
+      cta: "View Appointments",
+      Icon: BsCalendarCheck,
+      navigateTo: 'consultations',
+    },
+    {
+      title: "Explore Faculty Advisors",
+      sub: "Browse profiles to find the right mentor for you.",
+      cta: "Browse Faculty",
+      Icon: BsPeople,
+      navigateTo: 'advisors',
+    },
+  ];
+  const [active, setActive] = useState(0);
+  const [paused, setPaused] = useState(false);
+  useEffect(() => {
+    if (paused) return;
+    const id = setInterval(() => setActive((i) => (i + 1) % slides.length), 5000);
+    return () => clearInterval(id);
+  }, [paused, slides.length]);
+  const CurrentIcon = slides[active].Icon;
+  const goPrev = () => setActive((i) => (i - 1 + slides.length) % slides.length);
+  const goNext = () => setActive((i) => (i + 1) % slides.length);
+  const handleCtaClick = () => {
+    const currentSlide = slides[active];
+    if (currentSlide.navigateTo) {
+      handleNavigation(currentSlide.navigateTo);
+    }
+  };
+
+  // Calendar availability state (moved out of callback to satisfy React Hooks rules)
+  const today = new Date();
+  const [selectedDate, setSelectedDate] = useState(today);
+  const getDateString = (daysOffset) => {
+    const date = new Date(today);
+    date.setDate(date.getDate() + daysOffset);
+    return date.toISOString().slice(0,10);
+  };
+  const advisorsByDate = {
+    [getDateString(0)]: [
+      { name: "Dr. Santos", slots: "10:00 AM – 12:00 PM", mode: "Online" },
+      { name: "Prof. Cruz", slots: "1:00 PM – 3:00 PM", mode: "In-person" },
+    ],
+    [getDateString(1)]: [
+      { name: "Dr. Lee", slots: "9:00 AM – 11:00 AM", mode: "Online" },
+    ],
+    [getDateString(2)]: [
+      { name: "Prof. Martinez", slots: "2:00 PM – 4:00 PM", mode: "In-person" },
+    ],
+    [getDateString(3)]: [
+      { name: "Dr. Kim", slots: "10:00 AM – 12:00 PM", mode: "Online" },
+      { name: "Prof. Garcia", slots: "3:00 PM – 5:00 PM", mode: "Online" },
+    ],
+    [getDateString(5)]: [
+      { name: "Dr. Reyes", slots: "11:00 AM – 1:00 PM", mode: "In-person" },
+    ],
+    [getDateString(7)]: [
+      { name: "Prof. Dela Cruz", slots: "8:00 AM – 10:00 AM", mode: "In-person" },
+      { name: "Dr. Johnson", slots: "1:00 PM – 3:00 PM", mode: "Online" },
+    ],
+  };
+  const key = selectedDate ? selectedDate.toISOString().slice(0,10) : '';
+  const list = advisorsByDate[key] || [];
+  const formatSelectedDate = (date) => {
+    if (!date) return '';
+    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+    return date.toLocaleDateString('en-US', options);
   };
 
   // Mock data for upcoming consultations (limited to 3-4 for dashboard)
@@ -216,91 +295,46 @@ export default function StudentDashboard() {
             <div className="bento-item bento-banner">
               <section className="hero-wrap h-100">
                 <div className="hero-decor" aria-hidden />
-                {(() => {
-                  const slides = [
-                    {
-                      title: "Book a Consultation",
-                      sub: "Reserve a slot and meet with your faculty advisor.",
-                      cta: "Book Now",
-                      Icon: BsCalendarCheck,
-                      navigateTo: 'advisors',
-                    },
-                    {
-                      title: "Manage Appointments",
-                      sub: "Review upcoming and past sessions in one place.",
-                      cta: "View Appointments",
-                      Icon: BsCalendarCheck,
-                      navigateTo: 'consultations',
-                    },
-                    {
-                      title: "Explore Faculty Advisors",
-                      sub: "Browse profiles to find the right mentor for you.",
-                      cta: "Browse Faculty",
-                      Icon: BsPeople,
-                      navigateTo: 'advisors',
-                    },
-                  ];
-                  const [active, setActive] = useState(0);
-                  const [paused, setPaused] = useState(false);
-                  useEffect(() => {
-                    if (paused) return;
-                    const id = setInterval(() => setActive((i) => (i + 1) % slides.length), 5000);
-                    return () => clearInterval(id);
-                  }, [paused]);
-                  const CurrentIcon = slides[active].Icon;
-                  const goPrev = () => setActive((i) => (i - 1 + slides.length) % slides.length);
-                  const goNext = () => setActive((i) => (i + 1) % slides.length);
-                  const handleCtaClick = () => {
-                    const currentSlide = slides[active];
-                    if (currentSlide.navigateTo) {
-                      handleNavigation(currentSlide.navigateTo);
-                    }
-                  };
-                  return (
-                    <>
-                      <div className="glass-card h-100">
-                        <div className="gc-media" aria-hidden>
-                          <div className="gc-icon neutral">
-                            <CurrentIcon />
-                          </div>
+                <div className="glass-card h-100">
+                  <div className="gc-media" aria-hidden>
+                    <div className="gc-icon neutral">
+                      <CurrentIcon />
+                    </div>
+                  </div>
+                  <div className="gc-content">
+                    <div className="gc-slides">
+                      {slides.map((s, i) => (
+                        <div key={i} className={`gc-slide ${i === active ? "active" : ""}`}>
+                          <h3 className="gc-title">{s.title}</h3>
+                          <p className="gc-sub">{s.sub}</p>
                         </div>
-                        <div className="gc-content">
-                          <div className="gc-slides">
-                            {slides.map((s, i) => (
-                              <div key={i} className={`gc-slide ${i === active ? "active" : ""}`}>
-                                <h3 className="gc-title">{s.title}</h3>
-                                <p className="gc-sub">{s.sub}</p>
-                              </div>
-                            ))}
-                          </div>
-                          <div className="gc-actions">
-                            <Button size="lg" className="btn-gradient" onClick={handleCtaClick}>{slides[active].cta}</Button>
-                          </div>
-                        </div>
-                        <div className="gc-arrows" aria-hidden>
-                          <button className="gc-arrow prev" aria-label="Previous slide" onClick={goPrev} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-                            <BsChevronLeft />
-                          </button>
-                          <button className="gc-arrow next" aria-label="Next slide" onClick={goNext} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
-                            <BsChevronRight />
-                          </button>
-                          <div className="gc-dots" role="tablist" aria-label="Hero slides">
-                            {slides.map((_, i) => (
-                              <button
-                                key={i}
-                                className={`dot ${i === active ? "active" : ""}`}
-                                role="tab"
-                                aria-selected={i === active}
-                                aria-label={`Slide ${i + 1}`}
-                                onClick={() => setActive(i)}
-                              />
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    </>
-                  );
-                })()}
+                      ))}
+                    </div>
+                    <div className="gc-actions">
+                      <Button size="lg" className="btn-gradient" onClick={handleCtaClick}>{slides[active].cta}</Button>
+                    </div>
+                  </div>
+                  <div className="gc-arrows" aria-hidden>
+                    <button className="gc-arrow prev" aria-label="Previous slide" onClick={goPrev} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+                      <BsChevronLeft />
+                    </button>
+                    <button className="gc-arrow next" aria-label="Next slide" onClick={goNext} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}>
+                      <BsChevronRight />
+                    </button>
+                    <div className="gc-dots" role="tablist" aria-label="Hero slides">
+                      {slides.map((_, i) => (
+                        <button
+                          key={i}
+                          className={`dot ${i === active ? "active" : ""}`}
+                          role="tab"
+                          aria-selected={i === active}
+                          aria-label={`Slide ${i + 1}`}
+                          onClick={() => setActive(i)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                </div>
               </section>
             </div>
 
@@ -411,101 +445,49 @@ export default function StudentDashboard() {
           {/* Date-based availability */}
           <section className="section-block">
             <div className="calendar-section-wrapper">
-              {(() => {
-                const today = new Date();
-                const [selectedDate, setSelectedDate] = useState(today);
-                
-                // Helper to get date string for a specific day offset
-                const getDateString = (daysOffset) => {
-                  const date = new Date(today);
-                  date.setDate(date.getDate() + daysOffset);
-                  return date.toISOString().slice(0,10);
-                };
-                
-                const advisorsByDate = {
-                  // Today - both online and in-person (should show green dot for online priority)
-                  [getDateString(0)]: [
-                    { name: "Dr. Santos", slots: "10:00 AM – 12:00 PM", mode: "Online" },
-                    { name: "Prof. Cruz", slots: "1:00 PM – 3:00 PM", mode: "In-person" },
-                  ],
-                  // Tomorrow - online only (green dot)
-                  [getDateString(1)]: [
-                    { name: "Dr. Lee", slots: "9:00 AM – 11:00 AM", mode: "Online" },
-                  ],
-                  // Day after tomorrow - in-person only (blue dot)
-                  [getDateString(2)]: [
-                    { name: "Prof. Martinez", slots: "2:00 PM – 4:00 PM", mode: "In-person" },
-                  ],
-                  // 3 days from now - online only (green dot)
-                  [getDateString(3)]: [
-                    { name: "Dr. Kim", slots: "10:00 AM – 12:00 PM", mode: "Online" },
-                    { name: "Prof. Garcia", slots: "3:00 PM – 5:00 PM", mode: "Online" },
-                  ],
-                  // 5 days from now - in-person only (blue dot)
-                  [getDateString(5)]: [
-                    { name: "Dr. Reyes", slots: "11:00 AM – 1:00 PM", mode: "In-person" },
-                  ],
-                  // 7 days from now - both types (green dot for online priority)
-                  [getDateString(7)]: [
-                    { name: "Prof. Dela Cruz", slots: "8:00 AM – 10:00 AM", mode: "In-person" },
-                    { name: "Dr. Johnson", slots: "1:00 PM – 3:00 PM", mode: "Online" },
-                  ],
-                };
-                const key = selectedDate ? selectedDate.toISOString().slice(0,10) : '';
-                const list = advisorsByDate[key] || [];
-                
-                const formatSelectedDate = (date) => {
-                  if (!date) return '';
-                  const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-                  return date.toLocaleDateString('en-US', options);
-                };
-
-                return (
-                  <div className="modern-date-grid">
-                    <div className="modern-calendar-card">
-                      <CustomCalendar 
-                        selectedDate={selectedDate}
-                        onDateSelect={setSelectedDate}
-                        availabilityData={advisorsByDate}
-                      />
-                    </div>
-                    <div className="modern-availability-card">
-                      <div className="availability-header">
-                        <h3 className="selected-date-title">{formatSelectedDate(selectedDate)}</h3>
-                      </div>
-                      <div className="availability-content">
-                        {list.length > 0 ? (
-                          <ul className="faculty-list">
-                            {list.map((a, i) => (
-                              <li key={i} className="faculty-item">
-                                <div className="faculty-avatar"><BsPersonCircle /></div>
-                                <div className="faculty-info">
-                                  <div className="faculty-name">{a.name}</div>
-                                  <div className="faculty-time">{a.slots}</div>
-                                </div>
-                                <span className={`consultation-mode ${a.mode === "Online" ? "online" : "in-person"}`}>{a.mode}</span>
-                              </li>
-                            ))}
-                          </ul>
-                        ) : (
-                          <div className="no-availability">
-                            <div className="no-availability-icon">
-                              <BsPeople />
-                            </div>
-                            <div className="no-availability-title">No advisors available</div>
-                            <div className="no-availability-text">No faculty advisors have availability on this date</div>
-                            <div className="availability-actions">
-                              <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
-                                Browse All Advisors
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+              <div className="modern-date-grid">
+                <div className="modern-calendar-card">
+                  <CustomCalendar 
+                    selectedDate={selectedDate}
+                    onDateSelect={setSelectedDate}
+                    availabilityData={advisorsByDate}
+                  />
+                </div>
+                <div className="modern-availability-card">
+                  <div className="availability-header">
+                    <h3 className="selected-date-title">{formatSelectedDate(selectedDate)}</h3>
                   </div>
-                );
-              })()}
+                  <div className="availability-content">
+                    {list.length > 0 ? (
+                      <ul className="faculty-list">
+                        {list.map((a, i) => (
+                          <li key={i} className="faculty-item">
+                            <div className="faculty-avatar"><BsPersonCircle /></div>
+                            <div className="faculty-info">
+                              <div className="faculty-name">{a.name}</div>
+                              <div className="faculty-time">{a.slots}</div>
+                            </div>
+                            <span className={`consultation-mode ${a.mode === "Online" ? "online" : "in-person"}`}>{a.mode}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="no-availability">
+                        <div className="no-availability-icon">
+                          <BsPeople />
+                        </div>
+                        <div className="no-availability-title">No advisors available</div>
+                        <div className="no-availability-text">No faculty advisors have availability on this date</div>
+                        <div className="availability-actions">
+                          <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
+                            Browse All Advisors
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
             </div>
           </section>
 

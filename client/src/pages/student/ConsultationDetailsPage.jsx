@@ -63,7 +63,7 @@ export default function ConsultationDetailsPage() {
     } else if (page === 'consultations') {
       navigate('/student-dashboard/consultations');
     } else if (page === 'logout') {
-      console.log('Logout');
+      navigate('/logout');
     }
   };
 

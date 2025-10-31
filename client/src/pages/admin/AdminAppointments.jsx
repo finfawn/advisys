@@ -17,6 +17,7 @@ export default function AdminAppointments() {
     if (page === 'dashboard') navigate('/admin-dashboard');
     if (page === 'manage-users') navigate('/admin-dashboard/manage-users');
     if (page === 'appointments') navigate('/admin-dashboard/appointments');
+    if (page === 'logout') navigate('/logout');
   };
 
   const items = Array.from({ length: 12 }).map((_, i) => ({

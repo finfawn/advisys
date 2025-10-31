@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { 
@@ -16,6 +16,8 @@ import "./StudentSettingsPage.css";
 export default function StudentSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
 
   // Mock student data
   const [studentData, setStudentData] = useState({
@@ -39,6 +41,53 @@ export default function StudentSettingsPage() {
   const [activeSection, setActiveSection] = useState("profile");
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
 
+  const ordinal = (n) => {
+    const s = ["th", "st", "nd", "rd"], v = n % 100;
+    return s[(v - 20) % 10] || s[v] || s[0];
+  };
+  const formatYearDisplay = (yr) => {
+    if (!yr) return "";
+    const n = parseInt(String(yr), 10);
+    if (Number.isNaN(n)) return String(yr);
+    return `${n}${ordinal(n)} Year`;
+  };
+  const parseYearLevel = (display) => {
+    if (!display) return null;
+    const m = String(display).match(/(\d+)/);
+    return m ? m[1] : String(display);
+  };
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return; // if missing, user will be redirected by other flows
+      try {
+        const res = await fetch(`${apiBase}/api/profile/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Failed to load profile');
+        const full = String(data.full_name || '').trim();
+        const parts = full.split(' ');
+        const firstName = parts.shift() || '';
+        const lastName = parts.join(' ');
+        const mapped = {
+          firstName,
+          lastName,
+          program: data.program || '',
+          yearLevel: formatYearDisplay(data.year_level || '1'),
+          email: data.email || '',
+          profilePicture: data.avatar_url || null,
+        };
+        setStudentData(mapped);
+        setEditData(mapped);
+      } catch (err) {
+        console.error('Profile fetch error', err);
+      }
+    };
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleNavigation = (page) => {
     if (page === 'home') {
       navigate('/');
@@ -51,8 +100,7 @@ export default function StudentSettingsPage() {
     } else if (page === 'profile') {
       navigate('/student-dashboard/profile');
     } else if (page === 'logout') {
-      console.log('Logout');
-      navigate('/login');
+      navigate('/logout');
     }
   };
 
@@ -61,13 +109,35 @@ export default function StudentSettingsPage() {
     setEditData({ ...studentData });
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // Clean up the old profile picture URL if it's being replaced
     if (studentData.profilePicture && studentData.profilePicture !== editData.profilePicture) {
       URL.revokeObjectURL(studentData.profilePicture);
     }
-    setStudentData({ ...editData });
-    setIsEditing(false);
+    try {
+      const body = {
+        firstName: String(editData.firstName || '').trim(),
+        lastName: String(editData.lastName || '').trim(),
+        email: String(editData.email || '').trim(),
+        program: editData.program || null,
+        yearLevel: parseYearLevel(editData.yearLevel),
+        avatar_url: editData.profilePicture || null,
+      };
+      const res = await fetch(`${apiBase}/api/profile/me`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to save profile');
+      setStudentData({ ...editData });
+      setIsEditing(false);
+    } catch (err) {
+      alert(err.message || String(err));
+    }
   };
 
   const handleCancel = () => {
@@ -100,9 +170,30 @@ export default function StudentSettingsPage() {
     }));
   };
 
-  const handleChangePassword = () => {
-    console.log('Change password clicked');
-    // Implement change password functionality
+  const handleChangePassword = async () => {
+    const currentPassword = window.prompt('Enter your current password');
+    if (currentPassword == null) return;
+    const newPassword = window.prompt('Enter your new password (min 6 chars)');
+    if (newPassword == null) return;
+    if (String(newPassword).length < 6) {
+      alert('New password must be at least 6 characters');
+      return;
+    }
+    try {
+      const res = await fetch(`${apiBase}/api/auth/change-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ currentPassword, newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok || !data?.success) throw new Error(data?.error || 'Failed to change password');
+      alert('Password changed successfully');
+    } catch (err) {
+      alert(err.message || String(err));
+    }
   };
 
 

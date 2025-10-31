@@ -6,7 +6,7 @@ import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorListPage.css";
-import { Skeleton, TemplateCardSkeleton } from "../../lightswind/skeleton";
+import { TemplateCardSkeleton } from "../../lightswind/skeleton";
 
 export default function AdvisorListPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -21,8 +21,7 @@ export default function AdvisorListPage() {
     } else if (page === 'consultations') {
       navigate('/student-dashboard/consultations');
     } else if (page === 'logout') {
-      // Handle logout
-      console.log('Logout');
+      navigate('/logout');
     }
   };
 
@@ -63,7 +62,6 @@ export default function AdvisorListPage() {
 
   // Pagination logic
   const itemsPerPage = 8;
-  const totalPages = Math.ceil(filteredAdvisors.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = showAll ? filteredAdvisors.length : startIndex + itemsPerPage;
   const displayedAdvisors = filteredAdvisors.slice(0, endIndex);

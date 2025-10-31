@@ -29,8 +29,11 @@ import "../student/Sidebar.css";
  * - className: string
  * - items: Array<{ key: string, label: string, Icon: React.ComponentType<any>, isLogout?: boolean }>
  */
+import { useNavigate } from "react-router-dom";
+
 export default function DashboardSidebar({ collapsed, onToggle, onNavigate, className = '', items = [] }) {
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const navigate = useNavigate();
 
   const handleItemClick = (item) => {
     if (item.isLogout) {
@@ -42,9 +45,11 @@ export default function DashboardSidebar({ collapsed, onToggle, onNavigate, clas
 
   const handleLogoutConfirm = () => {
     setShowLogoutModal(false);
-    if (onNavigate) {
-      onNavigate('logout');
-    }
+    // Always navigate to logout route; also invoke onNavigate for callers
+    try {
+      navigate('/logout');
+    } catch (_) {}
+    if (onNavigate) onNavigate('logout');
   };
 
   const handleLogoutCancel = () => {
