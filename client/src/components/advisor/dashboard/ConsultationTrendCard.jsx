@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { BsChevronDown } from "react-icons/bs";
 import "./ConsultationTrendCard.css";
@@ -7,55 +7,54 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 
 export default function ConsultationTrendCard() {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
+  const [weeklyData, setWeeklyData] = useState([]);
+  const [monthlyData, setMonthlyData] = useState([]);
+  const [loaded, setLoaded] = useState(false);
 
   // Get current date for dynamic month names
   const currentDate = new Date();
   const currentMonth = currentDate.toLocaleString('default', { month: 'long' });
   const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1).toLocaleString('default', { month: 'long' });
 
-  // Sample data for different time periods
-  const weeklyData = [
-    { day: "Mon", consultations: 8, lastWeek: 6 },
-    { day: "Tue", consultations: 12, lastWeek: 9 },
-    { day: "Wed", consultations: 15, lastWeek: 11 },
-    { day: "Thu", consultations: 18, lastWeek: 14 },
-    { day: "Fri", consultations: 22, lastWeek: 17 },
-    { day: "Sat", consultations: 16, lastWeek: 19 },
-    { day: "Sun", consultations: 10, lastWeek: 13 }
-  ];
-
-  const monthlyData = [
-    { day: "1", consultations: 8, lastMonth: 6 },
-    { day: "2", consultations: 12, lastMonth: 9 },
-    { day: "3", consultations: 15, lastMonth: 11 },
-    { day: "4", consultations: 18, lastMonth: 14 },
-    { day: "5", consultations: 22, lastMonth: 17 },
-    { day: "6", consultations: 16, lastMonth: 19 },
-    { day: "7", consultations: 10, lastMonth: 13 },
-    { day: "8", consultations: 14, lastMonth: 16 },
-    { day: "9", consultations: 19, lastMonth: 12 },
-    { day: "10", consultations: 25, lastMonth: 18 },
-    { day: "11", consultations: 21, lastMonth: 15 },
-    { day: "12", consultations: 17, lastMonth: 20 },
-    { day: "13", consultations: 13, lastMonth: 16 },
-    { day: "14", consultations: 16, lastMonth: 14 },
-    { day: "15", consultations: 20, lastMonth: 17 },
-    { day: "16", consultations: 24, lastMonth: 19 },
-    { day: "17", consultations: 18, lastMonth: 15 },
-    { day: "18", consultations: 15, lastMonth: 12 },
-    { day: "19", consultations: 12, lastMonth: 9 },
-    { day: "20", consultations: 9, lastMonth: 7 },
-    { day: "21", consultations: 11, lastMonth: 8 },
-    { day: "22", consultations: 14, lastMonth: 10 },
-    { day: "23", consultations: 17, lastMonth: 13 },
-    { day: "24", consultations: 21, lastMonth: 16 },
-    { day: "25", consultations: 19, lastMonth: 14 },
-    { day: "26", consultations: 16, lastMonth: 11 },
-    { day: "27", consultations: 13, lastMonth: 9 },
-    { day: "28", consultations: 10, lastMonth: 7 },
-    { day: "29", consultations: 8, lastMonth: 5 },
-    { day: "30", consultations: 6, lastMonth: 4 }
-  ];
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = localStorage.getItem('advisys_user');
+        const storedToken = localStorage.getItem('advisys_token');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id || 1;
+        const res = await fetch(`${base}/api/dashboard/advisors/${advisorId}/summary`, {
+          headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
+        });
+        const json = await res.json();
+        const week = json?.trend?.week || { current: [], previous: [] };
+        const month = json?.trend?.month || { current: [], previous: [] };
+        const mergeByDay = (cur, prev) => {
+          const map = new Map();
+          (cur || []).forEach(r => {
+            map.set(String(r.day), { day: String(r.day), current: r.count, previous: 0 });
+          });
+          (prev || []).forEach(r => {
+            const key = String(r.day);
+            const existing = map.get(key) || { day: key, current: 0, previous: 0 };
+            existing.previous = r.count;
+            map.set(key, existing);
+          });
+          return Array.from(map.values());
+        };
+        setWeeklyData(mergeByDay(week.current, week.previous));
+        setMonthlyData(mergeByDay(month.current, month.previous));
+      } catch (err) {
+        console.error('Failed to load dashboard summary (trend)', err);
+        // Ensure empty state renders even if request fails
+        setLoaded(true);
+        return;
+      }
+      setLoaded(true);
+    };
+    fetchSummary();
+  }, []);
 
   const currentData = selectedPeriod === "week" ? weeklyData : monthlyData;
   const xAxisKey = "day";
@@ -85,7 +84,13 @@ export default function ConsultationTrendCard() {
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="chart-container">
-          <ResponsiveContainer width="100%" height="100%">
+          {loaded && (!currentData || currentData.length === 0) ? (
+            <div className="trend-empty">
+              <h4>No trend data</h4>
+              <p>There are no consultations for the selected period.</p>
+            </div>
+          ) : (
+            <ResponsiveContainer width="100%" height="100%">
             <LineChart data={currentData} margin={{ top: 10, right: 10, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
             <XAxis 
@@ -117,7 +122,7 @@ export default function ConsultationTrendCard() {
             />
             <Line 
               type="monotone" 
-              dataKey="consultations" 
+              dataKey="current" 
               stroke="#3b82f6" 
               strokeWidth={3}
               dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
@@ -126,16 +131,17 @@ export default function ConsultationTrendCard() {
             />
             <Line 
               type="monotone" 
-              dataKey={selectedPeriod === "week" ? "lastWeek" : "lastMonth"} 
+              dataKey="previous" 
               stroke="#94a3b8" 
               strokeWidth={2}
               strokeDasharray="5 5"
               dot={{ fill: '#94a3b8', strokeWidth: 2, r: 3 }}
               activeDot={{ r: 5, stroke: '#94a3b8', strokeWidth: 2, fill: '#fff' }}
               name={selectedPeriod === "week" ? "Last Week" : previousMonth}
-            />
+              />
             </LineChart>
           </ResponsiveContainer>
+          )}
         </div>
       </CardContent>
     </Card>

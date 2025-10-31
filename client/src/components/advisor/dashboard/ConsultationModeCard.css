@@ -19,6 +19,8 @@
   flex: 1;
   height: 100%;
   overflow: hidden;
+  padding: 8px; /* keep content inset from card edges */
+  box-sizing: border-box;
 }
 
 .donut-chart-container {
@@ -38,6 +40,24 @@
   align-items: center;
   gap: 8px;
 }
+
+/* Empty state styling */
+.mode-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 170px; /* smaller, cleaner */
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  background: #f8fafc;
+  border: 2px dashed #e5e7eb;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+.mode-empty h4 { margin: 0 0 4px; font-size: 1rem; font-weight: 600; color: #374151; }
+.mode-empty p { margin: 0; color: #6b7280; font-size: 0.85rem; }
 
 /* Mobile responsiveness */
 @media (max-width: 768px) {

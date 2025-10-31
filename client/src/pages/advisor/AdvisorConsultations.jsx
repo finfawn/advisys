@@ -1,6 +1,6 @@
-import React, { useMemo, useState } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsTrash } from "react-icons/bs";
+import { BsTrash, BsCalendar, BsClockHistory, BsListCheck } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
@@ -77,115 +77,60 @@ export default function AdvisorConsultations() {
     },
   ];
 
-  const initialUpcoming = useMemo(() => ([
-    {
-      id: 1,
-      date: "2025-10-05",
-      time: "7:00 AM - 8:00 AM",
-      topic: "Research Methodology",
-      student: { name: "Student 1", title: "BSCpE", avatar: null },
-      mode: "online",
-      meetingLink: "https://meet.google.com/abc-defg-hij",
-      status: "approved"
-    },
-    {
-      id: 2,
-      date: "2025-10-06",
-      time: "9:00 AM - 9:30 AM",
-      topic: "Proposal Review",
-      student: { name: "Student 2", title: "BSIT" },
-      mode: "in-person",
-      status: "approved",
-      location: "Office 102"
-    },
-    // placeholders to visualize scrolling
-    ...Array.from({ length: 8 }, (_, i) => ({
-      id: 200 + i,
-      date: "2025-10-" + String(10 + i).padStart(2, '0'),
-      time: "1:00 PM - 1:30 PM",
-      topic: `Placeholder Topic ${i + 1}`,
-      student: { name: `Student ${i + 10}`, title: "BSCS" },
-      mode: i % 2 === 0 ? "online" : "in-person",
-      status: "approved",
-      location: i % 2 ? "Office 10" : undefined,
-      meetingLink: i % 2 === 0 ? "https://meet.google.com/abc-defg-hij" : undefined,
-    }))
-  ]), []);
+  // Load consultations from backend and categorize
+  const [allConsultations, setAllConsultations] = useState([]);
+  useEffect(() => {
+    const fetchConsultations = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = localStorage.getItem('advisys_user');
+        const storedToken = localStorage.getItem('advisys_token');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id || 1;
+        const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, {
+          headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
+        });
+        const data = await res.json();
+        setAllConsultations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load consultations', err);
+      }
+    };
+    fetchConsultations();
+  }, []);
 
-  const initialRequests = useMemo(() => ([
-    {
-      id: 3,
-      date: "2025-10-07",
-      time: "10:00 AM - 10:30 AM",
-      topic: "Thesis Direction",
-      student: { name: "Student 3", title: "BSCS" },
-      mode: "online",
-      status: "pending"
-    },
-    {
-      id: 4,
-      date: "2025-10-08",
-      time: "1:00 PM - 1:30 PM",
-      topic: "Research Title",
-      student: { name: "Student 4", title: "BSIS" },
-      mode: "online",
-      status: "declined",
-      declineReason: "Schedule conflict"
-    },
-    // placeholders to visualize scrolling
-    ...Array.from({ length: 8 }, (_, i) => ({
-      id: 200 + i,
-      date: "2025-10-" + String(10 + i).padStart(2, '0'),
-      time: "1:00 PM - 1:30 PM",
-      topic: `Placeholder Topic ${i + 1}`,
-      student: { name: `Student ${i + 10}`, title: "BSCS" },
-      mode: i % 2 === 0 ? "online" : "in-person",
-      status: "approved",
-      location: i % 2 ? "Office 10" : undefined,
-      meetingLink: i % 2 === 0 ? "https://meet.google.com/abc-defg-hij" : undefined,
-    }))
-  ]), []);
+  const upcomingData = useMemo(() => {
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    return allConsultations
+      .filter(c => c.status === 'approved' && new Date(c.date) >= today)
+      .sort((a, b) => new Date(a.date) - new Date(b.date));
+  }, [allConsultations]);
 
-  const [upcomingCards, setUpcomingCards] = useState(initialUpcoming);
-  const [requestCards, setRequestCards] = useState(initialRequests);
+  const requestData = useMemo(() => (
+    allConsultations.filter(c => c.status === 'pending' || c.status === 'declined')
+  ), [allConsultations]);
+
+  const historyDataInitial = useMemo(() => (
+    allConsultations.filter(c => c.status === 'completed' || c.status === 'cancelled')
+  ), [allConsultations]);
+
+  const [upcomingCards, setUpcomingCards] = useState([]);
+  const [requestCards, setRequestCards] = useState([]);
+  useEffect(() => {
+    setUpcomingCards(upcomingData);
+    setRequestCards(requestData);
+  }, [upcomingData, requestData]);
 
   const [activeTab, setActiveTab] = useState('upcoming');
   const [upcomingFilter, setUpcomingFilter] = useState('all');
   const [requestFilter, setRequestFilter] = useState('all');
   const [historyFilter, setHistoryFilter] = useState('all');
 
-  const initialHistory = useMemo(() => ([
-    {
-      id: 101,
-      date: "2025-09-14",
-      time: "10:00 AM - 10:30 AM",
-      topic: "Thesis Outline Review",
-      student: { name: "Juan Dela Cruz", title: "Student" },
-      mode: "online",
-      status: "completed"
-    },
-    {
-      id: 102,
-      date: "2025-09-10",
-      time: "2:00 PM - 2:30 PM",
-      topic: "Course Planning",
-      student: { name: "Maria Santos", title: "Student" },
-      mode: "in-person",
-      status: "completed",
-      location: "Faculty Office 204"
-    },
-    {
-      id: 103,
-      date: "2025-09-05",
-      time: "1:00 PM - 1:30 PM",
-      topic: "Missed Session Follow-up",
-      student: { name: "Jose Rizal", title: "Student" },
-      mode: "online",
-      status: "cancelled"
-    }
-  ]), []);
-
-  const [historyData, setHistoryData] = useState(initialHistory);
+  const [historyData, setHistoryData] = useState([]);
+  useEffect(() => {
+    setHistoryData(historyDataInitial);
+  }, [historyDataInitial]);
 
   const upcomingCount = upcomingCards.length;
   const requestsCount = requestCards.length;
@@ -207,13 +152,19 @@ export default function AdvisorConsultations() {
   });
   
 
-  const handleApprove = (c) => {
-    setRequestCards(prev => prev.filter(x => x.id !== c.id));
-    const approvedItem = { ...c, status: 'approved' };
-    if (approvedItem.mode === 'online' && !approvedItem.meetingLink) {
-      approvedItem.meetingLink = 'https://meet.google.com/abc-defg-hij';
+  const handleApprove = async (c) => {
+    try {
+      const meetingLink = (c.mode === 'online' && !c.meetingLink) ? 'https://meet.google.com/abc-defg-hij' : c.meetingLink;
+      const res = await fetch(`${base}/api/consultations/${c.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ status: 'approved', meetingLink })
+      });
+      if (!res.ok) throw new Error('Approve failed');
+      await reloadConsultations();
+    } catch (err) {
+      console.error('Approve error', err);
     }
-    setUpcomingCards(prev => [...prev, approvedItem]);
   };
 
   const handleDecline = (c) => {
@@ -223,10 +174,20 @@ export default function AdvisorConsultations() {
     console.log('Modal should open now, showDeclineModal:', true);
   };
 
-  const handleConfirmDecline = (consultation, reason) => {
-    setRequestCards(prev => prev.map(x => x.id === consultation.id ? { ...x, status: 'declined', declineReason: reason } : x));
-    setShowDeclineModal(false);
-    setConsultationToDecline(null);
+  const handleConfirmDecline = async (consultation, reason) => {
+    try {
+      const res = await fetch(`${base}/api/consultations/${consultation.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ status: 'declined', declineReason: reason })
+      });
+      if (!res.ok) throw new Error('Decline failed');
+      setShowDeclineModal(false);
+      setConsultationToDecline(null);
+      await reloadConsultations();
+    } catch (err) {
+      console.error('Decline error', err);
+    }
   };
 
   const handleCloseDeclineModal = () => {
@@ -234,24 +195,17 @@ export default function AdvisorConsultations() {
     setConsultationToDecline(null);
   };
 
-  const handleDelete = (c) => {
-    // Clear any existing undo timeout
-    if (declinedUndoTimeout) {
-      clearTimeout(declinedUndoTimeout);
+  const handleDelete = async (c) => {
+    try {
+      const res = await fetch(`${base}/api/consultations/${c.id}`, {
+        method: 'DELETE',
+        headers: { ...authHeader }
+      });
+      if (!res.ok) throw new Error('Delete failed');
+      await reloadConsultations();
+    } catch (err) {
+      console.error('Delete error', err);
     }
-
-    // Remove item from display immediately
-    setRequestCards(prev => prev.filter(x => x.id !== c.id));
-    
-    // Add to deleted items for potential undo
-    setDeletedDeclinedItems(prev => [...prev, c]);
-
-    // Set timeout for permanent deletion (5 seconds)
-    const timeout = setTimeout(() => {
-      setDeletedDeclinedItems(prev => prev.filter(item => item.id !== c.id));
-    }, 5000);
-    
-    setDeclinedUndoTimeout(timeout);
   };
 
   const handleUndoDeleteDeclined = (consultation) => {
@@ -467,6 +421,23 @@ export default function AdvisorConsultations() {
                         onActionClick={handleActionClick}
                       />
                     ))}
+                    {filteredUpcoming.length === 0 && (
+                      <div className="no-consultations">
+                        <BsCalendar className="no-consultations-icon" />
+                        <h3>No upcoming consultations</h3>
+                        <p>
+                          You don’t have any upcoming sessions scheduled. When students book with you,
+                          their sessions will appear here.
+                        </p>
+                        <Button 
+                          variant="primary" 
+                          onClick={() => navigate('/advisor-dashboard/availability')}
+                          className="add-consultation-btn"
+                        >
+                          Manage Availability
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </section>
               )}
@@ -501,6 +472,22 @@ export default function AdvisorConsultations() {
                         onActionClick={handleActionClick}
                       />
                     ))}
+                    {filteredRequests.length === 0 && (
+                      <div className="no-consultations">
+                        <BsClockHistory className="no-consultations-icon" />
+                        <h3>No consultation requests</h3>
+                        <p>
+                          You currently have no pending or declined consultation requests from students.
+                        </p>
+                        <Button 
+                          variant="primary" 
+                          onClick={() => navigate('/advisor-dashboard/availability')}
+                          className="add-consultation-btn"
+                        >
+                          Manage Availability
+                        </Button>
+                      </div>
+                    )}
                   </div>
 
                   {/* Undo Notification for Declined Consultations */}
@@ -569,6 +556,13 @@ export default function AdvisorConsultations() {
                         onDelete={handleDeleteHistory}
                       />
                     ))}
+                    {filteredHistory.length === 0 && (
+                      <div className="no-history">
+                        <BsListCheck className="no-history-icon" />
+                        <h3>No consultation history</h3>
+                        <p>You haven’t completed any consultation sessions yet.</p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Undo Notification */}
@@ -622,3 +616,19 @@ export default function AdvisorConsultations() {
     </div>
   );
 }
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+  const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
+  const reloadConsultations = async () => {
+    try {
+      const storedUser = localStorage.getItem('advisys_user');
+      const parsed = storedUser ? JSON.parse(storedUser) : null;
+      const advisorId = parsed?.id || 1;
+      const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, { headers: { ...authHeader } });
+      const data = await res.json();
+      setAllConsultations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Reload consultations failed', err);
+    }
+  };

@@ -45,40 +45,8 @@ export default function AdvisorAvailability() {
     }
     setUndoToast({ open: false, items: [], timeoutId: null, message: '' });
   };
-
-  // Build initial sample events (matching calendar's internal defaults)
-  const buildSampleEvents = () => {
-    const d = (y, m, day, h = 0, min = 0) => new Date(y, m, day, h, min);
-    return [
-      // Day mode labels
-      { id: 1, title: 'Online', start: d(2025, 9, 1), end: d(2025, 9, 1), allDay: true, type: 'mode', mode: 'online' },
-      { id: 2, title: 'In-person/Online', start: d(2025, 9, 2), end: d(2025, 9, 2), allDay: true, type: 'mode', mode: 'hybrid' },
-      { id: 3, title: 'In-person/Online', start: d(2025, 9, 3), end: d(2025, 9, 3), allDay: true, type: 'mode', mode: 'hybrid' },
-      { id: 4, title: 'Online', start: d(2025, 9, 5), end: d(2025, 9, 5), allDay: true, type: 'mode', mode: 'online' },
-      { id: 5, title: 'In-person/Online', start: d(2025, 9, 6), end: d(2025, 9, 6), allDay: true, type: 'mode', mode: 'hybrid' },
-      { id: 6, title: 'Online', start: d(2025, 9, 7), end: d(2025, 9, 7), allDay: true, type: 'mode', mode: 'online' },
-      { id: 7, title: 'In-person', start: d(2025, 9, 8), end: d(2025, 9, 8), allDay: true, type: 'mode', mode: 'inperson' },
-      { id: 8, title: 'Online', start: d(2025, 9, 10), end: d(2025, 9, 10), allDay: true, type: 'mode', mode: 'online' },
-      { id: 9, title: 'In-person', start: d(2025, 9, 13), end: d(2025, 9, 13), allDay: true, type: 'mode', mode: 'inperson' },
-      { id: 10, title: 'In-person', start: d(2025, 9, 14), end: d(2025, 9, 14), allDay: true, type: 'mode', mode: 'inperson' },
-      { id: 11, title: 'Online', start: d(2025, 9, 20), end: d(2025, 9, 20), allDay: true, type: 'mode', mode: 'online' },
-      { id: 12, title: 'In-person', start: d(2025, 9, 21), end: d(2025, 9, 21), allDay: true, type: 'mode', mode: 'inperson' },
-      { id: 13, title: 'Online', start: d(2025, 9, 28), end: d(2025, 9, 28), allDay: true, type: 'mode', mode: 'online' },
-
-      // Availability chips
-      ...[1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 26, 27, 28].flatMap((day, i) => ([
-        { id: 100 + i * 3 + 1, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available', mode: 'online' },
-        { id: 100 + i * 3 + 2, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available', mode: 'face_to_face', room: 'Room 204' },
-        { id: 100 + i * 3 + 3, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available', mode: 'online' },
-      ])),
-
-      // Holidays
-      { id: 9001, title: 'Holiday', start: d(2025, 9, 9), end: d(2025, 9, 9), allDay: true, type: 'holiday' },
-      { id: 9002, title: 'Holiday', start: d(2025, 9, 19), end: d(2025, 9, 19), allDay: true, type: 'holiday' },
-    ];
-  };
-
-  const [events, setEvents] = useState(buildSampleEvents());
+  // Start with no events; dots appear only for real created slots
+  const [events, setEvents] = useState([]);
   const [activeSection, setActiveSection] = useState('morning');
 
   // Keep the right inspector card the same height as the calendar container

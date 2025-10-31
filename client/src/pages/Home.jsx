@@ -24,9 +24,42 @@ function Home() {
   const [activeSection, setActiveSection] = useState("hero");
   const [isManualNavigation, setIsManualNavigation] = useState(false);
 
+  // Determine login status and appropriate dashboard path
+  const getAuthInfo = () => {
+    try {
+      const token = localStorage.getItem("advisys_token");
+      const rawUser = localStorage.getItem("advisys_user");
+      const user = rawUser ? JSON.parse(rawUser) : null;
+      const role = user?.role || null;
+      return { isLoggedIn: !!token && !!role, role };
+    } catch (_) {
+      return { isLoggedIn: false, role: null };
+    }
+  };
+
+  const getDashboardPath = (role) => {
+    switch (role) {
+      case "student":
+        return "/student-dashboard";
+      case "advisor":
+        return "/advisor-dashboard";
+      case "admin":
+        return "/admin-dashboard";
+      default:
+        return "/auth";
+    }
+  };
+
+  const authInfo = getAuthInfo();
+
   const handleSelect = (sectionId) => {
     if (sectionId === "auth") {
-      navigate("/auth");
+      const current = getAuthInfo();
+      if (current.isLoggedIn) {
+        navigate(getDashboardPath(current.role));
+      } else {
+        navigate("/auth");
+      }
       return;
     }
 
@@ -154,7 +187,17 @@ function Home() {
                     label: "How it Works",
                     onClick: () => handleSelect("how-it-works"),
                   },
-                  { label: "Sign In", onClick: () => navigate("/auth") },
+                  {
+                    label: authInfo.isLoggedIn ? "Dashboard" : "Sign In",
+                    onClick: () => {
+                      const current = getAuthInfo();
+                      navigate(
+                        current.isLoggedIn
+                          ? getDashboardPath(current.role)
+                          : "/auth",
+                      );
+                    },
+                  },
                 ]}
                 buttonTop="30px"
                 buttonLeft="30px"
@@ -170,7 +213,16 @@ function Home() {
             </div>
             <div className="md:snap-y md:snap-mandatory">
               <div id="hero">
-                <HeroSection onGetStarted={() => navigate("/auth")} />
+                <HeroSection
+                  onGetStarted={() => {
+                    const current = getAuthInfo();
+                    navigate(
+                      current.isLoggedIn
+                        ? getDashboardPath(current.role)
+                        : "/auth",
+                    );
+                  }}
+                />
               </div>
               <div id="features">
                 <FeaturesSection />

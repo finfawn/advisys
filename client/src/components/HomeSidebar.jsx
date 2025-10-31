@@ -2,11 +2,22 @@ import React from "react";
 import { BsHouse, BsGrid3X3Gap, BsArrowRightCircle, BsBoxArrowInRight } from "react-icons/bs";
 
 function HomeSidebar({ activeSection, onSelect }) {
+  const getAuthLabel = () => {
+    try {
+      const token = localStorage.getItem("advisys_token");
+      const rawUser = localStorage.getItem("advisys_user");
+      const role = rawUser ? JSON.parse(rawUser)?.role : null;
+      return token && role ? "Dashboard" : "Sign In";
+    } catch (_) {
+      return "Sign In";
+    }
+  };
+
   const menuItems = [
     { id: "hero", label: "adviSys", icon: <BsHouse /> },
     { id: "features", label: "What's Inside", icon: <BsGrid3X3Gap /> },
     { id: "how-it-works", label: "How it Works", icon: <BsArrowRightCircle /> },
-    { id: "auth", label: "SignIn", icon: <BsBoxArrowInRight /> },
+    { id: "auth", label: getAuthLabel(), icon: <BsBoxArrowInRight /> },
   ];
 
   return (

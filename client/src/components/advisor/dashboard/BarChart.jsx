@@ -8,21 +8,16 @@ export default function CustomBarChart({ data }) {
     "First Year": "#9B59B6", // Purple
     "Second Year": "#3498DB", // Blue
     "Third Year": "#E67E22", // Orange
-    "Fourth Year": "#2ECC71", // Green
+    "Fourth Year": "#2ECC71", // Green,
   };
 
   // Transform data to match Recharts format
-  // Convert percentages to actual numbers based on total of 583
-  const totalConsultations = 583;
+  // Expect raw counts in `value`
   const chartData = data.map(item => ({
     year: item.label,
-    consultations: Math.round((item.value / 100) * totalConsultations),
-    fill: colors[item.label] || item.color || "#333"
+    consultations: Number(item.value || 0),
+    fill: colors[item.label] || item.color || "#3b82f6",
   }));
-
-  // Debug: Log the data to see what we're working with
-  console.log("Original data:", data);
-  console.log("Chart data:", chartData);
 
   return (
     <div className="container">

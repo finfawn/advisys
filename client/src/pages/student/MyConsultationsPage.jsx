@@ -48,11 +48,30 @@ export default function MyConsultationsPage() {
   };
 
   const [allConsultations, setAllConsultations] = useState([]);
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+  const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+  const reloadConsultations = async () => {
+    try {
+      const storedUser = localStorage.getItem('advisys_user');
+      const parsed = storedUser ? JSON.parse(storedUser) : null;
+      const studentId = parsed?.id || 1;
+      const res = await fetch(`${base}/api/students/${studentId}/consultations`, { headers: { ...authHeader } });
+      const data = await res.json();
+      setAllConsultations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Reload consultations failed', err);
+    }
+  };
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
-        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-        const res = await fetch(`${base}/api/students/1/consultations`);
+        const storedUser = localStorage.getItem('advisys_user');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const studentId = parsed?.id || 1;
+        const res = await fetch(`${base}/api/students/${studentId}/consultations`, {
+          headers: { ...authHeader },
+        });
         const data = await res.json();
         setAllConsultations(Array.isArray(data) ? data : []);
       } catch (err) {
@@ -148,9 +167,19 @@ export default function MyConsultationsPage() {
     // Add to deleted items for potential undo
     setDeletedItems(prev => [...prev, consultation]);
 
-    // Set timeout for permanent deletion (5 seconds)
-    const timeout = setTimeout(() => {
-      setDeletedItems(prev => prev.filter(item => item.id !== consultation.id));
+    // Set timeout for permanent deletion (5 seconds) and persist to server
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${base}/api/consultations/${consultation.id}`, {
+          method: 'DELETE',
+          headers: { ...authHeader }
+        });
+        if (!res.ok) throw new Error('Delete failed');
+      } catch (err) {
+        console.error('Delete error', err);
+      } finally {
+        setDeletedItems(prev => prev.filter(item => item.id !== consultation.id));
+      }
     }, 5000);
     
     setUndoTimeout(timeout);
@@ -188,9 +217,21 @@ export default function MyConsultationsPage() {
     // Clear the history
     setConsultationHistory([]);
 
-    // Set timeout for permanent deletion (5 seconds)
-    const timeout = setTimeout(() => {
-      setDeletedItems([]);
+    // Set timeout for permanent deletion (5 seconds) for all items
+    const timeout = setTimeout(async () => {
+      try {
+        await Promise.all(deletedItems.map(async (c) => {
+          const res = await fetch(`${base}/api/consultations/${c.id}`, {
+            method: 'DELETE',
+            headers: { ...authHeader }
+          });
+          if (!res.ok) throw new Error('Delete failed');
+        }));
+      } catch (err) {
+        console.error('Bulk delete error', err);
+      } finally {
+        setDeletedItems([]);
+      }
     }, 5000);
     
     setUndoTimeout(timeout);
@@ -227,9 +268,19 @@ export default function MyConsultationsPage() {
     // Add to deleted items for potential undo
     setDeletedDeclinedItems(prev => [...prev, consultation]);
 
-    // Set timeout for permanent deletion (5 seconds)
-    const timeout = setTimeout(() => {
-      setDeletedDeclinedItems(prev => prev.filter(item => item.id !== consultation.id));
+    // Set timeout for permanent deletion (5 seconds) and persist to server
+    const timeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`${base}/api/consultations/${consultation.id}`, {
+          method: 'DELETE',
+          headers: { ...authHeader }
+        });
+        if (!res.ok) throw new Error('Delete failed');
+      } catch (err) {
+        console.error('Delete declined error', err);
+      } finally {
+        setDeletedDeclinedItems(prev => prev.filter(item => item.id !== consultation.id));
+      }
     }, 5000);
     
     setDeclinedUndoTimeout(timeout);
@@ -277,16 +328,24 @@ export default function MyConsultationsPage() {
   };
 
   const handleConfirmCancel = (reason) => {
-    setIsCancelling(true);
-    // In a real app, this would make an API call with the reason
-    setTimeout(() => {
-      console.log('Consultation cancelled:', consultationToCancel.id, 'Reason:', reason);
-      // Remove from upcoming consultations
-      setRequestConsultationsState(prev => prev.filter(item => item.id !== consultationToCancel.id));
-      setShowCancelModal(false);
-      setConsultationToCancel(null);
-      setIsCancelling(false);
-    }, 1000);
+    (async () => {
+      try {
+        setIsCancelling(true);
+        const res = await fetch(`${base}/api/consultations/${consultationToCancel.id}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeader },
+          body: JSON.stringify({ status: 'cancelled', cancelReason: reason })
+        });
+        if (!res.ok) throw new Error('Cancel failed');
+        await reloadConsultations();
+        setShowCancelModal(false);
+        setConsultationToCancel(null);
+      } catch (err) {
+        console.error('Cancel error', err);
+      } finally {
+        setIsCancelling(false);
+      }
+    })();
   };
 
   const handleCloseCancelModal = () => {

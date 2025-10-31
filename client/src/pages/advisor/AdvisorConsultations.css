@@ -1,413 +1,99 @@
-/* Page Header */
-.consultations-container {
-    padding: 0;
-    overflow: visible !important;
+/* Empty States (Advisor perspective) */
+.no-consultations {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #cbd5e1;
+  margin: 2rem 0;
 }
 
-.consultations-header {
-    margin-bottom: 2rem;
+.no-consultations-icon {
+  font-size: 3rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
 }
 
-.consultations-title {
-    font-size: 2rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin: 0 0 0.5rem 0;
+.no-consultations h3 {
+  font-size: 1.3rem;
+  font-weight: 600;
+  color: #374151;
+  margin: 0 0 0.5rem 0;
 }
 
-.consultations-subtitle {
-    font-size: 1.1rem;
-    color: #666;
-    margin: 0;
-    line-height: 1.4;
+.no-consultations p {
+  color: #6b7280;
+  margin: 0 0 1.5rem 0;
+  max-width: 480px;
 }
 
-/* Tabs (match student page styles) */
-.consultations-tabs {
-    display: flex;
-    background: #f8fafc;
-    border-radius: 12px;
-    padding: 4px;
-    margin-bottom: 1.5rem;
-    gap: 4px;
+.add-consultation-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 20px;
+  background: #3b82f6;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
-.tab-button {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 12px 20px;
-    border: none;
-    background: transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    font-weight: 500;
-    color: #64748b;
-    flex: 1;
-    justify-content: center;
-    position: relative;
+.add-consultation-btn:hover {
+  background: #2563eb;
+  transform: translateY(-1px);
 }
 
-.tab-button:hover {
-    background: #e2e8f0;
-    color: #475569;
+.no-history {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 2rem;
+  text-align: center;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 2px dashed #cbd5e1;
+  margin: 2rem 0;
 }
 
-.tab-button.active {
-    background: #ffffff;
-    color: #1e293b;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-    font-weight: 600;
+.no-history-icon {
+  font-size: 3rem;
+  color: #94a3b8;
+  margin-bottom: 1rem;
 }
 
-.tab-label {
-    font-size: 0.95rem;
-}
+/* Layout and Tabs (re-instated minimal styles) */
+.consultations-container { padding: 0; overflow: visible !important; }
+.consultations-header { margin-bottom: 2rem; }
+.consultations-title { font-size: 2rem; font-weight: 700; color: #1f2937; margin: 0 0 0.5rem 0; }
+.consultations-subtitle { font-size: 1.1rem; color: #666; margin: 0; line-height: 1.4; }
 
-.tab-count {
-    background: #e2e8f0;
-    color: #64748b;
-    padding: 4px 8px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    min-width: 24px;
-    height: 24px;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    line-height: 1;
-}
+.consultations-tabs { display: flex; background: #f8fafc; border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; gap: 4px; }
+.tab-button { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border: none; background: transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; font-weight: 500; color: #64748b; flex: 1; justify-content: center; position: relative; }
+.tab-button:hover { background: #e2e8f0; color: #475569; }
+.tab-button.active { background: #ffffff; color: #1e293b; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-weight: 600; }
+.tab-label { font-size: 0.95rem; }
+.tab-count { background: #e2e8f0; color: #64748b; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; min-width: 24px; height: 24px; text-align: center; display: flex; align-items: center; justify-content: center; line-height: 1; }
+.tab-content { min-height: 400px; }
 
-.tab-button.active .tab-count {
-    background: #3b82f6;
-    color: #ffffff;
-}
+.consultations-section { margin-bottom: 2rem; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
+.section-title { font-size: 1.2rem; font-weight: 700; color: #1f2937; margin: 0; }
+.section-controls { display: flex; align-items: center; gap: 10px; }
+.filter-dropdown { min-width: 140px; }
+.section-count { font-size: 0.9rem; color: #6b7280; }
 
-/* Sections */
-@media (min-width: 768px) {
-    .consultations-section{
-        padding-bottom: 65px;    
-    }
-}
+.consultations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
 
-.consultations-section {
-    position: relative;
-    overflow: visible;
-}
-
-/* Card grid for Upcoming and Requests - 4 columns */
-.consultations-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.875rem;
-    margin-bottom: 1.5rem;
-}
-
-/* Tablet-friendly Grid Layout */
-@media (max-width: 1200px) {
-    .consultations-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-    }
-}
-
-@media (max-width: 900px) {
-    .consultations-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-}
-
-/* Treat tablets like mobile: collapse to single column and stack controls */
-@media (max-width: 1024px) {
-    .consultations-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-
-    .consultations-tabs {
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-        min-height: auto;
-    }
-
-    .section-controls {
-        width: 100%;
-        justify-content: space-between;
-        flex-wrap: wrap;
-    }
-
-    .filter-dropdown {
-        flex: 1;
-        max-width: none;
-        height: 38px;
-        font-size: 0.9rem;
-    }
-}
-/* Tablets: use two columns for cards to reduce stretch */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .consultations-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-}
-
-@media (max-width: 639px) {
-    .consultations-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-}
-
-/* Section Header */
-.section-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-    gap: 1rem;
-    position: relative;
-    min-height: 40px;
-    overflow: visible;
-}
-
-.section-title {
-    font-size: 1.6rem;
-    font-weight: 600;
-    color: #1f2937;
-    margin: 0;
-}
-
-.section-controls {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    flex-shrink: 0;
-    position: relative;
-    z-index: 50;
-}
-
-.filter-dropdown {
-    padding: 0.5rem 1rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 8px;
-    background: white;
-    color: #475569;
-    font-size: 0.9rem;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    min-width: 120px;
-    max-width: 150px;
-    outline: none;
-    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-    position: relative;
-    height: 40px;
-}
-
-.filter-dropdown:hover {
-    border-color: #cbd5e1;
-}
-
-.filter-dropdown:focus {
-    outline: none;
-    border-color: #3b82f6;
-    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.section-count {
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
-}
-
-/* Tablet: allow header controls to wrap cleanly */
-@media (max-width: 1024px) {
-    .section-header {
-        flex-wrap: wrap;
-        gap: 0.75rem;
-    }
-    .section-controls {
-        flex-wrap: wrap;
-        row-gap: 0.5rem;
-        justify-content: flex-end;
-    }
-    .filter-dropdown {
-        min-width: 112px;
-        max-width: 140px;
-        height: 38px;
-        font-size: 0.85rem;
-    }
-}
-
-
-/* Responsive */
-@media (max-width: 767px) {
-    .consultations-header {
-        margin-bottom: 1.5rem;
-    }
-
-    .consultations-title {
-        font-size: 1.75rem;
-    }
-
-    .consultations-subtitle {
-        font-size: 1rem;
-    }
-
-    .consultations-tabs {
-        flex-direction: column;
-        gap: 4px;
-    }
-
-    .tab-button {
-        justify-content: space-between;
-        padding: 10px 16px;
-    }
-
-    .tab-label {
-        font-size: 0.9rem;
-    }
-
-    .section-header {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 0.75rem;
-        min-height: auto;
-    }
-
-    .section-title {
-        font-size: 1.4rem;
-    }
-
-    .section-controls {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .filter-dropdown {
-        flex: 1;
-        max-width: none;
-        height: 38px;
-    }
-
-    .section-count {
-        font-size: 0.85rem;
-    }
-}
-
-/* Tablet: compact tab spacing to prevent crowding */
-@media (min-width: 768px) and (max-width: 1024px) {
-    .consultations-tabs {
-        padding: 3px;
-        gap: 3px;
-    }
-    .tab-button {
-        padding: 10px 14px;
-        gap: 6px;
-    }
-    .tab-label {
-        font-size: 0.9rem;
-    }
-    .tab-count {
-        min-width: 22px;
-        height: 22px;
-        font-size: 0.78rem;
-        padding: 3px 6px;
-    }
-}
-
-@media (max-width: 480px) {
-    .consultations-title {
-        font-size: 1.5rem;
-    }
-
-    .consultations-subtitle {
-        font-size: 0.95rem;
-    }
-
-    .consultations-tabs {
-        padding: 3px;
-        margin-bottom: 1rem;
-    }
-
-    .tab-button {
-        padding: 8px 12px;
-    }
-
-    .tab-label {
-        font-size: 0.85rem;
-    }
-
-    .tab-count {
-        font-size: 0.75rem;
-        padding: 3px 6px;
-        min-width: 20px;
-        height: 20px;
-    }
-
-    .section-title {
-        font-size: 1.25rem;
-    }
-
-    .section-count {
-        font-size: 0.8rem;
-    }
-
-    .consultations-grid {
-        gap: 0.875rem;
-    }
-
-    .filter-dropdown {
-        font-size: 0.85rem;
-        padding: 0.4rem 0.75rem;
-    }
-}
-
-/* Override parent overflow constraints for dropdown */
-.consultations-container,
-.consultations-container > *,
-.tab-content,
-.consultations-section {
-    overflow: visible !important;
-    position: relative;
-}
-
-/* Ensure Select dropdown portal doesn't affect parent container size */
-[data-radix-popper-content-wrapper],
-[role="listbox"],
-.select-content-portal {
-    position: fixed !important;
-    z-index: 9999 !important;
-    pointer-events: auto !important;
-}
-
-/* Fix for Select component dropdown */
-button[role="combobox"] {
-    overflow: visible !important;
-}
-
-/* Prevent layout shift when dropdown opens */
-.section-controls {
-    overflow: visible !important;
-}
-
-.section-controls > div {
-    position: relative;
-    overflow: visible !important;
-}
-
-/* Ensure section header doesn't clip dropdown */
-.section-header {
-    overflow: visible !important;
-    z-index: 1;
-}
+/* Undo Notification */
+.undo-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; border-radius: 8px; padding: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 300px; max-width: 500px; }
+.undo-content { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
+.undo-message { flex: 1; font-size: 0.95rem; }
+.undo-btn { background: transparent; border: 1px solid #e5e7eb; color: #ffffff; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
+.undo-btn:hover { background: rgba(255,255,255,0.1); }

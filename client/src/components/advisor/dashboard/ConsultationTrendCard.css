@@ -15,10 +15,28 @@
 .chart-container {
   height: 180px;
   width: 100%;
-  padding: 0 8px;
+  padding: 8px; /* consistent inset */
   box-sizing: border-box;
-  overflow: visible;
+  overflow: hidden; /* prevent content spilling outside */
 }
+
+/* Empty state styling */
+.trend-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 140px; /* smaller box */
+  width: 100%;
+  padding: 12px;
+  text-align: center;
+  background: #f8fafc;
+  border: 2px dashed #e5e7eb;
+  border-radius: 10px;
+  box-sizing: border-box;
+}
+.trend-empty h4 { margin: 0 0 4px; font-size: 1rem; font-weight: 600; color: #374151; }
+.trend-empty p { margin: 0; color: #6b7280; font-size: 0.85rem; }
 
 /* Dropdown styling */
 .consultation-trend-card .dropdown-container {

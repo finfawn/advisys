@@ -128,7 +128,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-gray-900 text-sm truncate">{consultation.student?.name || 'Student'}</div>
-            <div className="text-xs text-gray-600 truncate">{consultation.student?.title || 'Student'}</div>
+            <div className="text-xs text-gray-600 truncate">{consultation.student?.title ?? consultation.student?.course ?? 'Student'}</div>
           </div>
         </div>
         

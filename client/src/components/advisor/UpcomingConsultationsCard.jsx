@@ -1,47 +1,37 @@
-import React from "react";
-import { BsClock, BsChevronRight } from "react-icons/bs";
+import React, { useEffect, useState, useMemo } from "react";
+import { BsClock, BsChevronRight, BsCalendar } from "react-icons/bs";
 import "./UpcomingConsultationsCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../lightswind/card";
+import { useNavigate } from "react-router-dom";
 
 export default function UpcomingConsultationsCard() {
-  const consultations = [
-    {
-      id: 1,
-      date: "2025-01-05",
-      time: "10:00 AM - 10:30 AM",
-      student: {
-        name: "Sarah Johnson",
-        course: "Computer Science - 3rd Year"
-      },
-      topic: "Course Selection for Next Semester",
-      mode: "online",
-      status: "approved"
-    },
-    {
-      id: 2,
-      date: "2025-01-08",
-      time: "2:00 PM - 2:30 PM",
-      student: {
-        name: "Michael Chen",
-        course: "Mathematics - 2nd Year"
-      },
-      topic: "Research Project Discussion",
-      mode: "in-person",
-      status: "approved"
-    },
-    {
-      id: 3,
-      date: "2025-01-12",
-      time: "3:00 PM - 3:30 PM",
-      student: {
-        name: "Emily Rodriguez",
-        course: "Chemistry - 4th Year"
-      },
-      topic: "Thesis Proposal Review",
-      mode: "in-person",
-      status: "approved"
-    }
-  ];
+  const navigate = useNavigate();
+  const [allConsultations, setAllConsultations] = useState([]);
+  useEffect(() => {
+    const fetchConsultations = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = localStorage.getItem('advisys_user');
+        const storedToken = localStorage.getItem('advisys_token');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id || 1;
+        const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, {
+          headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
+        });
+        const data = await res.json();
+        setAllConsultations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load advisor consultations', err);
+      }
+    };
+    fetchConsultations();
+  }, []);
+
+  const consultations = useMemo(() => (
+    allConsultations
+      .filter(c => c.status === 'approved')
+      .sort((a, b) => new Date(a.date) - new Date(b.date))
+  ), [allConsultations]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -52,14 +42,21 @@ export default function UpcomingConsultationsCard() {
     });
   };
 
-  const getActionButtonText = (consultation) => {
-    // First consultation shows "Join" button, others show "Details"
-    return consultation.id === 1 ? 'Join' : 'Details';
+  const getActionButtonText = (index) => {
+    // First upcoming item shows "Join" for quick action
+    return index === 0 ? 'Join' : 'Details';
   };
 
-  const getActionButtonClass = (consultation) => {
-    // First consultation shows "Join" button, others show "Details"
-    return consultation.id === 1 ? 'upcoming-action-btn join' : 'upcoming-action-btn details';
+  const getActionButtonClass = (index) => {
+    return index === 0 ? 'upcoming-action-btn join' : 'upcoming-action-btn details';
+  };
+
+  const handleActionClick = (consultation, index) => {
+    if (index === 0 && consultation.mode === 'online') {
+      navigate(`/advisor-dashboard/consultations/online/${consultation.id}`);
+    } else {
+      navigate(`/advisor-dashboard/consultations/${consultation.id}`);
+    }
   };
 
   return (
@@ -67,14 +64,30 @@ export default function UpcomingConsultationsCard() {
       <CardHeader spacing="default" className="pb-2">
         <div className="upcoming-card-header">
           <CardTitle size="default" className="upcoming-card-title">Upcoming Consultations</CardTitle>
-          <a href="#" className="upcoming-view-all">
+          <button className="upcoming-view-all" onClick={() => navigate('/advisor-dashboard/consultations')}>
             View All
             <BsChevronRight className="view-all-icon" />
-          </a>
+          </button>
         </div>
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="upcoming-consultations-list">
+          {consultations.length === 0 && (
+            <div className="upcoming-empty">
+              <BsCalendar className="upcoming-empty-icon" />
+              <h4>No upcoming consultations</h4>
+              <p>
+                You don’t have any upcoming sessions. When students book with you,
+                they will show up here.
+              </p>
+              <button 
+                className="upcoming-empty-btn" 
+                onClick={() => navigate('/advisor-dashboard/availability')}
+              >
+                Manage Availability
+              </button>
+            </div>
+          )}
           {consultations.map((consultation, index) => (
             <div key={consultation.id} className="compact-consultation-card">
             <div className="compact-date-section">
@@ -106,8 +119,8 @@ export default function UpcomingConsultationsCard() {
             </div>
             
             <div className="compact-action">
-              <button className={getActionButtonClass(consultation)}>
-                {getActionButtonText(consultation)}
+              <button className={getActionButtonClass(index)} onClick={() => handleActionClick(consultation, index)}>
+                {getActionButtonText(index)}
                 <BsChevronRight className="action-icon" />
               </button>
             </div>

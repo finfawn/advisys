@@ -26,10 +26,8 @@ export default function AvailabilityCalendar({
   editEvent, // when provided, open edit modal for this event
   onRequestModalClose, // notify parent to clear edit state when modal closes
 }) {
-  // Helper to build dates
-  const d = (y, m, day, h = 0, min = 0) => new Date(y, m, day, h, min);
   // Controlled current date for navigation
-  const [currentDate, setCurrentDate] = useState(new Date(2025, 9, 5));
+  const [currentDate, setCurrentDate] = useState(new Date());
   // Controlled view so toolbar view buttons work reliably
   const [currentView, setCurrentView] = useState(externalView || 'month');
   // Modal state for creating availability
@@ -55,35 +53,8 @@ export default function AvailabilityCalendar({
     }
   }, [editEvent]);
 
-  // Sample month: October 2025
-  // Build events that match the design: a day mode label + repeating availability chips + a few holidays
-  const [internalEvents, setInternalEvents] = useState([
-    // Day mode labels
-    { id: 1, title: 'Online', start: d(2025, 9, 1), end: d(2025, 9, 1), allDay: true, type: 'mode', mode: 'online' },
-    { id: 2, title: 'In-person/Online', start: d(2025, 9, 2), end: d(2025, 9, 2), allDay: true, type: 'mode', mode: 'hybrid' },
-    { id: 3, title: 'In-person/Online', start: d(2025, 9, 3), end: d(2025, 9, 3), allDay: true, type: 'mode', mode: 'hybrid' },
-    { id: 4, title: 'Online', start: d(2025, 9, 5), end: d(2025, 9, 5), allDay: true, type: 'mode', mode: 'online' },
-    { id: 5, title: 'In-person/Online', start: d(2025, 9, 6), end: d(2025, 9, 6), allDay: true, type: 'mode', mode: 'hybrid' },
-    { id: 6, title: 'Online', start: d(2025, 9, 7), end: d(2025, 9, 7), allDay: true, type: 'mode', mode: 'online' },
-    { id: 7, title: 'In-person', start: d(2025, 9, 8), end: d(2025, 9, 8), allDay: true, type: 'mode', mode: 'inperson' },
-    { id: 8, title: 'Online', start: d(2025, 9, 10), end: d(2025, 9, 10), allDay: true, type: 'mode', mode: 'online' },
-    { id: 9, title: 'In-person', start: d(2025, 9, 13), end: d(2025, 9, 13), allDay: true, type: 'mode', mode: 'inperson' },
-    { id: 10, title: 'In-person', start: d(2025, 9, 14), end: d(2025, 9, 14), allDay: true, type: 'mode', mode: 'inperson' },
-    { id: 11, title: 'Online', start: d(2025, 9, 20), end: d(2025, 9, 20), allDay: true, type: 'mode', mode: 'online' },
-    { id: 12, title: 'In-person', start: d(2025, 9, 21), end: d(2025, 9, 21), allDay: true, type: 'mode', mode: 'inperson' },
-    { id: 13, title: 'Online', start: d(2025, 9, 28), end: d(2025, 9, 28), allDay: true, type: 'mode', mode: 'online' },
-
-    // Availability chips
-    ...[1, 2, 3, 5, 6, 7, 8, 10, 11, 12, 13, 14, 20, 21, 22, 23, 24, 26, 27, 28].flatMap((day, i) => ([
-      { id: 100 + i * 3 + 1, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
-      { id: 100 + i * 3 + 2, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
-      { id: 100 + i * 3 + 3, title: '4:00-8:00 pm', start: d(2025, 9, day, 16, 0), end: d(2025, 9, day, 20, 0), type: 'available' },
-    ])),
-
-    // Holidays
-    { id: 9001, title: 'Holiday', start: d(2025, 9, 9), end: d(2025, 9, 9), allDay: true, type: 'holiday' },
-    { id: 9002, title: 'Holiday', start: d(2025, 9, 19), end: d(2025, 9, 19), allDay: true, type: 'holiday' },
-  ]);
+  // Events are empty by default; dots appear only for real added slots
+  const [internalEvents, setInternalEvents] = useState([]);
 
   // Resolve events source (external vs internal)
   const events = useMemo(() => Array.isArray(externalEvents) ? externalEvents : internalEvents, [externalEvents, internalEvents]);
@@ -126,7 +97,7 @@ export default function AvailabilityCalendar({
       const tooltip = `${modeLabel || 'Slot'}${event.room ? ` • ${event.room}` : ''} • ${moment(event.start).format('h:mm a')}-${moment(event.end).format('h:mm a')}`;
       return <div className="availability-dot" title={tooltip} aria-label={tooltip} />;
     }
-    return <div className="availability-dot" title={event.title} aria-label={event.title} />;
+    return null;
   };
 
   // Custom toolbar for month navigation + year dropdown

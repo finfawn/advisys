@@ -20,6 +20,10 @@ const consultationsRouter = require('./routes/consultations');
 app.use('/api', consultationsRouter);
 const profileRouter = require('./routes/profile');
 app.use('/api/profile', profileRouter);
+const availabilityRouter = require('./routes/availability');
+app.use('/api/availability', availabilityRouter);
+const dashboardRouter = require('./routes/dashboard');
+app.use('/api/dashboard', dashboardRouter);
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));

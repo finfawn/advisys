@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { BsChevronRight, BsChevronLeft, BsPersonCircle, BsCheckCircle, BsClock, BsPeople, BsCalendarCheck, BsBookmark, BsChevronDown } from "react-icons/bs";
@@ -75,171 +75,76 @@ export default function StudentDashboard() {
   // Calendar availability state (moved out of callback to satisfy React Hooks rules)
   const today = new Date();
   const [selectedDate, setSelectedDate] = useState(today);
-  const getDateString = (daysOffset) => {
-    const date = new Date(today);
-    date.setDate(date.getDate() + daysOffset);
-    return date.toISOString().slice(0,10);
-  };
-  const advisorsByDate = {
-    [getDateString(0)]: [
-      { name: "Dr. Santos", slots: "10:00 AM – 12:00 PM", mode: "Online" },
-      { name: "Prof. Cruz", slots: "1:00 PM – 3:00 PM", mode: "In-person" },
-    ],
-    [getDateString(1)]: [
-      { name: "Dr. Lee", slots: "9:00 AM – 11:00 AM", mode: "Online" },
-    ],
-    [getDateString(2)]: [
-      { name: "Prof. Martinez", slots: "2:00 PM – 4:00 PM", mode: "In-person" },
-    ],
-    [getDateString(3)]: [
-      { name: "Dr. Kim", slots: "10:00 AM – 12:00 PM", mode: "Online" },
-      { name: "Prof. Garcia", slots: "3:00 PM – 5:00 PM", mode: "Online" },
-    ],
-    [getDateString(5)]: [
-      { name: "Dr. Reyes", slots: "11:00 AM – 1:00 PM", mode: "In-person" },
-    ],
-    [getDateString(7)]: [
-      { name: "Prof. Dela Cruz", slots: "8:00 AM – 10:00 AM", mode: "In-person" },
-      { name: "Dr. Johnson", slots: "1:00 PM – 3:00 PM", mode: "Online" },
-    ],
-  };
+  const [availableToday, setAvailableToday] = useState([]);
+  const [availabilityData, setAvailabilityData] = useState({});
   const key = selectedDate ? selectedDate.toISOString().slice(0,10) : '';
-  const list = advisorsByDate[key] || [];
+  const list = availabilityData[key] || [];
   const formatSelectedDate = (date) => {
     if (!date) return '';
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     return date.toLocaleDateString('en-US', options);
   };
 
-  // Mock data for upcoming consultations (limited to 3-4 for dashboard)
-  const allConsultations = [
-    {
-      id: 1,
-      date: "2025-10-05",
-      time: "10:00 AM - 10:30 AM",
-      topic: "Course Selection for Next Semester",
-      faculty: {
-        name: "Dr. Maria Santos",
-        title: "Professor of Computer Science",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "approved",
-      meetingLink: "https://meet.google.com/abc-defg-hij"
-    },
-    {
-      id: 2,
-      date: "2025-10-08",
-      time: "2:00 PM - 2:30 PM",
-      topic: "Research Project Discussion",
-      faculty: {
-        name: "Prof. John Cruz",
-        title: "Associate Professor of Mathematics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Room 205, Math Building"
-    },
-    {
-      id: 3,
-      date: "2025-10-10",
-      time: "11:00 AM - 11:30 AM",
-      topic: "Career Guidance",
-      faculty: {
-        name: "Ms. Sarah Reyes",
-        title: "Assistant Professor of Physics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "pending",
-      meetingLink: "https://zoom.us/j/123456789"
-    },
-    {
-      id: 4,
-      date: "2025-10-12",
-      time: "3:00 PM - 3:30 PM",
-      topic: "Thesis Proposal Review",
-      faculty: {
-        name: "Dr. Michael Dela Cruz",
-        title: "Professor of Chemistry",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Office 301, Chemistry Building"
-    },
-    {
-      id: 5,
-      date: "2025-10-15",
-      time: "9:00 AM - 9:30 AM",
-      topic: "Academic Performance Review",
-      faculty: {
-        name: "Prof. Lisa Garcia",
-        title: "Associate Professor of Biology",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "approved",
-      meetingLink: "https://teams.microsoft.com/l/meetup-join/..."
-    },
-    {
-      id: 6,
-      date: "2025-10-18",
-      time: "1:00 PM - 1:30 PM",
-      topic: "Internship Application Guidance",
-      faculty: {
-        name: "Dr. Robert Martinez",
-        title: "Professor of Engineering",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Conference Room A, Engineering Building"
-    },
-    {
-      id: 7,
-      date: "2025-10-20",
-      time: "2:30 PM - 3:00 PM",
-      topic: "Graduate School Applications",
-      faculty: {
-        name: "Dr. Jennifer Lee",
-        title: "Professor of Psychology",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "approved",
-      meetingLink: "https://zoom.us/j/987654321"
-    },
-    {
-      id: 8,
-      date: "2025-10-22",
-      time: "10:30 AM - 11:00 AM",
-      topic: "Research Methodology Discussion",
-      faculty: {
-        name: "Prof. David Kim",
-        title: "Associate Professor of Statistics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Lab 101, Statistics Building"
-    }
-  ];
+  // Fetch consultations from backend and compute upcoming + top topic
+  const [allConsultations, setAllConsultations] = useState([]);
+  useEffect(() => {
+    const fetchConsultations = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = localStorage.getItem('advisys_user');
+        const storedToken = localStorage.getItem('advisys_token');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const studentId = parsed?.id || 1;
+        const res = await fetch(`${base}/api/students/${studentId}/consultations`, {
+          headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
+        });
+        const data = await res.json();
+        setAllConsultations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load consultations', err);
+      }
+    };
+    fetchConsultations();
+  }, []);
 
-  // Filter to show only approved consultations for dashboard
-  const upcomingConsultations = allConsultations.filter(consultation => consultation.status === 'approved');
+  // Fetch availability: today and calendar for current month
+  useEffect(() => {
+    const loadAvailability = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        // Available Today
+        const resToday = await fetch(`${base}/api/availability/today`);
+        const dataToday = await resToday.json();
+        setAvailableToday(Array.isArray(dataToday) ? dataToday : []);
 
-  // Calculate top consultation topic
-  const topicCounts = {};
-  allConsultations.forEach(consultation => {
-    const topic = consultation.topic;
-    topicCounts[topic] = (topicCounts[topic] || 0) + 1;
-  });
-  
-  const topTopic = Object.entries(topicCounts).reduce((a, b) => 
-    topicCounts[a[0]] > topicCounts[b[0]] ? a : b
-  );
+        // Calendar availability for current month
+        const y = today.getFullYear();
+        const m = String(today.getMonth() + 1).padStart(2, '0');
+        const resCal = await fetch(`${base}/api/availability/calendar?month=${y}-${m}`);
+        const dataCal = await resCal.json();
+        setAvailabilityData(typeof dataCal === 'object' && dataCal !== null ? dataCal : {});
+      } catch (err) {
+        console.error('Failed to load availability', err);
+      }
+    };
+    loadAvailability();
+  }, []);
+
+  const upcomingConsultations = useMemo(() => (
+    allConsultations.filter(c => c.status === 'approved')
+  ), [allConsultations]);
+
+  const topTopic = useMemo(() => {
+    const counts = {};
+    allConsultations.forEach(c => {
+      const t = c.topic;
+      if (!t) return;
+      counts[t] = (counts[t] || 0) + 1;
+    });
+    const entries = Object.entries(counts);
+    if (!entries.length) return ['No Topic', 0];
+    return entries.reduce((a, b) => counts[a[0]] > counts[b[0]] ? a : b);
+  }, [allConsultations]);
 
   const handleJoinConsultation = (consultation) => {
     // Navigate to appropriate details page based on consultation mode
@@ -274,15 +179,30 @@ export default function StudentDashboard() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mobile-upcoming-content">
-                  {upcomingConsultations.slice(0, 3).map(consultation => (
-                    <CompactConsultationCard
-                      key={consultation.id}
-                      consultation={consultation}
-                      onActionClick={() => handleJoinConsultation(consultation)}
-                      onDelete={() => console.log('Delete consultation:', consultation.id)}
-                      onCancel={() => console.log('Cancel consultation:', consultation.id)}
-                    />
-                  ))}
+                  {upcomingConsultations.length > 0 ? (
+                    upcomingConsultations.slice(0, 3).map(consultation => (
+                      <CompactConsultationCard
+                        key={consultation.id}
+                        consultation={consultation}
+                        onActionClick={() => handleJoinConsultation(consultation)}
+                        onDelete={() => console.log('Delete consultation:', consultation.id)}
+                        onCancel={() => console.log('Cancel consultation:', consultation.id)}
+                      />
+                    ))
+                  ) : (
+                    <div className="no-availability">
+                      <div className="no-availability-icon">
+                        <BsCalendarCheck />
+                      </div>
+                      <div className="no-availability-title">No upcoming consultations</div>
+                      <div className="no-availability-text">You have no upcoming sessions scheduled.</div>
+                      <div className="availability-actions">
+                        <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
+                          Book Now
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </CollapsibleContent>
             </Collapsible>
@@ -352,15 +272,30 @@ export default function StudentDashboard() {
                   </button>
                 </div>
                 <div className="upcoming-consultations-list">
-                  {upcomingConsultations.slice(0, 3).map(consultation => (
-                    <CompactConsultationCard
-                      key={consultation.id}
-                      consultation={consultation}
-                      onActionClick={() => handleJoinConsultation(consultation)}
-                      onDelete={() => console.log('Delete consultation:', consultation.id)}
-                      onCancel={() => console.log('Cancel consultation:', consultation.id)}
-                    />
-                  ))}
+                  {upcomingConsultations.length > 0 ? (
+                    upcomingConsultations.slice(0, 3).map(consultation => (
+                      <CompactConsultationCard
+                        key={consultation.id}
+                        consultation={consultation}
+                        onActionClick={() => handleJoinConsultation(consultation)}
+                        onDelete={() => console.log('Delete consultation:', consultation.id)}
+                        onCancel={() => console.log('Cancel consultation:', consultation.id)}
+                      />
+                    ))
+                  ) : (
+                    <div className="no-availability">
+                      <div className="no-availability-icon">
+                        <BsCalendarCheck />
+                      </div>
+                      <div className="no-availability-title">No upcoming consultations</div>
+                      <div className="no-availability-text">Book a session with a faculty advisor.</div>
+                      <div className="availability-actions">
+                        <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
+                          Book Now
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </aside>
             </div>
@@ -422,21 +357,35 @@ export default function StudentDashboard() {
                   </button>
                 </div>
                 <div className="available-fixed-grid">
-              {Array.from({ length: 2 }).map((_, idx) => (
-                <AdvisorCard 
-                  key={idx}
-                  advisorId={idx + 1}
-                  name="Dr. Maria Santos"
-                  title="Professor of Computer Science"
-                  status="Available"
-                  schedule="Tue, Thu"
-                  time="10:00 AM–01:00 PM"
-                  mode="In-person/Online"
-                  coursesTaught={["CS 101", "CS 301", "CS 401"]}
-                  onBookClick={() => console.log('Book consultation clicked')}
-                  onNavigateToConsultations={() => handleNavigation('consultations')}
-                />
-              ))}
+                  {availableToday.length > 0 ? (
+                    availableToday.slice(0, 4).map((adv, idx) => (
+                      <AdvisorCard
+                        key={adv.id || idx}
+                        advisorId={adv.id}
+                        name={adv.name}
+                        title={adv.title}
+                        status="Available"
+                        schedule={adv.schedule}
+                        time={adv.time}
+                        mode={adv.mode}
+                        onBookClick={() => console.log('Book consultation clicked')}
+                        onNavigateToConsultations={() => handleNavigation('consultations')}
+                      />
+                    ))
+                  ) : (
+                    <div className="no-availability" style={{ padding: '40px 20px', width: '100%' }}>
+                      <div className="no-availability-icon">
+                        <BsPeople />
+                      </div>
+                      <div className="no-availability-title">No advisors available today</div>
+                      <div className="no-availability-text">See all advisors and book a session</div>
+                      <div className="availability-actions">
+                        <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
+                          Browse All Advisors
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
           </div>
@@ -450,7 +399,7 @@ export default function StudentDashboard() {
                   <CustomCalendar 
                     selectedDate={selectedDate}
                     onDateSelect={setSelectedDate}
-                    availabilityData={advisorsByDate}
+                    availabilityData={availabilityData}
                   />
                 </div>
                 <div className="modern-availability-card">
