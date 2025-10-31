@@ -28,7 +28,7 @@
 
 @media (max-width: 1024px) {
   .appointments-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
   }
 }
 

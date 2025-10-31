@@ -359,8 +359,8 @@ export default function AdvisorConsultations() {
     <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
 
-      {/* Hamburger Menu Overlay - Mobile Only */}
-      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+      {/* Hamburger Menu Overlay - Mobile & Tablet */}
+      <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
         <style>{`
           .square-hamburger-btn {
             border-radius: 8px !important;
@@ -399,7 +399,7 @@ export default function AdvisorConsultations() {
       </div>
       
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <AdvisorSidebar 
             collapsed={collapsed} 
             onToggle={toggleSidebar} 

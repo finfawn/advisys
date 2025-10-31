@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsTrash, BsListCheck, BsClockHistory, BsCheckCircle } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
@@ -45,303 +45,20 @@ export default function MyConsultationsPage() {
     }
   };
 
-  // Mock data for all consultations
-  const allConsultations = [
-    // Upcoming consultations (future dates, approved status)
-    {
-      id: 1,
-      date: "2025-10-05",
-      time: "10:00 AM - 10:30 AM",
-      topic: "Course Selection for Next Semester",
-      faculty: {
-        name: "Dr. Maria Santos",
-        title: "Professor of Computer Science",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "approved",
-      meetingLink: "https://meet.google.com/abc-defg-hij"
-    },
-    {
-      id: 2,
-      date: "2025-10-08",
-      time: "2:00 PM - 2:30 PM",
-      topic: "Research Project Discussion",
-      faculty: {
-        name: "Prof. John Cruz",
-        title: "Associate Professor of Mathematics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Room 205, Math Building"
-    },
-    {
-      id: 3,
-      date: "2025-10-10",
-      time: "11:00 AM - 11:30 AM",
-      topic: "Career Guidance",
-      faculty: {
-        name: "Ms. Sarah Reyes",
-        title: "Assistant Professor of Physics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "pending",
-      meetingLink: "https://zoom.us/j/123456789"
-    },
-    {
-      id: 4,
-      date: "2025-10-12",
-      time: "3:00 PM - 3:30 PM",
-      topic: "Thesis Proposal Review",
-      faculty: {
-        name: "Dr. Michael Dela Cruz",
-        title: "Professor of Chemistry",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Office 301, Chemistry Building"
-    },
-    {
-      id: 5,
-      date: "2025-10-15",
-      time: "9:00 AM - 9:30 AM",
-      topic: "Academic Performance Review",
-      faculty: {
-        name: "Prof. Lisa Garcia",
-        title: "Associate Professor of Biology",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "declined",
-      declineReason: "Schedule conflict - faculty has a research conference during this time",
-      meetingLink: "https://teams.microsoft.com/l/meetup-join/..."
-    },
-    {
-      id: 6,
-      date: "2025-10-18",
-      time: "1:00 PM - 1:30 PM",
-      topic: "Internship Application Guidance",
-      faculty: {
-        name: "Dr. Robert Martinez",
-        title: "Professor of Engineering",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Conference Room A, Engineering Building"
-    },
-    {
-      id: 7,
-      date: "2025-10-20",
-      time: "2:30 PM - 3:00 PM",
-      topic: "Graduate School Applications",
-      faculty: {
-        name: "Dr. Jennifer Lee",
-        title: "Professor of Psychology",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "approved",
-      meetingLink: "https://zoom.us/j/987654321"
-    },
-    {
-      id: 8,
-      date: "2025-10-22",
-      time: "10:30 AM - 11:00 AM",
-      topic: "Research Methodology Discussion",
-      faculty: {
-        name: "Prof. David Kim",
-        title: "Associate Professor of Statistics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Lab 101, Statistics Building"
-    },
-    {
-      id: 9,
-      date: "2025-10-25",
-      time: "1:00 PM - 1:30 PM",
-      topic: "Study Abroad Planning",
-      faculty: {
-        name: "Dr. Amanda Chen",
-        title: "Professor of International Studies",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "pending",
-      meetingLink: "https://meet.google.com/xyz-abc-def"
-    },
-    {
-      id: 10,
-      date: "2025-10-28",
-      time: "3:30 PM - 4:00 PM",
-      topic: "Capstone Project Guidance",
-      faculty: {
-        name: "Prof. Mark Thompson",
-        title: "Professor of Business Administration",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Business School, Room 150"
-    },
-    {
-      id: 11,
-      date: "2025-10-30",
-      time: "11:00 AM - 11:30 AM",
-      topic: "Scholarship Application Review",
-      faculty: {
-        name: "Dr. Patricia Wilson",
-        title: "Associate Professor of Education",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "declined",
-      declineReason: "Faculty is currently on sabbatical and unavailable for consultations",
-      meetingLink: "https://zoom.us/j/456789123"
-    },
-    {
-      id: 12,
-      date: "2025-11-02",
-      time: "2:00 PM - 2:30 PM",
-      topic: "Professional Development Planning",
-      faculty: {
-        name: "Dr. Carlos Rodriguez",
-        title: "Professor of Communication",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "approved",
-      location: "Communication Building, Office 203"
-    },
-    {
-      id: 21,
-      date: "2025-11-03",
-      time: "9:30 AM - 10:00 AM",
-      topic: "Online Portfolio Review",
-      faculty: {
-        name: "Dr. Angela Gomez",
-        title: "Professor of Design",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "approved",
-      meetingLink: "https://meet.google.com/xyz-1234-abc"
-    },
-    // Past consultations (history)
-    {
-      id: 13,
-      date: "2024-01-10",
-      time: "10:00 AM - 10:30 AM",
-      topic: "Course Registration Issues",
-      faculty: {
-        name: "Dr. Maria Santos",
-        title: "Professor of Computer Science",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "completed"
-    },
-    {
-      id: 14,
-      date: "2024-01-10",
-      time: "2:00 PM - 2:30 PM",
-      topic: "Study Plan Discussion",
-      faculty: {
-        name: "Prof. John Cruz",
-        title: "Associate Professor of Mathematics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "completed",
-      location: "Office 205, Math Building"
-    },
-    {
-      id: 15,
-      date: "2024-01-08",
-      time: "11:00 AM - 11:30 AM",
-      topic: "Research Methodology",
-      faculty: {
-        name: "Ms. Sarah Reyes",
-        title: "Assistant Professor of Physics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "completed"
-    },
-    {
-      id: 16,
-      date: "2024-01-08",
-      time: "3:00 PM - 3:30 PM",
-      topic: "Lab Safety Training",
-      faculty: {
-        name: "Dr. Michael Dela Cruz",
-        title: "Professor of Chemistry",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "cancelled",
-      location: "Chemistry Lab 3, Science Building"
-    },
-    {
-      id: 17,
-      date: "2024-01-05",
-      time: "9:00 AM - 9:30 AM",
-      topic: "Academic Progress Review",
-      faculty: {
-        name: "Prof. Lisa Garcia",
-        title: "Associate Professor of Biology",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "completed"
-    },
-    {
-      id: 18,
-      date: "2024-01-05",
-      time: "1:00 PM - 1:30 PM",
-      topic: "Project Timeline Planning",
-      faculty: {
-        name: "Dr. Robert Martinez",
-        title: "Professor of Engineering",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "completed",
-      location: "Engineering Lab 2, Engineering Building"
-    },
-    {
-      id: 19,
-      date: "2024-01-03",
-      time: "2:00 PM - 2:30 PM",
-      topic: "Time Management Strategies",
-      faculty: {
-        name: "Dr. Jennifer Lee",
-        title: "Professor of Psychology",
-        avatar: <BsPersonCircle />
-      },
-      mode: "online",
-      status: "completed"
-    },
-    {
-      id: 20,
-      date: "2024-01-01",
-      time: "10:00 AM - 10:30 AM",
-      topic: "New Year Academic Planning",
-      faculty: {
-        name: "Prof. David Kim",
-        title: "Associate Professor of Statistics",
-        avatar: <BsPersonCircle />
-      },
-      mode: "in-person",
-      status: "completed",
-      location: "Lab 101, Statistics Building"
-    }
-  ];
+  const [allConsultations, setAllConsultations] = useState([]);
+  useEffect(() => {
+    const fetchConsultations = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const res = await fetch(`${base}/api/students/1/consultations`);
+        const data = await res.json();
+        setAllConsultations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load consultations', err);
+      }
+    };
+    fetchConsultations();
+  }, []);
 
 
   // Categorize consultations based on status and date
@@ -390,7 +107,7 @@ export default function MyConsultationsPage() {
       requestConsultations: requests,
       historyConsultations: history
     };
-  }, []);
+  }, [allConsultations]);
 
   // Initialize consultation history and request consultations state
   React.useEffect(() => {
@@ -583,7 +300,7 @@ export default function MyConsultationsPage() {
 
       {/* Body */}
       <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 

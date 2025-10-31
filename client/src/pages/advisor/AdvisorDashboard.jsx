@@ -77,8 +77,8 @@ export default function AdvisorDashboard() {
     <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
 
-      {/* Hamburger Menu Overlay - Mobile Only */}
-      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+      {/* Hamburger Menu Overlay - Mobile & Tablet */}
+      <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
         <style>{`
           .square-hamburger-btn {
             border-radius: 8px !important;
@@ -118,7 +118,7 @@ export default function AdvisorDashboard() {
 
       {/* Body */}
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <AdvisorSidebar 
             collapsed={collapsed} 
             onToggle={toggleSidebar} 
@@ -129,8 +129,8 @@ export default function AdvisorDashboard() {
         {/* Content */}
         <main className="advisor-dash-main">
 
-          {/* Mobile Sticky Upcoming Consultations - Only visible on mobile */}
-          <div className="md:hidden mobile-upcoming-sticky">
+          {/* Mobile Sticky Upcoming Consultations - visible on mobile & tablets */}
+      <div className="xl:hidden mobile-upcoming-sticky">
             <Collapsible defaultOpen={false}>
               <CollapsibleTrigger className="mobile-upcoming-trigger">
                 <div className="flex items-center justify-between w-full">
@@ -167,8 +167,8 @@ export default function AdvisorDashboard() {
               <AverageSessionCard />
             </div>
             
-            {/* Row 1-2 Col 4: Upcoming Consultations - spans 2 rows, 1 column, always on right, hidden on mobile */}
-            <div className="bento-item-tall hidden md:block" style={{ gridColumn: '4', gridRow: '1 / 3' }}>
+            {/* Row 1-2 Col 4: Upcoming Consultations - spans 2 rows, 1 column, always on right, hidden on mobile & tablets */}
+      <div className="bento-item-tall hidden xl:block" style={{ gridColumn: '4', gridRow: '1 / 3' }}>
               <UpcomingConsultationsCard />
             </div>
             

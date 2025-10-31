@@ -136,16 +136,40 @@
 }
 
 @media (max-width: 1024px) {
+  /* Treat tablets like mobile: single column with auto rows */
+  .advisor-dash-wrap {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+  .advisor-dash-body,
+  .advisor-dash-body.collapsed {
+    grid-template-columns: 1fr;
+  }
+  .advisor-dash-main {
+    padding: 16px;
+    overflow-y: visible;
+  }
+
   .dashboard-bento-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: 1fr;
+    grid-template-rows: auto;
+    grid-auto-rows: auto;
+    gap: 12px;
+    height: auto;
   }
   
   .bento-item-tall,
   .bento-item-tall-wide,
   .bento-item-wide,
-  .bento-item-extra-wide {
-    grid-row: span 1;
-    grid-column: span 2;
+  .bento-item-extra-wide,
+  .bento-item-small {
+    grid-row: span 1 !important;
+    grid-column: span 1 !important;
+  }
+  
+  .dashboard-bento-grid > div > * {
+    height: auto;
   }
 }
 

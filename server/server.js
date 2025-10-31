@@ -10,6 +10,12 @@ app.use(express.json());
 // routes
 const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
+const jaasRouter = require('./routes/jaas');
+app.use('/api/jaas', jaasRouter);
+const advisorsRouter = require('./routes/advisors');
+app.use('/api/advisors', advisorsRouter);
+const consultationsRouter = require('./routes/consultations');
+app.use('/api', consultationsRouter);
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));

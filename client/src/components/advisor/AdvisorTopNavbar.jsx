@@ -50,8 +50,8 @@ function AdvisorTopNavbar() {
   return (
     <header className="advisor-topbar advisor-top-nav">
       <div className="advisor-topbar-left">
-        {/* Space for hamburger menu on mobile */}
-        <div className="hamburger-spacer md:hidden"></div>
+        {/* Space for hamburger menu on mobile & tablet */}
+      <div className="hamburger-spacer xl:hidden"></div>
         
         {/* Logo - Desktop only */}
         <div className="advisor-brand hidden md:flex">

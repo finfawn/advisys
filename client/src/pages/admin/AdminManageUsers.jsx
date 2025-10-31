@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "../../contexts/SidebarContext";
 import AdminTopNavbar from "../../components/admin/AdminTopNavbar";
@@ -30,6 +30,7 @@ import { Button } from "../../lightswind/button";
 export default function AdminManageUsers() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const [activeTab, setActiveTab] = useState("students");
   const [search, setSearch] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
@@ -59,28 +60,38 @@ export default function AdminManageUsers() {
   });
   const [showPassword, setShowPassword] = useState(false);
 
-  const [studentsData, setStudentsData] = useState(
-    Array.from({ length: 8 }).map((_, i) => ({
-      id: i + 1,
-      name: `Student ${i + 1}`,
-      email: `student${i + 1}@example.com`,
-      password: "password123",
-      year: "1st Year",
-      program: "BSIT",
-      active: true,
-    })),
-  );
+  const [studentsData, setStudentsData] = useState([]);
+  const [advisorData, setAdvisorData] = useState([]);
+  const [loadingStudents, setLoadingStudents] = useState(true);
+  const [loadingAdvisors, setLoadingAdvisors] = useState(true);
 
-  const [advisorData, setAdvisorData] = useState(
-    Array.from({ length: 8 }).map((_, i) => ({
-      id: i + 1,
-      name: `Advisor ${i + 1}`,
-      email: `advisor${i + 1}@example.com`,
-      password: "password123",
-      department: "CIT",
-      active: true,
-    })),
-  );
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const fetchStudents = async () => {
+      try {
+        const res = await fetch(`${base}/api/users?role=student`);
+        const data = await res.json();
+        if (Array.isArray(data)) setStudentsData(data);
+      } catch (err) {
+        console.error('Failed to fetch students', err);
+      } finally {
+        setLoadingStudents(false);
+      }
+    };
+    const fetchAdvisors = async () => {
+      try {
+        const res = await fetch(`${base}/api/users?role=advisor`);
+        const data = await res.json();
+        if (Array.isArray(data)) setAdvisorData(data);
+      } catch (err) {
+        console.error('Failed to fetch advisors', err);
+      } finally {
+        setLoadingAdvisors(false);
+      }
+    };
+    fetchStudents();
+    fetchAdvisors();
+  }, []);
 
   const list = activeTab === "students" ? studentsData : advisorData;
   const query = search.trim().toLowerCase();
@@ -153,7 +164,25 @@ export default function AdminManageUsers() {
     ];
   };
 
-  const handleConfirmDeactivate = () => {
+  const persistStatus = async (userId, active) => {
+    try {
+      const res = await fetch(`${apiBase}/api/users/${userId}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ active })
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to update status');
+      }
+      return await res.json();
+    } catch (err) {
+      console.error('Persist status error:', err);
+      throw err;
+    }
+  };
+
+  const handleConfirmDeactivate = async () => {
     const item = confirmDeactivate;
     if (!item) return;
 
@@ -165,7 +194,7 @@ export default function AdminManageUsers() {
     const previousState = item.active;
     const actionType = item.active ? "deactivated" : "activated";
 
-    // Update the user status immediately
+    // Update the user status immediately (optimistic)
     if (activeTab === "students") {
       setStudentsData((prev) =>
         prev.map((u) => (u.id === item.id ? { ...u, active: !u.active } : u)),
@@ -195,9 +224,27 @@ export default function AdminManageUsers() {
       setConfirmDeactivate(null);
       setConfirmClosing(false);
     }, 150);
+
+    // Persist to backend
+    try {
+      await persistStatus(item.id, !previousState);
+    } catch (err) {
+      // Revert optimistic update on error
+      if (activeTab === "students") {
+        setStudentsData((prev) =>
+          prev.map((u) => (u.id === item.id ? { ...u, active: previousState } : u)),
+        );
+      } else {
+        setAdvisorData((prev) =>
+          prev.map((u) => (u.id === item.id ? { ...u, active: previousState } : u)),
+        );
+      }
+      setPendingAction(null);
+      alert('Failed to update user status. Please try again.');
+    }
   };
 
-  const handleUndoAction = () => {
+  const handleUndoAction = async () => {
     if (!pendingAction) return;
 
     // Clear the timeout
@@ -206,7 +253,7 @@ export default function AdminManageUsers() {
       setUndoTimeout(null);
     }
 
-    // Restore the user to previous state
+    // Restore the user to previous state (optimistic)
     if (pendingAction.tab === "students") {
       setStudentsData((prev) =>
         prev.map((u) =>
@@ -227,6 +274,27 @@ export default function AdminManageUsers() {
 
     // Clear pending action
     setPendingAction(null);
+
+    // Persist revert to backend
+    try {
+      await persistStatus(pendingAction.user.id, pendingAction.previousState);
+    } catch (err) {
+      // If revert fails, reapply change visually
+      if (pendingAction.tab === "students") {
+        setStudentsData((prev) =>
+          prev.map((u) =>
+            u.id === pendingAction.user.id ? { ...u, active: !pendingAction.previousState } : u,
+          ),
+        );
+      } else {
+        setAdvisorData((prev) =>
+          prev.map((u) =>
+            u.id === pendingAction.user.id ? { ...u, active: !pendingAction.previousState } : u,
+          ),
+        );
+      }
+      alert('Failed to undo status change. Please try again.');
+    }
   };
 
   const handleCancelDeactivate = () => {
@@ -460,6 +528,7 @@ export default function AdminManageUsers() {
                   onView={handleView}
                   onToggleActive={handleToggleActive}
                   onHistory={handleHistory}
+                  loading={activeTab === "students" ? loadingStudents : loadingAdvisors}
                 />
 
                 <AdminUserHistoryModal

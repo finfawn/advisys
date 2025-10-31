@@ -763,6 +763,48 @@
         background: #374151;
     }
 }
+/* Tablet: mirror mobile navbar behavior (hide brand/greeting/dropdown) */
+@media (max-width: 1024px) {
+    .dash-topbar {
+        padding: 10px 16px;
+        padding-top: max(10px, env(safe-area-inset-top, 0px));
+        padding-left: max(16px, env(safe-area-inset-left, 0px));
+        padding-right: max(16px, env(safe-area-inset-right, 0px));
+        background: #ffffff !important;
+        position: fixed !important;
+        top: 0;
+        left: 0;
+        right: 0;
+        width: 100%;
+        z-index: 1000 !important;
+        min-height: 56px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .dash-topbar .tb-left {
+        gap: 16px;
+    }
+
+    /* Hide desktop-only elements on tablet to match mobile */
+    .dash-topbar .brand,
+    .dash-topbar .student-greeting,
+    .dash-topbar .user-dropdown {
+        display: none !important;
+    }
+
+    /* Ensure spacer shows even though Tailwind md:hidden applies at >=768px */
+    .hamburger-spacer {
+        display: block !important;
+    }
+
+    /* Compact search spacing on tablet */
+    .search-box {
+        width: 100%;
+        max-width: none;
+        flex: 1;
+        padding: 5px 8px;
+    }
+}
 /* Desktop override: use sticky to match advisor layout */
 @media (min-width: 768px) {
   .dash-topbar {

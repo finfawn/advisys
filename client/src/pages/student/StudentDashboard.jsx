@@ -177,15 +177,15 @@ export default function StudentDashboard() {
 
       {/* Body */}
       <div className={`student-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 
         {/* Content */}
         <main className="student-dash-main">
 
-          {/* Mobile Sticky Upcoming Consultations - Only visible on mobile */}
-          <div className="md:hidden mobile-upcoming-sticky">
+          {/* Mobile Sticky Upcoming Consultations - visible on mobile & tablets */}
+      <div className="xl:hidden mobile-upcoming-sticky">
             <Collapsible defaultOpen={false}>
               <CollapsibleTrigger className="mobile-upcoming-trigger">
                 <div className="flex items-center justify-between w-full">
@@ -304,8 +304,8 @@ export default function StudentDashboard() {
               </section>
             </div>
 
-            {/* Upcoming Consultations - Medium Bento - Hidden on mobile */}
-            <div className="bento-item bento-upcoming hidden md:block">
+            {/* Upcoming Consultations - Medium Bento - Hidden on mobile & tablets */}
+      <div className="bento-item bento-upcoming hidden xl:block">
               <aside className="upcoming h-100">
                 <div className="up-header">
                   <span>Upcoming Consultations</span>

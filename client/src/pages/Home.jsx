@@ -103,8 +103,8 @@ function Home() {
     <>
       <div className="h-screen bg-[#e1e5f2] overflow-hidden">
         <div className="w-full h-full flex">
-          {/* Desktop Sidebar */}
-          <div className="hidden md:block">
+          {/* Desktop Sidebar (visible only on large screens) */}
+          <div className="hidden xl:block">
             <HomeSidebar
               activeSection={activeSection}
               onSelect={handleSelect}
@@ -141,8 +141,8 @@ function Home() {
               </div>
             </div>
 
-            {/* Mobile Hamburger Overlay */}
-            <div className="md:hidden fixed top-0 left-0 w-full z-50">
+            {/* Mobile & Tablet Hamburger Overlay */}
+            <div className="xl:hidden fixed top-0 left-0 w-full z-50">
               <HamburgerMenuOverlay
                 items={[
                   { label: "Home", onClick: () => handleSelect("hero") },

@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { JitsiMeeting } from '@jitsi/react-sdk';
 import { BsX } from 'react-icons/bs';
 import './JitsiMeetCall.css';
@@ -22,11 +22,49 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
   const apiRef = useRef(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  // JaaS App ID
-  const APP_ID = 'vpaas-magic-cookie-b118173ff30b45ad83bfd4d7e2c005b9';
+  // JaaS App ID from env
+  const APP_ID = import.meta.env.VITE_JAAS_APP_ID;
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const [jwtToken, setJwtToken] = useState(null);
 
   // Generate a unique room name based on consultation ID
   const jitsiRoomName = `advisys-${consultationData?.id || roomName}`;
+
+  useEffect(() => {
+    let isMounted = true;
+    setJwtToken(null);
+    if (!APP_ID) {
+      console.error('VITE_JAAS_APP_ID is not set');
+      return;
+    }
+    const fetchToken = async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/api/jaas/token`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            roomName: jitsiRoomName,
+            user: {
+              name: displayName || 'User',
+              email: consultationData?.faculty?.email || undefined,
+            },
+          }),
+        });
+        const data = await res.json();
+        if (isMounted) {
+          setJwtToken(data.token || null);
+        }
+      } catch (err) {
+        console.error('Failed to fetch JaaS JWT', err);
+      }
+    };
+    fetchToken();
+    return () => {
+      isMounted = false;
+    };
+  }, [API_BASE_URL, APP_ID, jitsiRoomName, displayName, consultationData?.faculty?.email]);
 
   const handleApiReady = (api) => {
     apiRef.current = api;
@@ -60,9 +98,11 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
       )}
       
       <div className="jitsi-meet-wrapper">
+        {jwtToken && (
         <JitsiMeeting
           appId={APP_ID}
           roomName={jitsiRoomName}
+          jwt={jwtToken}
           configOverwrite={{
             startWithAudioMuted: false,
             startWithVideoMuted: false,
@@ -115,6 +155,7 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
             iframeRef.style.width = '100%';
           }}
         />
+        )}
       </div>
 
       {/* Close Button */}

@@ -169,8 +169,8 @@ function TopNavbar() {
 
   return (
     <>
-      {/* Hamburger Menu Overlay - Mobile Only */}
-      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+      {/* Hamburger Menu Overlay - Mobile & Tablet */}
+      <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
         <style>{`
           .square-hamburger-btn {
             border-radius: 8px !important;
@@ -210,8 +210,8 @@ function TopNavbar() {
 
       <header className="dash-topbar">
       <div className="tb-left">
-        {/* Space for hamburger menu on mobile */}
-        <div className="hamburger-spacer md:hidden"></div>
+        {/* Space for hamburger menu on mobile & tablet */}
+      <div className="hamburger-spacer xl:hidden"></div>
         
         {/* Logo - Desktop only */}
         <div className="brand clickable-brand hidden md:flex" onClick={handleLogoClick}>

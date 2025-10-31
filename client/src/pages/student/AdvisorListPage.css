@@ -222,6 +222,13 @@
         overflow-x: hidden !important;
     }
 }
+/* Tablets: prefer 2 cards per row to avoid stretching */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .advisor-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 16px;
+    }
+}
 
 @media (max-width: 576px) {
     .advisor-list-container {

@@ -124,7 +124,7 @@ export default function OnlineConsultationDetailsPage() {
       <TopNavbar />
       
       <div className={`consultation-details-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
         

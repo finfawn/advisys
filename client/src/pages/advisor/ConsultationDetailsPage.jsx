@@ -67,8 +67,8 @@ export default function AdvisorConsultationDetailsPage() {
     <div className="consultation-details-wrap advisor-details-page">
       <AdvisorTopNavbar />
 
-      {/* Hamburger Menu Overlay - Mobile Only (match other advisor pages) */}
-      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+      {/* Hamburger Menu Overlay - Mobile & Tablet (match other advisor pages) */}
+      <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
         <style>{`
           .square-hamburger-btn { border-radius: 8px !important; pointer-events: auto !important; }
           .square-hamburger-btn * { pointer-events: auto !important; }
@@ -104,7 +104,7 @@ export default function AdvisorConsultationDetailsPage() {
         />
       </div>
       <div className={`consultation-details-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 
@@ -116,8 +116,8 @@ export default function AdvisorConsultationDetailsPage() {
             </button>
           </div>
 
-          {/* Mobile: Actions at the very top */}
-          <div className="md:hidden">
+          {/* Mobile & Tablet: Actions at the very top */}
+      <div className="xl:hidden">
             <section className="consultation-details-section actions-section">
               <Collapsible defaultOpen>
                 <CollapsibleTrigger className="actions-trigger">
@@ -212,8 +212,8 @@ export default function AdvisorConsultationDetailsPage() {
                 <section className="consultation-details-section actions-section">
                   {/* Mobile section moved to top. Keep desktop static below. */}
 
-                  {/* Desktop: static section */}
-                  <div className="hidden md:block">
+                  {/* Desktop: static section (hide on tablets) */}
+      <div className="hidden xl:block">
                     <h2 className="section-title"><BsCalendarEvent className="section-icon"/> Actions</h2>
                     <div className="section-content">
                       <div className="action-buttons">

@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import AdvisorCard from "../../components/student/AdvisorCard";
@@ -6,6 +6,7 @@ import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorListPage.css";
+import { Skeleton, TemplateCardSkeleton } from "../../lightswind/skeleton";
 
 export default function AdvisorListPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -25,121 +26,39 @@ export default function AdvisorListPage() {
     }
   };
 
-  // Mock data for advisors
-  const allAdvisors = [
-    {
-      id: 1,
-      name: "Dr. Maria Santos",
-      title: "Professor of Computer Science",
-      department: "Computer Science",
-      status: "Available",
-      schedule: "Mon, Wed, Fri",
-      time: "9:00 AM–12:00 PM",
-      mode: "In-person/Online",
-      coursesTaught: ["CS 101", "CS 301", "CS 401"],
-      isAvailableToday: true
-    },
-    {
-      id: 2,
-      name: "Prof. John Cruz",
-      title: "Associate Professor of Mathematics",
-      department: "Mathematics",
-      status: "Available",
-      schedule: "Tue, Thu",
-      time: "1:00 PM–4:00 PM",
-      mode: "Online",
-      coursesTaught: ["MATH 201", "MATH 301"],
-      isAvailableToday: true
-    },
-    {
-      id: 3,
-      name: "Ms. Sarah Reyes",
-      title: "Assistant Professor of Physics",
-      department: "Physics",
-      status: "Available",
-      schedule: "Mon, Wed, Fri",
-      time: "10:00 AM–2:00 PM",
-      mode: "In-person",
-      coursesTaught: ["PHYS 101", "PHYS 201", "PHYS 301"],
-      isAvailableToday: false
-    },
-    {
-      id: 4,
-      name: "Dr. Michael Dela Cruz",
-      title: "Professor of Chemistry",
-      department: "Chemistry",
-      status: "Available",
-      schedule: "Tue, Thu, Sat",
-      time: "8:00 AM–11:00 AM",
-      mode: "In-person/Online",
-      coursesTaught: ["CHEM 101", "CHEM 201"],
-      isAvailableToday: true
-    },
-    {
-      id: 5,
-      name: "Prof. Lisa Garcia",
-      title: "Associate Professor of Biology",
-      department: "Biology",
-      status: "Available",
-      schedule: "Mon, Wed",
-      time: "2:00 PM–5:00 PM",
-      mode: "Online",
-      coursesTaught: ["BIO 101", "BIO 201", "BIO 301", "BIO 401"],
-      isAvailableToday: false
-    },
-    {
-      id: 6,
-      name: "Dr. Robert Martinez",
-      title: "Professor of Engineering",
-      department: "Engineering",
-      status: "Available",
-      schedule: "Tue, Thu, Fri",
-      time: "9:00 AM–1:00 PM",
-      mode: "In-person/Online",
-      coursesTaught: ["ENG 101", "ENG 201"],
-      isAvailableToday: true
-    },
-    {
-      id: 7,
-      name: "Ms. Jennifer Lopez",
-      title: "Assistant Professor of Psychology",
-      department: "Psychology",
-      status: "Available",
-      schedule: "Mon, Wed, Fri",
-      time: "11:00 AM–3:00 PM",
-      mode: "In-person",
-      coursesTaught: ["PSY 101", "PSY 201", "PSY 301"],
-      isAvailableToday: false
-    },
-    {
-      id: 8,
-      name: "Dr. David Wilson",
-      title: "Professor of Economics",
-      department: "Economics",
-      status: "Available",
-      schedule: "Tue, Thu",
-      time: "1:00 PM–4:00 PM",
-      mode: "Online",
-      coursesTaught: ["ECON 101", "ECON 201"],
-      isAvailableToday: true
-    }
-  ];
+  const [allAdvisors, setAllAdvisors] = useState([]);
+  const [isLoadingAdvisors, setIsLoadingAdvisors] = useState(true);
+  useEffect(() => {
+    const fetchAdvisors = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const res = await fetch(`${base}/api/advisors`);
+        const data = await res.json();
+        setAllAdvisors(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load advisors', err);
+      } finally {
+        setIsLoadingAdvisors(false);
+      }
+    };
+    fetchAdvisors();
+  }, []);
 
   // Create generic categories for filter
   const categories = useMemo(() => {
-    const deptSet = new Set(allAdvisors.map(advisor => advisor.department));
+    const deptSet = new Set((allAdvisors || []).map(advisor => advisor.department).filter(Boolean));
     const departments = Array.from(deptSet).sort();
     return departments.map((dept, index) => ({
       value: dept,
       label: `Category ${index + 1}`
     }));
-  }, []);
+  }, [allAdvisors]);
 
   // Filter advisors based on selected filter
   const filteredAdvisors = useMemo(() => {
     if (filter === "all") return allAdvisors;
-    return allAdvisors.filter(advisor => advisor.department === filter);
-  }, [filter]);
+    return (allAdvisors || []).filter(advisor => advisor.department === filter);
+  }, [filter, allAdvisors]);
 
 
   // Pagination logic
@@ -220,7 +139,7 @@ export default function AdvisorListPage() {
 
       {/* Body */}
       <div className={`dash-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 
@@ -285,7 +204,13 @@ export default function AdvisorListPage() {
                 </div>
               </div>
               
-              {displayedAdvisors.length > 0 ? (
+              {isLoadingAdvisors ? (
+                <div className="advisor-grid">
+                  {Array.from({ length: 8 }).map((_, idx) => (
+                    <TemplateCardSkeleton key={`skeleton-${idx}`} />
+                  ))}
+                </div>
+              ) : displayedAdvisors.length > 0 ? (
                 <>
                   <div className="advisor-grid">
                     {displayedAdvisors.map(advisor => (

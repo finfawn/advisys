@@ -239,20 +239,23 @@
     color: #9ca3af;
 }
 
-/* Tablet: restructure row to two columns, make actions full width */
+/* Tablet: treat like mobile — single column stacking with full-width actions */
 @media (max-width: 1024px) {
   .manage-row {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr;
     gap: 12px;
   }
   .manage-row .actions-col {
     grid-column: 1 / -1;
-    display: flex;
-    justify-content: flex-end;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
     gap: 8px;
   }
+  .manage-row .actions-col button:last-child {
+    grid-column: 1 / -1;
+  }
   .manage-row .status-col {
-    justify-self: end;
+    justify-self: start;
   }
 }
 

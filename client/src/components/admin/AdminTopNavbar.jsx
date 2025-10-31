@@ -91,8 +91,8 @@ function AdminTopNavbar() {
 
   return (
     <>
-      {/* Hamburger Menu Overlay - Mobile Only */}
-      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+      {/* Hamburger Menu Overlay - Mobile & Tablet */}
+      <div className="lg:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
         <style>{`
           .square-hamburger-btn {
             border-radius: 8px !important;
@@ -132,8 +132,8 @@ function AdminTopNavbar() {
 
       <header className="admin-topbar admin-top-nav">
       <div className="admin-topbar-left">
-        {/* Space for hamburger menu on mobile */}
-        <div className="hamburger-spacer md:hidden"></div>
+        {/* Space for hamburger menu on mobile & tablet */}
+        <div className="hamburger-spacer lg:hidden"></div>
         
         {/* Logo - Desktop only */}
         <div className="admin-brand hidden md:flex">

@@ -227,8 +227,8 @@ export default function AdvisorSettingsPage() {
     <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
 
-      {/* Hamburger Menu Overlay - Mobile Only */}
-      <div className="md:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+      {/* Hamburger Menu Overlay - Mobile & Tablet */}
+      <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
         <style>{`
           .square-hamburger-btn {
             border-radius: 8px !important;
@@ -267,7 +267,7 @@ export default function AdvisorSettingsPage() {
       </div>
 
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 
@@ -279,8 +279,8 @@ export default function AdvisorSettingsPage() {
               <p className="settings-subtitle">Manage your account settings and preferences</p>
             </div>
 
-            {/* Mobile Settings Accordion - Only visible on mobile */}
-            <div className="md:hidden mobile-settings-accordion">
+            {/* Mobile Settings Accordion - visible on mobile & tablets */}
+      <div className="xl:hidden mobile-settings-accordion">
               <Collapsible open={mobileSettingsOpen} onOpenChange={setMobileSettingsOpen}>
                 <CollapsibleTrigger className="mobile-settings-trigger">
                   <div className="flex items-center justify-between w-full">

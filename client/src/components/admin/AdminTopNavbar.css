@@ -408,3 +408,10 @@
     font-size: 0.85rem;
   }
 }
+/* Tablet: mirror mobile navbar behavior (hide brand/greeting/user dropdown) */
+@media (max-width: 1024px) {
+  .admin-topbar .admin-brand { display: none !important; }
+  .admin-topbar .admin-greeting { display: none !important; }
+  .admin-topbar .user-dropdown { display: none !important; }
+  .admin-topbar .hamburger-spacer { display: block !important; }
+}

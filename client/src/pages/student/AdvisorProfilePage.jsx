@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   BsPersonCircle, 
@@ -21,57 +21,34 @@ export default function AdvisorProfilePage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  // Mock data - in a real app, this would come from an API
-  const advisorData = {
-    id: advisorId || "1",
-    name: "Dr. Maria Santos",
-    title: "Professor of Computer Science",
-    department: "Department of Computer Science",
-    avatar: null, // Would be a URL in real app
-    status: "Available", // Available, Unavailable, Busy
-    bio: "Dr. Maria Santos is a distinguished professor specializing in artificial intelligence and machine learning. With over 15 years of experience in academia, she has published numerous papers in top-tier conferences and journals. She is passionate about mentoring students and helping them navigate their academic and research journeys.",
-    researchInterests: [
-      "Artificial Intelligence",
-      "Machine Learning",
-      "Natural Language Processing",
-      "Computer Vision",
-      "Deep Learning"
-    ],
-    coursesTaught: [
-      "CS 101: Introduction to Programming",
-      "CS 301: Data Structures and Algorithms",
-      "CS 401: Machine Learning",
-      "CS 501: Advanced AI Topics"
-    ],
-     topicsCanHelpWith: [
-       "Thesis Guidance",
-       "Research Methods",
-       "Programming Projects",
-       "Academic Planning",
-       "Career Advice",
-       "Technical Writing",
-       "Data Analysis",
-       "Algorithm Design"
-     ],
-     consultationGuidelines: [
-       "Book at least 2 days in advance",
-       "Prepare specific questions beforehand",
-       "Bring relevant materials (code, documents)",
-       "Maximum 1 hour per session",
-       "Follow up via email if needed"
-     ],
-    weeklySchedule: {
-      monday: "9:00 AM - 12:00 PM",
-      tuesday: "Unavailable",
-      wednesday: "9:00 AM - 12:00 PM",
-      thursday: "Unavailable",
-      friday: "9:00 AM - 12:00 PM",
-      saturday: "Unavailable",
-      sunday: "Unavailable"
-    },
-    consultationMode: ["In-person", "Online"],
-    nextAvailableSlot: "Friday, 9:00 AM - 10:00 AM",
-  };
+  const [advisorData, setAdvisorData] = useState(null);
+  useEffect(() => {
+    const loadAdvisor = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const res = await fetch(`${base}/api/advisors/${advisorId || 1}`);
+        const data = await res.json();
+        setAdvisorData(data);
+      } catch (err) {
+        console.error('Failed to load advisor profile', err);
+        // Fallback minimal data to keep page usable
+        setAdvisorData({
+          id: advisorId || '1',
+          name: 'Advisor',
+          title: 'Faculty Advisor',
+          department: '',
+          bio: '',
+          topicsCanHelpWith: [],
+          consultationGuidelines: [],
+          coursesTaught: [],
+          weeklySchedule: { monday: 'Unavailable', tuesday: 'Unavailable', wednesday: 'Unavailable', thursday: 'Unavailable', friday: 'Unavailable', saturday: 'Unavailable', sunday: 'Unavailable' },
+          consultationMode: [],
+          nextAvailableSlot: null,
+        });
+      }
+    };
+    loadAdvisor();
+  }, [advisorId]);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') {
@@ -104,7 +81,7 @@ export default function AdvisorProfilePage() {
       <TopNavbar />
       
       <div className={`profile-body ${collapsed ? "collapsed" : ""}`}>
-        <div className="hidden md:block">
+      <div className="hidden xl:block">
           <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
         
@@ -125,11 +102,7 @@ export default function AdvisorProfilePage() {
             <section className="profile-header">
               <div className="header-content">
                 <div className="advisor-avatar">
-                  {advisorData.avatar ? (
-                    <img src={advisorData.avatar} alt={advisorData.name} />
-                  ) : (
-                    <BsPersonCircle />
-                  )}
+                  <BsPersonCircle />
                 </div>
                 
                 <div className="advisor-info">
@@ -159,7 +132,7 @@ export default function AdvisorProfilePage() {
                     <div className="topics-section">
                       <h3>Topics I Can Help With</h3>
                       <div className="topics-list">
-                        {advisorData.topicsCanHelpWith.map((topic, index) => (
+                        {advisorData.topicsCanHelpWith?.map((topic, index) => (
                           <span key={index} className="topic-tag">
                             {topic}
                           </span>
@@ -170,7 +143,7 @@ export default function AdvisorProfilePage() {
                     <div className="guidelines-section">
                       <h3>Preferred Consultation Guidelines</h3>
                       <ul className="guidelines-list">
-                        {advisorData.consultationGuidelines.map((guideline, index) => (
+                        {advisorData.consultationGuidelines?.map((guideline, index) => (
                           <li key={index} className="guideline-item">
                             <BsListCheck className="guideline-icon" />
                             {guideline}
@@ -179,11 +152,11 @@ export default function AdvisorProfilePage() {
                       </ul>
                     </div>
                     
-                    {advisorData.coursesTaught.length > 0 && (
+                    {advisorData.coursesTaught && advisorData.coursesTaught.length > 0 && (
                       <div className="courses-taught">
                         <h3>Courses Taught</h3>
                         <ul className="courses-list">
-                          {advisorData.coursesTaught.map((course, index) => (
+                          {advisorData.coursesTaught?.map((course, index) => (
                             <li key={index} className="course-item">
                               <BsBook className="course-icon" />
                               {course}
@@ -209,7 +182,7 @@ export default function AdvisorProfilePage() {
                     <div className="weekly-schedule">
                       <h3>Weekly Schedule</h3>
                       <div className="schedule-grid">
-                        {Object.entries(advisorData.weeklySchedule).map(([day, time]) => (
+                        {Object.entries(advisorData.weeklySchedule || {}).map(([day, time]) => (
                           <div key={day} className="schedule-item">
                             <span className="schedule-day">{day.charAt(0).toUpperCase() + day.slice(1)}</span>
                             <span className={`schedule-time ${time === 'Unavailable' ? 'unavailable' : 'available'}`}>
@@ -223,7 +196,7 @@ export default function AdvisorProfilePage() {
                     <div className="consultation-modes">
                       <h3>Consultation Mode</h3>
                       <div className="mode-badges">
-                        {advisorData.consultationMode.map((mode, index) => (
+                        {advisorData.consultationMode?.map((mode, index) => (
                           <span key={index} className={`mode-badge ${mode.toLowerCase()}`}>
                             {mode}
                           </span>
