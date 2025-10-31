@@ -8,7 +8,6 @@ import { Badge } from '../../lightswind/badge';
 import { Button } from '../../lightswind/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../lightswind/select';
 import ConsultationCard from "../../components/student/ConsultationCard";
-import HistoryCard from "../../components/student/HistoryCard";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
 import { useSidebar } from "../../contexts/SidebarContext";

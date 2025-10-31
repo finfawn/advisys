@@ -106,15 +106,15 @@
     margin-bottom: 1.5rem;
 }
 
-/* Responsive Grid Layout */
-@media (max-width: 999px) {
+/* Tablet-friendly Grid Layout */
+@media (max-width: 1200px) {
     .consultations-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 1rem;
     }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 900px) {
     .consultations-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
@@ -190,34 +190,25 @@
     font-weight: 500;
 }
 
-/* History Grid - 4 columns */
-.history-consultations-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr) !important;
-    gap: 0.875rem;
-}
-
-/* Responsive Grid Layout for History */
-@media (max-width: 999px) {
-    .history-consultations-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
+/* Tablet: allow header controls to wrap cleanly */
+@media (max-width: 1024px) {
+    .section-header {
+        flex-wrap: wrap;
+        gap: 0.75rem;
+    }
+    .section-controls {
+        flex-wrap: wrap;
+        row-gap: 0.5rem;
+        justify-content: flex-end;
+    }
+    .filter-dropdown {
+        min-width: 112px;
+        max-width: 140px;
+        height: 38px;
+        font-size: 0.85rem;
     }
 }
 
-@media (max-width: 767px) {
-    .history-consultations-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-}
-
-@media (max-width: 639px) {
-    .history-consultations-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-}
 
 /* Responsive */
 @media (max-width: 767px) {
@@ -274,6 +265,27 @@
     }
 }
 
+/* Tablet: compact tab spacing to prevent crowding */
+@media (min-width: 768px) and (max-width: 1024px) {
+    .consultations-tabs {
+        padding: 3px;
+        gap: 3px;
+    }
+    .tab-button {
+        padding: 10px 14px;
+        gap: 6px;
+    }
+    .tab-label {
+        font-size: 0.9rem;
+    }
+    .tab-count {
+        min-width: 22px;
+        height: 22px;
+        font-size: 0.78rem;
+        padding: 3px 6px;
+    }
+}
+
 @media (max-width: 480px) {
     .consultations-title {
         font-size: 1.5rem;
@@ -311,8 +323,7 @@
         font-size: 0.8rem;
     }
 
-    .consultations-grid,
-    .history-consultations-grid {
+    .consultations-grid {
         gap: 0.875rem;
     }
 

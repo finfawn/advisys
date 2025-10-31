@@ -7,14 +7,60 @@
   color: #1f2937;
 }
 
+/* Advisor details pages: make layout match fixed sidebar pattern like dashboard */
+.advisor-details-page {
+  height: 100vh;
+  overflow: hidden;
+}
+
+.advisor-details-page .consultation-details-body {
+  height: calc(100vh - 64px); /* subtract top navbar */
+  overflow: hidden;
+}
+
+.advisor-details-page .consultation-details-main {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
 /* Mobile-only bottom padding fix: ensure no large gap at page end */
 @media (max-width: 768px) {
+  /* Make the wrap auto-height and ensure full viewport coverage */
+  .advisor-details-page {
+    height: auto !important;
+    min-height: 100vh !important;
+  }
+
+  /* Use 56px navbar height on mobile to fully fill the viewport */
+  .advisor-details-page .consultation-details-body {
+    display: block !important;
+    height: auto !important;
+    min-height: calc(100vh - 56px) !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+
+  .advisor-details-page .consultation-details-main {
+    height: auto !important;
+    min-height: calc(100vh - 56px) !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    touch-action: pan-y;
+  }
+
   .consultation-details-main {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
   }
 
   .consultation-details-section:last-child {
     margin-bottom: 0 !important;
+  }
+
+  /* Ensure breadcrumb/back button is visible and not collapsed */
+  .consultation-details-back {
+    display: block !important;
+    margin-top: 4px;
   }
 }
 
@@ -27,6 +73,14 @@
 
 .consultation-details-body.collapsed { 
   grid-template-columns: 76px 1fr; 
+}
+
+/* Ensure single-column layout when sidebar is hidden on small screens */
+@media (max-width: 1024px) {
+  .consultation-details-body,
+  .consultation-details-body.collapsed {
+    grid-template-columns: 1fr;
+  }
 }
 
 /* Main content area */
@@ -143,6 +197,13 @@
   background: #dcfce7;
   color: #166534;
   border: 1px solid #86efac;
+}
+
+/* Online mode pill */
+.mode-badge.online {
+  background: #e0e7ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
 }
 
 .consultation-datetime {
@@ -602,11 +663,19 @@
   .consultation-title {
     font-size: 1.5rem;
   }
-  
+  /* Keep pills on a single row when possible */
   .consultation-badges {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: nowrap;
+    gap: 6px;
+  }
+  .status-badge,
+  .mode-badge {
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    border-radius: 14px;
+    white-space: nowrap;
   }
   
   .advisor-info-card {
@@ -631,6 +700,63 @@
   .action-btn {
     padding: 10px 14px;
     font-size: 0.9rem;
+  }
+}
+
+/* Actions accordion trigger styles */
+.actions-trigger {
+  width: 100%;
+  padding: 0;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.actions-trigger .chevron-icon {
+  transition: transform 0.3s ease;
+  font-size: 18px;
+  color: #6b7280;
+}
+.actions-section [data-state="open"] > .section-title .chevron-icon,
+.actions-trigger[data-state="open"] .chevron-icon {
+  transform: rotate(180deg);
+}
+
+/* Mobile: make Actions accordion look like the section div */
+@media (max-width: 768px) {
+  /* Remove outer section chrome so trigger/content get the card look */
+  .actions-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin-bottom: 12px;
+  }
+
+  .actions-trigger {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 12px 16px;
+  }
+
+  /* Title inside trigger should not render divider */
+  .actions-trigger .section-title {
+    margin: 0;
+    padding: 0;
+    border: 0;
+  }
+
+  /* Content mirrors section body spacing */
+  .actions-section .lw-collapsible-content,
+  .actions-section .section-content {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    padding: 16px;
+    margin-top: 8px;
   }
 }
 

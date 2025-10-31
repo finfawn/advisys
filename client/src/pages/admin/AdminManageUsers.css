@@ -239,6 +239,23 @@
     color: #9ca3af;
 }
 
+/* Tablet: restructure row to two columns, make actions full width */
+@media (max-width: 1024px) {
+  .manage-row {
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+  .manage-row .actions-col {
+    grid-column: 1 / -1;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+  .manage-row .status-col {
+    justify-self: end;
+  }
+}
+
 .manage-row.inactive .program-dept-text {
     background: #f3f4f6;
     border-color: #e5e7eb;

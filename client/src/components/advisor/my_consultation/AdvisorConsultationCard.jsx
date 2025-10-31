@@ -48,6 +48,8 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   const getActionButtonText = () => {
     if (consultation.status === 'pending') {
       return 'Approve';
+    } else if (consultation.status === 'completed') {
+      return 'View Details';
     } else if (consultation.mode === 'online') {
       return 'Start';
     } else {
@@ -145,7 +147,19 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         )}
       </CardContent>
 
-      {shouldShowSingleAction() && (
+      {consultation.status === 'completed' && (
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
+            View Details
+            <BsChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDelete}>
+            <BsTrash className="w-4 h-4" />
+          </Button>
+        </CardFooter>
+      )}
+
+      {consultation.status !== 'completed' && shouldShowSingleAction() && (
         <CardFooter className="pt-3 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
             {getActionButtonText()}

@@ -336,15 +336,15 @@
     margin-bottom: 1.5rem;
 }
 
-/* Responsive Grid Layout */
-@media (max-width: 999px) {
+/* Tablet-friendly Grid Layout */
+@media (max-width: 1200px) {
     .student-my-consultations .consultations-grid {
         grid-template-columns: repeat(3, 1fr);
         gap: 1rem;
     }
 }
 
-@media (max-width: 767px) {
+@media (max-width: 900px) {
     .student-my-consultations .consultations-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
@@ -356,6 +356,27 @@
         grid-template-columns: 1fr;
         gap: 1rem;
     }
+}
+
+/* Tablet: compact tab spacing to avoid crowding */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .student-my-consultations .consultations-tabs {
+    padding: 3px;
+    gap: 3px;
+  }
+  .student-my-consultations .tab-button {
+    padding: 10px 14px;
+    gap: 6px;
+  }
+  .student-my-consultations .tab-label {
+    font-size: 0.9rem;
+  }
+  .student-my-consultations .tab-count {
+    min-width: 22px;
+    height: 22px;
+    font-size: 0.78rem;
+    padding: 3px 6px;
+  }
 }
 
 /* Add New Consultation Card - New Lightswind Style (scoped) */
@@ -530,36 +551,7 @@
     }
 }
 
-.history-consultations-grid {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.875rem;
-    width: 100%;
-    max-width: 100%;
-    box-sizing: border-box;
-}
-
-/* Responsive Grid Layout for History */
-@media (max-width: 999px) {
-    .history-consultations-grid {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 1rem;
-    }
-}
-
-@media (max-width: 767px) {
-    .history-consultations-grid {
-        grid-template-columns: repeat(2, 1fr);
-        gap: 1rem;
-    }
-}
-
-@media (max-width: 639px) {
-    .history-consultations-grid {
-        grid-template-columns: 1fr;
-        gap: 1rem;
-    }
-}
+/* Removed separate History grid to unify with consultations-grid */
 
 /* Load More Section */
 .load-more-section {
@@ -634,11 +626,29 @@
 
     .student-my-consultations .section-controls {
         justify-content: space-between;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    /* Make controls adapt nicely on small screens */
+    .student-my-consultations .filter-dropdown {
+        flex: 1 1 auto;
+        min-width: 160px;
+    }
+    .student-my-consultations .delete-all-btn {
+        padding: 0.4rem 0.7rem;
+    }
+    .student-my-consultations .section-count {
+        margin-left: auto;
+        white-space: nowrap;
     }
 
     .student-my-consultations .consultations-grid {
         grid-template-columns: 1fr;
         gap: 1rem;
+        width: 100%;
+        box-sizing: border-box;
     }
 
     .student-my-consultations .add-consultation-card {

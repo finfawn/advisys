@@ -5,7 +5,6 @@ import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
-import AdvisorHistoryCard from "../../components/advisor/my_consultation/AdvisorHistoryCard";
 import AdvisorConsultationCard from "../../components/advisor/my_consultation/AdvisorConsultationCard";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
 import DeclineConsultationModal from "../../components/advisor/DeclineConsultationModal";
@@ -271,10 +270,10 @@ export default function AdvisorConsultations() {
   };
 
   const handleActionClick = (c) => {
-    if (c.mode === 'online' && c.meetingLink) {
-      window.open(c.meetingLink, '_blank', 'noopener,noreferrer');
+    if (c.mode === 'online') {
+      navigate(`/advisor-dashboard/consultations/online/${c.id}` , { state: { consultation: c } });
     } else {
-      console.log('Show details for in-person consultation:', c);
+      navigate(`/advisor-dashboard/consultations/${c.id}` , { state: { consultation: c } });
     }
   };
 
@@ -562,11 +561,12 @@ export default function AdvisorConsultations() {
                     </div>
                   </div>
                   
-                  <div className="history-consultations-grid">
+                  <div className="consultations-grid">
                     {filteredHistory.map((consultation) => (
-                      <AdvisorHistoryCard
+                      <AdvisorConsultationCard
                         key={consultation.id}
                         consultation={consultation}
+                        onActionClick={handleActionClick}
                         onDelete={handleDeleteHistory}
                       />
                     ))}

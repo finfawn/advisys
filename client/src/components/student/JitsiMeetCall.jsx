@@ -41,10 +41,6 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
       console.log('User left the conference');
       if (onClose) onClose();
     });
-
-    api.addEventListener('readyToClose', () => {
-      if (onClose) onClose();
-    });
   };
 
   const handleHangup = () => {
@@ -122,8 +118,8 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
       </div>
 
       {/* Close Button */}
-      <button className="jitsi-close-btn" onClick={handleHangup} title="Leave Meeting">
-        <BsX size={24} />
+      <button type="button" aria-label="Close meeting" className="jitsi-close-btn" onClick={handleHangup} title="Leave meeting">
+        <BsX size={28} />
       </button>
     </div>
   );

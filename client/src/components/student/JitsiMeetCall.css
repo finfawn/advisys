@@ -53,11 +53,11 @@
   position: absolute;
   top: 20px;
   right: 20px;
-  width: 44px;
-  height: 44px;
+  width: 48px;
+  height: 48px;
   border-radius: 50%;
-  background: rgba(220, 38, 38, 0.9);
-  border: none;
+  background: rgba(220, 38, 38, 0.95);
+  border: 2px solid rgba(255, 255, 255, 0.9);
   color: #fff;
   cursor: pointer;
   display: flex;
@@ -65,16 +65,46 @@
   justify-content: center;
   transition: all 0.3s ease;
   z-index: 10001;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
 }
 
 .jitsi-close-btn:hover {
   background: rgba(220, 38, 38, 1);
-  transform: scale(1.1);
+  transform: scale(1.06);
 }
 
 .jitsi-close-btn:active {
   transform: scale(0.95);
+}
+
+/* Tooltip label on hover for clarity */
+.jitsi-close-btn::after {
+  content: 'Leave meeting';
+  position: absolute;
+  top: 50%;
+  right: 56px;
+  transform: translateY(-50%);
+  background: rgba(17, 24, 39, 0.9);
+  color: #fff;
+  padding: 6px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+}
+
+.jitsi-close-btn:hover::after {
+  opacity: 1;
+  transform: translateY(-50%) translateX(-2px);
+}
+
+.jitsi-close-btn:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
 }
 
 /* Responsive Design */
@@ -82,8 +112,8 @@
   .jitsi-close-btn {
     top: 10px;
     right: 10px;
-    width: 40px;
-    height: 40px;
+    width: 44px;
+    height: 44px;
   }
 }
 
