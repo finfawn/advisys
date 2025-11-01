@@ -77,7 +77,9 @@ export default function StudentDashboard() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [availableToday, setAvailableToday] = useState([]);
   const [availabilityData, setAvailabilityData] = useState({});
-  const key = selectedDate ? selectedDate.toISOString().slice(0,10) : '';
+  const key = selectedDate
+    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
+    : '';
   const list = availabilityData[key] || [];
   const formatSelectedDate = (date) => {
     if (!date) return '';
@@ -119,10 +121,8 @@ export default function StudentDashboard() {
 
         // Calendar availability for current month
         const y = today.getFullYear();
-        const m = String(today.getMonth() + 1).padStart(2, '0');
-        const resCal = await fetch(`${base}/api/availability/calendar?month=${y}-${m}`);
-        const dataCal = await resCal.json();
-        setAvailabilityData(typeof dataCal === 'object' && dataCal !== null ? dataCal : {});
+        const m0 = today.getMonth();
+        await loadCalendarForMonth(y, m0);
       } catch (err) {
         console.error('Failed to load availability', err);
       }
@@ -145,6 +145,21 @@ export default function StudentDashboard() {
     if (!entries.length) return ['No Topic', 0];
     return entries.reduce((a, b) => counts[a[0]] > counts[b[0]] ? a : b);
   }, [allConsultations]);
+
+  // Fetch calendar availability for a given year and 0-based month
+  const loadCalendarForMonth = async (year, monthIdx) => {
+    try {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const pad = (n) => String(n).padStart(2, '0');
+      const ym = `${year}-${pad(monthIdx + 1)}`;
+      const resCal = await fetch(`${base}/api/availability/calendar?month=${ym}`);
+      if (!resCal.ok) throw new Error('Failed to load calendar availability');
+      const dataCal = await resCal.json();
+      setAvailabilityData(typeof dataCal === 'object' && dataCal !== null ? dataCal : {});
+    } catch (err) {
+      console.error('Calendar availability fetch error', err);
+    }
+  };
 
   const handleJoinConsultation = (consultation) => {
     // Navigate to appropriate details page based on consultation mode
@@ -400,6 +415,7 @@ export default function StudentDashboard() {
                     selectedDate={selectedDate}
                     onDateSelect={setSelectedDate}
                     availabilityData={availabilityData}
+                    onMonthChange={(y, m) => loadCalendarForMonth(y, m)}
                   />
                 </div>
                 <div className="modern-availability-card">
