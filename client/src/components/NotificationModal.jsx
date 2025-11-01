@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
-import { BsBell, BsCheck, BsX, BsCalendar, BsClock, BsPersonCircle, BsCheckCircle, BsXCircle, BsExclamationTriangle, BsCameraVideo, BsGeoAlt, BsDownload } from "react-icons/bs";
+import { useNavigate } from "react-router-dom";
+import { BsBell, BsCheck, BsX, BsCalendar, BsClock, BsPersonCircle, BsCheckCircle, BsXCircle, BsExclamationTriangle, BsCameraVideo, BsGeoAlt, BsDownload, BsTrash } from "react-icons/bs";
 import { useNotifications } from "../contexts/NotificationContext";
 import "./NotificationModal.css";
 
@@ -7,7 +8,32 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const modalRef = useRef(null);
   const [activeTab, setActiveTab] = useState("all");
   const [isClosing, setIsClosing] = useState(false);
-  const { notifications, unreadCount, markAsRead, markAllAsRead } = useNotifications();
+  const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAllNotifications, undoClearAllNotifications } = useNotifications();
+  const navigate = useNavigate();
+  // Local undo toast state (consultation-style)
+  const [undoToast, setUndoToast] = useState({ open: false, timeoutId: null, message: "" });
+
+  const showUndoToast = (message) => {
+    if (undoToast.timeoutId) {
+      clearTimeout(undoToast.timeoutId);
+    }
+    const tid = setTimeout(() => {
+      setUndoToast({ open: false, timeoutId: null, message: "" });
+    }, 5000);
+    setUndoToast({ open: true, timeoutId: tid, message });
+  };
+
+  const handleUndoClearAll = () => {
+    if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
+    setUndoToast({ open: false, timeoutId: null, message: "" });
+    undoClearAllNotifications();
+  };
+
+  useEffect(() => {
+    return () => {
+      if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
+    };
+  }, [undoToast.timeoutId]);
 
   // Sample notifications based on user type
   const sampleNotifications = {
@@ -164,8 +190,63 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     console.log('Notification clicked:', notification);
   };
 
+  const getActionLabel = (notification) => {
+    const consultTypes = new Set([
+      'consultation_request',
+      'consultation_approved',
+      'consultation_declined',
+      'consultation_cancelled',
+      'consultation_reminder',
+    ]);
+    if (consultTypes.has(notification.type)) {
+      return 'Go to My Consultations';
+    }
+    return notification.action || 'View';
+  };
+
+  const resolveActionRoute = (notification) => {
+    let base = '/student-dashboard/consultations';
+    let tab = null;
+    if (userType === 'advisor') {
+      base = '/advisor-dashboard/consultations';
+      tab = notification.type === 'consultation_request' ? 'requests'
+        : notification.type === 'consultation_cancelled' ? 'history'
+        : notification.type === 'consultation_reminder' ? 'upcoming'
+        : 'upcoming';
+    } else if (userType === 'student') {
+      base = '/student-dashboard/consultations';
+      tab = notification.type === 'consultation_declined' ? 'requests'
+        : notification.type === 'consultation_approved' ? 'upcoming'
+        : notification.type === 'consultation_cancelled' ? 'history'
+        : notification.type === 'consultation_reminder' ? 'upcoming'
+        : 'upcoming';
+    } else {
+      base = '/admin-dashboard';
+      tab = null;
+    }
+    return tab ? `${base}?tab=${tab}` : base;
+  };
+
+  const handleActionClick = (e, notification) => {
+    e.stopPropagation();
+    markAsRead(notification.id);
+    const route = resolveActionRoute(notification);
+    navigate(route);
+  };
+
   const handleMarkAllAsRead = () => {
     markAllAsRead();
+  };
+
+  const handleDeleteNotification = (e, id) => {
+    e.stopPropagation();
+    deleteNotification(id);
+  };
+
+  const handleDeleteAll = () => {
+    const count = notifications.length;
+    clearAllNotifications({ commitDelayMs: 5000 });
+    showUndoToast(`${count} notification${count !== 1 ? "s" : ""} deleted`);
   };
 
   const handleClose = () => {
@@ -271,6 +352,13 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
                     {!notification.isRead && (
                       <div className="notification-unread-dot"></div>
                     )}
+                    <button
+                      className="notification-delete-btn"
+                      aria-label="Delete notification"
+                      onClick={(e) => handleDeleteNotification(e, notification.id)}
+                    >
+                      <BsTrash />
+                    </button>
                   </div>
                   
                   
@@ -298,9 +386,12 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
                     <div className="notification-time">
                       <span className="time-relative">{formatTimestamp(notification.timestamp)}</span>
                     </div>
-                    <div className="notification-action">
-                      {notification.action}
-                    </div>
+                    <button
+                      className="notification-action"
+                      onClick={(e) => handleActionClick(e, notification)}
+                    >
+                      {getActionLabel(notification)}
+                    </button>
                   </div>
                 </div>
               </div>
@@ -317,7 +408,27 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
             <BsCheck className="check-icon" />
             Mark all as read
           </button>
+          <button
+            className="notification-delete-all-btn"
+            onClick={handleDeleteAll}
+          >
+            <BsTrash className="trash-icon" />
+            Delete all
+          </button>
         </div>
+
+        {/* Undo Notification (inside modal bottom) */}
+        {undoToast.open && (
+          <div className="undo-notification">
+            <div className="undo-content">
+              <span className="undo-message">{undoToast.message || 'Deleted'}</span>
+              <button className="undo-btn" onClick={handleUndoClearAll}>Undo</button>
+            </div>
+            <div className="undo-timer">
+              <div className="undo-timer-bar"></div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

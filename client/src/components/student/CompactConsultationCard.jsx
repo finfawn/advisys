@@ -2,7 +2,7 @@ import React from "react";
 import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
 import "./CompactConsultationCard.css";
 
-function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
+function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -58,8 +58,11 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
 
   const handleRescheduleConsultation = (e) => {
     e.stopPropagation();
-    console.log('Reschedule consultation:', consultation.id);
-    // Add reschedule logic here
+    if (onReschedule) {
+      onReschedule(consultation);
+    } else {
+      console.log('Reschedule consultation:', consultation.id);
+    }
   };
 
   const handleCancelConsultation = (e) => {

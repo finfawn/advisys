@@ -93,7 +93,7 @@ router.get('/today', async (req, res) => {
 });
 
 // GET /api/availability/calendar?month=YYYY-MM
-// Returns mapping { 'YYYY-MM-DD': [ { name, slots, mode } ] }
+// Returns mapping { 'YYYY-MM-DD': [ { id, name, slots, mode } ] }
 router.get('/calendar', async (req, res) => {
   const pool = getPool();
   try {
@@ -153,6 +153,7 @@ router.get('/calendar', async (req, res) => {
       const slotsLabel = `${formatTimeFromDate(entry.earliest)} – ${formatTimeFromDate(entry.latest)}`;
       if (!result[entry.dateKey]) result[entry.dateKey] = [];
       result[entry.dateKey].push({
+        id: entry.id,
         name: entry.name,
         slots: slotsLabel,
         mode,

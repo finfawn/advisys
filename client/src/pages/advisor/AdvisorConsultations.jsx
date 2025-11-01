@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { BsTrash, BsCalendar, BsClockHistory, BsListCheck } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
@@ -23,6 +23,7 @@ export default function AdvisorConsultations() {
   const [deletedDeclinedItems, setDeletedDeclinedItems] = useState([]);
   const [declinedUndoTimeout, setDeclinedUndoTimeout] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const toggleSidebar = () => setCollapsed(v => !v);
 
@@ -131,6 +132,19 @@ export default function AdvisorConsultations() {
   useEffect(() => {
     setHistoryData(historyDataInitial);
   }, [historyDataInitial]);
+
+  // Read tab from route query or hash
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search || "");
+      const hash = (location.hash || "").replace(/^#/, "");
+      const tabParam = params.get("tab") || (hash ? hash : null);
+      const validTabs = ["upcoming", "requests", "history"];
+      if (tabParam && validTabs.includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    } catch (_) {}
+  }, [location.search, location.hash]);
 
   const upcomingCount = upcomingCards.length;
   const requestsCount = requestCards.length;

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsTrash, BsListCheck, BsClockHistory, BsCheckCircle } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
@@ -8,6 +8,7 @@ import { Badge } from '../../lightswind/badge';
 import { Button } from '../../lightswind/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../lightswind/select';
 import ConsultationCard from "../../components/student/ConsultationCard";
+import ConsultationModal from "../../components/student/ConsultationModal";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
 import { useSidebar } from "../../contexts/SidebarContext";
@@ -31,7 +32,10 @@ export default function MyConsultationsPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [consultationToCancel, setConsultationToCancel] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [consultationToReschedule, setConsultationToReschedule] = useState(null);
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -80,6 +84,21 @@ export default function MyConsultationsPage() {
     };
     fetchConsultations();
   }, []);
+
+  // Set active tab from route query or hash on navigation
+  useEffect(() => {
+    try {
+      const params = new URLSearchParams(location.search || "");
+      const hash = (location.hash || "").replace(/^#/, "");
+      const tabParam = params.get("tab") || (hash ? hash : null);
+      const validTabs = ["upcoming", "requests", "history"];
+      if (tabParam && validTabs.includes(tabParam)) {
+        setActiveTab(tabParam);
+      }
+    } catch (e) {
+      // No-op: keep default tab
+    }
+  }, [location.search, location.hash]);
 
 
   // Categorize consultations based on status and date
@@ -327,6 +346,23 @@ export default function MyConsultationsPage() {
     setShowCancelModal(true);
   };
 
+  const handleOpenReschedule = (consultation) => {
+    setConsultationToReschedule(consultation);
+    setShowRescheduleModal(true);
+  };
+
+  const handleCloseRescheduleModal = () => {
+    setShowRescheduleModal(false);
+    setConsultationToReschedule(null);
+  };
+
+  const handleRescheduleSuccess = async (updated) => {
+    // Optimistically update local state then reload from server
+    setAllConsultations(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+    await reloadConsultations();
+    handleCloseRescheduleModal();
+  };
+
   const handleConfirmCancel = (reason) => {
     (async () => {
       try {
@@ -432,11 +468,12 @@ export default function MyConsultationsPage() {
                       consultation={consultation}
                       onActionClick={() => handleJoinConsultation(consultation)}
                       onCancel={handleCancelConsultation}
+                      onReschedule={handleOpenReschedule}
                     />
                   ))}
                   
                   {/* Add New Consultation Card */}
-                  <Card hoverable className="add-consultation-card-new cursor-pointer h-full" onClick={handleNewConsultation}>
+                  <Card hoverable className="add-consultation-card-new cursor-pointer" onClick={handleNewConsultation}>
                     <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
                       <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
                         <BsPlus className="text-4xl text-blue-600" />
@@ -477,6 +514,7 @@ export default function MyConsultationsPage() {
                       onActionClick={() => handleJoinConsultation(consultation)}
                       onDelete={handleDeleteDeclinedConsultation}
                       onCancel={handleCancelConsultation}
+                      onReschedule={handleOpenReschedule}
                     />
                   ))}
                   
@@ -624,6 +662,20 @@ export default function MyConsultationsPage() {
           onConfirm={handleConfirmCancel}
           consultation={consultationToCancel}
           isCancelling={isCancelling}
+        />
+      )}
+
+      {/* Reschedule Consultation Modal */}
+      {consultationToReschedule && (
+        <ConsultationModal
+          isOpen={showRescheduleModal}
+          onClose={handleCloseRescheduleModal}
+          faculty={consultationToReschedule.faculty}
+          modeType="edit"
+          initialData={consultationToReschedule}
+          consultationId={consultationToReschedule.id}
+          onSubmitSuccess={handleRescheduleSuccess}
+          onNavigateToConsultations={() => navigate('/student-dashboard/consultations')}
         />
       )}
     </div>

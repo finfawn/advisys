@@ -23,6 +23,7 @@ function AdvisorCard({
   const navigate = useNavigate();
 
   const facultyData = {
+    id: advisorId,
     name,
     title,
     avatar: null,
@@ -42,8 +43,11 @@ function AdvisorCard({
   };
 
   const handleNavigateToConsultations = () => {
+    // Navigate directly if parent didn't provide a handler; otherwise delegate
     if (onNavigateToConsultations) {
       onNavigateToConsultations();
+    } else {
+      navigate('/student-dashboard/consultations');
     }
   };
 

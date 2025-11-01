@@ -29,6 +29,83 @@ export default function AdvisorProfilePage() {
         const res = await fetch(`${base}/api/advisors/${advisorId || 1}`);
         const data = await res.json();
         setAdvisorData(data);
+
+        // Also load upcoming slots to reflect real availability and next slot
+        try {
+          const pad = (n) => String(n).padStart(2, '0');
+          const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          const today = new Date();
+          const future = new Date();
+          future.setDate(today.getDate() + 30);
+          const slotsRes = await fetch(`${base}/api/advisors/${advisorId || 1}/slots?start=${fmtDate(today)}&end=${fmtDate(future)}`);
+          const slots = await slotsRes.json();
+
+          if (Array.isArray(slots) && slots.length > 0) {
+            // Compute next available slot and fallback weekly schedule from slots
+            const availableSlots = slots.filter(s => String(s.status).toLowerCase() === 'available');
+            const toTimeStr = (d) => {
+              const hrs = d.getHours();
+              const mins = d.getMinutes();
+              const ampm = hrs >= 12 ? 'PM' : 'AM';
+              const h12 = hrs % 12 || 12;
+              return `${h12}:${String(mins).padStart(2, '0')} ${ampm}`;
+            };
+            const toDateLabel = (d) => d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+            let nextSlotStr = null;
+            if (availableSlots.length > 0) {
+              const next = availableSlots
+                .map(s => ({ ...s, start: new Date(s.start_datetime), end: new Date(s.end_datetime) }))
+                .sort((a, b) => a.start - b.start)[0];
+              nextSlotStr = `${toDateLabel(next.start)} • ${toTimeStr(next.start)} - ${toTimeStr(next.end)}`;
+            }
+
+            // Derive consultation modes from slots (reflects advisor settings)
+            const hasOnlineMode = availableSlots.some(s => {
+              const m = String(s.mode || '').toLowerCase();
+              return m === 'online' || m === 'hybrid';
+            });
+            const hasInPersonMode = availableSlots.some(s => {
+              const m = String(s.mode || '').toLowerCase();
+              return m === 'face_to_face' || m === 'in_person' || m === 'hybrid';
+            });
+            const slotsModes = [];
+            if (hasInPersonMode) slotsModes.push('In-person');
+            if (hasOnlineMode) slotsModes.push('Online');
+
+            const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+            const weeklyFromSlots = {
+              sunday: 'Unavailable', monday: 'Unavailable', tuesday: 'Unavailable', wednesday: 'Unavailable', thursday: 'Unavailable', friday: 'Unavailable', saturday: 'Unavailable'
+            };
+            const ranges = {};
+            for (const s of availableSlots) {
+              const start = new Date(s.start_datetime);
+              const end = new Date(s.end_datetime);
+              const key = dayKeys[start.getDay()];
+              const curr = ranges[key] || { earliest: start, latest: end };
+              if (start < curr.earliest) curr.earliest = start;
+              if (end > curr.latest) curr.latest = end;
+              ranges[key] = curr;
+            }
+            for (const [k, r] of Object.entries(ranges)) {
+              weeklyFromSlots[k] = `${toTimeStr(r.earliest)} - ${toTimeStr(r.latest)}`;
+            }
+
+            // Merge: use DB weeklySchedule if present, otherwise fallback to slots-derived
+            const hasDbSchedule = Object.values(data.weeklySchedule || {}).some(v => v && v !== 'Unavailable');
+            const mergedSchedule = hasDbSchedule ? data.weeklySchedule : weeklyFromSlots;
+
+            setAdvisorData(prev => ({
+              ...prev,
+              weeklySchedule: mergedSchedule,
+              nextAvailableSlot: nextSlotStr,
+              consultationMode: slotsModes.length ? slotsModes : prev.consultationMode,
+            }));
+          }
+        } catch (slotErr) {
+          // Non-fatal; keep profile usable
+          console.warn('Failed to load advisor slots for profile view:', slotErr);
+        }
       } catch (err) {
         console.error('Failed to load advisor profile', err);
         // Fallback minimal data to keep page usable
@@ -71,10 +148,35 @@ export default function AdvisorProfilePage() {
   };
 
   const handleNavigateToConsultations = () => {
-    navigate('/student-dashboard/consultations');
+    navigate('/student-dashboard/consultations?tab=requests');
   };
 
-
+  // Guard against null state during initial fetch
+  if (!advisorData) {
+    return (
+      <div className="profile-wrap">
+        <TopNavbar />
+        <div className={`profile-body ${collapsed ? "collapsed" : ""}`}>
+          <div className="hidden xl:block">
+            <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+          </div>
+          <main className="profile-main relative">
+            <div className="profile-container">
+              <section className="profile-header">
+                <div className="header-content">
+                  <div className="advisor-avatar"><BsPersonCircle /></div>
+                  <div className="advisor-info">
+                    <h1 className="advisor-name">Loading advisor...</h1>
+                    <p className="advisor-title">Please wait</p>
+                  </div>
+                </div>
+              </section>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="profile-wrap">

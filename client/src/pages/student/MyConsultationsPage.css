@@ -332,6 +332,7 @@
 .student-my-consultations .consultations-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
+    align-items: start;
     gap: 0.875rem;
     margin-bottom: 1.5rem;
 }

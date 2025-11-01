@@ -426,7 +426,13 @@ export default function StudentDashboard() {
                     {list.length > 0 ? (
                       <ul className="faculty-list">
                         {list.map((a, i) => (
-                          <li key={i} className="faculty-item">
+                          <li 
+                            key={i} 
+                            className="faculty-item"
+                            onClick={() => a.id ? navigate(`/student-dashboard/advisors/${a.id}`) : navigate('/student-dashboard/advisors')}
+                            style={{ cursor: 'pointer' }}
+                            aria-label={`View ${a.name}'s profile`}
+                          >
                             <div className="faculty-avatar"><BsPersonCircle /></div>
                             <div className="faculty-info">
                               <div className="faculty-name">{a.name}</div>

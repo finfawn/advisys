@@ -5,7 +5,7 @@ import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
 import "./ConsultationCard.css";
 
-function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
+function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -61,8 +61,11 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
 
   const handleRescheduleConsultation = (e) => {
     e.stopPropagation();
-    console.log('Reschedule consultation:', consultation.id);
-    // Add reschedule logic here
+    if (onReschedule) {
+      onReschedule(consultation);
+    } else {
+      console.log('Reschedule consultation:', consultation.id);
+    }
   };
 
   const handleCancelConsultation = (e) => {
@@ -75,7 +78,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel }) {
   const statusInfo = getStatusInfo();
 
   return (
-    <Card hoverable className="consultation-card-new h-full flex flex-col">
+    <Card hoverable className="consultation-card-new flex flex-col">
       <CardHeader spacing="compact" className="flex-row justify-between items-start pb-3">
         <Badge 
           variant={
