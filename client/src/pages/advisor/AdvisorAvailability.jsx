@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useLayoutEffect, useRef } from "react";
+import React, { useMemo, useState, useLayoutEffect, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
@@ -41,13 +41,92 @@ export default function AdvisorAvailability() {
   const handleUndoDelete = () => {
     if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
     if (undoToast.items && undoToast.items.length) {
-      setEvents((prev) => [...prev, ...undoToast.items]);
+      // Re-create deleted slots in backend and update local state with new ids
+      (async () => {
+        try {
+          const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+          const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+          const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+          const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+          const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+            },
+            body: JSON.stringify({
+              slots: undoToast.items.map((p) => ({
+                start: p.start.toISOString(),
+                end: p.end.toISOString(),
+                mode: p.mode,
+                room: p.room || null,
+              }))
+            }),
+          });
+          if (resp.ok) {
+            const created = await resp.json();
+            setEvents((prev) => ([
+              ...prev,
+              ...created.map((s) => ({
+                id: s.id,
+                title: 'Available',
+                start: new Date(s.start_datetime),
+                end: new Date(s.end_datetime),
+                type: 'available',
+                mode: s.mode,
+                room: s.room || "",
+              }))
+            ]));
+          } else {
+            // Fallback: restore only locally
+            setEvents((prev) => [...prev, ...undoToast.items]);
+          }
+        } catch (err) {
+          console.error('Undo delete (fallback local)', err);
+          setEvents((prev) => [...prev, ...undoToast.items]);
+        }
+      })();
     }
     setUndoToast({ open: false, items: [], timeoutId: null, message: '' });
   };
   // Start with no events; dots appear only for real created slots
   const [events, setEvents] = useState([]);
   const [activeSection, setActiveSection] = useState('morning');
+
+  // Persist and restore selected date across refreshes to avoid confusion
+  useEffect(() => {
+    // On mount, try to restore the last selected date from localStorage
+    try {
+      const stored = typeof window !== 'undefined' ? localStorage.getItem('advisys_selected_date') : null;
+      if (stored) {
+        const [y, m, d] = stored.split('-').map((s) => Number(s));
+        if (!Number.isNaN(y) && !Number.isNaN(m) && !Number.isNaN(d)) {
+          // Construct local date (avoid timezone shifts from parsing ISO)
+          const restored = new Date(y, (m - 1), d, 12, 0, 0, 0);
+          setSelectedDate(restored);
+        }
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    // Whenever the selected date changes, store it as YYYY-MM-DD
+    try {
+      if (selectedDate) {
+        const y = selectedDate.getFullYear();
+        const m = String(selectedDate.getMonth() + 1).padStart(2, '0');
+        const d = String(selectedDate.getDate()).padStart(2, '0');
+        const key = `${y}-${m}-${d}`;
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('advisys_selected_date', key);
+        }
+      }
+    } catch {}
+  }, [selectedDate]);
+
+  // Month-wide fetching is handled inside AvailabilityCalendar (via month change).
+  // Keep events as the current month cache and filter locally for inspector.
+  useEffect(() => { /* no-op: replaced by month-level fetch */ }, [selectedDate]);
 
   // Keep the right inspector card the same height as the calendar container
   useLayoutEffect(() => {
@@ -342,8 +421,23 @@ export default function AdvisorAvailability() {
                 </AlertDialogCancel>
                 <AlertDialogAction 
                   className="min-w-[110px] h-10 px-4"
-                  onClick={() => {
+                  onClick={async () => {
                     if (pendingDeleteEvent) {
+                      try {
+                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+                        const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+                        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+                        const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots/${pendingDeleteEvent.id}`, {
+                          method: 'DELETE',
+                          headers: {
+                            ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+                          }
+                        });
+                        if (!resp.ok) throw new Error('Failed to delete slot');
+                      } catch (err) {
+                        console.error('Delete slot error; proceeding to update UI', err);
+                      }
                       const deleted = [pendingDeleteEvent];
                       setEvents((prev) => prev.filter((ev) => ev.id !== pendingDeleteEvent.id));
                       showUndoToast(deleted, `Slot deleted`);
@@ -375,7 +469,31 @@ export default function AdvisorAvailability() {
                   <Button variant="outline" onClick={() => setDeleteAllOpen(false)}>Cancel</Button>
                   <Button
                     variant="destructive"
-                    onClick={() => {
+                    onClick={async () => {
+                      try {
+                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+                        const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+                        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+                        const formatLocalDateKey = (date) => {
+                          const y = date.getFullYear();
+                          const m = String(date.getMonth() + 1).padStart(2, '0');
+                          const d = String(date.getDate()).padStart(2, '0');
+                          return `${y}-${m}-${d}`;
+                        };
+                        const dateKey = selectedDate ? formatLocalDateKey(selectedDate) : null;
+                        if (advisorId && dateKey) {
+                          const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots?date=${dateKey}`, {
+                            method: 'DELETE',
+                            headers: {
+                              ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+                            }
+                          });
+                          if (!resp.ok) throw new Error('Failed to delete all slots for day');
+                        }
+                      } catch (err) {
+                        console.error('Reset day error; proceeding to update UI', err);
+                      }
                       setEvents((prev) => {
                         const toDelete = prev.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
                         const next = prev.filter((ev) => !(ev.type === 'available' && isSameDay(ev.start, selectedDate)));

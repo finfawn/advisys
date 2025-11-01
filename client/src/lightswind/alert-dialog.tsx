@@ -1,4 +1,5 @@
 import * as React from "react";
+import { createPortal } from "react-dom";
 import { cn } from "../lib/utils";
 import { buttonVariants } from "./button";
 import { motion, AnimatePresence } from "framer-motion"; // Import motion and AnimatePresence
@@ -103,7 +104,9 @@ const AlertDialogTrigger = React.forwardRef<HTMLButtonElement, AlertDialogTrigge
 AlertDialogTrigger.displayName = "AlertDialogTrigger";
 
 const AlertDialogPortal: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  return <>{children}</>;
+  // Render into document.body to escape ancestor stacking/containing blocks
+  if (typeof document === "undefined") return <>{children}</>;
+  return createPortal(children, document.body);
 };
 
 const AlertDialogOverlay = React.forwardRef<
@@ -126,7 +129,7 @@ const AlertDialogOverlay = React.forwardRef<
         <div
           ref={ref}
           className={cn(
-            "fixed inset-0 z-50 bg-black/80",
+            "fixed inset-0 z-[2000] bg-black/80",
             className
           )}
           {...props}
@@ -183,7 +186,7 @@ const AlertDialogContent = React.forwardRef<
               (contentRef as React.MutableRefObject<HTMLDivElement | null>).current = node;
             }}
             className={cn(
-              "fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border   bg-background p-6 shadow-lg sm:rounded-lg",
+              "fixed left-[50%] top-[50%] z-[2100] grid w-full max-w-md sm:max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg sm:rounded-lg",
               className
             )}
             initial={{ y: "-48%", x: "-50%", opacity: 0, scale: 0.95 }}

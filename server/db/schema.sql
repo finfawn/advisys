@@ -20,6 +20,24 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Advisor availability slots (per-date occurrences created in UI)
+CREATE TABLE IF NOT EXISTS `advisor_slots` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `advisor_user_id` INT UNSIGNED NOT NULL,
+  `start_datetime` DATETIME NOT NULL,
+  `end_datetime` DATETIME NOT NULL,
+  `mode` ENUM('online','face_to_face','hybrid') NOT NULL DEFAULT 'online',
+  `room` VARCHAR(255) DEFAULT NULL,
+  `status` ENUM('available','booked','cancelled') NOT NULL DEFAULT 'available',
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_slots_advisor` (`advisor_user_id`),
+  KEY `idx_slots_start` (`start_datetime`),
+  CONSTRAINT `fk_slots_advisor`
+    FOREIGN KEY (`advisor_user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Advisor profile details
 CREATE TABLE IF NOT EXISTS `advisor_profiles` (
   `user_id` INT UNSIGNED NOT NULL,

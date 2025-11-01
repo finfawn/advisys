@@ -217,7 +217,7 @@ export default function ConsultationSlotModal({
         const prefs = JSON.parse(localStorage.getItem("advisorSlotPrefs") || "{}");
         if (Array.isArray(prefs.modes) && prefs.modes.length) setSelectedModes(prefs.modes);
         if (prefs.durationPreset) setDurationPreset(String(prefs.durationPreset));
-        if (typeof prefs.customMinutes === "number" && prefs.customMinutes > 0) setCustomMinutes(prefs.customMinutes);
+        if (typeof prefs.customMinutes === "number" && prefs.customMinutes > 0) setCustomMinutes(Math.min(prefs.customMinutes, 120));
       } catch {}
       setRoom(editEvent?.room || "");
       setActiveSlotIds([]);
@@ -570,13 +570,15 @@ export default function ConsultationSlotModal({
                 <Input
                   type="number"
                   min={0}
-                  max={8}
+                  max={2}
                   step={1}
                   value={Math.floor((customMinutes || 0) / 60)}
                   onChange={(e) => {
-                    const hrs = Math.max(0, Number(e.target.value) || 0);
+                    let hrs = Math.max(0, Number(e.target.value) || 0);
+                    hrs = Math.min(hrs, 2);
                     const mins = (customMinutes || 0) % 60;
-                    setCustomMinutes(hrs * 60 + mins);
+                    const total = Math.min(hrs * 60 + mins, 120);
+                    setCustomMinutes(total);
                   }}
                   aria-label="Custom hours"
                   className="w-20 booking-input"
@@ -592,11 +594,16 @@ export default function ConsultationSlotModal({
                     let m = Number(e.target.value) || 0;
                     if (m < 0) m = 0;
                     if (m > 59) m = 59;
-                    const hrs = Math.floor((customMinutes || 0) / 60);
-                    setCustomMinutes(hrs * 60 + m);
+                    let hrs = Math.floor((customMinutes || 0) / 60);
+                    if (hrs >= 2) {
+                      hrs = 2;
+                      m = 0; // cap at exactly 120 minutes
+                    }
+                    const total = Math.min(hrs * 60 + m, 120);
+                    setCustomMinutes(total);
                   }}
                   aria-label="Custom minutes"
-                  className="w-24 booking-input"
+                 className="w-24 booking-input"
                 />
                 <span className="text-sm text-gray-600">minutes</span>
               </div>

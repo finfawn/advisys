@@ -28,5 +28,37 @@ app.use('/api/dashboard', dashboardRouter);
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
 
+// Temporary debug: list registered routes (method and path)
+// NOTE: This is for debugging and can be removed later.
+app.get('/api/__routes', (req, res) => {
+  try {
+    const routes = [];
+    const stack = app._router?.stack || [];
+    for (const layer of stack) {
+      if (layer.route && layer.route.path) {
+        const methods = Object.keys(layer.route.methods)
+          .filter(m => layer.route.methods[m])
+          .map(m => m.toUpperCase());
+        routes.push({ methods, path: layer.route.path });
+      } else if (layer.name === 'router' && layer.handle?.stack) {
+        const base = layer.regexp?.fast_star ? '' : (layer.regexp && layer.regexp.source ? null : null);
+        for (const r of layer.handle.stack) {
+          if (r.route && r.route.path) {
+            const methods = Object.keys(r.route.methods)
+              .filter(m => r.route.methods[m])
+              .map(m => m.toUpperCase());
+            // Try to infer mount path if available
+            const path = r.route.path;
+            routes.push({ methods, path });
+          }
+        }
+      }
+    }
+    res.json(routes);
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to enumerate routes' });
+  }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

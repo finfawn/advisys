@@ -128,4 +128,148 @@ router.get('/:id', async (req, res) => {
   }
 });
 
+// Normalize incoming mode values
+const normalizeMode = (mode) => {
+  if (!mode) return 'online';
+  const m = String(mode).toLowerCase();
+  if (m === 'face_to_face' || m === 'in-person' || m === 'in_person') return 'face_to_face';
+  if (m === 'hybrid' || m === 'both') return 'hybrid';
+  return 'online';
+};
+
+// GET /api/advisors/:id/slots
+// Supports:
+// - ?date=YYYY-MM-DD (single day)
+// - ?month=YYYY-MM (entire month)
+// - ?start=YYYY-MM-DD&end=YYYY-MM-DD (inclusive range)
+router.get('/:id/slots', async (req, res) => {
+  const pool = getPool();
+  try {
+    const advisorId = req.params.id;
+    const { date, month, start, end } = req.query;
+
+    // Helper to pad numbers
+    const pad = (n) => String(n).padStart(2, '0');
+
+    let query = '';
+    let params = [];
+
+    if (date) {
+      // Single day
+      query = `SELECT id, start_datetime, end_datetime, mode, room, status
+               FROM advisor_slots
+               WHERE advisor_user_id = ? AND DATE(start_datetime) = ?
+               ORDER BY start_datetime ASC`;
+      params = [advisorId, date];
+    } else if (month) {
+      // Month range (inclusive)
+      const [yStr, mStr] = month.split('-');
+      const year = Number(yStr);
+      const monthIdx = Number(mStr) - 1; // 0-based
+      if (Number.isNaN(year) || Number.isNaN(monthIdx) || monthIdx < 0 || monthIdx > 11) {
+        return res.status(400).json({ error: 'Invalid month format. Expected YYYY-MM' });
+      }
+      const monthStart = `${year}-${pad(monthIdx + 1)}-01`;
+      const lastDay = new Date(year, monthIdx + 1, 0).getDate();
+      const monthEnd = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
+      query = `SELECT id, start_datetime, end_datetime, mode, room, status
+               FROM advisor_slots
+               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ?
+               ORDER BY start_datetime ASC`;
+      params = [advisorId, monthStart, monthEnd];
+    } else if (start && end) {
+      // Arbitrary inclusive range
+      query = `SELECT id, start_datetime, end_datetime, mode, room, status
+               FROM advisor_slots
+               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ?
+               ORDER BY start_datetime ASC`;
+      params = [advisorId, start, end];
+    } else {
+      return res.status(400).json({ error: 'Missing required query param: date (YYYY-MM-DD) or month (YYYY-MM) or start/end (YYYY-MM-DD)' });
+    }
+
+    const [rows] = await pool.query(query, params);
+    res.json(rows);
+  } catch (err) {
+    console.error('Advisor slots fetch error', err);
+    res.status(500).json({ error: 'Failed to load slots' });
+  }
+});
+
+// POST /api/advisors/:id/slots
+// Create advisor slots (bulk insert)
+router.post('/:id/slots', async (req, res) => {
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    const advisorId = req.params.id;
+    const { slots } = req.body || {};
+    if (!Array.isArray(slots) || slots.length === 0) {
+      return res.status(400).json({ error: 'Request body must include non-empty array: slots' });
+    }
+
+    await conn.beginTransaction();
+    const created = [];
+    for (const s of slots) {
+      const startIso = s.start_datetime || s.start;
+      const endIso = s.end_datetime || s.end;
+      if (!startIso || !endIso) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Each slot must include start/end datetime' });
+      }
+      const start = new Date(startIso);
+      const end = new Date(endIso);
+      if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Invalid datetime format in slot payload' });
+      }
+      const mode = normalizeMode(s.mode);
+      const room = s.room || null;
+      const [result] = await conn.query(
+        'INSERT INTO advisor_slots (advisor_user_id, start_datetime, end_datetime, mode, room) VALUES (?,?,?,?,?)',
+        [advisorId, start, end, mode, room]
+      );
+      created.push({ id: result.insertId, advisor_user_id: Number(advisorId), start_datetime: start, end_datetime: end, mode, room, status: 'available' });
+    }
+    await conn.commit();
+    res.status(201).json(created);
+  } catch (err) {
+    await conn.rollback();
+    console.error('Advisor slots create error', err);
+    res.status(500).json({ error: 'Failed to create advisor slots' });
+  } finally {
+    conn.release();
+  }
+});
+
+// DELETE /api/advisors/:id/slots/:slotId
+router.delete('/:id/slots/:slotId', async (req, res) => {
+  const pool = getPool();
+  try {
+    const advisorId = req.params.id;
+    const slotId = req.params.slotId;
+    const [result] = await pool.query('DELETE FROM advisor_slots WHERE id = ? AND advisor_user_id = ?', [slotId, advisorId]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Slot not found' });
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Advisor slot delete error', err);
+    res.status(500).json({ error: 'Failed to delete slot' });
+  }
+});
+
+// DELETE /api/advisors/:id/slots?date=YYYY-MM-DD
+router.delete('/:id/slots', async (req, res) => {
+  const pool = getPool();
+  try {
+    const advisorId = req.params.id;
+    const { date } = req.query;
+    if (!date) return res.status(400).json({ error: 'Missing required query param: date (YYYY-MM-DD)' });
+    const [result] = await pool.query('DELETE FROM advisor_slots WHERE advisor_user_id = ? AND DATE(start_datetime) = ?', [advisorId, date]);
+    res.json({ success: true, deleted: result.affectedRows });
+  } catch (err) {
+    console.error('Advisor slots bulk delete error', err);
+    res.status(500).json({ error: 'Failed to delete slots' });
+  }
+});
+
 module.exports = router;

@@ -3,13 +3,21 @@ import { Button } from '../../lightswind/button';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
 import './CustomCalendar.css';
 
-const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {} }) => {
+const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onMonthChange }) => {
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = today.getMonth();
   
   const [displayMonth, setDisplayMonth] = React.useState(currentMonth);
   const [displayYear, setDisplayYear] = React.useState(currentYear);
+
+  // Notify parent of initial month/year on mount
+  React.useEffect(() => {
+    if (typeof onMonthChange === 'function') {
+      onMonthChange(displayYear, displayMonth);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const monthNames = [
     'January', 'February', 'March', 'April', 'May', 'June',
@@ -68,20 +76,30 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {} }) =
   };
 
   const handlePrevMonth = () => {
-    if (displayMonth === 0) {
-      setDisplayMonth(11);
-      setDisplayYear(displayYear - 1);
-    } else {
-      setDisplayMonth(displayMonth - 1);
+    let nextMonth = displayMonth - 1;
+    let nextYear = displayYear;
+    if (nextMonth < 0) {
+      nextMonth = 11;
+      nextYear = displayYear - 1;
+    }
+    setDisplayMonth(nextMonth);
+    setDisplayYear(nextYear);
+    if (typeof onMonthChange === 'function') {
+      onMonthChange(nextYear, nextMonth);
     }
   };
 
   const handleNextMonth = () => {
-    if (displayMonth === 11) {
-      setDisplayMonth(0);
-      setDisplayYear(displayYear + 1);
-    } else {
-      setDisplayMonth(displayMonth + 1);
+    let nextMonth = displayMonth + 1;
+    let nextYear = displayYear;
+    if (nextMonth > 11) {
+      nextMonth = 0;
+      nextYear = displayYear + 1;
+    }
+    setDisplayMonth(nextMonth);
+    setDisplayYear(nextYear);
+    if (typeof onMonthChange === 'function') {
+      onMonthChange(nextYear, nextMonth);
     }
   };
 
@@ -96,9 +114,17 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {} }) =
     return isSameDay(date, today);
   };
 
+  // Use local date (not UTC) to build the YYYY-MM-DD key
+  const formatLocalDateKey = (date) => {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  };
+
   const getAvailabilityForDate = (date) => {
     if (!date) return null;
-    const dateKey = date.toISOString().slice(0, 10);
+    const dateKey = formatLocalDateKey(date);
     return availabilityData[dateKey] || null;
   };
 

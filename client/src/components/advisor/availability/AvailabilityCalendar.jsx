@@ -36,6 +36,7 @@ export default function AvailabilityCalendar({
   const [editDefaults, setEditDefaults] = useState(null); // { event }
   const [overlapOpen, setOverlapOpen] = useState(false);
   const [pendingApply, setPendingApply] = useState(null); // { type: 'create'|'edit', payloads: [], targetId?: number }
+  const [monthParam, setMonthParam] = useState(null); // YYYY-MM for displayed month
   
   // Open create modal when parent triggers the signal
   useEffect(() => {
@@ -81,6 +82,41 @@ export default function AvailabilityCalendar({
     });
     return map;
   }, [events]);
+
+  // Fetch all slots for the displayed month so dots render without selecting a day
+  useEffect(() => {
+    const fetchMonthSlots = async () => {
+      if (!monthParam) return;
+      try {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+        const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+        if (!advisorId) return;
+        const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots?month=${monthParam}`, {
+          headers: {
+            ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+          },
+        });
+        if (!resp.ok) throw new Error('Failed to fetch month slots');
+        const rows = await resp.json();
+        const next = rows.map((s) => ({
+          id: s.id,
+          title: 'Available',
+          start: new Date(s.start_datetime),
+          end: new Date(s.end_datetime),
+          type: 'available',
+          mode: s.mode,
+          room: s.room || '',
+        }));
+        setEvents(next);
+      } catch (err) {
+        console.error('Fetch month slots error; keeping local state', err);
+      }
+    };
+    fetchMonthSlots();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monthParam]);
 
   // Class-based styling
   const eventPropGetter = (event) => ({
@@ -187,6 +223,10 @@ export default function AvailabilityCalendar({
             setCurrentDate(date);
           }}
           availabilityData={availabilityData}
+          onMonthChange={(year, monthIndex) => {
+            const mp = `${year}-${String(monthIndex + 1).padStart(2, '0')}`;
+            setMonthParam(mp);
+          }}
         />
         {/* Temporary modal: will be replaced by Lightswind-based modal */}
         <ConsultationSlotModal
@@ -201,7 +241,7 @@ export default function AvailabilityCalendar({
           initialEnd={editDefaults?.event?.end || createDefaults.end}
           editEvent={editDefaults?.event || null}
           existingEvents={events}
-          onSubmit={(payloads) => {
+          onSubmit={async (payloads) => {
             const arr = Array.isArray(payloads) ? payloads : [payloads];
             // Overlap detection for create or edit
             const hasOverlap = (p) => events.some((ev) => ev.type === 'available' && (!editDefaults?.event || ev.id !== editDefaults.event.id) && p.start < ev.end && p.end > ev.start);
@@ -221,18 +261,56 @@ export default function AvailabilityCalendar({
                   room: updated.room || "",
                 } : ev));
               } else {
-                setEvents((prev) => ([
-                  ...prev,
-                  ...arr.map((p, idx) => ({
-                    id: Date.now() + idx,
-                    title: p.title,
-                    start: p.start,
-                    end: p.end,
-                    type: 'available',
-                    mode: p.mode,
-                    room: p.room || "",
-                  }))
-                ]));
+                // Persist created slots to backend
+                try {
+                  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                  const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+                  const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+                  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+                  const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots`, {
+                    method: 'POST',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+                    },
+                    body: JSON.stringify({
+                      slots: arr.map((p) => ({
+                        start: p.start.toISOString(),
+                        end: p.end.toISOString(),
+                        mode: p.mode,
+                        room: p.room || null,
+                      }))
+                    }),
+                  });
+                  if (!resp.ok) throw new Error('Failed to persist slots');
+                  const created = await resp.json();
+                  setEvents((prev) => ([
+                    ...prev,
+                    ...created.map((s) => ({
+                      id: s.id,
+                      title: 'Available',
+                      start: new Date(s.start_datetime),
+                      end: new Date(s.end_datetime),
+                      type: 'available',
+                      mode: s.mode,
+                      room: s.room || "",
+                    }))
+                  ]));
+                } catch (err) {
+                  console.error('Slot create (fallback local)', err);
+                  setEvents((prev) => ([
+                    ...prev,
+                    ...arr.map((p, idx) => ({
+                      id: Date.now() + idx,
+                      title: p.title,
+                      start: p.start,
+                      end: p.end,
+                      type: 'available',
+                      mode: p.mode,
+                      room: p.room || "",
+                    }))
+                  ]));
+                }
               }
               setIsCreateOpen(false);
               setEditDefaults(null);
@@ -252,25 +330,62 @@ export default function AvailabilityCalendar({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel onClick={() => { setPendingApply(null); setOverlapOpen(false); }}>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={() => {
+              <AlertDialogAction onClick={async () => {
                 if (!pendingApply) return;
                 if (pendingApply.type === 'edit' && pendingApply.payloads?.[0]) {
                   const { id, start, end } = pendingApply.payloads[0];
                   setEvents((prev) => prev.map((ev) => ev.id === id ? { ...ev, start, end } : ev));
                 } else if (pendingApply.type === 'create') {
                   const arr = pendingApply.payloads || [];
-                  setEvents((prev) => ([
-                    ...prev,
-                    ...arr.map((p, idx) => ({
-                      id: Date.now() + idx,
-                      title: p.title,
-                      start: p.start,
-                      end: p.end,
-                      type: 'available',
-                      mode: p.mode,
-                      room: p.room || "",
-                    }))
-                  ]));
+                  try {
+                    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+                    const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+                    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+                    const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+                      },
+                      body: JSON.stringify({
+                        slots: arr.map((p) => ({
+                          start: p.start.toISOString(),
+                          end: p.end.toISOString(),
+                          mode: p.mode,
+                          room: p.room || null,
+                        }))
+                      }),
+                    });
+                    if (!resp.ok) throw new Error('Failed to persist slots');
+                    const created = await resp.json();
+                    setEvents((prev) => ([
+                      ...prev,
+                      ...created.map((s) => ({
+                        id: s.id,
+                        title: 'Available',
+                        start: new Date(s.start_datetime),
+                        end: new Date(s.end_datetime),
+                        type: 'available',
+                        mode: s.mode,
+                        room: s.room || "",
+                      }))
+                    ]));
+                  } catch (err) {
+                    console.error('Slot create (fallback local)', err);
+                    setEvents((prev) => ([
+                      ...prev,
+                      ...arr.map((p, idx) => ({
+                        id: Date.now() + idx,
+                        title: p.title,
+                        start: p.start,
+                        end: p.end,
+                        type: 'available',
+                        mode: p.mode,
+                        room: p.room || "",
+                      }))
+                    ]));
+                  }
                 }
                 setPendingApply(null);
                 setOverlapOpen(false);
