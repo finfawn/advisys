@@ -43,6 +43,35 @@ export default function AdvisorListPage() {
     fetchAdvisors();
   }, []);
 
+  // Load student consultations to derive previous advisors (completed consultations)
+  const [studentConsultations, setStudentConsultations] = useState([]);
+  const [isLoadingPrevConsultations, setIsLoadingPrevConsultations] = useState(true);
+  useEffect(() => {
+    const fetchStudentConsultations = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const userStr = localStorage.getItem('advisys_user');
+        const token = localStorage.getItem('advisys_token');
+        const user = userStr ? JSON.parse(userStr) : null;
+        if (!user || !user.id) {
+          setStudentConsultations([]);
+          return;
+        }
+        const res = await fetch(`${base}/api/students/${user.id}/consultations`, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        });
+        const data = await res.json();
+        setStudentConsultations(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load student consultations', err);
+        setStudentConsultations([]);
+      } finally {
+        setIsLoadingPrevConsultations(false);
+      }
+    };
+    fetchStudentConsultations();
+  }, []);
+
   // Create generic categories for filter
   const categories = useMemo(() => {
     const deptSet = new Set((allAdvisors || []).map(advisor => advisor.department).filter(Boolean));
@@ -85,51 +114,68 @@ export default function AdvisorListPage() {
     // Add booking logic here
   };
 
-  // Mock data for previously consulted advisors
-  const previousConsultations = [
-    {
-      id: 1,
-      name: "Dr. Maria Santos",
-      title: "Professor of Computer Science",
-      department: "Computer Science",
-      status: "Available",
-      schedule: "Mon, Wed, Fri",
-      time: "9:00 AM–12:00 PM",
-      mode: "In-person/Online",
-      coursesTaught: ["CS 101", "CS 301", "CS 401"],
-      isAvailableToday: true,
-      lastConsultation: "2 weeks ago",
-      consultationCount: 3
-    },
-    {
-      id: 2,
-      name: "Prof. John Cruz",
-      title: "Associate Professor of Mathematics",
-      department: "Mathematics",
-      status: "Available",
-      schedule: "Tue, Thu",
-      time: "1:00 PM–4:00 PM",
-      mode: "Online",
-      coursesTaught: ["MATH 201", "MATH 301"],
-      isAvailableToday: true,
-      lastConsultation: "1 month ago",
-      consultationCount: 1
-    },
-    {
-      id: 4,
-      name: "Dr. Michael Dela Cruz",
-      title: "Professor of Chemistry",
-      department: "Chemistry",
-      status: "Available",
-      schedule: "Tue, Thu, Sat",
-      time: "8:00 AM–11:00 AM",
-      mode: "In-person/Online",
-      coursesTaught: ["CHEM 101", "CHEM 201"],
-      isAvailableToday: true,
-      lastConsultation: "3 weeks ago",
-      consultationCount: 2
-    }
-  ];
+  // Helper to format relative time
+  const formatRelativeTime = (dateStr) => {
+    if (!dateStr) return '';
+    const now = new Date();
+    const then = new Date(dateStr);
+    const diffMs = now - then;
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMs / 3600000);
+    const days = Math.floor(diffMs / 86400000);
+    const weeks = Math.floor(days / 7);
+    const months = Math.floor(days / 30);
+    if (minutes < 60) return `${minutes || 1} minute${minutes === 1 ? '' : 's'} ago`;
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    if (weeks < 5) return `${weeks} week${weeks === 1 ? '' : 's'} ago`;
+    return `${months} month${months === 1 ? '' : 's'} ago`;
+  };
+
+  // Derive previous advisors from completed consultations
+  const previousConsultations = useMemo(() => {
+    if (!Array.isArray(studentConsultations) || studentConsultations.length === 0) return [];
+    const completed = studentConsultations.filter(c => (c.status || '').toLowerCase() === 'completed');
+    if (completed.length === 0) return [];
+    const byAdvisor = new Map();
+    completed.forEach(c => {
+      const faculty = c.faculty || {};
+      const advisorId = faculty.id || c.advisor_id || faculty._id; // fallback keys
+      if (!advisorId) return;
+      const end = c.end_datetime || c.end || c.end_time; // possible fields
+      const start = c.start_datetime || c.start || c.start_time;
+      const lastDate = end || start || c.date;
+      const current = byAdvisor.get(advisorId) || {
+        id: advisorId,
+        name: faculty.name || c.advisor_name || 'Unknown Advisor',
+        title: faculty.title || c.faculty_title || 'Faculty Advisor',
+        consultationCount: 0,
+        lastDate: null
+      };
+      current.consultationCount += 1;
+      current.lastDate = !current.lastDate || new Date(lastDate) > new Date(current.lastDate) ? lastDate : current.lastDate;
+      byAdvisor.set(advisorId, current);
+    });
+    // Merge with advisors list for schedule/time/mode when available
+    const merged = Array.from(byAdvisor.values()).map(item => {
+      const match = (allAdvisors || []).find(a => String(a.id) === String(item.id));
+      return {
+        id: item.id,
+        name: item.name || (match ? match.name : undefined),
+        title: item.title || (match ? match.title : undefined),
+        status: 'Available',
+        schedule: match?.schedule,
+        time: match?.time,
+        mode: match?.mode,
+        coursesTaught: match?.coursesTaught,
+        lastConsultation: formatRelativeTime(item.lastDate),
+        consultationCount: item.consultationCount
+      };
+    });
+    // Sort by most recent lastDate
+    merged.sort((a, b) => new Date(b.lastConsultationDate || b.lastDate || 0) - new Date(a.lastConsultationDate || a.lastDate || 0));
+    return merged;
+  }, [studentConsultations, allAdvisors]);
 
   return (
     <div className="dash-wrap">
@@ -152,32 +198,33 @@ export default function AdvisorListPage() {
               </div>
             </div>
 
-            {/* Previous Consultations Section */}
-            <section className="advisor-section">
-              <div className="section-header">
-                <h2 className="section-title">Previous Consultations</h2>
-                <div className="section-controls">
-                  <span className="section-count">{previousConsultations.length} advisors</span>
+            {/* Previous Consultations Section (hidden if none) */}
+            {(!isLoadingPrevConsultations && previousConsultations.length > 0) && (
+              <section className="advisor-section">
+                <div className="section-header">
+                  <h2 className="section-title">Previous Consultations</h2>
+                  <div className="section-controls">
+                    <span className="section-count">{previousConsultations.length} advisors</span>
+                  </div>
                 </div>
-              </div>
-              
-                  <div className="advisor-grid">
-                    {previousConsultations.map(advisor => (
-                      <AdvisorCard
-                        key={`previous-${advisor.id}`}
-                        advisorId={advisor.id}
-                        name={advisor.name}
-                        title={advisor.title}
-                        status={advisor.status}
-                        schedule={advisor.schedule}
-                        time={advisor.time}
-                        mode={advisor.mode}
-                        coursesTaught={advisor.coursesTaught}
-                        onBookClick={() => handleBookClick(advisor.name)}
-                      />
-                    ))}
-              </div>
-            </section>
+                <div className="advisor-grid">
+                  {previousConsultations.map(advisor => (
+                    <AdvisorCard
+                      key={`previous-${advisor.id}`}
+                      advisorId={advisor.id}
+                      name={advisor.name}
+                      title={advisor.title}
+                      status={advisor.status}
+                      schedule={advisor.schedule}
+                      time={advisor.time}
+                      mode={advisor.mode}
+                      coursesTaught={advisor.coursesTaught}
+                      onBookClick={() => handleBookClick(advisor.name)}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
 
             {/* All Faculty Section */}
             <section className="advisor-section" id="all-faculty-list">
