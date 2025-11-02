@@ -140,6 +140,9 @@ export default function ConsultationSlotModal({
   const [draftEnd, setDraftEnd] = useState(toTimeValue(baseEnd));
   const startInputRef = useRef(null);
   const endInputRef = useRef(null);
+  const repeatUntilInputRef = useRef(null);
+  const repeatPickerRef = useRef(null);
+  const [isRepeatPickerOpen, setIsRepeatPickerOpen] = useState(false);
   // Duration preset: 15, 30, 60, custom. Default 30
   const [durationPreset, setDurationPreset] = useState("30");
   const [customMinutes, setCustomMinutes] = useState(30);
@@ -189,6 +192,19 @@ export default function ConsultationSlotModal({
     }
   }, [maxDaysUntil]);
   useEffect(() => { if (!isOpen) setError(""); }, [isOpen]);
+
+  // Close the repeat popover when clicking outside
+  useEffect(() => {
+    if (!isRepeatPickerOpen) return;
+    const handler = (e) => {
+      const el = repeatPickerRef.current;
+      if (el && !el.contains(e.target)) {
+        setIsRepeatPickerOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [isRepeatPickerOpen]);
 
   useEffect(() => {
     if (isOpen) {
@@ -664,9 +680,11 @@ export default function ConsultationSlotModal({
             {/* Until date */}
             <div className="grid gap-1">
               <div className="text-sm text-gray-600">Repeat until</div>
-              <div className="relative">
+              <div className="date-input-wrapper">
                 <Input
                   type="date"
+                  id="repeat-until-input"
+                  ref={repeatUntilInputRef}
                   value={`${repeatUntil.getFullYear()}-${String(repeatUntil.getMonth()+1).padStart(2,"0")}-${String(repeatUntil.getDate()).padStart(2,"0")}`}
                   min={`${year}-${String(month+1).padStart(2,"0")}-${String(day).padStart(2,"0")}`}
                   onChange={(e) => {
@@ -681,7 +699,35 @@ export default function ConsultationSlotModal({
                   className={`pr-10 modern-date-input ${disabledUntil ? "opacity-50 cursor-not-allowed" : ""}`}
                   aria-label="Repeat until date"
                 />
-                <BsCalendar className="absolute right-3 top-1/2 -translate-y-1/2 h-4 w-4 opacity-60" />
+                <span
+                  role="button"
+                  aria-label="Open calendar"
+                  className={`date-icon ${disabledUntil ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                  onClick={() => {
+                    if (disabledUntil) return;
+                    setIsRepeatPickerOpen((prev) => !prev);
+                  }}
+                >
+                  <BsCalendar className="h-5 w-5" size={20} color="#64748b" />
+                </span>
+                {isRepeatPickerOpen && (
+                  <div ref={repeatPickerRef} className="repeat-popover">
+                    <DayPicker
+                      mode="single"
+                      selected={repeatUntil}
+                      onSelect={(date) => {
+                        if (!date) return;
+                        const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+                        setRepeatUntil(d);
+                        setIsRepeatPickerOpen(false);
+                      }}
+                      weekStartsOn={1}
+                      showOutsideDays
+                      className="lw-daypicker"
+                      defaultMonth={repeatUntil}
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -741,6 +787,12 @@ export default function ConsultationSlotModal({
               <Button variant="outline" type="button" onClick={() => setActiveSlotIds(generatedSlots.map((s) => s.id))}>Select All</Button>
               <Button variant="outline" type="button" onClick={() => setActiveSlotIds([])}>Deselect All</Button>
             </div>
+          </div>
+          <div className="text-xs text-gray-500 mt-1">
+            Showing slots for {moment(new Date(year, month, day)).format('ddd, MMM D')} only. Repeats will create slots for {occurrencePreview.count || 0} day(s)
+            {occurrencePreview.count > 1 && occurrencePreview.first && occurrencePreview.last ? (
+              <> ({moment(occurrencePreview.first).format('MMM D')} – {moment(occurrencePreview.last).format('MMM D')})</>
+            ) : null}.
           </div>
           <div className="slot-preview-list">
             {generatedSlots.length === 0 && (

@@ -496,16 +496,33 @@ input:checked + .toggle-slider:before {
   resize: vertical;
 }
 
-.topics-list { display: flex; flex-wrap: wrap; gap: 10px; }
+.topics-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: flex-start; }
 .topic-tag {
+  background: #e6f3ff;
+  color: #1e3a8a;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  border: 1px solid #3b82f6;
   display: inline-flex;
   align-items: center;
-  padding: 6px 10px;
-  background: #eef2ff;
-  color: #4338ca;
-  border: 1px solid #e0e7ff;
-  border-radius: 9999px;
-  font-size: 0.85rem;
+  justify-content: center;
+  white-space: nowrap;
+  gap: 6px;
+}
+.topic-tag.editable { position: relative; padding-right: 28px; }
+.topic-tag.editable .tag-delete-ico {
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #b91c1c;
+  font-size: 16px;
+  cursor: pointer;
+}
+.topic-tag.editable .tag-delete-ico:hover {
+  color: #ef4444;
 }
 
 .guidelines-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 10px; }
@@ -516,15 +533,35 @@ input:checked + .toggle-slider:before {
   border-radius: 8px;
   color: #374151;
 }
+.guideline-item.editable { position: relative; padding-right: 28px; }
+.row-delete-ico {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #b91c1c;
+  font-size: 16px;
+  cursor: pointer;
+}
+.row-delete-ico:hover { color: #ef4444; }
 
 .courses-list { list-style: none; padding-left: 0; margin: 0; display: grid; gap: 6px; }
-.course-item { color: #374151; }
+.course-item { color: #374151; position: relative; padding-right: 28px; }
 
 /* Editing UX enhancements */
 .settings-section.editing .consult-textarea:focus {
   outline: none;
   border-color: #93c5fd;
   box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
+}
+
+.list-add-row { display: flex; gap: 8px; align-items: center; margin-top: 10px; }
+.inline-input {
+  flex: 1;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  font-size: 0.95rem;
 }
 
 .help-text {

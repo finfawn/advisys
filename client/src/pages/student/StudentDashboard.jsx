@@ -443,18 +443,29 @@ export default function StudentDashboard() {
                         ))}
                       </ul>
                     ) : (
-                      <div className="no-availability">
-                        <div className="no-availability-icon">
-                          <BsPeople />
-                        </div>
-                        <div className="no-availability-title">No advisors available</div>
-                        <div className="no-availability-text">No faculty advisors have availability on this date</div>
-                        <div className="availability-actions">
-                          <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
-                            Browse All Advisors
-                          </button>
-                        </div>
-                      </div>
+                      (() => {
+                        // Past-day message override
+                        const today = new Date();
+                        const sd = selectedDate ? new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate()) : null;
+                        const td = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+                        const isPast = sd && sd < td;
+                        return (
+                          <div className="no-availability">
+                            <div className="no-availability-icon">
+                              <BsPeople />
+                            </div>
+                            <div className="no-availability-title">{isPast ? 'This day has passed' : 'No advisors available'}</div>
+                            <div className="no-availability-text">
+                              {isPast ? 'Past dates are not bookable. Please pick a future date.' : 'No faculty advisors have availability on this date'}
+                            </div>
+                            <div className="availability-actions">
+                              <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
+                                Browse All Advisors
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })()
                     )}
                   </div>
                 </div>

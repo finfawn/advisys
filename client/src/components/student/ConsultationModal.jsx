@@ -51,19 +51,18 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     ];
   }, [facultyData]);
 
-  // Sample locations for in-person consultations
-  const locations = [
-    "Faculty Office - Room 201",
-    "Faculty Office - Room 205", 
-    "Faculty Office - Room 301",
-    "Conference Room A",
-    "Conference Room B",
-    "Library Study Room 1",
-    "Library Study Room 2",
-    "Student Center - Meeting Room",
-    "Department Lounge",
-    "Lab Room 101"
-  ];
+  // Advisor-defined rooms derived from upcoming in-person slots
+  const rooms = useMemo(() => {
+    const set = new Set();
+    advisorSlots.forEach((s) => {
+      const m = String(s.mode || '').toLowerCase();
+      if (m === 'face_to_face' || m === 'in_person' || m === 'hybrid') {
+        const r = (s.room || '').trim();
+        if (r) set.add(r);
+      }
+    });
+    return Array.from(set);
+  }, [advisorSlots]);
 
   // Helpers and derived data for DB-driven slots
   const toTimeStr = (d) => {
@@ -252,12 +251,20 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     }));
   };
 
+  // Location is display-only; kept for compatibility but not used for selection
   const handleLocationSelect = (location) => {
     setFormData(prev => ({ ...prev, location }));
   };
 
   const handleSlotSelect = (slot) => {
     setSelectedSlot(slot);
+    const slotMode = String(slot?.mode || '').toLowerCase();
+    const mappedMode = slotMode === 'online' ? 'online' : 'in-person';
+    setFormData(prev => ({
+      ...prev,
+      mode: mappedMode,
+      location: mappedMode === 'in-person' ? (slot?.room || prev.location || '') : ''
+    }));
   };
 
   const handleNext = () => {
@@ -285,7 +292,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
         topic: formData.category || "General Consultation",
         category: formData.category || null,
         mode: formData.mode,
-        location: formData.mode === 'in-person' ? (formData.location || null) : null,
+        location: formData.mode === 'in-person' ? (selectedSlot?.room || null) : null,
         student_notes: formData.description || null,
         start_datetime: selectedSlot?.start_datetime,
         end_datetime: selectedSlot?.end_datetime,
@@ -351,11 +358,13 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   };
 
 
-  const isStep1Valid = formData.description.trim() && formData.category && 
-    (formData.mode === 'online' || (formData.mode === 'in-person' && formData.location));
+  // Step 1 no longer requires selecting a location; location is determined by slot
+  const isStep1Valid = formData.description.trim() && formData.category;
   const isStep2Valid = selectedSlot;
 
-  const progressPercent = currentStep === 1 ? 33 : currentStep === 2 ? 66 : 100;
+  // Make progress fill align with step numbers (0%, 50%, 100%)
+  const totalSteps = 3;
+  const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
 
   return (
     <Modal 
@@ -486,22 +495,17 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
             </div>
           </div>
 
-            {/* Location dropdown - only show for in-person consultations */}
+            {/* Location is display-only; for in-person, show room from selected slot or guidance */}
             {formData.mode === 'in-person' && (
               <div className="form-section">
                 <label className="form-label">Location</label>
-                <Form.Select
-                  value={formData.location}
-                  onChange={(e) => handleLocationSelect(e.target.value)}
-                  className="form-control"
-                >
-                  <option value="">Select a location...</option>
-                  {locations.map((location) => (
-                    <option key={location} value={location}>
-                      {location}
-                    </option>
-                  ))}
-                </Form.Select>
+                <div className="form-static-text">
+                  {selectedSlot?.room ? (
+                    selectedSlot.room
+                  ) : (
+                    rooms.length === 1 ? rooms[0] : ''
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -576,61 +580,37 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 The instructor will review and approve your request shortly.
               </p>
 
-              <div className="summary-container">
-                <h4 className="summary-title">Consultation Summary</h4>
-                <div className="summary-grid">
-                  
-                  <div className="summary-card-item">
-                    <div className="summary-icon calendar-icon">
-                      <BsCalendar />
-                    </div>
-                    <div className="summary-content">
+                <div className="summary-container">
+                  <h4 className="summary-title">Consultation Summary</h4>
+                  <div className="summary-grid">
+                    <div className="summary-card-item">
+                      <div className="summary-icon calendar-icon"><BsCalendar /></div>
                       <div className="summary-label">Date & Time</div>
                       <div className="summary-value">
                         {selectedDate.toLocaleDateString()} {selectedSlot ? `• ${toRangeStr(new Date(selectedSlot.start_datetime), new Date(selectedSlot.end_datetime))}` : ''}
                       </div>
                     </div>
-                  </div>
-                  
-                  <div className="summary-card-item">
-                    <div className="summary-icon mode-icon">
-                      {formData.mode === 'in-person' ? <FaMapMarkerAlt /> : <FaLaptop />}
-                    </div>
-                    <div className="summary-content">
-                      <div className="summary-label">Mode</div>
-                      <div className="summary-value">
-                        <span className={`summary-badge ${formData.mode === 'in-person' ? 'badge-inperson' : 'badge-online'}`}>
-                          {formData.mode === 'in-person' ? 'In-Person' : 'Online'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
 
-                  {/* Show location for in-person consultations */}
-                  {formData.mode === 'in-person' && formData.location && (
                     <div className="summary-card-item">
-                      <div className="summary-icon location-icon">
-                        <FaMapMarkerAlt />
-                      </div>
-                      <div className="summary-content">
+                      <div className="summary-icon mode-icon">{formData.mode === 'in-person' ? <FaMapMarkerAlt /> : <FaLaptop />}</div>
+                      <div className="summary-label">Mode</div>
+                      <div className="summary-value">{formData.mode === 'in-person' ? 'In-Person' : 'Online'}</div>
+                    </div>
+
+                    {formData.mode === 'in-person' && (selectedSlot?.room || formData.location) && (
+                      <div className="summary-card-item">
+                        <div className="summary-icon location-icon"><FaMapMarkerAlt /></div>
                         <div className="summary-label">Location</div>
-                        <div className="summary-value">{formData.location}</div>
+                        <div className="summary-value">{selectedSlot?.room || formData.location}</div>
                       </div>
-                    </div>
-                  )}
-                  
-                  <div className="summary-card-item">
-                    <div className="summary-icon category-icon">
-                      <BsCheckCircle />
-                    </div>
-                    <div className="summary-content">
+                    )}
+
+                    <div className="summary-card-item">
+                      <div className="summary-icon category-icon"><BsCheckCircle /></div>
                       <div className="summary-label">Category</div>
-                      <div className="summary-value">
-                        <span className="summary-badge badge-category">{formData.category || 'Not selected'}</span>
-                      </div>
+                      <div className="summary-value">{formData.category || 'Not selected'}</div>
                     </div>
                   </div>
-                </div>
                 
                 {formData.description && (
                   <div className="summary-description">

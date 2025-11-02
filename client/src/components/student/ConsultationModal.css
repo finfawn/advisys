@@ -12,6 +12,23 @@
 
 .consultation-modal .modal-header {
   padding: 16px 20px;
+  position: relative; /* anchor close button */
+}
+
+/* Position the Bootstrap close button at the top-right and reserve space */
+.consultation-modal .modal-header .btn-close {
+  position: absolute;
+  top: 10px;
+  right: 14px;
+  z-index: 2;
+}
+
+.consultation-modal .modal-header > .w-100 {
+  padding-right: 56px; /* ensure header content doesn't sit under the X */
+}
+
+.consultation-modal .modal-header .progressbar {
+  margin-top: 6px; /* slight offset from top */
 }
 
 .consultation-modal .modal-body {
@@ -353,6 +370,31 @@
 
 .summary-value {
   font-weight: 600;
+}
+
+/* Left-aligned simple list for summary */
+.summary-list {
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summary-row {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+
+.summary-row-label {
+  color: #6b7280;
+  font-weight: 600;
+}
+
+.summary-row-value {
+  font-weight: 600;
+  color: #111827;
 }
 
 /* Progress bar */

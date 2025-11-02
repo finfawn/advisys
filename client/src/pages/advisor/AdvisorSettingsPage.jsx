@@ -1,9 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { 
   BsPersonCircle, BsBell, BsShield, BsGear, BsBook,
-  BsCheck, BsX, BsPencil, BsSave, BsChevronDown
+  BsCheck, BsX, BsPencil, BsSave, BsChevronDown, BsPlus
 } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
@@ -19,12 +19,12 @@ export default function AdvisorSettingsPage() {
 
   // Mock advisor data
   const [advisorData, setAdvisorData] = useState({
-    firstName: "Sarah",
-    lastName: "Johnson",
-    department: "Computer Science",
-    position: "Associate Professor",
-    email: "sarah.johnson@university.edu",
-    officeLocation: "Room 305, CS Building",
+    firstName: "",
+    lastName: "",
+    department: "",
+    position: "",
+    email: "",
+    officeLocation: "",
     profilePicture: null
   });
 
@@ -47,38 +47,36 @@ export default function AdvisorSettingsPage() {
 
   // Consultation profile state
   const [consultationData, setConsultationData] = useState({
-    bio: "Dr. Maria Santos is a distinguished professor specializing in artificial intelligence and machine learning. With over 15 years of experience in academia, she has published numerous papers in top-tier conferences and journals. She is passionate about mentoring students and helping them navigate their academic and research journeys.",
-    topics: [
-      "Thesis Guidance",
-      "Research Methods",
-      "Programming Projects",
-      "Academic Planning",
-      "Career Advice",
-      "Technical Writing",
-      "Data Analysis",
-      "Algorithm Design"
-    ],
-    guidelines: [
-      "Book at least 2 days in advance",
-      "Prepare specific questions beforehand",
-      "Bring relevant materials (code, documents)",
-      "Maximum 1 hour per session",
-      "Follow up via email if needed"
-    ],
-    courses: [
-      "CS 101: Introduction to Programming",
-      "CS 301: Data Structures and Algorithms",
-      "CS 401: Machine Learning",
-      "CS 501: Advanced AI Topics"
-    ]
+    bio: "",
+    topics: [],
+    guidelines: [],
+    courses: []
   });
 
   const [isEditingConsult, setIsEditingConsult] = useState(false);
   const [editConsultation, setEditConsultation] = useState({ ...consultationData });
-  // Text buffers to preserve user newlines during editing
-  const [editTopicsText, setEditTopicsText] = useState(consultationData.topics.join("\n"));
-  const [editGuidelinesText, setEditGuidelinesText] = useState(consultationData.guidelines.join("\n"));
-  const [editCoursesText, setEditCoursesText] = useState(consultationData.courses.join("\n"));
+  // Simple add-input buffers
+  const [newTopic, setNewTopic] = useState("");
+  const [newGuideline, setNewGuideline] = useState("");
+  const [newCourse, setNewCourse] = useState("");
+  // List editing helpers for topics, guidelines, and courses
+  const addItem = (field) => {
+    setEditConsultation(prev => ({ ...prev, [field]: [...(prev[field] || []), ""] }));
+  };
+  const updateItem = (field, index, value) => {
+    setEditConsultation(prev => {
+      const nextArr = [...(prev[field] || [])];
+      nextArr[index] = value;
+      return { ...prev, [field]: nextArr };
+    });
+  };
+  const removeItem = (field, index) => {
+    setEditConsultation(prev => {
+      const nextArr = [...(prev[field] || [])];
+      nextArr.splice(index, 1);
+      return { ...prev, [field]: nextArr };
+    });
+  };
 
   const handleNavigation = (page) => {
     if (page === 'home') {
@@ -102,11 +100,30 @@ export default function AdvisorSettingsPage() {
   };
 
   const handleSave = () => {
-    if (advisorData.profilePicture && advisorData.profilePicture !== editData.profilePicture) {
-      URL.revokeObjectURL(advisorData.profilePicture);
-    }
-    setAdvisorData({ ...editData });
-    setIsEditing(false);
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+    const fullName = `${(editData.firstName || '').trim()} ${(editData.lastName || '').trim()}`.trim();
+    const body = {
+      fullName,
+      department: editData.department || null,
+      title: editData.position || null,
+      avatarUrl: editData.profilePicture || null,
+    };
+    fetch(`${base}/api/profile/me`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeader },
+      body: JSON.stringify(body),
+    }).then(() => {
+      if (advisorData.profilePicture && advisorData.profilePicture !== editData.profilePicture) {
+        URL.revokeObjectURL(advisorData.profilePicture);
+      }
+      setAdvisorData({ ...editData });
+      setIsEditing(false);
+    }).catch(() => {
+      setAdvisorData({ ...editData });
+      setIsEditing(false);
+    });
   };
 
   const handleCancel = () => {
@@ -125,50 +142,129 @@ export default function AdvisorSettingsPage() {
   };
 
   const handleSettingChange = (field, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
+    setSettings(prev => {
+      const next = { ...prev, [field]: value };
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const parsed = storedUser ? JSON.parse(storedUser) : null;
+      const advisorId = parsed?.id;
+      const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+      if (field === 'maxDailyConsultations' || field === 'autoAcceptRequests') {
+        const advisorPayload = {
+          autoAcceptRequests: next.autoAcceptRequests,
+          maxDailyConsultations: Number(next.maxDailyConsultations || 10),
+        };
+        fetch(`${base}/api/settings/advisors/${advisorId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeader },
+          body: JSON.stringify(advisorPayload),
+        }).catch(() => {});
+      } else {
+        const notifPayload = {
+          emailNotifications: next.emailNotifications,
+          consultationReminders: next.consultationReminders,
+          newRequestNotifications: next.newRequestNotifications,
+        };
+        fetch(`${base}/api/settings/users/${advisorId}/notifications`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', ...authHeader },
+          body: JSON.stringify(notifPayload),
+        }).catch(() => {});
+      }
+      return next;
+    });
   };
 
   const handleToggleSetting = (field) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    const parsed = storedUser ? JSON.parse(storedUser) : null;
+    const advisorId = parsed?.id;
+    const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+    setSettings(prev => {
+      const next = { ...prev, [field]: !prev[field] };
+      const notifPayload = {
+        emailNotifications: next.emailNotifications,
+        consultationReminders: next.consultationReminders,
+        newRequestNotifications: next.newRequestNotifications,
+      };
+      fetch(`${base}/api/settings/users/${advisorId}/notifications`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify(notifPayload),
+      }).catch(() => {});
+      const advisorPayload = {
+        autoAcceptRequests: next.autoAcceptRequests,
+        maxDailyConsultations: Number(next.maxDailyConsultations || 10),
+      };
+      fetch(`${base}/api/settings/advisors/${advisorId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify(advisorPayload),
+      }).catch(() => {});
+      return next;
+    });
   };
 
   const handleChangePassword = () => {
-    console.log('Change password clicked');
-    // Implement change password functionality
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+    const currentPassword = window.prompt('Enter current password');
+    if (!currentPassword) return;
+    const newPassword = window.prompt('Enter new password');
+    if (!newPassword) return;
+    const confirmPassword = window.prompt('Confirm new password');
+    if (!confirmPassword || newPassword !== confirmPassword) return;
+    fetch(`${base}/api/auth/change-password`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...authHeader },
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }).then(() => {}).catch(() => {});
   };
 
   // Consultation handlers
   const handleEditConsultation = () => {
     setIsEditingConsult(true);
     setEditConsultation({ ...consultationData });
-    setEditTopicsText(consultationData.topics.join("\n"));
-    setEditGuidelinesText(consultationData.guidelines.join("\n"));
-    setEditCoursesText(consultationData.courses.join("\n"));
   };
 
   const handleSaveConsultation = () => {
+    const sanitize = (arr) => (arr || []).map(s => (s || "").trim()).filter(Boolean);
     const updated = {
       ...editConsultation,
-      topics: parseLines(editTopicsText),
-      guidelines: parseLines(editGuidelinesText),
-      courses: parseLines(editCoursesText)
+      topics: sanitize(editConsultation.topics),
+      guidelines: sanitize(editConsultation.guidelines),
+      courses: sanitize(editConsultation.courses)
     };
-    setConsultationData(updated);
-    setEditConsultation(updated);
-    setIsEditingConsult(false);
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    const parsed = storedUser ? JSON.parse(storedUser) : null;
+    const advisorId = parsed?.id;
+    const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+    fetch(`${base}/api/advisors/${advisorId}/consultation-settings`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', ...authHeader },
+      body: JSON.stringify(updated),
+    }).then(() => {
+      setConsultationData(updated);
+      setEditConsultation(updated);
+      setIsEditingConsult(false);
+    }).catch(() => {
+      setConsultationData(updated);
+      setEditConsultation(updated);
+      setIsEditingConsult(false);
+    });
   };
 
   const handleCancelConsultation = () => {
     setEditConsultation({ ...consultationData });
-    setEditTopicsText(consultationData.topics.join("\n"));
-    setEditGuidelinesText(consultationData.guidelines.join("\n"));
-    setEditCoursesText(consultationData.courses.join("\n"));
+    setNewTopic("");
+    setNewGuideline("");
+    setNewCourse("");
     setIsEditingConsult(false);
   };
 
@@ -176,10 +272,26 @@ export default function AdvisorSettingsPage() {
     setEditConsultation(prev => ({ ...prev, [field]: value }));
   };
 
-  const parseLines = (text) => text
-    .split("\n")
-    .map(s => s.trim())
-    .filter(Boolean);
+  const addNewTopic = () => {
+    const v = newTopic.trim();
+    if (!v) return;
+    setEditConsultation(prev => ({ ...prev, topics: [...(prev.topics || []), v] }));
+    setNewTopic("");
+  };
+  const addNewGuideline = () => {
+    const v = newGuideline.trim();
+    if (!v) return;
+    setEditConsultation(prev => ({ ...prev, guidelines: [...(prev.guidelines || []), v] }));
+    setNewGuideline("");
+  };
+  const addNewCourse = () => {
+    const v = newCourse.trim();
+    if (!v) return;
+    setEditConsultation(prev => ({ ...prev, courses: [...(prev.courses || []), v] }));
+    setNewCourse("");
+  };
+
+  // No longer needed: previously used to parse textarea lines into arrays
 
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
@@ -188,6 +300,85 @@ export default function AdvisorSettingsPage() {
       handleInputChange('profilePicture', imageUrl);
     }
   };
+
+  useEffect(() => {
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    const parsed = storedUser ? JSON.parse(storedUser) : null;
+    const advisorId = parsed?.id;
+    const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
+    const loadAll = async () => {
+      try {
+        const pRes = await fetch(`${base}/api/profile/me`, { headers: authHeader });
+        if (pRes.ok) {
+          const p = await pRes.json();
+          const name = String(p.full_name || '').split(' ');
+          const firstName = name[0] || '';
+          const lastName = name.slice(1).join(' ') || '';
+          setAdvisorData(prev => ({
+            ...prev,
+            firstName,
+            lastName,
+            department: p.department || '',
+            position: p.title || '',
+            email: p.email || prev.email || '',
+            profilePicture: p.avatar_url || null,
+          }));
+          setEditData(ed => ({ ...ed, firstName, lastName, department: p.department || '', position: p.title || '', email: p.email || ed.email || '' }));
+        }
+      } catch (_) {}
+
+      try {
+        const aRes = await fetch(`${base}/api/advisors/${advisorId}`);
+        if (aRes.ok) {
+          const a = await aRes.json();
+          setConsultationData({
+            bio: a.bio || '',
+            topics: Array.isArray(a.topicsCanHelpWith) ? a.topicsCanHelpWith : [],
+            guidelines: Array.isArray(a.consultationGuidelines) ? a.consultationGuidelines : [],
+            courses: Array.isArray(a.coursesTaught) ? a.coursesTaught : [],
+          });
+          setEditConsultation({
+            bio: a.bio || '',
+            topics: Array.isArray(a.topicsCanHelpWith) ? a.topicsCanHelpWith : [],
+            guidelines: Array.isArray(a.consultationGuidelines) ? a.consultationGuidelines : [],
+            courses: Array.isArray(a.coursesTaught) ? a.coursesTaught : [],
+          });
+          setEditTopicsText((Array.isArray(a.topicsCanHelpWith) ? a.topicsCanHelpWith : []).join('\n'));
+          setEditGuidelinesText((Array.isArray(a.consultationGuidelines) ? a.consultationGuidelines : []).join('\n'));
+          setEditCoursesText((Array.isArray(a.coursesTaught) ? a.coursesTaught : []).join('\n'));
+        }
+      } catch (_) {}
+
+      try {
+        const nRes = await fetch(`${base}/api/settings/users/${advisorId}/notifications`, { headers: authHeader });
+        if (nRes.ok) {
+          const n = await nRes.json();
+          setSettings(prev => ({
+            ...prev,
+            emailNotifications: !!n.emailNotifications,
+            consultationReminders: !!n.consultationReminders,
+            newRequestNotifications: !!n.newRequestNotifications,
+          }));
+        }
+      } catch (_) {}
+
+      try {
+        const sRes = await fetch(`${base}/api/settings/advisors/${advisorId}`, { headers: authHeader });
+        if (sRes.ok) {
+          const s = await sRes.json();
+          setSettings(prev => ({
+            ...prev,
+            autoAcceptRequests: !!s.autoAcceptRequests,
+            maxDailyConsultations: Number(s.maxDailyConsultations || prev.maxDailyConsultations || 10),
+          }));
+        }
+      } catch (_) {}
+    };
+    loadAll();
+  }, []);
 
   const menuItems = [
     { 
@@ -672,14 +863,38 @@ export default function AdvisorSettingsPage() {
                         </div>
                       ) : (
                         <>
-                        <textarea
-                          className="consult-textarea"
-                          rows={3}
-                          placeholder="Enter one topic per line"
-                          value={editTopicsText}
-                          onChange={e => setEditTopicsText(e.target.value)}
-                        />
-                        <p className="help-text">One topic per line, e.g., Thesis Guidance, Research Methods.</p>
+                          <div className="topics-list">
+                            {(editConsultation.topics || []).map((t, idx) => (
+                              <span key={idx} className="topic-tag editable">
+                                {t}
+                                <BsX
+                                  className="tag-delete-ico"
+                                  onClick={() => removeItem('topics', idx)}
+                                  aria-label="Remove topic"
+                                  role="button"
+                                />
+                              </span>
+                            ))}
+                          </div>
+                          <div className="list-add-row">
+                            <input
+                              type="text"
+                              className="inline-input"
+                              value={newTopic}
+                              onChange={e => setNewTopic(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  addNewTopic();
+                                }
+                              }}
+                              placeholder="e.g., Thesis Guidance"
+                            />
+                            <Button variant="outline-primary" onClick={addNewTopic} className="add-item-btn">
+                              <BsPlus className="btn-icon" /> Add topic
+                            </Button>
+                          </div>
+                          <p className="help-text">Click a tag’s trash to remove. Use Add to include more.</p>
                         </>
                       )}
                     </section>
@@ -695,14 +910,38 @@ export default function AdvisorSettingsPage() {
                         </ul>
                       ) : (
                         <>
-                        <textarea
-                          className="consult-textarea"
-                          rows={4}
-                          placeholder="Enter one guideline per line"
-                          value={editGuidelinesText}
-                          onChange={e => setEditGuidelinesText(e.target.value)}
-                        />
-                        <p className="help-text">Keep guidelines actionable and student-friendly.</p>
+                          <ul className="guidelines-list">
+                            {(editConsultation.guidelines || []).map((g, idx) => (
+                              <li key={idx} className="guideline-item editable">
+                                {g}
+                                <BsX
+                                  className="row-delete-ico"
+                                  onClick={() => removeItem('guidelines', idx)}
+                                  aria-label="Remove guideline"
+                                  role="button"
+                                />
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="list-add-row">
+                            <input
+                              type="text"
+                              className="inline-input"
+                              value={newGuideline}
+                              onChange={e => setNewGuideline(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  addNewGuideline();
+                                }
+                              }}
+                              placeholder="e.g., Submit agenda 24 hours before"
+                            />
+                            <Button variant="outline-primary" onClick={addNewGuideline} className="add-item-btn">
+                              <BsPlus className="btn-icon" /> Add guideline
+                            </Button>
+                          </div>
+                          <p className="help-text">Keep guidelines actionable and student-friendly.</p>
                         </>
                       )}
                     </section>
@@ -718,14 +957,38 @@ export default function AdvisorSettingsPage() {
                         </ul>
                       ) : (
                         <>
-                        <textarea
-                          className="consult-textarea"
-                          rows={4}
-                          placeholder="Enter one course per line"
-                          value={editCoursesText}
-                          onChange={e => setEditCoursesText(e.target.value)}
-                        />
-                        <p className="help-text">Include course code and title, one per line.</p>
+                          <ul className="courses-list">
+                            {(editConsultation.courses || []).map((c, idx) => (
+                              <li key={idx} className="course-item editable">
+                                {c}
+                                <BsX
+                                  className="row-delete-ico"
+                                  onClick={() => removeItem('courses', idx)}
+                                  aria-label="Remove course"
+                                  role="button"
+                                />
+                              </li>
+                            ))}
+                          </ul>
+                          <div className="list-add-row">
+                            <input
+                              type="text"
+                              className="inline-input"
+                              value={newCourse}
+                              onChange={e => setNewCourse(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  addNewCourse();
+                                }
+                              }}
+                              placeholder="e.g., CS101 — Intro to Programming"
+                            />
+                            <Button variant="outline-primary" onClick={addNewCourse} className="add-item-btn">
+                              <BsPlus className="btn-icon" /> Add course
+                            </Button>
+                          </div>
+                          <p className="help-text">Include course code and title for clarity.</p>
                         </>
                       )}
                     </section>

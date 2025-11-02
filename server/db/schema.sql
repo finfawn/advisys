@@ -176,3 +176,28 @@ CREATE TABLE IF NOT EXISTS `notifications` (
   CONSTRAINT `fk_notifications_user`
     FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Notification settings (user preferences)
+CREATE TABLE IF NOT EXISTS `notification_settings` (
+  `user_id` INT UNSIGNED NOT NULL,
+  `email_notifications` TINYINT(1) NOT NULL DEFAULT 1,
+  `consultation_reminders` TINYINT(1) NOT NULL DEFAULT 1,
+  `new_request_notifications` TINYINT(1) NOT NULL DEFAULT 1,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`user_id`),
+  CONSTRAINT `fk_notification_settings_user`
+    FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Advisor operational settings
+CREATE TABLE IF NOT EXISTS `advisor_settings` (
+  `advisor_user_id` INT UNSIGNED NOT NULL,
+  `auto_accept_requests` TINYINT(1) NOT NULL DEFAULT 0,
+  `max_daily_consultations` INT UNSIGNED NOT NULL DEFAULT 10,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`advisor_user_id`),
+  CONSTRAINT `fk_advisor_settings_user`
+    FOREIGN KEY (`advisor_user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

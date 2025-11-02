@@ -155,10 +155,10 @@ router.get('/:id/slots', async (req, res) => {
     let params = [];
 
     if (date) {
-      // Single day
+      // Single day (exclude past days)
       query = `SELECT id, start_datetime, end_datetime, mode, room, status
                FROM advisor_slots
-               WHERE advisor_user_id = ? AND DATE(start_datetime) = ?
+               WHERE advisor_user_id = ? AND DATE(start_datetime) = ? AND DATE(start_datetime) >= CURDATE()
                ORDER BY start_datetime ASC`;
       params = [advisorId, date];
     } else if (month) {
@@ -172,16 +172,18 @@ router.get('/:id/slots', async (req, res) => {
       const monthStart = `${year}-${pad(monthIdx + 1)}-01`;
       const lastDay = new Date(year, monthIdx + 1, 0).getDate();
       const monthEnd = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
+      // Exclude past days within the requested month
       query = `SELECT id, start_datetime, end_datetime, mode, room, status
                FROM advisor_slots
-               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ?
+               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ? AND DATE(start_datetime) >= CURDATE()
                ORDER BY start_datetime ASC`;
       params = [advisorId, monthStart, monthEnd];
     } else if (start && end) {
       // Arbitrary inclusive range
+      // Exclude past days within the requested range
       query = `SELECT id, start_datetime, end_datetime, mode, room, status
                FROM advisor_slots
-               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ?
+               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ? AND DATE(start_datetime) >= CURDATE()
                ORDER BY start_datetime ASC`;
       params = [advisorId, start, end];
     } else {
@@ -222,6 +224,14 @@ router.post('/:id/slots', async (req, res) => {
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         await conn.rollback();
         return res.status(400).json({ error: 'Invalid datetime format in slot payload' });
+      }
+      // Guard: disallow creating slots for past days (date-only comparison)
+      const today = new Date();
+      const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+      const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      if (startDay < todayDay) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Cannot create slots for past days' });
       }
       const mode = normalizeMode(s.mode);
       const room = s.room || null;
@@ -273,3 +283,50 @@ router.delete('/:id/slots', async (req, res) => {
 });
 
 module.exports = router;
+
+// Update consultation-related settings for an advisor
+// PATCH /api/advisors/:id/consultation-settings
+router.patch('/:id/consultation-settings', async (req, res) => {
+  const pool = getPool();
+  const advisorId = Number(req.params.id);
+  const { bio, topics, guidelines, courses } = req.body || {};
+  const tList = Array.isArray(topics) ? topics : [];
+  const gList = Array.isArray(guidelines) ? guidelines : [];
+  const cList = Array.isArray(courses) ? courses : [];
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+
+    await conn.query(
+      `UPDATE advisor_profiles SET bio = ? WHERE user_id = ?`,
+      [bio || null, advisorId]
+    );
+
+    await conn.query(`DELETE FROM advisor_topics WHERE advisor_user_id = ?`, [advisorId]);
+    for (const topic of tList) {
+      const v = String(topic || '').trim();
+      if (v) await conn.query(`INSERT INTO advisor_topics (advisor_user_id, topic) VALUES (?, ?)`, [advisorId, v]);
+    }
+
+    await conn.query(`DELETE FROM advisor_guidelines WHERE advisor_user_id = ?`, [advisorId]);
+    for (const gl of gList) {
+      const v = String(gl || '').trim();
+      if (v) await conn.query(`INSERT INTO advisor_guidelines (advisor_user_id, guideline_text) VALUES (?, ?)`, [advisorId, v]);
+    }
+
+    await conn.query(`DELETE FROM advisor_courses WHERE advisor_user_id = ?`, [advisorId]);
+    for (const crs of cList) {
+      const v = String(crs || '').trim();
+      if (v) await conn.query(`INSERT INTO advisor_courses (advisor_user_id, course_name) VALUES (?, ?)`, [advisorId, v]);
+    }
+
+    await conn.commit();
+    res.json({ success: true, updated: { topics: tList.length, guidelines: gList.length, courses: cList.length } });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Failed to update advisor consultation settings:', err);
+    res.status(500).json({ error: 'Failed to update consultation settings' });
+  } finally {
+    conn.release();
+  }
+});

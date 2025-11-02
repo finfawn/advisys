@@ -9,6 +9,12 @@
   flex-direction: column;
 }
 
+/* When the profile completion banner is present, add extra bottom padding
+   so charts are not visually cut off and scrolling has breathing room. */
+.advisor-dash-main:has(.profile-completion-banner) {
+  padding-bottom: 96px; /* extra space to scroll past the last row */
+}
+
 @media (min-width: 768px) {
   .advisor-dash-main {
     padding: 20px;

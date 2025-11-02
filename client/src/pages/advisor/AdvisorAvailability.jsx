@@ -181,6 +181,15 @@ export default function AdvisorAvailability() {
     evening: groupedSlots.evening.length,
   };
 
+  // Determine if selected date is in the past (date-only comparison)
+  const isPastSelectedDay = useMemo(() => {
+    if (!selectedDate) return false;
+    const today = new Date();
+    const sd = new Date(selectedDate.getFullYear(), selectedDate.getMonth(), selectedDate.getDate());
+    const td = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return sd < td;
+  }, [selectedDate]);
+
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
     
@@ -313,7 +322,15 @@ export default function AdvisorAvailability() {
                       {selectedDate ? moment(selectedDate).format('dddd, MMM D, YYYY') : 'Select a date'}
                     </CardTitle>
                     <div className="header-actions">
-                      <Button variant="default" size="sm" onClick={() => setOpenCreateSignal((s) => s + 1)}>+ Add Slot</Button>
+                      <Button 
+                        variant="default" 
+                        size="sm" 
+                        onClick={() => setOpenCreateSignal((s) => s + 1)}
+                        disabled={isPastSelectedDay}
+                        title={isPastSelectedDay ? 'Past day — creating slots is disabled' : undefined}
+                      >
+                        + Add Slot
+                      </Button>
                       <Button
                         variant="outline"
                         size="sm"
@@ -326,6 +343,12 @@ export default function AdvisorAvailability() {
                     </div>
                   </CardHeader>
                   <CardContent className="inspector-content">
+                    {isPastSelectedDay && (
+                      <div className="empty-state-card" style={{ marginBottom: 8 }}>
+                        <div className="empty-title">This day has passed.</div>
+                        <div className="empty-text">Creating new slots is disabled for past dates.</div>
+                      </div>
+                    )}
                     {slotsForSelected.length === 0 ? (
                       <div className="empty-state-card">
                         <div className="empty-title">No consultation slots for this day.</div>

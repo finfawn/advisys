@@ -53,9 +53,9 @@ export default function UpcomingConsultationsCard() {
 
   const handleActionClick = (consultation, index) => {
     if (index === 0 && consultation.mode === 'online') {
-      navigate(`/advisor-dashboard/consultations/online/${consultation.id}`);
+      navigate(`/advisor-dashboard/consultations/online/${consultation.id}`, { state: { consultation } });
     } else {
-      navigate(`/advisor-dashboard/consultations/${consultation.id}`);
+      navigate(`/advisor-dashboard/consultations/${consultation.id}`, { state: { consultation } });
     }
   };
 

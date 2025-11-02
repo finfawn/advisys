@@ -248,33 +248,36 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
        ORDER BY c.start_datetime ASC`, [advisorId]
     );
 
-    const result = [];
-    for (const r of rows) {
-      const start = new Date(r.start_datetime);
-      const end = new Date(r.end_datetime);
-      const date = formatDate(start);
-      const time = formatTimeRange(start, end);
-      const [guidelines] = await pool.query('SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?', [r.id]);
-      const course = r.student_program ? `${r.student_program} - ${yearLabel(r.student_year || 1)}` : yearLabel(r.student_year || 1);
-      result.push({
-        id: r.id,
-        date,
-        time,
-        topic: r.topic,
-        student: {
-          name: r.student_name,
-          course,
-        },
-        mode: r.mode,
-        status: r.status,
-        meetingLink: r.meeting_link || undefined,
-        location: r.location || undefined,
-        declineReason: r.decline_reason || undefined,
-        duration: r.duration_minutes || 30,
-        bookingDate: r.booking_date,
-        guidelines: guidelines.map(g => g.guideline_text),
-      });
-    }
+  const result = [];
+  for (const r of rows) {
+    const start = new Date(r.start_datetime);
+    const end = new Date(r.end_datetime);
+    const date = formatDate(start);
+    const time = formatTimeRange(start, end);
+    const [guidelines] = await pool.query('SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?', [r.id]);
+    const course = r.student_program ? `${r.student_program} - ${yearLabel(r.student_year || 1)}` : yearLabel(r.student_year || 1);
+    result.push({
+      id: r.id,
+      date,
+      time,
+      topic: r.topic,
+      // Include student-selected category and notes to render accurate details
+      category: r.category || undefined,
+      studentNotes: r.student_notes || undefined,
+      student: {
+        name: r.student_name,
+        course,
+      },
+      mode: r.mode,
+      status: r.status,
+      meetingLink: r.meeting_link || undefined,
+      location: r.location || undefined,
+      declineReason: r.decline_reason || undefined,
+      duration: r.duration_minutes || 30,
+      bookingDate: r.booking_date,
+      guidelines: guidelines.map(g => g.guideline_text),
+    });
+  }
     res.json(result);
   } catch (err) {
     console.error('Advisor consultations error', err);

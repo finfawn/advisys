@@ -26,6 +26,8 @@ const dashboardRouter = require('./routes/dashboard');
 app.use('/api/dashboard', dashboardRouter);
 const notificationsRouter = require('./routes/notifications');
 app.use('/api/notifications', notificationsRouter);
+const settingsRouter = require('./routes/settings');
+app.use('/api/settings', settingsRouter);
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));

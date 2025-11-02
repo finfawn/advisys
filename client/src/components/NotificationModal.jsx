@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { BsBell, BsCheck, BsX, BsCalendar, BsClock, BsPersonCircle, BsCheckCircle, BsXCircle, BsExclamationTriangle, BsCameraVideo, BsGeoAlt, BsDownload, BsTrash } from "react-icons/bs";
 import { useNotifications } from "../contexts/NotificationContext";
@@ -289,7 +290,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
 
   if (!isOpen) return null;
 
-  return (
+  const modalMarkup = (
     <div className={`notification-modal-backdrop ${isClosing ? 'closing' : ''}`}>
       <div className={`notification-modal ${isClosing ? 'closing' : ''}`} ref={modalRef}>
         {/* Header */}
@@ -432,6 +433,9 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       </div>
     </div>
   );
+
+  // Render the modal to document.body to avoid being clipped by navbar container
+  return createPortal(modalMarkup, document.body);
 }
 
 export default NotificationModal;

@@ -332,9 +332,14 @@
 .student-my-consultations .consultations-grid {
     display: grid;
     grid-template-columns: repeat(4, 1fr);
-    align-items: start;
+    align-items: stretch; /* ensure all cards in a row have equal height */
     gap: 0.875rem;
     margin-bottom: 1.5rem;
+}
+
+/* Make direct children fill the grid area height */
+.student-my-consultations .consultations-grid > * {
+    height: 100%;
 }
 
 /* Tablet-friendly Grid Layout */

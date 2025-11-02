@@ -4,11 +4,50 @@
 .modern-date-input {
   width: 100%;
   padding: 12px 14px;
-  padding-right: 40px; /* room for calendar icon */
+  padding-right: 50px; /* extra room for calendar icon */
   border: 1px solid rgba(0,0,0,0.1);
   border-radius: 10px;
   background: rgba(255,255,255,0.95);
   transition: all 0.2s ease;
+}
+.modern-date-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  display: none;
+}
+
+/* Popover for Repeat Until date */
+.repeat-popover {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 50;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  box-shadow: 0 12px 28px rgba(16,24,40,0.15);
+  padding: 10px;
+}
+.repeat-popover .rdp { margin: 0; }
+.repeat-popover .rdp-caption_label { font-weight: 600; color: #5a7ba8; }
+.repeat-popover .rdp-nav_button { border-radius: 10px; width: 32px; height: 32px; color: #6b8cc7; }
+.repeat-popover .rdp-nav_button:hover { color: #5a7ba8; }
+
+/* Calendar icon button (no outline, perfectly aligned) */
+/* Date input wrapper and icon button */
+.date-input-wrapper { position: relative; }
+.date-input-wrapper { position: relative; overflow: visible; }
+.date-icon {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 6; /* above input */
+  display: block;
+}
+.date-icon svg {
+  width: 20px;
+  height: 20px;
+  color: #64748b;
 }
 .modern-date-input:hover {
   border-color: rgba(0,0,0,0.18);

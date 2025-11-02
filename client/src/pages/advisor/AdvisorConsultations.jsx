@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { BsTrash, BsCalendar, BsClockHistory, BsListCheck } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
+import ProfileCompletionBanner from "../../components/advisor/ProfileCompletionBanner";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import AdvisorConsultationCard from "../../components/advisor/my_consultation/AdvisorConsultationCard";
@@ -375,6 +376,7 @@ export default function AdvisorConsultations() {
         </div>
 
         <main className="advisor-dash-main relative">
+          <ProfileCompletionBanner />
           <div className="consultations-container">
             <div className="consultations-header">
               <h1 className="consultations-title">My Consultations</h1>

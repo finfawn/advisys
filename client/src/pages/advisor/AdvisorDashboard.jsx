@@ -1,7 +1,8 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { BsChevronRight, BsChevronDown } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
+import ProfileCompletionBanner from "../../components/advisor/ProfileCompletionBanner";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
@@ -18,6 +19,74 @@ import "./AdvisorDashboard.css";
 export default function AdvisorDashboard() {
   const { collapsed, toggleSidebar } = useSidebar();  
   const navigate = useNavigate();
+
+  // Onboarding: if advisor profile lacks consultation settings, redirect to settings on first login
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = localStorage.getItem('advisys_user');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id;
+        if (!advisorId) return; // no advisor context
+
+        // Avoid re-checking in same session if already completed
+        const already = localStorage.getItem('advisys_advisor_onboarding_complete');
+        if (already === 'true') return;
+
+        const res = await fetch(`${base}/api/advisors/${advisorId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const topics = Array.isArray(data.topicsCanHelpWith) ? data.topicsCanHelpWith : [];
+        const guidelines = Array.isArray(data.consultationGuidelines) ? data.consultationGuidelines : [];
+        let modes = Array.isArray(data.consultationMode) ? data.consultationMode : [];
+        const weekly = data.weeklySchedule || {};
+        let hasAvailability = Object.values(weekly).some(v => typeof v === 'string' && v !== 'Unavailable');
+
+        // If mode or availability are missing, infer from upcoming slots
+        if (modes.length === 0 || !hasAvailability) {
+          try {
+            const pad = (n) => String(n).padStart(2, '0');
+            const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+            const today = new Date();
+            const future = new Date();
+            future.setDate(today.getDate() + 30);
+            const sRes = await fetch(`${base}/api/advisors/${advisorId}/slots?start=${fmtDate(today)}&end=${fmtDate(future)}`);
+            if (sRes.ok) {
+              const slots = await sRes.json();
+              const arr = Array.isArray(slots) ? slots : [];
+              const availableSlots = arr.filter(s => String(s.status).toLowerCase() === 'available');
+              const hasAnySlots = availableSlots.length > 0;
+              const hasOnline = availableSlots.some(s => {
+                const m = String(s.mode || '').toLowerCase();
+                return m === 'online' || m === 'hybrid';
+              });
+              const hasInPerson = availableSlots.some(s => {
+                const m = String(s.mode || '').toLowerCase();
+                return m === 'face_to_face' || m === 'in_person' || m === 'hybrid';
+              });
+              if (hasAnySlots) hasAvailability = true;
+              if (modes.length === 0 && (hasOnline || hasInPerson)) {
+                const derived = [];
+                if (hasInPerson) derived.push('In-person');
+                if (hasOnline) derived.push('Online');
+                modes = derived;
+              }
+            }
+          } catch (_) {}
+        }
+
+        const incomplete = topics.length === 0 || guidelines.length === 0 || modes.length === 0 || !hasAvailability;
+        if (incomplete) {
+          // Do not redirect; show banner on dashboard to encourage completion
+          localStorage.setItem('advisys_advisor_onboarding_complete', 'false');
+        } else {
+          localStorage.setItem('advisys_advisor_onboarding_complete', 'true');
+        }
+      } catch (_) {}
+    };
+    checkOnboarding();
+  }, [navigate]);
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -126,6 +195,7 @@ export default function AdvisorDashboard() {
 
         {/* Content */}
         <main className="advisor-dash-main">
+          <ProfileCompletionBanner />
 
           {/* Mobile Sticky Upcoming Consultations - visible on mobile & tablets */}
       <div className="xl:hidden mobile-upcoming-sticky">
