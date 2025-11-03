@@ -88,7 +88,7 @@ export default function UpcomingConsultationsCard() {
               </button>
             </div>
           )}
-          {consultations.map((consultation, index) => (
+          {consultations.slice(0, 5).map((consultation, index) => (
             <div key={consultation.id} className="compact-consultation-card">
             <div className="compact-date-section">
               <div className="compact-date">

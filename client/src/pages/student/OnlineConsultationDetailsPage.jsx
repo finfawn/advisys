@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { 
   BsPersonCircle, 
   BsClock, 
@@ -25,14 +25,16 @@ import "./ConsultationDetailsPage.css";
 export default function OnlineConsultationDetailsPage() {
   const { consultationId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { collapsed, toggleSidebar } = useSidebar();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [inCall, setInCall] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Mock data - in a real app, this would come from an API based on consultationId
-  const consultationData = {
-    id: consultationId || "1",
+  const fallback = {
+    id: Number(consultationId) || 1,
     date: "2025-10-05",
     time: "10:00 AM - 10:30 AM",
     topic: "Course Selection for Next Semester",
@@ -45,18 +47,42 @@ export default function OnlineConsultationDetailsPage() {
     },
     mode: "online",
     status: "approved",
-    meetingLink: "https://meet.google.com/abc-defg-hij",
-    studentNotes: "I need help choosing my courses for next semester. I'm a computer science major in my junior year and I'm interested in specializing in artificial intelligence. I've already taken the basic programming courses and want to know which advanced courses would be best for my career goals. I'm also considering taking some electives in mathematics and statistics.",
+    meetingLink: undefined,
+    studentNotes: "I need help choosing my courses for next semester.",
     category: "Academic Planning",
     duration: "30 minutes",
     bookingDate: "2025-09-20",
     guidelines: [
       "Test your internet connection and camera/microphone beforehand",
-      "Have your course catalog and degree requirements ready",
-      "Prepare a list of questions about specific courses",
-      "Have your academic transcript available for reference"
+      "Have your course catalog and degree requirements ready"
     ]
   };
+
+  const [consultationData, setConsultationData] = useState(location.state?.consultation || fallback);
+
+  useEffect(() => {
+    const userRaw = localStorage.getItem('advisys_user');
+    const token = localStorage.getItem('advisys_token');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    const studentId = user?.id || user?.studentId || null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    if (!studentId) return; // rely on fallback if student id not available
+    setLoading(true);
+    fetch(`${base}/api/students/${studentId}/consultations`, { headers })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(list => {
+        const idNum = Number(consultationId);
+        const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
+        if (found) setConsultationData(found);
+        else setError('Consultation not found');
+      })
+      .catch(err => {
+        console.error('Load student online consultation details failed', err);
+        setError('Failed to load consultation');
+      })
+      .finally(() => setLoading(false));
+  }, [consultationId]);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') {
@@ -129,6 +155,8 @@ export default function OnlineConsultationDetailsPage() {
         </div>
         
         <main className="consultation-details-main relative">
+          {loading && <div className="details-loading">Loading consultation details…</div>}
+          {error && <div className="details-error">{error}</div>}
           {/* Back Button */}
           <div className="consultation-details-back">
             <button 
@@ -237,12 +265,14 @@ export default function OnlineConsultationDetailsPage() {
                   </h2>
                   <div className="section-content">
                     <ul className="guidelines-list">
-                      {consultationData.guidelines.map((guideline, index) => (
-                        <li key={index} className="guideline-item">
-                          <BsListCheck className="guideline-icon" />
-                          {guideline}
-                        </li>
-                      ))}
+                      {((Array.isArray(consultationData.guidelines) && consultationData.guidelines.length > 0)
+                        ? consultationData.guidelines
+                        : ["No preparation guidelines provided."]).map((guideline, index) => (
+                          <li key={index} className="guideline-item">
+                            <BsListCheck className="guideline-icon" />
+                            {guideline}
+                          </li>
+                        ))}
                     </ul>
                   </div>
                 </section>

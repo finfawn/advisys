@@ -101,48 +101,33 @@ export default function MyConsultationsPage() {
   }, [location.search, location.hash]);
 
 
-  // Categorize consultations based on status and date
+  // Categorize consultations based on status and start/end datetimes
   const { upcomingConsultations, requestConsultations, historyConsultations } = useMemo(() => {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    
-    // Debug: Log today's date
-    console.log('Today:', today.toISOString().split('T')[0]);
-    
-    const upcoming = allConsultations.filter(consultation => {
-      const consultationDate = new Date(consultation.date);
-      consultationDate.setHours(0, 0, 0, 0);
-      const isFuture = consultationDate >= today;
-      const isApproved = consultation.status === 'approved';
-      
-      // Debug: Log each consultation
-      console.log(`Consultation ${consultation.id}:`, {
-        date: consultation.date,
-        status: consultation.status,
-        isFuture,
-        isApproved,
-        willShow: isFuture && isApproved
-      });
-      
-      // Only approved consultations scheduled in the future
-      return isFuture && isApproved;
+    const now = new Date();
+    const normalized = allConsultations.map(c => {
+      const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
+      const end = c.end_datetime ? new Date(c.end_datetime) : null;
+      const durationMin = c.duration || c.duration_minutes || 30;
+      const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+      const inGrace = start ? now < (start.getTime() + graceMs) : false;
+      const isFuture = start ? start >= now : (c.date ? new Date(c.date) >= now : false);
+      let status = c.status;
+      // After grace window, still "approved" implies missed
+      if (status === 'approved' && start && now >= (start.getTime() + graceMs)) {
+        status = 'missed';
+      }
+      return { ...c, status, _isFuture: isFuture, _inGrace: inGrace };
     });
-    
-    const requests = allConsultations.filter(consultation => {
-      const consultationDate = new Date(consultation.date);
-      consultationDate.setHours(0, 0, 0, 0);
-      // Pending and declined consultations (regardless of date)
-      return consultation.status === 'pending' || consultation.status === 'declined';
-    });
-    
-    const history = allConsultations.filter(consultation => {
-      // Only completed and cancelled consultations
-      return consultation.status === 'completed' || consultation.status === 'cancelled';
-    });
-    
-    console.log('Filtered results:', { upcoming: upcoming.length, requests: requests.length, history: history.length });
-    
-    return { 
+
+    const upcoming = normalized
+      .filter(c => c.status === 'approved' && (c._isFuture || c._inGrace))
+      .sort((a, b) => new Date(a.start_datetime || a.date) - new Date(b.start_datetime || b.date));
+
+    const requests = normalized.filter(c => c.status === 'pending' || c.status === 'declined');
+
+    const history = normalized.filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'missed');
+
+    return {
       upcomingConsultations: upcoming,
       requestConsultations: requests,
       historyConsultations: history
@@ -336,6 +321,20 @@ export default function MyConsultationsPage() {
     }
   };
 
+  const handleMarkMissed = async (consultation) => {
+    try {
+      const res = await fetch(`${base}/api/consultations/${consultation.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ status: 'missed' })
+      });
+      if (!res.ok) throw new Error('Mark missed failed');
+      await reloadConsultations();
+    } catch (err) {
+      console.error('Mark missed error', err);
+    }
+  };
+
   const handleViewHistoryDetails = (consultation) => {
     console.log('Viewing details for consultation:', consultation);
     navigate(`/student-dashboard/consultations/history/${consultation.id}`);
@@ -469,6 +468,7 @@ export default function MyConsultationsPage() {
                       onActionClick={() => handleJoinConsultation(consultation)}
                       onCancel={handleCancelConsultation}
                       onReschedule={handleOpenReschedule}
+                      onMarkMissed={handleMarkMissed}
                     />
                   ))}
                   

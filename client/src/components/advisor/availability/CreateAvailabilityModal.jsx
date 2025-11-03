@@ -256,7 +256,66 @@ export default function CreateAvailabilityModal({
     return s < e;
   }, [startTime, endTime]);
 
-  const canSubmit = timeValid && (occurrencePreview.count ?? 0) > 0 && (mode !== "face_to_face" || !!room.trim());
+  // Ensure at least one future occurrence exists based on current time
+  const hasFutureOccurrence = useMemo(() => {
+    const now = new Date();
+    const [sh, sm] = startTime.split(":").map(Number);
+    if ([sh, sm].some((n) => Number.isNaN(n))) return false;
+    const startDateOnly = new Date(year, month, day);
+
+    // Single occurrence
+    if (repeatMode === "none") {
+      const start = new Date(year, month, day, sh ?? 0, sm ?? 0, 0, 0);
+      return start > now;
+    }
+
+    // Repeats: check if any occurrence is in the future
+    const until = new Date(untilYear, untilMonth, untilDay, 23, 59, 59, 999);
+    if (until < startDateOnly) return false;
+
+    if (repeatMode === "weekly") {
+      for (
+        let cursor = new Date(startDateOnly);
+        cursor <= until;
+        cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 7)
+      ) {
+        const occStart = new Date(
+          cursor.getFullYear(),
+          cursor.getMonth(),
+          cursor.getDate(),
+          sh ?? 0,
+          sm ?? 0,
+          0,
+          0
+        );
+        if (occStart > now) return true;
+      }
+      return false;
+    }
+
+    // custom
+    for (
+      let cursor = new Date(startDateOnly);
+      cursor <= until;
+      cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1)
+    ) {
+      if (customDays[cursor.getDay()]) {
+        const occStart = new Date(
+          cursor.getFullYear(),
+          cursor.getMonth(),
+          cursor.getDate(),
+          sh ?? 0,
+          sm ?? 0,
+          0,
+          0
+        );
+        if (occStart > now) return true;
+      }
+    }
+    return false;
+  }, [startTime, year, month, day, repeatMode, untilYear, untilMonth, untilDay, customDays]);
+
+  const canSubmit = timeValid && (occurrencePreview.count ?? 0) > 0 && hasFutureOccurrence && (mode !== "face_to_face" || !!room.trim());
   const disabledUntil = repeatMode === "none"; // enabled for weekly and custom
   const disabledDays = repeatMode !== "custom"; // only enabled for custom
 
@@ -347,7 +406,16 @@ export default function CreateAvailabilityModal({
       }
     }
 
-    onCreate?.(occurrences);
+    // Filter out past occurrences (start time must be strictly in the future)
+    const now = new Date();
+    const futureOccurrences = occurrences.filter((o) => o.start > now);
+
+    if (futureOccurrences.length === 0) {
+      setError("Selected time is in the past. Adjust date/time or repeat range to include future slots.");
+      return;
+    }
+
+    onCreate?.(futureOccurrences);
   };
 
   if (!isOpen) return null;
@@ -579,12 +647,64 @@ export default function CreateAvailabilityModal({
                 const timeLabel = `${formatTime12h(sampleStart)}–${formatTime12h(sampleEnd)}`;
                 const modeLabel = mode === "face_to_face" ? "Face to face" : "Online";
                 const badgeClass = mode === "face_to_face" ? "face" : "online";
-                const count = occurrencePreview.count ?? 0;
-                const hasRange = occurrencePreview.first && occurrencePreview.last;
+                // Compute preview using only future occurrences
+                const now = new Date();
+                const futurePreview = (() => {
+                  const [fsh, fsm] = startTime.split(":").map(Number);
+                  if ([fsh, fsm].some((n) => Number.isNaN(n))) return { count: 0 };
+                  const startDateOnly = new Date(year, month, day);
+                  const until = new Date(untilYear, untilMonth, untilDay, 23, 59, 59, 999);
+                  let count = 0;
+                  let first = null;
+                  let last = null;
+                  const pushCursor = (cursor) => {
+                    const occStart = new Date(
+                      cursor.getFullYear(),
+                      cursor.getMonth(),
+                      cursor.getDate(),
+                      fsh ?? 0,
+                      fsm ?? 0,
+                      0,
+                      0
+                    );
+                    if (occStart > now) {
+                      count += 1;
+                      if (!first) first = new Date(cursor);
+                      last = new Date(cursor);
+                    }
+                  };
+                  if (repeatMode === "none") {
+                    pushCursor(startDateOnly);
+                  } else if (repeatMode === "weekly") {
+                    if (until >= startDateOnly) {
+                      for (
+                        let cursor = new Date(startDateOnly);
+                        cursor <= until;
+                        cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 7)
+                      ) {
+                        pushCursor(cursor);
+                      }
+                    }
+                  } else if (repeatMode === "custom") {
+                    if (until >= startDateOnly) {
+                      for (
+                        let cursor = new Date(startDateOnly);
+                        cursor <= until;
+                        cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1)
+                      ) {
+                        if (customDays[cursor.getDay()]) pushCursor(cursor);
+                      }
+                    }
+                  }
+                  const total = occurrencePreview.count ?? 0;
+                  return { count, first, last, skipped: Math.max(0, total - count) };
+                })();
+                const count = futurePreview.count ?? 0;
+                const hasRange = futurePreview.first && futurePreview.last;
                 const rangeText = hasRange
-                  ? occurrencePreview.first.getTime() === occurrencePreview.last.getTime()
-                    ? `on ${formatDateHuman(occurrencePreview.first)}`
-                    : `from ${formatDateHuman(occurrencePreview.first)} to ${formatDateHuman(occurrencePreview.last)}`
+                  ? futurePreview.first.getTime() === futurePreview.last.getTime()
+                    ? `on ${formatDateHuman(futurePreview.first)}`
+                    : `from ${formatDateHuman(futurePreview.first)} to ${formatDateHuman(futurePreview.last)}`
                   : "";
                 return (
                   <>
@@ -595,9 +715,14 @@ export default function CreateAvailabilityModal({
                     <div className="preview-spacer" />
                     <div>
                       {count > 0 ? (
-                        <div>Will create <strong>{count}</strong> slot{count > 1 ? "s" : ""} {rangeText && (<span>{rangeText}</span>)}</div>
+                        <div>
+                          Will create <strong>{count}</strong> future slot{count > 1 ? "s" : ""} {rangeText && (<span>{rangeText}</span>)}
+                          {futurePreview.skipped > 0 && (
+                            <span className="form-subtext"> • skipping {futurePreview.skipped} past occurrence{futurePreview.skipped > 1 ? "s" : ""}</span>
+                          )}
+                        </div>
                       ) : (
-                        <div className="form-subtext">No occurrences will be created. Adjust repeat settings.</div>
+                        <div className="form-subtext">No future occurrences. Adjust date/time or repeat range.</div>
                       )}
                     </div>
                   </>

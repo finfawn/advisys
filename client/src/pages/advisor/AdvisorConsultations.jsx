@@ -15,6 +15,25 @@ import "./AdvisorDashboard.css";
 import "./AdvisorConsultations.css";
 
 export default function AdvisorConsultations() {
+  // API config (module-wide inside component)
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+  const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
+  // Helper to refresh list after actions
+  const reloadConsultations = async () => {
+    try {
+      const storedUser = localStorage.getItem('advisys_user');
+      const parsed = storedUser ? JSON.parse(storedUser) : null;
+      const advisorId = parsed?.id || 1;
+      const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, { headers: { ...authHeader } });
+      const data = await res.json();
+      setAllConsultations(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Reload consultations failed', err);
+    }
+  };
+
   const [collapsed, setCollapsed] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
@@ -84,13 +103,11 @@ export default function AdvisorConsultations() {
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
-        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const storedUser = localStorage.getItem('advisys_user');
-        const storedToken = localStorage.getItem('advisys_token');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const advisorId = parsed?.id || 1;
         const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, {
-          headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
+          headers: { ...authHeader },
         });
         const data = await res.json();
         setAllConsultations(Array.isArray(data) ? data : []);
@@ -102,11 +119,24 @@ export default function AdvisorConsultations() {
   }, []);
 
   const upcomingData = useMemo(() => {
-    const today = new Date();
-    today.setHours(0,0,0,0);
+    const now = new Date();
     return allConsultations
-      .filter(c => c.status === 'approved' && new Date(c.date) >= today)
-      .sort((a, b) => new Date(a.date) - new Date(b.date));
+      .map(c => {
+        const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
+        const durationMin = c.duration || c.duration_minutes || 30;
+        const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+        let status = c.status;
+        let inGrace = false;
+        if (start) {
+          inGrace = now < (start.getTime() + graceMs);
+          if (status === 'approved' && !inGrace && now >= (start.getTime() + graceMs)) {
+            status = 'missed';
+          }
+        }
+        return { ...c, status, _start: start, _inGrace: inGrace };
+      })
+      .filter(c => c.status === 'approved' && c._start && (c._start >= now || c._inGrace))
+      .sort((a, b) => new Date(a._start || a.date) - new Date(b._start || b.date));
   }, [allConsultations]);
 
   const requestData = useMemo(() => (
@@ -114,7 +144,15 @@ export default function AdvisorConsultations() {
   ), [allConsultations]);
 
   const historyDataInitial = useMemo(() => (
-    allConsultations.filter(c => c.status === 'completed' || c.status === 'cancelled')
+    allConsultations.map(c => {
+      const now = new Date();
+      const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
+      const durationMin = c.duration || c.duration_minutes || 30;
+      const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+      let status = c.status;
+      if (status === 'approved' && start && now >= (start.getTime() + graceMs)) status = 'missed';
+      return { ...c, status };
+    }).filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'missed')
   ), [allConsultations]);
 
   const [upcomingCards, setUpcomingCards] = useState([]);
@@ -220,6 +258,20 @@ export default function AdvisorConsultations() {
       await reloadConsultations();
     } catch (err) {
       console.error('Delete error', err);
+    }
+  };
+
+  const handleMarkMissed = async (c) => {
+    try {
+      const res = await fetch(`${base}/api/consultations/${c.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ status: 'missed' })
+      });
+      if (!res.ok) throw new Error('Mark missed failed');
+      await reloadConsultations();
+    } catch (err) {
+      console.error('Mark missed error', err);
     }
   };
 
@@ -434,6 +486,7 @@ export default function AdvisorConsultations() {
                       <AdvisorConsultationCard
                         key={c.id}
                         consultation={c}
+                        onMarkMissed={handleMarkMissed}
                         onActionClick={handleActionClick}
                       />
                     ))}
@@ -632,19 +685,3 @@ export default function AdvisorConsultations() {
     </div>
   );
 }
-  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-  const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
-
-  const reloadConsultations = async () => {
-    try {
-      const storedUser = localStorage.getItem('advisys_user');
-      const parsed = storedUser ? JSON.parse(storedUser) : null;
-      const advisorId = parsed?.id || 1;
-      const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, { headers: { ...authHeader } });
-      const data = await res.json();
-      setAllConsultations(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error('Reload consultations failed', err);
-    }
-  };

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   BsPersonCircle, 
@@ -22,29 +22,36 @@ const HistoryConsultationDetailsPage = () => {
   const { consultationId } = useParams();
   const navigate = useNavigate();
   const { collapsed, toggleSidebar } = useSidebar();
-  
-  // Mock data - replace with actual props/state management
-  // In a real app, you would fetch consultation data based on consultationId
-  const consultation = {
-    id: consultationId || "1",
-    topic: "Academic Planning and Course Selection",
-    date: "2024-01-15",
-    time: "2:30 PM - 3:00 PM",
-    mode: "online",
-    status: "completed",
-    faculty: {
-      name: "Dr. Sarah Johnson",
-      title: "Academic Advisor",
-      department: "Academic Affairs",
-      avatar: null,
-      email: "sarah.johnson@university.edu"
-    },
-    summary: "Discussed course selection for the upcoming semester, focusing on balancing core requirements with electives. Reviewed academic progress and identified areas for improvement. Recommended specific courses that align with career goals and provided guidance on time management strategies.",
-    studentNotes: "Key takeaways from today's consultation:\n\n1. Need to focus more on mathematics courses to strengthen foundation\n2. Consider taking Introduction to Data Science as an elective\n3. Set up regular study schedule with dedicated time blocks\n4. Look into summer internship opportunities in tech field\n\nQuestions to research:\n- What are the prerequisites for Advanced Statistics?\n- Are there any study groups for Calculus II?\n- How to apply for the summer research program?",
-    category: "Academic Planning",
-    duration: "30 minutes",
-    bookingDate: "2024-01-10"
-  };
+  const [consultation, setConsultation] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const userStr = localStorage.getItem('advisys_user');
+    const token = localStorage.getItem('advisys_token');
+    const user = userStr ? JSON.parse(userStr) : null;
+    const studentId = user?.id || user?.studentId || null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    if (!studentId) {
+      setError('Missing student session');
+      return;
+    }
+    setLoading(true);
+    fetch(`${base}/api/students/${studentId}/consultations`, { headers })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(list => {
+        const idNum = Number(consultationId);
+        const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
+        if (found) setConsultation(found);
+        else setError('Consultation not found');
+      })
+      .catch(err => {
+        console.error('Load history consultation failed', err);
+        setError('Failed to load consultation');
+      })
+      .finally(() => setLoading(false));
+  }, [consultationId]);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') {
@@ -78,19 +85,42 @@ const HistoryConsultationDetailsPage = () => {
   };
 
   const getStatusInfo = () => {
-    switch (consultation.status) {
+    // Derive display status to keep history details consistent with list cards.
+    // If an approved consultation is now beyond the grace window, show Missed.
+    const original = consultation.status;
+    let derived = original;
+
+    if (original === 'approved') {
+      const startRaw = consultation.start_datetime || consultation.date;
+      const start = new Date(startRaw);
+      if (!isNaN(start.getTime())) {
+        const durationMin = consultation.duration || consultation.duration_minutes || 30;
+        const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+        if (Date.now() >= start.getTime() + graceMs) {
+          derived = 'missed';
+        }
+      }
+    }
+
+    switch (derived) {
+      case 'approved':
+        return { text: 'Approved', icon: <BsCheckCircle />, class: 'approved status-approved' };
+      case 'pending':
+        return { text: 'Awaiting Approval', icon: <BsClock />, class: 'status-pending' };
+      case 'declined':
+        return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
       case 'completed':
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
-      case 'no-show':
-        return { text: 'No-Show', icon: <BsXCircle />, class: 'status-no-show' };
+      case 'missed':
+        return { text: 'Missed', icon: <BsClock />, class: 'status-missed' };
       default:
-        return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
+        return { text: 'Unknown', icon: <BsClock />, class: 'status-pending' };
     }
   };
 
-  const statusInfo = getStatusInfo();
+  const statusInfo = consultation ? getStatusInfo() : { text: '', icon: null, class: '' };
 
   return (
     <div className="consultation-details-wrap">
@@ -100,6 +130,8 @@ const HistoryConsultationDetailsPage = () => {
         <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         
         <main className="consultation-details-main">
+          {loading && <div className="details-loading">Loading consultation details…</div>}
+          {error && <div className="details-error">{error}</div>}
           {/* Back Button */}
           <div className="consultation-details-back">
             <button 
@@ -117,15 +149,15 @@ const HistoryConsultationDetailsPage = () => {
               <div className="header-content">
                 <div className="consultation-meta">
                   <div className="consultation-title-section">
-                    <h1 className="consultation-title">{consultation.topic}</h1>
+                    <h1 className="consultation-title">{consultation?.topic}</h1>
                     <div className="consultation-badges">
                       <span className={`status-badge ${statusInfo.class}`}>
                         {statusInfo.icon}
                         <span>{statusInfo.text}</span>
                       </span>
-                      <span className={`mode-badge ${consultation.mode}`}>
-                        {consultation.mode === 'online' ? <BsCameraVideo /> : <BsGeoAlt />}
-                        <span>{consultation.mode === 'online' ? 'Online' : 'In-Person'}</span>
+                      <span className={`mode-badge ${consultation?.mode}`}>
+                        {consultation?.mode === 'online' ? <BsCameraVideo /> : <BsGeoAlt />}
+                        <span>{consultation?.mode === 'online' ? 'Online' : 'In-Person'}</span>
                       </span>
                     </div>
                   </div>
@@ -133,27 +165,27 @@ const HistoryConsultationDetailsPage = () => {
                   <div className="consultation-datetime">
                     <div className="date-info">
                       <BsCalendar className="date-icon" />
-                      <span className="date-text">{formatDate(consultation.date)}</span>
+                      <span className="date-text">{consultation ? formatDate(consultation.date) : ''}</span>
                     </div>
                     <div className="time-info">
                       <BsClock className="time-icon" />
-                      <span className="time-text">{consultation.time}</span>
+                      <span className="time-text">{consultation?.time}</span>
                     </div>
                   </div>
                 </div>
 
                 <div className="advisor-info-card">
                   <div className="advisor-avatar">
-                    {consultation.faculty.avatar ? (
+                    {consultation?.faculty?.avatar ? (
                       <img src={consultation.faculty.avatar} alt={consultation.faculty.name} />
                     ) : (
                       <BsPersonCircle />
                     )}
                   </div>
                   <div className="advisor-details">
-                    <h3 className="advisor-name">{consultation.faculty.name}</h3>
-                    <p className="advisor-title">{consultation.faculty.title}</p>
-                    <p className="advisor-department">{consultation.faculty.department}</p>
+                    <h3 className="advisor-name">{consultation?.faculty?.name}</h3>
+                    <p className="advisor-title">{consultation?.faculty?.title}</p>
+                    <p className="advisor-department">{consultation?.faculty?.department}</p>
                   </div>
                 </div>
               </div>
@@ -169,7 +201,7 @@ const HistoryConsultationDetailsPage = () => {
                     Consultation Summary
                   </h2>
                   <div className="section-content">
-                    <p className="summary-text">{consultation.summary}</p>
+                    <p className="summary-text">{consultation?.summaryNotes || 'No summary available.'}</p>
                   </div>
                 </section>
 
@@ -181,9 +213,7 @@ const HistoryConsultationDetailsPage = () => {
                   </h2>
                   <div className="section-content">
                     <div className="notes-container">
-                      <pre className="student-notes">
-                        {consultation.studentNotes}
-                      </pre>
+                      <pre className="student-notes">{consultation?.studentNotes || 'No notes provided.'}</pre>
                     </div>
                   </div>
                 </section>
@@ -204,11 +234,11 @@ const HistoryConsultationDetailsPage = () => {
                     <div className="info-grid">
                       <div className="info-item">
                         <span className="info-label">Duration</span>
-                        <span className="info-value">{consultation.duration}</span>
+                        <span className="info-value">{consultation ? `${consultation.duration} minutes` : ''}</span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Booking Date</span>
-                        <span className="info-value">{formatBookingDate(consultation.bookingDate)}</span>
+                        <span className="info-value">{consultation ? formatBookingDate(consultation.bookingDate) : ''}</span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Status</span>
@@ -216,7 +246,7 @@ const HistoryConsultationDetailsPage = () => {
                       </div>
                       <div className="info-item">
                         <span className="info-label">Mode</span>
-                        <span className="info-value">{consultation.mode === 'online' ? 'Online' : 'In-Person'}</span>
+                        <span className="info-value">{consultation?.mode === 'online' ? 'Online' : 'In-Person'}</span>
                       </div>
                     </div>
                   </div>

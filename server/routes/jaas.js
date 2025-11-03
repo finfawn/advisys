@@ -7,10 +7,11 @@ const {
   JAAS_APP_ID,
   JAAS_API_KEY_ID,
   JAAS_API_KEY_SECRET,
+  JAAS_PRIVATE_KEY_PATH,
 } = process.env;
 
-if (!JAAS_APP_ID || !JAAS_API_KEY_ID || !JAAS_API_KEY_SECRET) {
-  console.warn('JaaS env vars missing: JAAS_APP_ID, JAAS_API_KEY_ID, JAAS_API_KEY_SECRET');
+if (!JAAS_APP_ID || !JAAS_API_KEY_ID || (!JAAS_API_KEY_SECRET && !JAAS_PRIVATE_KEY_PATH)) {
+  console.warn('JaaS env vars missing: JAAS_APP_ID, JAAS_API_KEY_ID, and either JAAS_API_KEY_SECRET (HS256) or JAAS_PRIVATE_KEY_PATH (RS256)');
 }
 
 router.post('/token', (req, res) => {
@@ -39,13 +40,25 @@ router.post('/token', (req, res) => {
       },
     };
 
-    const token = jwt.sign(payload, JAAS_API_KEY_SECRET, {
-      algorithm: 'HS256',
-      expiresIn: '1h',
-      header: {
-        kid: JAAS_API_KEY_ID,
-      },
-    });
+    let token;
+    if (JAAS_PRIVATE_KEY_PATH) {
+      const fs = require('fs');
+      const path = require('path');
+      const privKey = fs.readFileSync(path.resolve(JAAS_PRIVATE_KEY_PATH), 'utf8');
+      token = jwt.sign(payload, privKey, {
+        algorithm: 'RS256',
+        expiresIn: '1h',
+        header: { kid: JAAS_API_KEY_ID },
+      });
+    } else if (JAAS_API_KEY_SECRET) {
+      token = jwt.sign(payload, JAAS_API_KEY_SECRET, {
+        algorithm: 'HS256',
+        expiresIn: '1h',
+        header: { kid: JAAS_API_KEY_ID },
+      });
+    } else {
+      return res.status(500).json({ error: 'Missing JaaS signing credentials' });
+    }
 
     return res.json({ token });
   } catch (err) {

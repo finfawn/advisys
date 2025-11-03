@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate, useLocation } from "react-router-dom";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
@@ -43,7 +43,33 @@ export default function AdvisorConsultationDetailsPage() {
     duration: "30 minutes",
   };
 
-  const consultationData = location.state?.consultation || fallback;
+  const [consultationData, setConsultationData] = useState(location.state?.consultation || fallback);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    const userRaw = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    const advisorId = user?.id || user?.advisorId || null;
+    const base = import.meta.env.VITE_API_BASE ? import.meta.env.VITE_API_BASE : `${window.location.origin}/api`;
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    if (!advisorId) return; // rely on fallback if advisor id not available
+    setLoading(true);
+    fetch(`${base}/advisors/${advisorId}/consultations`, { headers })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(list => {
+        const idNum = Number(consultationId);
+        const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
+        if (found) setConsultationData(found);
+        else setError('Consultation not found');
+      })
+      .catch(err => {
+        console.error('Load consultation details failed', err);
+        setError('Failed to load consultation');
+      })
+      .finally(() => setLoading(false));
+  }, [consultationId]);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
@@ -117,6 +143,9 @@ export default function AdvisorConsultationDetailsPage() {
             </button>
           </div>
 
+          {loading && <div className="details-loading">Loading consultation details…</div>}
+          {error && <div className="details-error">{error}</div>}
+
           {/* Mobile & Tablet: Actions at the very top */}
       <div className="xl:hidden">
             <section className="consultation-details-section actions-section">
@@ -124,7 +153,7 @@ export default function AdvisorConsultationDetailsPage() {
                 <CollapsibleTrigger className="actions-trigger">
                   <div className="section-title" style={{display:'flex', alignItems:'center', justifyContent:'space-between', width:'100%'}}>
                     <span style={{display:'inline-flex', alignItems:'center', gap:8}}>
-                      <BsCalendarEvent className="section-icon"/> Actions
+                      <BsPlayCircle className="section-icon"/> Actions
                     </span>
                     <BsChevronDown className="chevron-icon" />
                   </div>
@@ -158,7 +187,7 @@ export default function AdvisorConsultationDetailsPage() {
                   </div>
 
                   <div className="consultation-datetime">
-                    <div className="date-info"><BsCalendar className="date-icon"/> <span className="date-text">{formatDate(consultationData.date)}</span></div>
+                    <div className="date-info"><span className="date-text">{formatDate(consultationData.date)}</span></div>
                     <div className="time-info"><BsClock className="time-icon"/> <span className="time-text">{consultationData.time}</span></div>
                   </div>
                 </div>
@@ -201,7 +230,9 @@ export default function AdvisorConsultationDetailsPage() {
                   <h2 className="section-title"><BsListCheck className="section-icon"/> Preparation Guidelines</h2>
                   <div className="section-content">
                     <ul className="guidelines-list">
-                      {(consultationData.guidelines || ["Bring any relevant documents.", "Arrive 5 minutes early."]).map((g,i)=> (
+                      {((Array.isArray(consultationData.guidelines) && consultationData.guidelines.length > 0)
+                        ? consultationData.guidelines
+                        : ["No preparation guidelines provided."]).map((g,i)=> (
                         <li key={i} className="guideline-item"><BsListCheck className="guideline-icon"/> {g}</li>
                       ))}
                     </ul>
@@ -215,7 +246,7 @@ export default function AdvisorConsultationDetailsPage() {
 
                   {/* Desktop: static section (hide on tablets) */}
       <div className="hidden xl:block">
-                    <h2 className="section-title"><BsCalendarEvent className="section-icon"/> Actions</h2>
+                    <h2 className="section-title"><BsPlayCircle className="section-icon"/> Actions</h2>
                     <div className="section-content">
                       <div className="action-buttons">
                         <button className="action-btn start-session" onClick={handleStart}>

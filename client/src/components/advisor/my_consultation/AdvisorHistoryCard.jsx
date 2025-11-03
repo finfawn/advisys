@@ -21,6 +21,8 @@ function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+      case 'missed':
+        return { text: 'Missed', icon: <BsClock />, class: 'status-missed' };
       default:
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
     }

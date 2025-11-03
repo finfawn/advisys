@@ -148,6 +148,20 @@ router.get('/:id/slots', async (req, res) => {
     const advisorId = req.params.id;
     const { date, month, start, end } = req.query;
 
+    // Cleanup: delete any slots whose end time has passed (for this advisor)
+    // This ensures past-time slots disappear immediately, even on the current day.
+    try {
+      await pool.query(
+        `DELETE FROM advisor_slots
+         WHERE advisor_user_id = ?
+           AND end_datetime <= NOW()`,
+        [advisorId]
+      );
+    } catch (cleanupErr) {
+      console.error('Advisor slots cleanup error', cleanupErr);
+      // Non-fatal: continue to fetch remaining slots
+    }
+
     // Helper to pad numbers
     const pad = (n) => String(n).padStart(2, '0');
 

@@ -126,7 +126,7 @@ CREATE TABLE IF NOT EXISTS `consultations` (
   `topic` VARCHAR(255) NOT NULL,
   `category` VARCHAR(100) NULL,
   `mode` ENUM('online','in-person') NOT NULL,
-  `status` ENUM('pending','approved','declined','completed','cancelled','no-show') NOT NULL DEFAULT 'pending',
+  `status` ENUM('pending','approved','declined','completed','cancelled','missed') NOT NULL DEFAULT 'pending',
   `decline_reason` TEXT NULL,
   `cancel_reason` TEXT NULL,
   `meeting_link` TEXT NULL,

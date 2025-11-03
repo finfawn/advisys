@@ -24,6 +24,8 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+      case 'missed':
+        return { text: 'Missed', icon: <BsClockHistory />, class: 'status-missed' };
       default:
         return { text: 'Unknown', icon: <BsClockHistory />, class: 'status-pending' };
     }

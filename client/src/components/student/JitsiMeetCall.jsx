@@ -39,7 +39,7 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
     }
     const fetchToken = async () => {
       try {
-        const res = await fetch(`${API_BASE_URL}/api/jaas/token`, {
+        const res = await fetch(`${API_BASE_URL}/generate-jwt`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -100,8 +100,10 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
       <div className="jitsi-meet-wrapper">
         {jwtToken && (
         <JitsiMeeting
-          appId={APP_ID}
-          roomName={jitsiRoomName}
+          // Explicitly use JaaS domain for older react-sdk versions
+          domain="8x8.vc"
+          // JaaS expects roomName formatted as `${APP_ID}/${room}`
+          roomName={`${APP_ID}/${jitsiRoomName}`}
           jwt={jwtToken}
           configOverwrite={{
             startWithAudioMuted: false,

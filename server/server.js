@@ -1,6 +1,7 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const { getPool } = require('./db/pool');
 
 const app = express();
 
@@ -28,6 +29,9 @@ const notificationsRouter = require('./routes/notifications');
 app.use('/api/notifications', notificationsRouter);
 const settingsRouter = require('./routes/settings');
 app.use('/api/settings', settingsRouter);
+// RS256 JaaS JWT generation endpoint mounted at root
+const generateJwtRouter = require('./routes/generate_jwt');
+app.use('/generate-jwt', generateJwtRouter);
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
@@ -63,6 +67,162 @@ app.get('/api/__routes', (req, res) => {
     res.status(500).json({ error: 'Failed to enumerate routes' });
   }
 });
+
+// Manual trigger endpoint for reminder job (useful for verification/tests)
+app.get('/api/consultations/reminders/run', async (req, res) => {
+  try {
+    await runConsultationReminderJob();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to run reminder job' });
+  }
+});
+
+// --- Consultation Reminder Background Job ---
+// Sends notifications to both student and advisor when a consultation is near.
+// Respects each user's notification settings (consultation_reminders) and avoids duplicates.
+const REMINDER_WINDOW_MINUTES = Number(process.env.REMINDER_WINDOW_MINUTES || 30);
+const REMINDER_POLL_MS = Number(process.env.REMINDER_POLL_MS || 60_000); // 1 minute
+let reminderJobRunning = false;
+
+function formatDate(d) {
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+
+function formatTimeRange(start, end) {
+  function fmt(d) {
+    const h = d.getHours();
+    const m = d.getMinutes();
+    const ampm = h >= 12 ? 'PM' : 'AM';
+    const h12 = h % 12 || 12;
+    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  }
+  return `${fmt(start)} - ${fmt(end)}`;
+}
+
+async function createNotification(poolOrConn, userId, type, title, message, data = null) {
+  try {
+    const dataJson = data ? JSON.stringify(data) : null;
+    await poolOrConn.query(
+      `INSERT INTO notifications (user_id, type, title, message, data_json) VALUES (?,?,?,?,?)`,
+      [userId, type, title, message, dataJson]
+    );
+  } catch (err) {
+    console.error('Failed to create notification:', err?.message || err);
+  }
+}
+
+async function runConsultationReminderJob() {
+  if (reminderJobRunning) return; // prevent overlap
+  reminderJobRunning = true;
+  const pool = getPool();
+  try {
+    // Helper to read reminder setting safely; defaults to true if table/row missing
+    async function getConsultationRemindersEnabled(userId) {
+      try {
+        const [[row]] = await pool.query(
+          `SELECT consultation_reminders FROM notification_settings WHERE user_id = ?`,
+          [userId]
+        );
+        if (!row || row.consultation_reminders === undefined || row.consultation_reminders === null) {
+          return true;
+        }
+        return !!row.consultation_reminders;
+      } catch (err) {
+        // Gracefully handle missing table or other read errors by enabling reminders by default
+        if (err && (err.code === 'ER_NO_SUCH_TABLE' || err.errno === 1146)) {
+          return true;
+        }
+        console.warn('Reminder settings read error for user', userId, err?.message || err);
+        return true;
+      }
+    }
+    // Load consultations starting within the next REMINDER_WINDOW_MINUTES
+    const [rows] = await pool.query(
+      `SELECT c.id, c.student_user_id, c.advisor_user_id, c.topic, c.start_datetime, c.end_datetime, c.status,
+              s.full_name AS student_name, a.full_name AS advisor_name, c.meeting_link, c.location
+         FROM consultations c
+         JOIN users s ON s.id = c.student_user_id
+         JOIN users a ON a.id = c.advisor_user_id
+        WHERE c.status = 'approved'
+          AND c.start_datetime BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL ? MINUTE)`,
+      [REMINDER_WINDOW_MINUTES]
+    );
+
+    const now = new Date();
+    for (const c of rows) {
+      const start = new Date(c.start_datetime);
+      const end = new Date(c.end_datetime);
+      const minsUntil = Math.max(0, Math.ceil((start.getTime() - now.getTime()) / 60000));
+      const date = formatDate(start);
+      const time = formatTimeRange(start, end);
+
+      // Check settings (default true when table/row missing)
+      const studentEnabled = await getConsultationRemindersEnabled(c.student_user_id);
+      const advisorEnabled = await getConsultationRemindersEnabled(c.advisor_user_id);
+
+      // Helper to ensure we don't duplicate reminders for the same consultation/user
+      async function hasExistingReminder(userId) {
+        try {
+          const [[existing]] = await pool.query(
+            `SELECT id FROM notifications
+              WHERE user_id = ? AND type = 'consultation_reminder'
+                AND JSON_EXTRACT(data_json, '$.consultation_id') = ?
+              LIMIT 1`,
+            [userId, c.id]
+          );
+          return !!existing;
+        } catch (_) {
+          // Fallback: if JSON_EXTRACT unsupported, allow creation; client will mark read later
+          return false;
+        }
+      }
+
+      const data = {
+        consultation_id: c.id,
+        date,
+        time,
+        minutes_until: minsUntil,
+        meeting_link: c.meeting_link || null,
+        location: c.location || null,
+      };
+
+      // Student reminder
+      if (studentEnabled && !(await hasExistingReminder(c.student_user_id))) {
+        const title = `Upcoming consultation with ${c.advisor_name}`;
+        const baseWhere = c.meeting_link ? 'Join the online meeting room.' : (c.location ? `Location: ${c.location}.` : '');
+        const guidance = c.meeting_link
+          ? (minsUntil > 0
+              ? 'If the room is not open yet, please wait for your advisor to start the call at the scheduled time.'
+              : 'If you see an authentication or access message, refresh or wait a moment — the room opens when your advisor starts the call.')
+          : (c.location ? 'Arrive a few minutes early and bring any required materials.' : '');
+        const message = `Your consultation '${c.topic}' is scheduled for ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
+        await createNotification(pool, c.student_user_id, 'consultation_reminder', title, message, data);
+      }
+
+      // Advisor reminder
+      if (advisorEnabled && !(await hasExistingReminder(c.advisor_user_id))) {
+        const title = `Upcoming consultation with ${c.student_name}`;
+        const baseWhere = c.meeting_link ? 'Meeting room is ready.' : (c.location ? `Location: ${c.location}.` : '');
+        const guidance = c.meeting_link
+          ? (minsUntil > 0
+              ? 'You can start the meeting when ready so students can join on time.'
+              : 'Start the meeting now to admit students. If they report access errors, ensure you are signed in with the correct account and the meeting is started.')
+          : (c.location ? 'Please be on-site a few minutes early.' : '');
+        const message = `You have a consultation for '${c.topic}' on ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
+        await createNotification(pool, c.advisor_user_id, 'consultation_reminder', title, message, data);
+      }
+    }
+  } catch (err) {
+    console.error('Consultation reminder job error', err);
+  } finally {
+    reminderJobRunning = false;
+  }
+}
+
+// Kick off periodic job
+setInterval(runConsultationReminderJob, REMINDER_POLL_MS);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

@@ -130,9 +130,20 @@ export default function StudentDashboard() {
     loadAvailability();
   }, []);
 
-  const upcomingConsultations = useMemo(() => (
-    allConsultations.filter(c => c.status === 'approved')
-  ), [allConsultations]);
+  const upcomingConsultations = useMemo(() => {
+    const now = new Date();
+    return allConsultations
+      .map(c => {
+        const start = c.start_datetime ? new Date(c.start_datetime) : null;
+        const end = c.end_datetime ? new Date(c.end_datetime) : null;
+        const isPast = end ? end < now : false;
+        let status = c.status;
+        if (status === 'approved' && isPast) status = 'missed';
+        return { ...c, status, _start: start };
+      })
+      .filter(c => c.status === 'approved' && c._start && c._start >= now)
+      .sort((a, b) => new Date(a._start || a.date) - new Date(b._start || b.date));
+  }, [allConsultations]);
 
   const topTopic = useMemo(() => {
     const counts = {};
@@ -195,7 +206,7 @@ export default function StudentDashboard() {
               <CollapsibleContent>
                 <div className="mobile-upcoming-content">
                   {upcomingConsultations.length > 0 ? (
-                    upcomingConsultations.slice(0, 3).map(consultation => (
+                    upcomingConsultations.slice(0, 4).map(consultation => (
                       <CompactConsultationCard
                         key={consultation.id}
                         consultation={consultation}
@@ -288,7 +299,7 @@ export default function StudentDashboard() {
                 </div>
                 <div className="upcoming-consultations-list">
                   {upcomingConsultations.length > 0 ? (
-                    upcomingConsultations.slice(0, 3).map(consultation => (
+                    upcomingConsultations.slice(0, 4).map(consultation => (
                       <CompactConsultationCard
                         key={consultation.id}
                         consultation={consultation}

@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { 
   BsPersonCircle, 
   BsClock, 
@@ -23,13 +23,15 @@ import "./ConsultationDetailsPage.css";
 export default function ConsultationDetailsPage() {
   const { consultationId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { collapsed, toggleSidebar } = useSidebar();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  // Mock data - in a real app, this would come from an API based on consultationId
-  const consultationData = {
-    id: consultationId || "2",
+  const fallback = {
+    id: Number(consultationId) || 2,
     date: "2025-10-08",
     time: "2:00 PM - 2:30 PM",
     topic: "Research Project Discussion",
@@ -43,17 +45,42 @@ export default function ConsultationDetailsPage() {
     mode: "in-person",
     status: "approved",
     location: "Room 205, Math Building",
-    studentNotes: "I need help with the statistical analysis for my research project. I'm working on analyzing survey data from 200 participants and need guidance on choosing the right statistical tests and interpreting the results. I've prepared my data in Excel and have some preliminary analysis but want to make sure I'm on the right track.",
+    studentNotes: "I need help with the statistical analysis for my research project.",
     category: "Research Guidance",
     duration: "30 minutes",
     bookingDate: "2025-09-25",
     guidelines: [
       "Bring your laptop with the data files",
       "Prepare specific questions about your analysis",
-      "Have a clear research question ready",
-      "Bring any preliminary results you've already calculated"
+      "Have a clear research question ready"
     ]
   };
+
+  const [consultationData, setConsultationData] = useState(location.state?.consultation || fallback);
+
+  useEffect(() => {
+    const userRaw = localStorage.getItem('advisys_user');
+    const token = localStorage.getItem('advisys_token');
+    const user = userRaw ? JSON.parse(userRaw) : null;
+    const studentId = user?.id || user?.studentId || null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    if (!studentId) return; // rely on fallback if student id not available
+    setLoading(true);
+    fetch(`${base}/api/students/${studentId}/consultations`, { headers })
+      .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+      .then(list => {
+        const idNum = Number(consultationId);
+        const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
+        if (found) setConsultationData(found);
+        else setError('Consultation not found');
+      })
+      .catch(err => {
+        console.error('Load student consultation details failed', err);
+        setError('Failed to load consultation');
+      })
+      .finally(() => setLoading(false));
+  }, [consultationId]);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') {
@@ -118,6 +145,8 @@ export default function ConsultationDetailsPage() {
         </div>
         
         <main className="consultation-details-main relative">
+          {loading && <div className="details-loading">Loading consultation details…</div>}
+          {error && <div className="details-error">{error}</div>}
           {/* Back Button */}
           <div className="consultation-details-back">
             <button 
@@ -220,12 +249,14 @@ export default function ConsultationDetailsPage() {
                   </h2>
                   <div className="section-content">
                     <ul className="guidelines-list">
-                      {consultationData.guidelines.map((guideline, index) => (
-                        <li key={index} className="guideline-item">
-                          <BsListCheck className="guideline-icon" />
-                          {guideline}
-                        </li>
-                      ))}
+                      {((Array.isArray(consultationData.guidelines) && consultationData.guidelines.length > 0)
+                        ? consultationData.guidelines
+                        : ["No preparation guidelines provided."]).map((guideline, index) => (
+                          <li key={index} className="guideline-item">
+                            <BsListCheck className="guideline-icon" />
+                            {guideline}
+                          </li>
+                        ))}
                     </ul>
                   </div>
                 </section>

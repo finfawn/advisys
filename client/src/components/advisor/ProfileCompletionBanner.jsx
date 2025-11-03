@@ -20,8 +20,9 @@ export default function ProfileCompletionBanner() {
           return;
         }
 
-        // Fetch advisor consultation details only; banner persists until core consultation is incomplete
-        let incompleteConsultation = true;
+        // Fetch advisor consultation details only; show banner ONLY when core consultation is incomplete
+        // Default to "complete" to avoid showing the banner when everything is set or the check fails.
+        let incompleteConsultation = false;
         try {
           const aRes = await fetch(`${base}/api/advisors/${advisorId}`);
           if (aRes.ok) {
@@ -95,7 +96,8 @@ export default function ProfileCompletionBanner() {
     navigate('/advisor-dashboard/availability');
   };
 
-  if (checking || !show) return null;
+  // Hide the banner while checking or when there are no missing parts.
+  if (checking || !show || missing.length === 0) return null;
 
   return (
     <div className="profile-completion-banner" style={{
@@ -112,9 +114,7 @@ export default function ProfileCompletionBanner() {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <span style={{ fontWeight: 700 }}>Improve your consultation setup</span>
         <span style={{ fontSize: 14 }}>
-          {missing.length > 0
-            ? `Add ${missing.join(', ')} to make your profile more helpful to students.`
-            : 'You’re all set!'}
+          {`Add ${missing.join(', ')} to make your profile more helpful to students.`}
         </span>
       </div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>

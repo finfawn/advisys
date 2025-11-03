@@ -407,7 +407,14 @@ export default function AdvisorAvailability() {
                                   <div className="slot-info">
                                     <div className="slot-time">{moment(slot.start).format('h:mm a')} – {moment(slot.end).format('h:mm a')}</div>
                                     <div className="slot-mode">Mode: {slot.mode === 'face_to_face' ? 'In-person' : (slot.mode === 'hybrid' ? 'Both' : 'Online')}</div>
-                                    <div className="slot-room">Room: {slot.mode === 'face_to_face' || slot.mode === 'hybrid' ? (slot.room || '—') : '—'}</div>
+                                    {(() => {
+                                      const m = String(slot.mode || '').toLowerCase();
+                                      const r = String(slot.room || '').trim();
+                                      const isInPerson = m === 'face_to_face' || m === 'in_person' || m === 'hybrid';
+                                      return isInPerson && r ? (
+                                        <div className="slot-room">Room: {r}</div>
+                                      ) : null;
+                                    })()}
                                   </div>
                                   <div className="slot-actions">
                                     <Button variant="outline" size="sm" onClick={() => setEditEvent(slot)}>Edit</Button>

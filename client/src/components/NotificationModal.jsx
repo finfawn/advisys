@@ -13,6 +13,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const navigate = useNavigate();
   // Local undo toast state (consultation-style)
   const [undoToast, setUndoToast] = useState({ open: false, timeoutId: null, message: "" });
+  // Confirm delete-all when there are unread notifications
+  const [confirmDelete, setConfirmDelete] = useState({ open: false });
 
   const showUndoToast = (message) => {
     if (undoToast.timeoutId) {
@@ -194,9 +196,11 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const getActionLabel = (notification) => {
     const consultTypes = new Set([
       'consultation_request',
+      'consultation_request_submitted',
       'consultation_approved',
       'consultation_declined',
       'consultation_cancelled',
+      'consultation_missed',
       'consultation_reminder',
     ]);
     if (consultTypes.has(notification.type)) {
@@ -212,13 +216,16 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       base = '/advisor-dashboard/consultations';
       tab = notification.type === 'consultation_request' ? 'requests'
         : notification.type === 'consultation_cancelled' ? 'history'
+        : notification.type === 'consultation_missed' ? 'history'
         : notification.type === 'consultation_reminder' ? 'upcoming'
         : 'upcoming';
     } else if (userType === 'student') {
       base = '/student-dashboard/consultations';
       tab = notification.type === 'consultation_declined' ? 'requests'
+        : notification.type === 'consultation_request_submitted' ? 'requests'
         : notification.type === 'consultation_approved' ? 'upcoming'
         : notification.type === 'consultation_cancelled' ? 'history'
+        : notification.type === 'consultation_missed' ? 'history'
         : notification.type === 'consultation_reminder' ? 'upcoming'
         : 'upcoming';
     } else {
@@ -245,9 +252,21 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   };
 
   const handleDeleteAll = () => {
+    // If there are unread notifications, show a warning instead of deleting immediately
+    if (unreadCount > 0) {
+      setConfirmDelete({ open: true });
+      return;
+    }
     const count = notifications.length;
     clearAllNotifications({ commitDelayMs: 5000 });
     showUndoToast(`${count} notification${count !== 1 ? "s" : ""} deleted`);
+  };
+
+  const proceedDeleteAll = () => {
+    const count = notifications.length;
+    clearAllNotifications({ commitDelayMs: 5000 });
+    showUndoToast(`${count} notification${count !== 1 ? "s" : ""} deleted`);
+    setConfirmDelete({ open: false });
   };
 
   const handleClose = () => {
@@ -417,6 +436,22 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
             Delete all
           </button>
         </div>
+
+        {/* Confirm Delete-All (when there are unread notifications) */}
+        {confirmDelete.open && (
+          <div className="confirm-delete-notification" role="dialog" aria-live="assertive" aria-label="Confirm delete all notifications">
+            <div className="confirm-content">
+              <span className="confirm-message">
+                {unreadCount} unread notification{unreadCount !== 1 ? 's' : ''} will be permanently deleted.
+              </span>
+              <div className="confirm-actions">
+                <button className="confirm-cancel-btn" onClick={() => setConfirmDelete({ open: false })}>Cancel</button>
+                <button className="confirm-proceed-btn" onClick={proceedDeleteAll}>Delete anyway</button>
+              </div>
+            </div>
+            <div className="confirm-indicator" />
+          </div>
+        )}
 
         {/* Undo Notification (inside modal bottom) */}
         {undoToast.open && (

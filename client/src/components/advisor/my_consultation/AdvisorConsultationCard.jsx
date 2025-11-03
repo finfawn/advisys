@@ -6,7 +6,7 @@ import { Button } from "../../../lightswind/button";
 import "../../student/ConsultationCard.css";
 import "./AdvisorConsultationCard.css";
 
-function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onApprove, onDecline }) {
+function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onApprove, onDecline, onMarkMissed }) {
   const isParsableDate = (value) => {
     if (!value) return false;
     const d = new Date(value);
@@ -40,6 +40,8 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+      case 'missed':
+        return { text: 'Missed', icon: <BsClockHistory />, class: 'status-missed' };
       default:
         return { text: 'Unknown', icon: <BsClockHistory />, class: 'status-pending' };
     }
@@ -91,6 +93,16 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   const handleDelete = (e) => {
     e.stopPropagation();
     onDelete?.(consultation);
+  };
+
+  const canMarkMissed = () => {
+    if (consultation.status !== 'approved') return false;
+    const startRaw = consultation.start_datetime || consultation.date;
+    const start = new Date(startRaw);
+    if (isNaN(start.getTime())) return false;
+    const durationMin = consultation.duration || consultation.duration_minutes || 30;
+    const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+    return Date.now() >= (start.getTime() + graceMs);
   };
 
   return (
@@ -159,12 +171,29 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         </CardFooter>
       )}
 
-      {consultation.status !== 'completed' && shouldShowSingleAction() && (
+      {consultation.status === 'missed' && (
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
+            View Details
+            <BsChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDelete}>
+            <BsTrash className="w-4 h-4" />
+          </Button>
+        </CardFooter>
+      )}
+
+      {consultation.status !== 'completed' && consultation.status !== 'missed' && shouldShowSingleAction() && (
         <CardFooter className="pt-3 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
             {getActionButtonText()}
             <BsChevronRight className="w-4 h-4 ml-1" />
           </Button>
+          {consultation.status === 'approved' && canMarkMissed() && onMarkMissed && (
+            <Button size="sm" variant="outline" className="text-amber-700 border-amber-300 hover:bg-amber-50" onClick={() => onMarkMissed(consultation)}>
+              Mark Missed
+            </Button>
+          )}
         </CardFooter>
       )}
 

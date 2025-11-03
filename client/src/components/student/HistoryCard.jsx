@@ -21,6 +21,8 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+      case 'missed':
+        return { text: 'Missed', icon: <BsClock />, class: 'status-missed' };
       default:
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
     }
@@ -56,6 +58,7 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
           variant={
             consultation.status === 'completed' ? 'success' : 
             consultation.status === 'cancelled' ? 'destructive' : 
+            consultation.status === 'missed' ? 'warning' :
             'success'
           } 
           className="flex items-center gap-1.5"

@@ -147,6 +147,24 @@ router.post('/consultations', async (req, res) => {
     } catch (err) {
       console.error('Advisor request notification error', err);
     }
+
+    // Create notification for student: request submitted and awaiting approval
+    try {
+      const titleStu = `Consultation request submitted`;
+      const guidance = modeNorm === 'online'
+        ? `Await advisor approval. A meeting link will be provided once approved.`
+        : `Await advisor approval. Location details will be confirmed upon approval.`;
+      const messageStu = `Your request for '${topic}' on ${date} at ${time} has been submitted. ${guidance}`;
+      await createNotification(pool, studentId, 'consultation_request_submitted', titleStu, messageStu, {
+        consultation_id: newId,
+        date,
+        time,
+        topic,
+        mode: modeNorm,
+      });
+    } catch (err) {
+      console.error('Student request notification error', err);
+    }
     return res.status(201).json({
       id: r.id,
       date,
@@ -203,6 +221,7 @@ router.get('/students/:studentId/consultations', async (req, res) => {
         category: r.category || undefined,
         student_notes: r.student_notes || undefined,
         studentNotes: r.student_notes || undefined,
+        summaryNotes: r.summary_notes || undefined,
         topic: r.topic,
         faculty: {
           id: r.advisor_user_id,
@@ -260,10 +279,14 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       id: r.id,
       date,
       time,
+      // Expose raw datetimes for client-side logic (e.g., 15-min no-show)
+      start_datetime: r.start_datetime,
+      end_datetime: r.end_datetime,
       topic: r.topic,
       // Include student-selected category and notes to render accurate details
       category: r.category || undefined,
       studentNotes: r.student_notes || undefined,
+      summaryNotes: r.summary_notes || undefined,
       student: {
         name: r.student_name,
         course,
@@ -290,8 +313,8 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
 router.patch('/consultations/:id/status', async (req, res) => {
   const pool = getPool();
   const id = req.params.id;
-  const { status, meetingLink, declineReason, cancelReason, location } = req.body || {};
-  const allowed = new Set(['pending','approved','declined','completed','cancelled','no-show']);
+  const { status, meetingLink, declineReason, cancelReason, location, noShowParty, summaryNotes } = req.body || {};
+  const allowed = new Set(['pending','approved','declined','completed','cancelled','missed']);
   if (!status || !allowed.has(status)) {
     return res.status(400).json({ error: 'Invalid or missing status' });
   }
@@ -302,6 +325,7 @@ router.patch('/consultations/:id/status', async (req, res) => {
     if (declineReason !== undefined) { fields.push('decline_reason = ?'); values.push(declineReason || null); }
     if (cancelReason !== undefined) { fields.push('cancel_reason = ?'); values.push(cancelReason || null); }
     if (location !== undefined) { fields.push('location = ?'); values.push(location || null); }
+    if (summaryNotes !== undefined) { fields.push('summary_notes = ?'); values.push(summaryNotes || null); }
     values.push(id);
     const [result] = await pool.query(`UPDATE consultations SET ${fields.join(', ')} WHERE id = ?`, values);
     if (result.affectedRows === 0) {
@@ -336,6 +360,13 @@ router.patch('/consultations/:id/status', async (req, res) => {
           const message = `The consultation for '${c.topic}' on ${date} at ${time} was cancelled.`;
           // Notify the other party (advisor)
           await createNotification(pool, c.advisor_user_id, 'consultation_cancelled', title, message, { consultation_id: c.id });
+        } else if (status === 'missed') {
+          // Neutral "missed" state replaces "no-show" without blaming either party
+          const title = `Consultation missed`;
+          const message = `The consultation '${c.topic}' scheduled for ${date} at ${time} was missed.`;
+          const data = { consultation_id: c.id, summary: summaryNotes || null };
+          await createNotification(pool, c.student_user_id, 'consultation_missed', title, message, data);
+          await createNotification(pool, c.advisor_user_id, 'consultation_missed', title, message, data);
         }
       }
     } catch (err) {

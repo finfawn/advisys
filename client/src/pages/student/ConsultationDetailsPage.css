@@ -16,12 +16,17 @@
 .advisor-details-page .consultation-details-body {
   height: calc(100vh - 64px); /* subtract top navbar */
   overflow: hidden;
+  /* Allow grid children to shrink so inner scroll containers work */
+  min-height: 0;
 }
 
 .advisor-details-page .consultation-details-main {
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
+  /* Ensure scroll area can shrink inside grid/flex parents */
+  min-height: 0;
+  min-width: 0;
 }
 
 /* Mobile-only bottom padding fix: ensure no large gap at page end */
@@ -89,6 +94,19 @@
   display: flex;
   flex-direction: column;
 }
+
+/* Loading and error messages styling for advisor detail pages */
+.advisor-details-page .details-loading,
+.advisor-details-page .details-error {
+  max-width: 1200px;
+  margin: 12px auto 0 auto;
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+}
+.advisor-details-page .details-loading { background: #f8fafc; color: #374151; }
+.advisor-details-page .details-error { background: #fef2f2; color: #b91c1c; border-color: #fecaca; }
 
 /* Back button */
 .consultation-details-back {
@@ -180,6 +198,19 @@
   background: #d4edda;
   color: #155724;
   border: 1px solid #c3e6cb;
+}
+
+/* Missed status pill for details page */
+.status-badge.status-missed {
+  background: #fef3c7; /* amber-100 */
+  color: #92400e;      /* amber-800 */
+  border: 1px solid #fde68a; /* amber-200 */
+}
+/* Backward compatibility for any old 'no-show' class */
+.status-badge.status-no-show { /* deprecated */
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
 }
 
 .mode-badge {
@@ -436,6 +467,40 @@
   border-radius: 12px;
 }
 
+/* History details: ensure summary and notes are readable and wrap properly */
+.summary-text {
+  font-size: 1rem;
+  line-height: 1.7;
+  color: #4b5563;
+  margin: 0;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  /* Preserve intentional newlines from DB while wrapping long lines */
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+}
+
+.notes-container {
+  /* Match card styling with other sections */
+  background: transparent;
+}
+
+.notes-container .student-notes {
+  font-size: 0.98rem;
+  line-height: 1.7;
+  color: #374151;
+  margin: 0;
+  padding: 16px;
+  background: #f8fafc;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 12px;
+  /* Allow long content to wrap and remain readable */
+  white-space: pre-wrap; /* keep newlines from user input */
+  overflow-wrap: break-word;
+}
+
 /* Guidelines Section */
 .guidelines-list {
   list-style: none;
@@ -595,6 +660,19 @@
   color: #166534;
   background: #e8f5ea;
   border-color: #bbf7d0;
+}
+
+/* Missed status value styling in details grid */
+.info-value.status-missed {
+  color: #92400e;
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+/* Backward compatibility for any old 'no-show' class */
+.info-value.status-no-show { /* deprecated */
+  color: #92400e;
+  background: #fff7ed;
+  border-color: #fed7aa;
 }
 
 /* Responsive Design */

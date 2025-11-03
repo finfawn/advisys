@@ -18,6 +18,7 @@ export const NotificationProvider = ({ children }) => {
   const lastUserIdRef = useRef(null);
   const lastClearBackupRef = useRef(null);
   const lastClearTimerRef = useRef(null);
+  const knownIdsRef = useRef(new Set());
 
   // Load notifications from backend and keep them in sync (per-user)
   useEffect(() => {
@@ -30,6 +31,12 @@ export const NotificationProvider = ({ children }) => {
         const currentUserId = storedUser?.id || null;
         if (!currentUserId) return;
 
+        // If a clear-all is pending, avoid rehydrating from server/poll to prevent
+        // deleted notifications from flashing back before commit.
+        if (lastClearTimerRef.current) {
+          return;
+        }
+
         // Detect user switch and reset cache/state
         if (lastUserIdRef.current !== currentUserId) {
           lastUserIdRef.current = currentUserId;
@@ -38,6 +45,8 @@ export const NotificationProvider = ({ children }) => {
             // Clear any previous generic cache to prevent cross-user bleed
             localStorage.removeItem('advisys-notifications');
           } catch (_) {}
+          // Reset known ids so we don't fire notifications for old items
+          knownIdsRef.current = new Set();
         }
 
         const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -48,7 +57,34 @@ export const NotificationProvider = ({ children }) => {
         });
         const data = res.ok ? await res.json() : [];
         if (!abort) {
-          setNotifications(data || []);
+          // Detect newly arrived notifications (not seen in previous polls)
+          const incoming = Array.isArray(data) ? data : [];
+          const newItems = incoming.filter(n => !knownIdsRef.current.has(n.id));
+
+          // Update known ids
+          for (const n of incoming) {
+            knownIdsRef.current.add(n.id);
+          }
+
+          // Fire browser notifications for any newly arrived items
+          try {
+            if (typeof window !== 'undefined' && 'Notification' in window) {
+              if (Notification.permission === 'default') {
+                await Notification.requestPermission();
+              }
+              if (Notification.permission === 'granted') {
+                for (const n of newItems) {
+                  if (!n) continue;
+                  new Notification(n.title || 'Notification', {
+                    body: n.message || '',
+                    icon: '/logo_s.png'
+                  });
+                }
+              }
+            }
+          } catch (_) {}
+
+          setNotifications(incoming);
         }
       } catch (err) {
         // Fallback to any cached notifications in localStorage (per-user)
@@ -160,6 +196,13 @@ export const NotificationProvider = ({ children }) => {
     lastClearBackupRef.current = notifications;
     setNotifications([]);
 
+    // Also clear cached notifications immediately to avoid fallback rehydration
+    try {
+      const userId = lastUserIdRef.current;
+      const cacheKey = userId ? `advisys-notifications-${userId}` : 'advisys-notifications';
+      localStorage.removeItem(cacheKey);
+    } catch (_) {}
+
     // Cancel any previous timer
     if (lastClearTimerRef.current) {
       clearTimeout(lastClearTimerRef.current);
@@ -182,6 +225,12 @@ export const NotificationProvider = ({ children }) => {
           },
           body: JSON.stringify({ user_id: userId }),
         });
+
+        // On successful commit, ensure local cache stays cleared
+        try {
+          const cacheKey = userId ? `advisys-notifications-${userId}` : 'advisys-notifications';
+          localStorage.removeItem(cacheKey);
+        } catch (_) {}
       } catch (_) {
         // If backend fails, we still keep UI cleared; polling will refresh later
       } finally {
@@ -326,6 +375,16 @@ export const NotificationProvider = ({ children }) => {
     };
   };
 
+  const createConsultationMissedNotification = (consultationDetails) => {
+    return {
+      type: 'consultation_missed',
+      title: 'Consultation marked as missed',
+      message: `Your consultation for '${consultationDetails.topic}' scheduled on ${consultationDetails.date} at ${consultationDetails.time} was marked as missed after the grace window.`,
+      icon: 'reminder',
+      action: 'View Details'
+    };
+  };
+
   const createDocumentUploadedNotification = (advisorName, documents) => {
     return {
       type: 'document_uploaded',
@@ -363,6 +422,7 @@ export const NotificationProvider = ({ children }) => {
     createConsultationRequestNotification,
     createConsultationReminderNotification,
     createConsultationCancelledNotification,
+    createConsultationMissedNotification,
     createDocumentUploadedNotification,
     createSystemAnnouncementNotification
   };

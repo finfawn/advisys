@@ -148,6 +148,12 @@
   border: 1px solid #f5c6cb;
 }
 
+.compact-status-badge.status-missed {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
 .compact-mode-indicator {
   display: flex;
   align-items: center;

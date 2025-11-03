@@ -107,7 +107,18 @@ router.get('/calendar', async (req, res) => {
     const monthStartKey = `${year}-${pad(monthIdx + 1)}-01`;
     const monthEndKey = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
 
-    // Load all advisor slots for the month, only active advisors and available slots
+    // Cleanup: delete any slots whose end time has passed globally before building calendar
+    try {
+      await pool.query(
+        `DELETE FROM advisor_slots
+         WHERE end_datetime <= NOW()`
+      );
+    } catch (cleanupErr) {
+      console.error('Availability calendar cleanup error', cleanupErr);
+      // Non-fatal: continue building calendar
+    }
+
+    // Load advisor slots for the month, only active advisors and available slots, excluding past days
     const [rows] = await pool.query(
       `SELECT s.advisor_user_id AS id, u.full_name, s.start_datetime, s.end_datetime, s.mode, s.status
        FROM advisor_slots s
@@ -115,6 +126,7 @@ router.get('/calendar', async (req, res) => {
        WHERE u.role = 'advisor' AND u.status = 'active'
          AND s.status = 'available'
          AND DATE(s.start_datetime) BETWEEN ? AND ?
+         AND DATE(s.start_datetime) >= CURDATE()
        ORDER BY s.advisor_user_id ASC, s.start_datetime ASC`,
       [monthStartKey, monthEndKey]
     );

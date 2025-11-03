@@ -5,7 +5,7 @@ import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
 import "./ConsultationCard.css";
 
-function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
+function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule, onMarkMissed }) {
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { 
@@ -27,6 +27,8 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+      case 'missed':
+        return { text: 'Missed', icon: <BsClockHistory />, class: 'status-missed' };
       default:
         return { text: 'Unknown', icon: <BsClockHistory />, class: 'status-pending' };
     }
@@ -46,6 +48,16 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
     } else {
       return 'consultation-card-action-btn details';
     }
+  };
+
+  const canMarkMissed = () => {
+    if (consultation.status !== 'approved') return false;
+    const startRaw = consultation.start_datetime || consultation.date;
+    const start = new Date(startRaw);
+    if (isNaN(start.getTime())) return false;
+    const durationMin = consultation.duration || consultation.duration_minutes || 30;
+    const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+    return Date.now() >= (start.getTime() + graceMs);
   };
 
   const shouldShowActionButton = () => {
@@ -142,6 +154,11 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
           <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleCancelConsultation}>
             <BsXCircle className="w-4 h-4" />
           </Button>
+          {canMarkMissed() && onMarkMissed && (
+            <Button size="sm" variant="outline" className="text-amber-700 border-amber-300 hover:bg-amber-50" onClick={() => onMarkMissed(consultation)}>
+              Mark Missed
+            </Button>
+          )}
         </CardFooter>
       )}
       
@@ -178,6 +195,18 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
       )}
       
       {consultation.status === 'cancelled' && (
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" className="flex-1" onClick={onActionClick}>
+            View Details
+            <BsChevronRight className="w-4 h-4 ml-1" />
+          </Button>
+          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
+            <BsTrash className="w-4 h-4" />
+          </Button>
+        </CardFooter>
+      )}
+
+      {consultation.status === 'missed' && (
         <CardFooter className="pt-3 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={onActionClick}>
             View Details
