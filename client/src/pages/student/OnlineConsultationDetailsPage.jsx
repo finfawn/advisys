@@ -119,6 +119,44 @@ export default function OnlineConsultationDetailsPage() {
     }, 1000);
   };
 
+  // Disable Join until within 5 minutes before scheduled start
+  const [canJoin, setCanJoin] = useState(true);
+  const getStartDate = (c) => {
+    if (c?.start_datetime) {
+      const d = new Date(c.start_datetime);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const dateStr = c?.date;
+    const timeStr = c?.time;
+    if (!dateStr || !timeStr) return null;
+    const match = String(timeStr).match(/(^|\s)(\d{1,2}:\d{2}\s*(AM|PM))/i);
+    if (!match) return null;
+    const t = match[2];
+    const mer = /PM/i.test(t) ? 'PM' : 'AM';
+    const hm = t.replace(/\s*(AM|PM)/i, '').trim();
+    const [hRaw, mRaw] = hm.split(':');
+    let h = Number(hRaw);
+    const m = Number(mRaw);
+    if (mer === 'PM' && h < 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+  useEffect(() => {
+    const updateJoinGuard = () => {
+      const start = getStartDate(consultationData);
+      if (!start) { setCanJoin(true); return; }
+      const now = new Date();
+      const threshold = new Date(start.getTime() - 5 * 60000);
+      setCanJoin(now >= threshold);
+    };
+    updateJoinGuard();
+    const id = setInterval(updateJoinGuard, 15000);
+    return () => clearInterval(id);
+  }, [consultationData]);
+
   const handleCloseCancelModal = () => {
     if (!isCancelling) {
       setShowCancelModal(false);
@@ -291,6 +329,8 @@ export default function OnlineConsultationDetailsPage() {
                       <button 
                         className="action-btn join-meeting"
                         onClick={handleJoinMeeting}
+                        disabled={!canJoin}
+                        title={!canJoin ? 'Available 5 minutes before start time' : undefined}
                       >
                         <BsBoxArrowUpRight />
                         Join Meeting

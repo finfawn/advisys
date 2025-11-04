@@ -25,6 +25,9 @@ const HistoryConsultationDetailsPage = () => {
   const [consultation, setConsultation] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [editReason, setEditReason] = useState('');
+  const [editRequestSubmitting, setEditRequestSubmitting] = useState(false);
+  const [editRequestSuccess, setEditRequestSuccess] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('advisys_user');
@@ -122,6 +125,32 @@ const HistoryConsultationDetailsPage = () => {
 
   const statusInfo = consultation ? getStatusInfo() : { text: '', icon: null, class: '' };
 
+  const handleRequestEdit = async () => {
+    if (!consultation) return;
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    setEditRequestSubmitting(true);
+    setEditRequestSuccess(false);
+    try {
+      const r = await fetch(`${base}/api/consultations/${consultation.id}/summary-edit-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ reason: editReason || undefined }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setEditRequestSuccess(true);
+      setEditReason('');
+    } catch (e) {
+      console.error('Submit edit request failed', e);
+      alert('Failed to request summary edit.');
+    } finally {
+      setEditRequestSubmitting(false);
+    }
+  };
+
   return (
     <div className="consultation-details-wrap">
       <TopNavbar />
@@ -201,7 +230,33 @@ const HistoryConsultationDetailsPage = () => {
                     Consultation Summary
                   </h2>
                   <div className="section-content">
-                    <p className="summary-text">{consultation?.summaryNotes || 'No summary available.'}</p>
+                    <p className="summary-text">{consultation?.aiSummary || consultation?.summaryNotes || 'No summary available.'}</p>
+                    {consultation?.status === 'completed' && (
+                      <div className="summary-edit-request">
+                        <div className="edit-request-form">
+                          <label className="edit-request-label">Request an edit to this summary</label>
+                          <textarea
+                            className="edit-request-textarea"
+                            value={editReason}
+                            onChange={(e) => setEditReason(e.target.value)}
+                            placeholder="Optional: describe what needs to be clarified or corrected"
+                            rows={3}
+                          />
+                          <div className="edit-request-actions">
+                            <button
+                              className="action-btn"
+                              onClick={handleRequestEdit}
+                              disabled={editRequestSubmitting}
+                            >
+                              {editRequestSubmitting ? 'Submitting...' : 'Request Edit'}
+                            </button>
+                            {editRequestSuccess && (
+                              <span className="success-text">Your request has been sent to your advisor.</span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </section>
 

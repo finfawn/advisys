@@ -46,6 +46,9 @@ export default function AdvisorConsultationDetailsPage() {
   const [consultationData, setConsultationData] = useState(location.state?.consultation || fallback);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [aiSummaryDraft, setAiSummaryDraft] = useState('');
+  const [savingSummary, setSavingSummary] = useState(false);
+  const [saveSuccess, setSaveSuccess] = useState(false);
 
   useEffect(() => {
     const userRaw = localStorage.getItem('user');
@@ -62,6 +65,7 @@ export default function AdvisorConsultationDetailsPage() {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
         if (found) setConsultationData(found);
+        if (found?.aiSummary) setAiSummaryDraft(found.aiSummary);
         else setError('Consultation not found');
       })
       .catch(err => {
@@ -89,6 +93,68 @@ export default function AdvisorConsultationDetailsPage() {
     if (page === 'settings') navigate('/advisor-dashboard/settings');
     if (page === 'logout') navigate('/logout');
   };
+
+  const handleSaveSummary = async () => {
+    const token = localStorage.getItem('token');
+    const base = import.meta.env.VITE_API_BASE ? import.meta.env.VITE_API_BASE : `${window.location.origin}/api`;
+    setSavingSummary(true);
+    setSaveSuccess(false);
+    try {
+      const r = await fetch(`${base}/consultations/${consultationData.id}/ai-summary`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ aiSummary: aiSummaryDraft || '' }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setSaveSuccess(true);
+    } catch (e) {
+      console.error('Save AI summary failed', e);
+      alert('Failed to save summary.');
+    } finally {
+      setSavingSummary(false);
+    }
+  };
+
+  // Disable Start until within 5 minutes before scheduled start
+  const [canStart, setCanStart] = useState(true);
+  const getStartDate = (c) => {
+    if (c?.start_datetime) {
+      const d = new Date(c.start_datetime);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const dateStr = c?.date;
+    const timeStr = c?.time;
+    if (!dateStr || !timeStr) return null;
+    const match = String(timeStr).match(/(^|\s)(\d{1,2}:\d{2}\s*(AM|PM))/i);
+    if (!match) return null;
+    const t = match[2];
+    const mer = /PM/i.test(t) ? 'PM' : 'AM';
+    const hm = t.replace(/\s*(AM|PM)/i, '').trim();
+    const [hRaw, mRaw] = hm.split(':');
+    let h = Number(hRaw);
+    const m = Number(mRaw);
+    if (mer === 'PM' && h < 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+  useEffect(() => {
+    const updateStartGuard = () => {
+      const start = getStartDate(consultationData);
+      if (!start) { setCanStart(true); return; }
+      const now = new Date();
+      const threshold = new Date(start.getTime() - 5 * 60000);
+      setCanStart(now >= threshold);
+    };
+    updateStartGuard();
+    const id = setInterval(updateStartGuard, 15000);
+    return () => clearInterval(id);
+  }, [consultationData]);
 
   return (
     <div className="consultation-details-wrap advisor-details-page">
@@ -203,6 +269,37 @@ export default function AdvisorConsultationDetailsPage() {
               </div>
             </section>
 
+            {/* Summary and Editor */}
+            <div className="consultation-details-grid">
+              <div className="consultation-details-left">
+                <section className="consultation-details-section">
+                  <h2 className="section-title">
+                    <BsFileText className="section-icon" />
+                    Consultation Summary
+                  </h2>
+                  <div className="section-content">
+                    <p className="summary-text">{consultationData.aiSummary || consultationData.summaryNotes || 'No summary available.'}</p>
+                    <div className="summary-editor">
+                      <label className="edit-request-label">Edit summary (visible to student)</label>
+                      <textarea
+                        className="edit-request-textarea"
+                        value={aiSummaryDraft}
+                        onChange={(e) => setAiSummaryDraft(e.target.value)}
+                        placeholder="Revise or expand the consultation summary here"
+                        rows={6}
+                      />
+                      <div className="edit-request-actions">
+                        <button className="action-btn start-session" onClick={handleSaveSummary} disabled={savingSummary}>
+                          {savingSummary ? 'Saving...' : 'Save Summary'}
+                        </button>
+                        {saveSuccess && <span className="success-text">Summary saved and student notified.</span>}
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              </div>
+            </div>
+
             <div className="consultation-details-grid">
               <div className="consultation-details-left">
                 <section className="consultation-details-section">
@@ -249,7 +346,7 @@ export default function AdvisorConsultationDetailsPage() {
                     <h2 className="section-title"><BsPlayCircle className="section-icon"/> Actions</h2>
                     <div className="section-content">
                       <div className="action-buttons">
-                        <button className="action-btn start-session" onClick={handleStart}>
+                        <button className="action-btn start-session" onClick={handleStart} disabled={!canStart} title={!canStart ? 'Available 5 minutes before start time' : undefined}>
                           <BsPlayCircle />
                           Start
                         </button>

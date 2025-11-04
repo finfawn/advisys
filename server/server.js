@@ -29,6 +29,8 @@ const notificationsRouter = require('./routes/notifications');
 app.use('/api/notifications', notificationsRouter);
 const settingsRouter = require('./routes/settings');
 app.use('/api/settings', settingsRouter);
+const transcriptionsRouter = require('./routes/transcriptions');
+app.use('/api', transcriptionsRouter);
 // RS256 JaaS JWT generation endpoint mounted at root
 const generateJwtRouter = require('./routes/generate_jwt');
 app.use('/generate-jwt', generateJwtRouter);
@@ -223,6 +225,90 @@ async function runConsultationReminderJob() {
 
 // Kick off periodic job
 setInterval(runConsultationReminderJob, REMINDER_POLL_MS);
+
+// --- Missed Consultation Background Job ---
+// Automatically marks consultations as 'missed' when their end time has passed
+// and sends detailed notifications including no-show duration.
+const MISSED_POLL_MS = Number(process.env.MISSED_POLL_MS || 60_000); // 1 minute
+let missedJobRunning = false;
+
+async function runMissedConsultationJob() {
+  if (missedJobRunning) return; // prevent overlap
+  missedJobRunning = true;
+  const pool = getPool();
+  try {
+    // Find consultations that are approved and already ended
+    const [rows] = await pool.query(
+      `SELECT c.id, c.student_user_id, c.advisor_user_id, c.topic, c.start_datetime, c.end_datetime, c.status,
+              c.duration_minutes,
+              s.full_name AS student_name, a.full_name AS advisor_name
+         FROM consultations c
+         JOIN users s ON s.id = c.student_user_id
+         JOIN users a ON a.id = c.advisor_user_id
+        WHERE c.status = 'approved'
+          AND c.end_datetime < NOW()`
+    );
+
+    const now = new Date();
+    for (const c of rows) {
+      // Double-check current status to avoid race conditions
+      const [[current]] = await pool.query('SELECT status, start_datetime, end_datetime, duration_minutes FROM consultations WHERE id = ?', [c.id]);
+      if (!current) continue;
+      const currStatus = String(current.status || '').toLowerCase();
+      if (currStatus !== 'approved') continue; // already handled elsewhere
+
+      const start = new Date(current.start_datetime || c.start_datetime);
+      const end = new Date(current.end_datetime || c.end_datetime);
+      const durationFromRow = Number(current.duration_minutes || c.duration_minutes || 0) || null;
+      const date = formatDate(start);
+      const time = formatTimeRange(start, end);
+
+      // Compute no-show minutes: prefer actual time since scheduled start,
+      // but cap at the scheduled duration if available.
+      const elapsedMins = Math.max(0, Math.ceil((now.getTime() - start.getTime()) / 60000));
+      const scheduledDurationMins = durationFromRow ?? Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 60000));
+      const minutesNoShow = Math.max(0, Math.min(elapsedMins, scheduledDurationMins));
+
+      // Mark as missed
+      await pool.query('UPDATE consultations SET status = ? WHERE id = ?', ['missed', c.id]);
+
+      const data = {
+        consultation_id: c.id,
+        date,
+        time,
+        minutes_no_show: minutesNoShow,
+        start_datetime: start,
+        end_datetime: end,
+      };
+
+      const title = 'Consultation missed';
+      const detail = minutesNoShow > 0
+        ? ` No-show duration: ${minutesNoShow} minute${minutesNoShow === 1 ? '' : 's'} from the scheduled start.`
+        : '';
+      const message = `The consultation '${c.topic}' scheduled for ${date} at ${time} was missed.${detail}`.trim();
+
+      await createNotification(pool, c.student_user_id, 'consultation_missed', title, message, data);
+      await createNotification(pool, c.advisor_user_id, 'consultation_missed', title, message, data);
+    }
+  } catch (err) {
+    console.error('Missed consultation job error', err);
+  } finally {
+    missedJobRunning = false;
+  }
+}
+
+// Kick off periodic missed job
+setInterval(runMissedConsultationJob, MISSED_POLL_MS);
+
+// Manual trigger endpoint for missed job (useful for verification/tests)
+app.get('/api/consultations/missed/run', async (req, res) => {
+  try {
+    await runMissedConsultationJob();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to run missed job' });
+  }
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

@@ -20,6 +20,24 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Transcriptions captured during consultations
+CREATE TABLE IF NOT EXISTS `transcriptions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `consultation_id` INT UNSIGNED NOT NULL,
+  `meeting_id` VARCHAR(255) NOT NULL,
+  `advisor_user_id` INT UNSIGNED NULL,
+  `student_user_id` INT UNSIGNED NULL,
+  `speaker` VARCHAR(50) NULL,
+  `text` TEXT NOT NULL,
+  `timestamp` DATETIME NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_transcripts_consultation` (`consultation_id`),
+  KEY `idx_transcripts_meeting` (`meeting_id`),
+  CONSTRAINT `fk_transcriptions_consultation`
+    FOREIGN KEY (`consultation_id`) REFERENCES `consultations`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Advisor availability slots (per-date occurrences created in UI)
 CREATE TABLE IF NOT EXISTS `advisor_slots` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -138,6 +156,8 @@ CREATE TABLE IF NOT EXISTS `consultations` (
   `duration_minutes` INT UNSIGNED NULL,
   `booking_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `summary_notes` TEXT NULL,
+  `final_transcript` LONGTEXT NULL,
+  `ai_summary` LONGTEXT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_consult_student` (`student_user_id`),
   KEY `idx_consult_advisor` (`advisor_user_id`),

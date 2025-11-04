@@ -202,6 +202,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       'consultation_cancelled',
       'consultation_missed',
       'consultation_reminder',
+      'consultation_room_ready',
+      'consultation_rescheduled',
     ]);
     if (consultTypes.has(notification.type)) {
       return 'Go to My Consultations';
@@ -217,6 +219,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       tab = notification.type === 'consultation_request' ? 'requests'
         : notification.type === 'consultation_cancelled' ? 'history'
         : notification.type === 'consultation_missed' ? 'history'
+        : notification.type === 'consultation_room_ready' ? 'upcoming'
+        : notification.type === 'consultation_rescheduled' ? 'upcoming'
         : notification.type === 'consultation_reminder' ? 'upcoming'
         : 'upcoming';
     } else if (userType === 'student') {
@@ -226,6 +230,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         : notification.type === 'consultation_approved' ? 'upcoming'
         : notification.type === 'consultation_cancelled' ? 'history'
         : notification.type === 'consultation_missed' ? 'history'
+        : notification.type === 'consultation_room_ready' ? 'upcoming'
+        : notification.type === 'consultation_rescheduled' ? 'upcoming'
         : notification.type === 'consultation_reminder' ? 'upcoming'
         : 'upcoming';
     } else {

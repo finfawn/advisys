@@ -19,6 +19,8 @@ export const NotificationProvider = ({ children }) => {
   const lastClearBackupRef = useRef(null);
   const lastClearTimerRef = useRef(null);
   const knownIdsRef = useRef(new Set());
+  const firstLoadRef = useRef(true);
+  const lastSeenCreatedAtRef = useRef(null);
 
   // Load notifications from backend and keep them in sync (per-user)
   useEffect(() => {
@@ -47,6 +49,15 @@ export const NotificationProvider = ({ children }) => {
           } catch (_) {}
           // Reset known ids so we don't fire notifications for old items
           knownIdsRef.current = new Set();
+          // Reset first-load flag and hydrate last-seen from storage for this user
+          firstLoadRef.current = true;
+          try {
+            const lastSeenKey = `advisys-notifications-last-seen-${currentUserId}`;
+            const savedLastSeen = localStorage.getItem(lastSeenKey);
+            lastSeenCreatedAtRef.current = savedLastSeen ? Number(savedLastSeen) : null;
+          } catch (_) {
+            lastSeenCreatedAtRef.current = null;
+          }
         }
 
         const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -57,16 +68,44 @@ export const NotificationProvider = ({ children }) => {
         });
         const data = res.ok ? await res.json() : [];
         if (!abort) {
-          // Detect newly arrived notifications (not seen in previous polls)
+          // Normalize incoming list
           const incoming = Array.isArray(data) ? data : [];
+
+          // On first load per user, hydrate known IDs and last-seen, but DO NOT fire browser notifications
+          if (firstLoadRef.current) {
+            knownIdsRef.current = new Set(incoming.map(n => n.id));
+            const maxTs = incoming.reduce((max, n) => {
+              const t = Number(new Date(n?.timestamp).getTime());
+              return Number.isFinite(t) ? Math.max(max, t) : max;
+            }, lastSeenCreatedAtRef.current || 0);
+            lastSeenCreatedAtRef.current = maxTs || Date.now();
+            try {
+              const lastSeenKey = `advisys-notifications-last-seen-${currentUserId}`;
+              localStorage.setItem(lastSeenKey, String(lastSeenCreatedAtRef.current));
+            } catch (_) {}
+            firstLoadRef.current = false;
+            setNotifications(incoming);
+            return;
+          }
+
+          // Detect newly arrived notifications (not seen in previous polls)
           const newItems = incoming.filter(n => !knownIdsRef.current.has(n.id));
 
-          // Update known ids
+          // Update known ids and last-seen timestamp
           for (const n of incoming) {
             knownIdsRef.current.add(n.id);
           }
+          const incomingMaxTs = incoming.reduce((max, n) => {
+            const t = Number(new Date(n?.timestamp).getTime());
+            return Number.isFinite(t) ? Math.max(max, t) : max;
+          }, lastSeenCreatedAtRef.current || 0);
+          lastSeenCreatedAtRef.current = incomingMaxTs || lastSeenCreatedAtRef.current || Date.now();
+          try {
+            const lastSeenKey = `advisys-notifications-last-seen-${currentUserId}`;
+            localStorage.setItem(lastSeenKey, String(lastSeenCreatedAtRef.current));
+          } catch (_) {}
 
-          // Fire browser notifications for any newly arrived items
+          // Fire browser notifications for any newly arrived items strictly newer than last-seen
           try {
             if (typeof window !== 'undefined' && 'Notification' in window) {
               if (Notification.permission === 'default') {
@@ -75,6 +114,9 @@ export const NotificationProvider = ({ children }) => {
               if (Notification.permission === 'granted') {
                 for (const n of newItems) {
                   if (!n) continue;
+                  const ts = Number(new Date(n?.timestamp).getTime());
+                  if (!Number.isFinite(ts)) continue;
+                  if (lastSeenCreatedAtRef.current && ts <= lastSeenCreatedAtRef.current) continue;
                   new Notification(n.title || 'Notification', {
                     body: n.message || '',
                     icon: '/logo_s.png'
@@ -376,10 +418,12 @@ export const NotificationProvider = ({ children }) => {
   };
 
   const createConsultationMissedNotification = (consultationDetails) => {
+    const mins = Number(consultationDetails?.minutes_no_show || consultationDetails?.minutesNoShow || 0) || 0;
+    const detail = mins > 0 ? ` No-show duration: ${mins} minute${mins === 1 ? '' : 's'} from the scheduled start.` : '';
     return {
       type: 'consultation_missed',
       title: 'Consultation marked as missed',
-      message: `Your consultation for '${consultationDetails.topic}' scheduled on ${consultationDetails.date} at ${consultationDetails.time} was marked as missed after the grace window.`,
+      message: `Your consultation for '${consultationDetails.topic}' scheduled on ${consultationDetails.date} at ${consultationDetails.time} was marked as missed.${detail}`.trim(),
       icon: 'reminder',
       action: 'View Details'
     };

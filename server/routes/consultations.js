@@ -1,5 +1,6 @@
 const express = require('express');
 const { getPool } = require('../db/pool');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -222,6 +223,8 @@ router.get('/students/:studentId/consultations', async (req, res) => {
         student_notes: r.student_notes || undefined,
         studentNotes: r.student_notes || undefined,
         summaryNotes: r.summary_notes || undefined,
+        finalTranscript: r.final_transcript || undefined,
+        aiSummary: r.ai_summary || undefined,
         topic: r.topic,
         faculty: {
           id: r.advisor_user_id,
@@ -287,6 +290,8 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       category: r.category || undefined,
       studentNotes: r.student_notes || undefined,
       summaryNotes: r.summary_notes || undefined,
+      finalTranscript: r.final_transcript || undefined,
+      aiSummary: r.ai_summary || undefined,
       student: {
         name: r.student_name,
         course,
@@ -319,6 +324,10 @@ router.patch('/consultations/:id/status', async (req, res) => {
     return res.status(400).json({ error: 'Invalid or missing status' });
   }
   try {
+    // Load existing fields for change detection (e.g., meeting_link transitions)
+    const [[before]] = await pool.query('SELECT meeting_link FROM consultations WHERE id = ?', [id]);
+    const prevMeetingLink = before ? before.meeting_link : null;
+
     const fields = ['status = ?'];
     const values = [status];
     if (meetingLink !== undefined) { fields.push('meeting_link = ?'); values.push(meetingLink || null); }
@@ -346,6 +355,18 @@ router.patch('/consultations/:id/status', async (req, res) => {
         const end = new Date(c.end_datetime);
         const date = formatDate(start);
         const time = formatTimeRange(start, end);
+        // Room ready trigger: if meeting_link transitioned from null -> non-null
+        if (meetingLink !== undefined && !prevMeetingLink && c.meeting_link) {
+          const title = `Online meeting room is ready`;
+          const start = new Date(c.start_datetime);
+          const end = new Date(c.end_datetime);
+          const dateStr = formatDate(start);
+          const timeStr = formatTimeRange(start, end);
+          const msg = `Your consultation '${c.topic}' on ${dateStr} at ${timeStr} has an active meeting room. You can join when ready.`;
+          const data = { consultation_id: c.id, meeting_link: c.meeting_link };
+          await createNotification(pool, c.student_user_id, 'consultation_room_ready', title, msg, data);
+        }
+
         if (status === 'approved') {
           const title = `${c.advisor_name} approved your consultation`;
           const message = `Your consultation request for '${c.topic}' has been approved for ${date} at ${time}.`;
@@ -363,8 +384,15 @@ router.patch('/consultations/:id/status', async (req, res) => {
         } else if (status === 'missed') {
           // Neutral "missed" state replaces "no-show" without blaming either party
           const title = `Consultation missed`;
-          const message = `The consultation '${c.topic}' scheduled for ${date} at ${time} was missed.`;
-          const data = { consultation_id: c.id, summary: summaryNotes || null };
+          // Compute minutes since scheduled start; cap at duration if available
+          const elapsedMins = Math.max(0, Math.ceil((Date.now() - start.getTime()) / 60000));
+          const scheduledDurationMins = c.duration_minutes || Math.max(0, Math.ceil((end.getTime() - start.getTime()) / 60000));
+          const minutesNoShow = Math.max(0, Math.min(elapsedMins, scheduledDurationMins));
+          const detail = minutesNoShow > 0
+            ? ` No-show duration: ${minutesNoShow} minute${minutesNoShow === 1 ? '' : 's'} from the scheduled start.`
+            : '';
+          const message = `The consultation '${c.topic}' scheduled for ${date} at ${time} was missed.${detail}`.trim();
+          const data = { consultation_id: c.id, summary: summaryNotes || null, minutes_no_show: minutesNoShow, start_datetime: c.start_datetime, end_datetime: c.end_datetime };
           await createNotification(pool, c.student_user_id, 'consultation_missed', title, message, data);
           await createNotification(pool, c.advisor_user_id, 'consultation_missed', title, message, data);
         }
@@ -377,6 +405,60 @@ router.patch('/consultations/:id/status', async (req, res) => {
   } catch (err) {
     console.error('Update consultation status error', err);
     res.status(500).json({ error: 'Failed to update consultation' });
+  }
+});
+
+// Advisor updates AI summary (completed consultations)
+// PATCH /api/consultations/:id/ai-summary { aiSummary }
+router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { aiSummary } = req.body || {};
+  const user = req.user || {};
+  if (typeof aiSummary !== 'string') {
+    return res.status(400).json({ error: 'aiSummary must be a string' });
+  }
+  try {
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    if (user.role !== 'advisor' || user.id !== c.advisor_user_id) {
+      return res.status(403).json({ error: 'Only the assigned advisor can edit the summary' });
+    }
+    await pool.query('UPDATE consultations SET ai_summary = ? WHERE id = ?', [aiSummary, id]);
+    // Notify student that summary was updated
+    try {
+      const title = 'Consultation summary updated';
+      const message = `Your consultation summary for '${c.topic}' was updated by your advisor.`;
+      await createNotification(pool, c.student_user_id, 'consultation_summary_updated', title, message, { consultation_id: Number(id) });
+    } catch (_) {}
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Update AI summary error:', err);
+    return res.status(500).json({ error: 'Failed to update AI summary' });
+  }
+});
+
+// Student requests an edit to the summary
+// POST /api/consultations/:id/summary-edit-request { reason? }
+router.post('/consultations/:id/summary-edit-request', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { reason } = req.body || {};
+  const user = req.user || {};
+  try {
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    if (user.role !== 'student' || user.id !== c.student_user_id) {
+      return res.status(403).json({ error: 'Only the assigned student can request an edit' });
+    }
+    const title = 'Student requested summary edit';
+    const message = `Student requested an edit to the summary for '${c.topic}'.`;
+    const data = { consultation_id: Number(id), reason: reason || null };
+    await createNotification(pool, c.advisor_user_id, 'consultation_summary_edit_requested', title, message, data);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Summary edit request error:', err);
+    return res.status(500).json({ error: 'Failed to submit summary edit request' });
   }
 });
 
@@ -486,7 +568,14 @@ router.patch('/consultations/:id', async (req, res) => {
         const time = formatTimeRange(start, end);
         const title = `${c.student_name} rescheduled a consultation`;
         const message = `${c.student_name} requested '${c.topic}' on ${date} at ${time}.`;
-        await createNotification(pool, c.advisor_user_id, 'consultation_rescheduled', title, message, { consultation_id: c.id });
+        const changes = [];
+        if (body.start_datetime && body.end_datetime) changes.push('time');
+        if (body.location !== undefined) changes.push('location');
+        if (body.mode !== undefined) changes.push('mode');
+        const data = { consultation_id: c.id, changed: changes, date, time, location: c.location || null, mode: c.mode || null };
+        await createNotification(pool, c.advisor_user_id, 'consultation_rescheduled', title, message, data);
+        // Also notify student for visibility of confirmed changes
+        await createNotification(pool, c.student_user_id, 'consultation_rescheduled', 'Consultation updated', `Your consultation '${c.topic}' was updated to ${date} at ${time}.`, data);
       }
     } catch (err) {
       console.error('Reschedule notification error', err);
@@ -531,6 +620,50 @@ router.patch('/consultations/:id', async (req, res) => {
     res.status(500).json({ error: 'Failed to update consultation' });
   } finally {
     conn.release();
+  }
+});
+
+// Advisor starts online call or meeting link becomes available
+// POST /api/consultations/:id/room-ready
+router.post('/consultations/:id/room-ready', async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { meetingLink } = req.body || {};
+  try {
+    const [[c]] = await pool.query(
+      `SELECT c.*, s.full_name AS student_name, a.full_name AS advisor_name
+       FROM consultations c
+       JOIN users s ON s.id = c.student_user_id
+       JOIN users a ON a.id = c.advisor_user_id
+       WHERE c.id = ?`, [id]
+    );
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+
+    // Persist meeting link if provided and missing
+    if (meetingLink && !c.meeting_link) {
+      await pool.query('UPDATE consultations SET meeting_link = ? WHERE id = ?', [meetingLink, id]);
+      c.meeting_link = meetingLink;
+    }
+
+    // Persist room_name using the standard pattern advisys-<id> when missing
+    const roomName = c.room_name || `advisys-${c.id}`;
+    if (!c.room_name) {
+      await pool.query('UPDATE consultations SET room_name = ? WHERE id = ?', [roomName, id]);
+      c.room_name = roomName;
+    }
+
+    const start = new Date(c.start_datetime);
+    const end = new Date(c.end_datetime);
+    const date = formatDate(start);
+    const time = formatTimeRange(start, end);
+    const title = `Online meeting room is ready`;
+    const msg = `Your consultation '${c.topic}' on ${date} at ${time} has an active meeting room. You can join when ready.`;
+    const data = { consultation_id: c.id, meeting_link: c.meeting_link || meetingLink || null, room_name: c.room_name };
+    await createNotification(pool, c.student_user_id, 'consultation_room_ready', title, msg, data);
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Room-ready endpoint error', err);
+    res.status(500).json({ error: 'Failed to mark room ready' });
   }
 });
 

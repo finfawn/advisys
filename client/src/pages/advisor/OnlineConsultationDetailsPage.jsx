@@ -67,6 +67,45 @@ export default function AdvisorOnlineConsultationDetailsPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
 
+  // Disable Start until within 5 minutes before scheduled start
+  const [canStart, setCanStart] = useState(true);
+  const getStartDate = (c) => {
+    if (c?.start_datetime) {
+      const d = new Date(c.start_datetime);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    // Fallback parse when only date/time strings present (e.g., demo state)
+    const dateStr = c?.date;
+    const timeStr = c?.time;
+    if (!dateStr || !timeStr) return null;
+    const match = String(timeStr).match(/(^|\s)(\d{1,2}:\d{2}\s*(AM|PM))/i);
+    if (!match) return null;
+    const t = match[2];
+    const mer = /PM/i.test(t) ? 'PM' : 'AM';
+    const hm = t.replace(/\s*(AM|PM)/i, '').trim();
+    const [hRaw, mRaw] = hm.split(':');
+    let h = Number(hRaw);
+    const m = Number(mRaw);
+    if (mer === 'PM' && h < 12) h += 12;
+    if (mer === 'AM' && h === 12) h = 0;
+    const d = new Date(dateStr);
+    if (isNaN(d.getTime())) return null;
+    d.setHours(h, m, 0, 0);
+    return d;
+  };
+  useEffect(() => {
+    const updateStartGuard = () => {
+      const start = getStartDate(consultationData);
+      if (!start) { setCanStart(true); return; }
+      const now = new Date();
+      const threshold = new Date(start.getTime() - 5 * 60000);
+      setCanStart(now >= threshold);
+    };
+    updateStartGuard();
+    const id = setInterval(updateStartGuard, 15000);
+    return () => clearInterval(id);
+  }, [consultationData]);
+
   const handleNavigation = (page) => {
     if (page === 'consultations') navigate('/advisor-dashboard/consultations');
     if (page === 'dashboard') navigate('/advisor-dashboard');
@@ -242,7 +281,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                     <h2 className="section-title"><BsPlayCircle className="section-icon"/> Actions</h2>
                     <div className="section-content">
                       <div className="action-buttons">
-                        <button className="action-btn join-meeting" onClick={()=>setInCall(true)}>
+                        <button className="action-btn join-meeting" onClick={()=>setInCall(true)} disabled={!canStart} title={!canStart ? 'Available 5 minutes before start time' : undefined}>
                           <BsPlayCircle />
                           Start
                         </button>
