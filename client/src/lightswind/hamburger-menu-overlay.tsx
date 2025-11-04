@@ -310,6 +310,36 @@ export const HamburgerMenuOverlay: React.FC<HamburgerMenuOverlayProps> = ({
               ${menuDirection === "horizontal" ? "display: block; margin: 0;" : ""}
             }
           }
+
+          /* Tablet responsiveness (iPad Air/Pro portrait widths) */
+          @media (min-width: 768px) and (max-width: 1180px) {
+            .hamburger-button-${zIndex} {
+              left: 24px;
+              top: 22px;
+            }
+
+            .hamburger-overlay-${zIndex} {
+              clip-path: circle(0px at 24px 22px);
+            }
+
+            .hamburger-overlay-${zIndex}.open {
+              clip-path: circle(150% at 24px 22px);
+            }
+          }
+
+          /* Tablet-plus responsiveness (1181px–1366px) */
+          @media (min-width: 1181px) and (max-width: 1366px) {
+            .hamburger-button-${zIndex} {
+              left: 26px;
+              top: 24px;
+            }
+            .hamburger-overlay-${zIndex} {
+              clip-path: circle(0px at 26px 24px);
+            }
+            .hamburger-overlay-${zIndex}.open {
+              clip-path: circle(150% at 26px 24px);
+            }
+          }
         `}
       </style>
 

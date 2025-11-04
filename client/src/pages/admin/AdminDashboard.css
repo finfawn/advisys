@@ -113,6 +113,40 @@
   .grid-right-topics { grid-row: auto; }
 }
 
+/* Tablet (iPad portrait widths): collapse layout for seamless transition */
+@media (min-width: 768px) and (max-width: 1180px) {
+  .admin-dash-body {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dash-body.collapsed {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-dash-main {
+    padding: 18px;
+    gap: 18px;
+    height: auto;
+    overflow-y: visible;
+  }
+
+  .admin-dashboard-grid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  .grid-right-topics { grid-column: 1; grid-row: auto; }
+}
+
+/* Tablet-plus (1181px–1366px): keep single column to avoid right gap */
+@media (min-width: 1181px) and (max-width: 1366px) {
+  .admin-dash-body { grid-template-columns: 1fr; }
+  .admin-dash-body.collapsed { grid-template-columns: 1fr; }
+  .admin-dash-main { padding: 20px; gap: 18px; height: auto; overflow-y: visible; }
+  .admin-dashboard-grid { grid-template-columns: 1fr; gap: 18px; }
+  .grid-right-topics { grid-column: 1; grid-row: auto; }
+}
+
 @media (max-width: 480px) {
   .admin-dash-main {
     padding: 12px;
