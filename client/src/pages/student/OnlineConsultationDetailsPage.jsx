@@ -18,7 +18,7 @@ import {
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
-import JitsiMeetCall from "../../components/student/JitsiMeetCall";
+import StreamMeetCall from "../../components/student/StreamMeetCall";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { ShineButton } from "../../lightswind/shine-button";
@@ -372,7 +372,7 @@ export default function OnlineConsultationDetailsPage() {
                         <div className="meeting-details">
                           <span className="meeting-label">Video Conference</span>
                           <span className="meeting-link-text">Secure AdviSys Video Call</span>
-                          <span className="meeting-subtitle">Powered by Jitsi Meet</span>
+                          <span className="meeting-subtitle">Powered by Stream</span>
                         </div>
                       </div>
                     </div>
@@ -569,9 +569,9 @@ export default function OnlineConsultationDetailsPage() {
         isCancelling={isCancelling}
       />
 
-      {/* Jitsi Meet Call */}
+      {/* Stream Video Call */}
       {inCall && (
-        <JitsiMeetCall
+        <StreamMeetCall
           roomName={`consultation-${consultationData.id}`}
           displayName="Student"
           onClose={handleLeaveCall}

@@ -31,6 +31,9 @@ const settingsRouter = require('./routes/settings');
 app.use('/api/settings', settingsRouter);
 const transcriptionsRouter = require('./routes/transcriptions');
 app.use('/api', transcriptionsRouter);
+// Stream Video token minting
+const streamRouter = require('./routes/stream');
+app.use('/api/stream', streamRouter);
 // RS256 JaaS JWT generation endpoint mounted at root
 const generateJwtRouter = require('./routes/generate_jwt');
 app.use('/generate-jwt', generateJwtRouter);
