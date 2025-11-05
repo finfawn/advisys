@@ -89,7 +89,7 @@ export default function OnlineConsultationDetailsPage() {
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
         if (found) {
           setConsultationData(found);
-          if (found?.summaryNotes) setNotesDraft(found.summaryNotes);
+          if (found?.studentPrivateNotes) setNotesDraft(found.studentPrivateNotes);
         }
         else setError('Consultation not found');
       })
@@ -141,17 +141,17 @@ export default function OnlineConsultationDetailsPage() {
     setSavingNotes(true);
     setSaveNotesSuccess(false);
     try {
-      const r = await fetch(`${base}/api/consultations/${consultationData.id}/summary-notes`, {
+      const r = await fetch(`${base}/api/consultations/${consultationData.id}/student-notes`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ summaryNotes: notesDraft || '' }),
+        body: JSON.stringify({ studentNotes: notesDraft || '' }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setSaveNotesSuccess(true);
-      setConsultationData({ ...consultationData, summaryNotes: notesDraft });
+      setConsultationData({ ...consultationData, studentPrivateNotes: notesDraft });
       setTimeout(()=>setSaveNotesSuccess(false), 2500);
     } catch (err) {
       console.error('Save consultation notes failed', err);
@@ -391,7 +391,6 @@ export default function OnlineConsultationDetailsPage() {
                       <span className="category-text">{consultationData.category}</span>
                     </div>
                     <div className="student-notes">
-                      <h3>My Notes</h3>
                       <p className="notes-text">{consultationData.studentNotes}</p>
                     </div>
                   </div>
@@ -489,7 +488,7 @@ export default function OnlineConsultationDetailsPage() {
                           onChange={(e) => setNotesDraft(e.target.value)}
                           onBlur={()=>{ setIsEditingNotes(false); handleSaveNotes(); }}
                           onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
-                          placeholder="General notes from the consultation (shared with advisor)"
+                          placeholder="Your private notes for this consultation (not shared)"
                           rows={8}
                           autoFocus
                         />
@@ -538,7 +537,7 @@ export default function OnlineConsultationDetailsPage() {
                     <div className="info-grid">
                       <div className="info-item">
                         <span className="info-label">Duration</span>
-                        <span className="info-value">{consultationData.duration}</span>
+                        <span className="info-value">{Number(consultationData.duration || consultationData.duration_minutes || 0) > 0 ? `${Number(consultationData.duration || consultationData.duration_minutes)} minutes` : '—'}</span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Booking Date</span>

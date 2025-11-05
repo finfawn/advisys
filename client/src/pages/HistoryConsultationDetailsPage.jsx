@@ -35,6 +35,10 @@ const HistoryConsultationDetailsPage = () => {
   const [savingSummary, setSavingSummary] = useState(false);
   const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
   const [showRequestPrompt, setShowRequestPrompt] = useState(false);
+  const [notesDraft, setNotesDraft] = useState('');
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [saveNotesSuccess, setSaveNotesSuccess] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('advisys_user');
@@ -53,7 +57,10 @@ const HistoryConsultationDetailsPage = () => {
       .then(list => {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
-        if (found) setConsultation(found);
+        if (found) {
+          setConsultation(found);
+          if (found?.studentPrivateNotes) setNotesDraft(found.studentPrivateNotes);
+        }
         else setError('Consultation not found');
       })
       .catch(err => {
@@ -193,6 +200,33 @@ const HistoryConsultationDetailsPage = () => {
     }
   };
 
+  const handleSaveNotes = async () => {
+    if (!consultation) return;
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    setSavingNotes(true);
+    setSaveNotesSuccess(false);
+    try {
+      const r = await fetch(`${base}/api/consultations/${consultation.id}/student-notes`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ studentNotes: notesDraft || '' }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setConsultation({ ...consultation, studentPrivateNotes: notesDraft });
+      setSaveNotesSuccess(true);
+      setTimeout(()=>setSaveNotesSuccess(false), 2500);
+    } catch (err) {
+      console.error('Save private notes failed', err);
+      alert('Failed to save notes.');
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
   return (
     <div className="consultation-details-wrap advisor-details-page">
       <TopNavbar />
@@ -210,7 +244,7 @@ const HistoryConsultationDetailsPage = () => {
               onClick={() => navigate('/student-dashboard/consultations')}
             >
               <BsChevronLeft />
-              Back to My
+              Back to My Consultations
             </button>
           </div>
 
@@ -277,7 +311,6 @@ const HistoryConsultationDetailsPage = () => {
                       <span className="category-text">{consultation?.category || 'General'}</span>
                     </div>
                     <div className="student-notes">
-                      <h3>My Notes</h3>
                       <p className="notes-text">{consultation?.studentNotes || 'No notes provided.'}</p>
                     </div>
                   </div>
@@ -337,17 +370,32 @@ const HistoryConsultationDetailsPage = () => {
 
               {/* Right Column */}
               <div className="consultation-details-right">
-                {/* Student Notes Section (sticky-note display) */}
+                {/* Student Private Notes Section (sticky-note editable) */}
                 <section className="consultation-details-section">
                   <h2 className="section-title">
                     <BsListCheck className="section-icon" />
                     My Notes
                   </h2>
                   <div className="section-content">
-                    <div className="sticky-note">
+                    <div className="sticky-note" onClick={()=>{ if (!isEditingNotes) setIsEditingNotes(true); }}>
                       <div className="sticky-pin" />
-                      <div className="sticky-note-display">{consultation?.studentNotes || 'No notes provided.'}</div>
+                      {!isEditingNotes ? (
+                        <div className="sticky-note-display">{notesDraft || 'Click to add notes for this consultation.'}</div>
+                      ) : (
+                        <textarea
+                          className="sticky-note-textarea"
+                          value={notesDraft}
+                          onChange={(e) => setNotesDraft(e.target.value)}
+                          onBlur={()=>{ setIsEditingNotes(false); handleSaveNotes(); }}
+                          onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
+                          placeholder="Your private notes for this consultation (not shared)"
+                          rows={8}
+                          autoFocus
+                        />
+                      )}
                     </div>
+                    {savingNotes && <span className="success-text">Saving...</span>}
+                    {saveNotesSuccess && <span className="success-text">Notes saved.</span>}
                   </div>
                 </section>
 

@@ -37,18 +37,9 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
   const facultyData = faculty || defaultFaculty;
 
-  // Categories to display come from advisor profile topics (DB), fallback to defaults
+  // Categories come strictly from advisor profile topics in DB (no hardcoded fallback)
   const categories = React.useMemo(() => {
-    const fromAdvisor = Array.isArray(facultyData?.topicsCanHelpWith) ? facultyData.topicsCanHelpWith : [];
-    if (fromAdvisor.length > 0) return fromAdvisor;
-    return [
-      "Academic Planning",
-      "Course Selection",
-      "Research Guidance",
-      "Career Advice",
-      "Technical Support",
-      "Project Review"
-    ];
+    return Array.isArray(facultyData?.topicsCanHelpWith) ? facultyData.topicsCanHelpWith : [];
   }, [facultyData]);
 
   // Advisor-defined rooms derived from upcoming in-person slots
@@ -359,7 +350,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
 
   // Step 1 no longer requires selecting a location; location is determined by slot
-  const isStep1Valid = formData.description.trim() && formData.category;
+  // If advisor has no categories, allow proceeding with description only
+  const isStep1Valid = !!formData.description.trim() && (categories.length === 0 || !!formData.category);
   const isStep2Valid = selectedSlot;
 
   // Make progress fill align with step numbers (0%, 50%, 100%)
@@ -457,18 +449,24 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
             <div className="form-section">
               <label className="form-label">Category</label>
-              <div className="category-pills">
-                {categories.map((category) => (
-                  <button
-                    key={category}
-                    type="button"
-                    className={`category-pill ${formData.category === category ? 'selected' : ''}`}
-                    onClick={() => handleCategorySelect(category)}
-                  >
-                    {category}
-                  </button>
-                ))}
-              </div>
+              {categories.length > 0 ? (
+                <div className="category-pills">
+                  {categories.map((category) => (
+                    <button
+                      key={category}
+                      type="button"
+                      className={`category-pill ${formData.category === category ? 'selected' : ''}`}
+                      onClick={() => handleCategorySelect(category)}
+                    >
+                      {category}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="form-static-text text-muted small">
+                  No categories set by this advisor yet. You can proceed with a description.
+                </div>
+              )}
             </div>
 
           <div className="form-section">

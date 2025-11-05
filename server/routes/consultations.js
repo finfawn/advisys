@@ -211,6 +211,13 @@ router.get('/students/:studentId/consultations', async (req, res) => {
       const date = formatDate(start);
       const time = formatTimeRange(start, end);
       const [guidelines] = await pool.query('SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?', [r.id]);
+      // Compute duration: prefer actual timestamps if available
+      const actualStart = r.actual_start_datetime ? new Date(r.actual_start_datetime) : null;
+      const actualEnd = r.actual_end_datetime ? new Date(r.actual_end_datetime) : null;
+      const computedDuration = (actualStart && actualEnd)
+        ? Math.max(0, Math.round((actualEnd.getTime() - actualStart.getTime()) / 60000))
+        : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)));
+
       result.push({
         id: r.id,
         date,
@@ -222,6 +229,7 @@ router.get('/students/:studentId/consultations', async (req, res) => {
         category: r.category || undefined,
         student_notes: r.student_notes || undefined,
         studentNotes: r.student_notes || undefined,
+        studentPrivateNotes: r.student_private_notes || undefined,
         summaryNotes: r.summary_notes || undefined,
         finalTranscript: r.final_transcript || undefined,
         aiSummary: r.ai_summary || undefined,
@@ -236,7 +244,7 @@ router.get('/students/:studentId/consultations', async (req, res) => {
         roomName: r.room_name || undefined,
         location: r.location || undefined,
         declineReason: r.decline_reason || undefined,
-        duration: r.duration_minutes || 30,
+        duration: computedDuration,
         bookingDate: r.booking_date,
         guidelines: guidelines.map(g => g.guideline_text),
       });
@@ -278,6 +286,12 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
     const time = formatTimeRange(start, end);
     const [guidelines] = await pool.query('SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?', [r.id]);
     const course = r.student_program ? `${r.student_program} - ${yearLabel(r.student_year || 1)}` : yearLabel(r.student_year || 1);
+    const actualStart = r.actual_start_datetime ? new Date(r.actual_start_datetime) : null;
+    const actualEnd = r.actual_end_datetime ? new Date(r.actual_end_datetime) : null;
+    const computedDuration = (actualStart && actualEnd)
+      ? Math.max(0, Math.round((actualEnd.getTime() - actualStart.getTime()) / 60000))
+      : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)));
+
     result.push({
       id: r.id,
       date,
@@ -289,6 +303,7 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       // Include student-selected category and notes to render accurate details
       category: r.category || undefined,
       studentNotes: r.student_notes || undefined,
+      advisorPrivateNotes: r.advisor_private_notes || undefined,
       summaryNotes: r.summary_notes || undefined,
       finalTranscript: r.final_transcript || undefined,
       aiSummary: r.ai_summary || undefined,
@@ -301,7 +316,7 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       roomName: r.room_name || undefined,
       location: r.location || undefined,
       declineReason: r.decline_reason || undefined,
-      duration: r.duration_minutes || 30,
+      duration: computedDuration,
       bookingDate: r.booking_date,
       guidelines: guidelines.map(g => g.guideline_text),
     });
@@ -334,9 +349,38 @@ router.patch('/consultations/:id/status', async (req, res) => {
     if (location !== undefined) { fields.push('location = ?'); values.push(location || null); }
     if (summaryNotes !== undefined) { fields.push('summary_notes = ?'); values.push(summaryNotes || null); }
     values.push(id);
+    // If completing, stamp actual_end_datetime now
+    let now = null;
+    if (status === 'completed') {
+      now = new Date();
+      fields.push('actual_end_datetime = ?');
+      values = [status, ...(declineReason !== undefined ? [declineReason || null] : []), ...(cancelReason !== undefined ? [cancelReason || null] : []), ...(location !== undefined ? [location || null] : []), ...(summaryNotes !== undefined ? [summaryNotes || null] : []), now, id];
+    }
     const [result] = await pool.query(`UPDATE consultations SET ${fields.join(', ')} WHERE id = ?`, values);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Consultation not found' });
+    }
+
+    // If completed, compute actual duration from actual_start/end and persist
+    if (status === 'completed') {
+      try {
+        const [[row]] = await pool.query('SELECT actual_start_datetime, actual_end_datetime, start_datetime, end_datetime, duration_minutes FROM consultations WHERE id = ?', [id]);
+        if (row) {
+          const as = row.actual_start_datetime ? new Date(row.actual_start_datetime) : null;
+          const ae = row.actual_end_datetime ? new Date(row.actual_end_datetime) : null;
+          let durationMin = Number(row.duration_minutes || 0) || null;
+          if (as && ae) {
+            durationMin = Math.max(0, Math.round((ae.getTime() - as.getTime()) / 60000));
+          } else if (!durationMin) {
+            const ss = new Date(row.start_datetime);
+            const ee = new Date(row.end_datetime);
+            durationMin = Math.max(0, Math.round((ee.getTime() - ss.getTime()) / 60000));
+          }
+          await pool.query('UPDATE consultations SET duration_minutes = ? WHERE id = ?', [durationMin || null, id]);
+        }
+      } catch (err) {
+        console.error('Failed to compute/persist actual duration on complete', err);
+      }
     }
 
     // Create appropriate notification based on new status
@@ -396,6 +440,24 @@ router.patch('/consultations/:id/status', async (req, res) => {
   } catch (err) {
     console.error('Update consultation status error', err);
     res.status(500).json({ error: 'Failed to update consultation' });
+  }
+});
+
+// Mark consultation as started (records actual_start_datetime)
+// POST /api/consultations/:id/started
+router.post('/consultations/:id/started', async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  try {
+    const now = new Date();
+    const [result] = await pool.query('UPDATE consultations SET actual_start_datetime = ? WHERE id = ?', [now, id]);
+    if (result.affectedRows === 0) {
+      return res.status(404).json({ error: 'Consultation not found' });
+    }
+    res.json({ success: true, started_at: now });
+  } catch (err) {
+    console.error('Mark started error', err);
+    res.status(500).json({ error: 'Failed to mark consultation started' });
   }
 });
 
@@ -484,6 +546,74 @@ router.patch('/consultations/:id/summary-notes', authMiddleware, async (req, res
   } catch (err) {
     console.error('Update summary notes error:', err);
     return res.status(500).json({ error: 'Failed to update summary notes' });
+  }
+});
+
+// Private notes: ensure columns exist for advisor and student private notes
+async function ensurePrivateNotesColumns(pool) {
+  try {
+    const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "advisor_private_notes"');
+    if (!cols || cols.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN advisor_private_notes TEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+  try {
+    const [cols2] = await pool.query('SHOW COLUMNS FROM consultations LIKE "student_private_notes"');
+    if (!cols2 || cols2.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN student_private_notes TEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+}
+
+// Advisor updates private notes (not shared with student)
+// PATCH /api/consultations/:id/advisor-notes { advisorNotes }
+router.patch('/consultations/:id/advisor-notes', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { advisorNotes } = req.body || {};
+  const user = req.user || {};
+  if (typeof advisorNotes !== 'string') {
+    return res.status(400).json({ error: 'advisorNotes must be a string' });
+  }
+  try {
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    const isAdvisor = user.role === 'advisor' && user.id === c.advisor_user_id;
+    if (!isAdvisor) {
+      return res.status(403).json({ error: 'Only the assigned advisor can edit advisor notes' });
+    }
+    await ensurePrivateNotesColumns(pool);
+    await pool.query('UPDATE consultations SET advisor_private_notes = ? WHERE id = ?', [advisorNotes, id]);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Update advisor notes error:', err);
+    return res.status(500).json({ error: 'Failed to update advisor notes' });
+  }
+});
+
+// Student updates private notes (not shared with advisor)
+// PATCH /api/consultations/:id/student-notes { studentNotes }
+router.patch('/consultations/:id/student-notes', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { studentNotes } = req.body || {};
+  const user = req.user || {};
+  if (typeof studentNotes !== 'string') {
+    return res.status(400).json({ error: 'studentNotes must be a string' });
+  }
+  try {
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    const isStudent = user.role === 'student' && user.id === c.student_user_id;
+    if (!isStudent) {
+      return res.status(403).json({ error: 'Only the assigned student can edit student notes' });
+    }
+    await ensurePrivateNotesColumns(pool);
+    await pool.query('UPDATE consultations SET student_private_notes = ? WHERE id = ?', [studentNotes, id]);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Update student notes error:', err);
+    return res.status(500).json({ error: 'Failed to update student notes' });
   }
 });
 
@@ -691,7 +821,7 @@ router.patch('/consultations/:id', async (req, res) => {
     const date = formatDate(start);
     const time = formatTimeRange(start, end);
     const [guidelines] = await pool.query('SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?', [r.id]);
-    return res.json({
+  return res.json({
       id: r.id,
       date,
       time,
@@ -707,7 +837,12 @@ router.patch('/consultations/:id', async (req, res) => {
       status: r.status,
       roomName: r.room_name || undefined,
       location: r.location || undefined,
-      duration: r.duration_minutes || 30,
+      studentNotes: r.student_notes || undefined,
+      studentPrivateNotes: r.student_private_notes || undefined,
+      summaryNotes: r.summary_notes || undefined,
+      duration: (r.actual_start_datetime && r.actual_end_datetime)
+        ? Math.max(0, Math.round((new Date(r.actual_end_datetime).getTime() - new Date(r.actual_start_datetime).getTime()) / 60000))
+        : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000))),
       bookingDate: r.booking_date,
       guidelines: guidelines.map(g => g.guideline_text),
     });

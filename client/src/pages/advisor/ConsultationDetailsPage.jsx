@@ -71,7 +71,8 @@ export default function AdvisorConsultationDetailsPage() {
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
         if (found) setConsultationData(found);
         if (found?.aiSummary) setAiSummaryDraft(found.aiSummary);
-        if (found?.summaryNotes) setNotesDraft(found.summaryNotes);
+        if (found?.advisorPrivateNotes) setNotesDraft(found.advisorPrivateNotes);
+        else if (found?.summaryNotes) setNotesDraft(found.summaryNotes);
         else setError('Consultation not found');
       })
       .catch(err => {
@@ -82,6 +83,12 @@ export default function AdvisorConsultationDetailsPage() {
   }, [consultationId]);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isDesktop, setIsDesktop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : true));
+  useEffect(() => {
+    const onResize = () => setIsDesktop(window.innerWidth >= 1024);
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);
 
   const formatDate = (iso) => new Date(iso).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
   const formatBookingDate = (iso) => new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -97,8 +104,14 @@ export default function AdvisorConsultationDetailsPage() {
   const showActions = statusClass === 'approved' && !isCompletedLike;
 
   const handleStart = () => {
-    // Placeholder for starting an in-person consultation flow
-    // e.g., mark as started, open a notes panel, etc.
+    // Mark consultation as started to record actual start time
+    try {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      fetch(`${base}/api/consultations/${consultationData.id}/started`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      }).catch(()=>{});
+    } catch (_) {}
     console.log("Consultation started:", consultationData.id);
   };
 
@@ -141,17 +154,17 @@ export default function AdvisorConsultationDetailsPage() {
     setSavingNotes(true);
     setSaveNotesSuccess(false);
     try {
-      const r = await fetch(`${base}/api/consultations/${consultationData.id}/summary-notes`, {
+      const r = await fetch(`${base}/api/consultations/${consultationData.id}/advisor-notes`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },
-        body: JSON.stringify({ summaryNotes: notesDraft || '' }),
+        body: JSON.stringify({ advisorNotes: notesDraft || '' }),
       });
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       setSaveNotesSuccess(true);
-      setConsultationData({ ...consultationData, summaryNotes: notesDraft });
+      setConsultationData({ ...consultationData, advisorPrivateNotes: notesDraft });
       setTimeout(()=>setSaveNotesSuccess(false), 2500);
     } catch (err) {
       console.error('Save consultation notes failed', err);
@@ -254,8 +267,6 @@ export default function AdvisorConsultationDetailsPage() {
           {loading && <div className="details-loading">Loading consultation details…</div>}
           {error && <div className="details-error">{error}</div>}
 
-          {/* Actions hidden on advisor consultation details (mobile/tablet) */}
-
           <div className="consultation-details-container">
             <section className="consultation-details-header">
               <div className="header-content">
@@ -356,7 +367,66 @@ export default function AdvisorConsultationDetailsPage() {
               </div>
 
               <div className="consultation-details-right">
-                {/* Actions hidden on advisor consultation details (desktop) */}
+                {/* Actions: show Start/Cancel for upcoming approved consultations */}
+                {showActions && (
+                  isDesktop ? (
+                    <section className="consultation-details-section actions-section">
+                      <h2 className="section-title"><BsCalendarEvent className="section-icon"/> Actions</h2>
+                      <div className="section-content">
+                        <div className="action-buttons">
+                          <button
+                            className="action-btn join-meeting"
+                            onClick={handleStart}
+                            disabled={!canStart}
+                            title={canStart ? 'Start the consultation' : 'Available 5 minutes before start time'}
+                          >
+                            <BsPlayCircle /> Start
+                          </button>
+                          <button
+                            className="action-btn cancel-consultation"
+                            onClick={() => setShowCancelModal(true)}
+                            disabled={isCancelling}
+                          >
+                            <BsXCircle /> Cancel Consultation
+                          </button>
+                        </div>
+                      </div>
+                    </section>
+                  ) : (
+                    <section className="consultation-details-section actions-section">
+                      <Collapsible>
+                        <CollapsibleTrigger asChild className="actions-trigger">
+                          <button className="actions-trigger">
+                            <h2 className="section-title">
+                              <BsCalendarEvent className="section-icon" />
+                              Actions
+                              <BsChevronDown className="chevron-icon" />
+                            </h2>
+                          </button>
+                        </CollapsibleTrigger>
+                        <CollapsibleContent className="section-content">
+                          <div className="action-buttons">
+                            <button
+                              className="action-btn join-meeting"
+                              onClick={handleStart}
+                              disabled={!canStart}
+                              title={canStart ? 'Start the consultation' : 'Available 5 minutes before start time'}
+                            >
+                              <BsPlayCircle /> Start
+                            </button>
+                            <button
+                              className="action-btn cancel-consultation"
+                              onClick={() => setShowCancelModal(true)}
+                              disabled={isCancelling}
+                            >
+                              <BsXCircle /> Cancel Consultation
+                            </button>
+                          </div>
+                        </CollapsibleContent>
+                      </Collapsible>
+                    </section>
+                  )
+                )}
 
                 {/* Consultation Notes above Details (right column) */}
                 <section className="consultation-details-section">
@@ -374,7 +444,7 @@ export default function AdvisorConsultationDetailsPage() {
                           onChange={(e) => setNotesDraft(e.target.value)}
                           onBlur={()=>{ setIsEditingNotes(false); handleSaveNotes(); }}
                           onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
-                          placeholder="General notes from the consultation (shared with student)"
+                          placeholder="My private notes for this consultation (visible only to me)"
                           rows={8}
                           autoFocus
                         />
@@ -390,7 +460,7 @@ export default function AdvisorConsultationDetailsPage() {
                   <h2 className="section-title"><BsClock className="section-icon"/> Details</h2>
                   <div className="section-content">
                     <div className="info-grid">
-                      <div className="info-item"><span className="info-label">Duration</span><span className="info-value">{consultationData.duration || '30 minutes'}</span></div>
+                      <div className="info-item"><span className="info-label">Duration</span><span className="info-value">{Number(consultationData.duration || consultationData.duration_minutes || 0) > 0 ? `${Number(consultationData.duration || consultationData.duration_minutes)} minutes` : '—'}</span></div>
                       <div className="info-item"><span className="info-label">Booking Date</span><span className="info-value">{formatBookingDate(consultationData.bookingDate || consultationData.date)}</span></div>
                       <div className="info-item"><span className="info-label">Status</span><span className={`info-value status-${statusClass}`}>{statusLabel}</span></div>
                       <div className="info-item"><span className="info-label">Mode</span><span className="info-value">{modeLabel}</span></div>

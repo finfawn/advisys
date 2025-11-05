@@ -236,6 +236,15 @@ const JitsiMeetCall = ({ roomName, displayName, onClose, consultationData }) => 
       setInMeeting(true);
       // Begin tab audio capture for transcripts-only flow
       startCombinedAudioCapture();
+      // Record actual start time when meeting is joined
+      if (consultationData?.id) {
+        try {
+          fetch(`${API_BASE_URL}/api/consultations/${consultationData.id}/started`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+          }).catch(()=>{});
+        } catch (_) {}
+      }
       if (isAdvisor) {
         const link = `https://8x8.vc/${APP_ID}/${jitsiRoomName}`;
         try {

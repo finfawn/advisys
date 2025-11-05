@@ -153,6 +153,8 @@ CREATE TABLE IF NOT EXISTS `consultations` (
   `student_notes` TEXT NULL,
   `start_datetime` DATETIME NOT NULL,
   `end_datetime` DATETIME NOT NULL,
+  `actual_start_datetime` DATETIME NULL,
+  `actual_end_datetime` DATETIME NULL,
   `duration_minutes` INT UNSIGNED NULL,
   `booking_date` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `summary_notes` TEXT NULL,
