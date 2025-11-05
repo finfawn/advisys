@@ -11,6 +11,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const [isClosing, setIsClosing] = useState(false);
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification, clearAllNotifications, undoClearAllNotifications } = useNotifications();
   const navigate = useNavigate();
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   // Local undo toast state (consultation-style)
   const [undoToast, setUndoToast] = useState({ open: false, timeoutId: null, message: "" });
   // Confirm delete-all when there are unread notifications
@@ -194,6 +195,10 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   };
 
   const getActionLabel = (notification) => {
+    // For summary edit requests, advisors should be able to approve/decline
+    if (notification.type === 'consultation_summary_edit_requested' && userType === 'advisor') {
+      return 'Review';
+    }
     const consultTypes = new Set([
       'consultation_request',
       'consultation_request_submitted',
@@ -246,6 +251,66 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     markAsRead(notification.id);
     const route = resolveActionRoute(notification);
     navigate(route);
+  };
+
+  const handleApproveEditRequest = async (e, notification) => {
+    e.stopPropagation();
+    try {
+      const cid = notification?.data?.consultation_id;
+      if (!cid) {
+        alert('Missing consultation id in notification data.');
+        return;
+      }
+      const note = typeof window !== 'undefined' ? window.prompt('Optional note to student:', '') : '';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const res = await fetch(`${apiBase}/api/consultations/${cid}/summary-edit-approve`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ note: note || null }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Failed to approve request');
+      }
+      markAsRead(notification.id);
+      deleteNotification(notification.id);
+    } catch (err) {
+      console.error('Approve edit request error:', err);
+      alert('Failed to approve: ' + (err?.message || 'Unknown error'));
+    }
+  };
+
+  const handleDeclineEditRequest = async (e, notification) => {
+    e.stopPropagation();
+    try {
+      const cid = notification?.data?.consultation_id;
+      if (!cid) {
+        alert('Missing consultation id in notification data.');
+        return;
+      }
+      const reason = typeof window !== 'undefined' ? window.prompt('Reason for decline (optional):', '') : '';
+      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const res = await fetch(`${apiBase}/api/consultations/${cid}/summary-edit-decline`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ reason: reason || null }),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Failed to decline request');
+      }
+      markAsRead(notification.id);
+      deleteNotification(notification.id);
+    } catch (err) {
+      console.error('Decline edit request error:', err);
+      alert('Failed to decline: ' + (err?.message || 'Unknown error'));
+    }
   };
 
   const handleMarkAllAsRead = () => {
@@ -310,6 +375,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const filteredNotifications = notifications.filter(notification => {
     if (activeTab === "all") return true;
     if (activeTab === "unread") return !notification.isRead;
+    if (activeTab === "edit_requests") return notification.type === 'consultation_summary_edit_requested';
     return notification.type === activeTab;
   });
 
@@ -350,6 +416,14 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
           >
             Unread
           </button>
+          {userType === 'advisor' && (
+            <button 
+              className={`notification-tab ${activeTab === "edit_requests" ? "active" : ""}`}
+              onClick={() => setActiveTab("edit_requests")}
+            >
+              Edit Requests
+            </button>
+          )}
         </div>
 
         {/* Notifications List */}
@@ -412,12 +486,29 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
                     <div className="notification-time">
                       <span className="time-relative">{formatTimestamp(notification.timestamp)}</span>
                     </div>
-                    <button
-                      className="notification-action"
-                      onClick={(e) => handleActionClick(e, notification)}
-                    >
-                      {getActionLabel(notification)}
-                    </button>
+                    {notification.type === 'consultation_summary_edit_requested' && userType === 'advisor' ? (
+                      <div className="notification-actions">
+                        <button
+                          className="notification-action"
+                          onClick={(e) => handleApproveEditRequest(e, notification)}
+                        >
+                          Approve
+                        </button>
+                        <button
+                          className="notification-action"
+                          onClick={(e) => handleDeclineEditRequest(e, notification)}
+                        >
+                          Decline
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="notification-action"
+                        onClick={(e) => handleActionClick(e, notification)}
+                      >
+                        {getActionLabel(notification)}
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

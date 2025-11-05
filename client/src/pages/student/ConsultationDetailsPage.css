@@ -95,6 +95,16 @@
   flex-direction: column;
 }
 
+/* Global bottom padding to ensure last content isn’t clipped */
+.consultation-details-main {
+  padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 70px);
+}
+
+/* Also add a subtle bottom padding on the inner container */
+.consultation-details-container {
+  padding-bottom: 16px;
+}
+
 /* Loading and error messages styling for advisor detail pages */
 .advisor-details-page .details-loading,
 .advisor-details-page .details-error {
@@ -326,6 +336,17 @@
   align-items: start;
 }
 
+/* Row that places Summary and Notes side-by-side under Details */
+.side-by-side-row {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+@media (min-width: 1024px) {
+  .side-by-side-row { grid-template-columns: 1fr 1fr; }
+}
+
 /* Consultation Details Sections */
 .consultation-details-section {
   background: #ffffff;
@@ -477,10 +498,31 @@
   background: #f8fafc;
   border: 1px solid rgba(0,0,0,0.08);
   border-radius: 12px;
+  /* Initial square-like height; grows as content expands */
+  min-height: 160px;
+  display: block;
   /* Preserve intentional newlines from DB while wrapping long lines */
   white-space: pre-wrap;
   overflow-wrap: break-word;
 }
+
+/* Simple editor styles shared by advisor and student pages */
+.summary-editor { margin-top: 12px; }
+.edit-request-label { display:block; font-weight:600; color:#374151; margin-bottom:8px; }
+.edit-request-textarea {
+  width: 100%;
+  /* Initial height for editors; expands with content */
+  min-height: 160px;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid #e5e7eb;
+  background: #ffffff;
+  color: #374151;
+  resize: vertical;
+}
+.edit-request-textarea:focus { outline: 2px solid #93c5fd; outline-offset: 2px; }
+.edit-request-actions { display:flex; align-items:center; gap:10px; margin-top:10px; }
+.success-text { color:#166534; font-weight:600; font-size:0.9rem; }
 
 .notes-container {
   /* Match card styling with other sections */
@@ -499,6 +541,70 @@
   /* Allow long content to wrap and remain readable */
   white-space: pre-wrap; /* keep newlines from user input */
   overflow-wrap: break-word;
+}
+
+/* Sticky Note styles (used by advisor pages for Notes UI) */
+.sticky-note {
+  position: relative;
+  background: #fff6a8; /* soft sticky-note yellow */
+  border: 1px solid #f4e58a;
+  border-radius: 12px;
+  padding: 18px 16px 20px;
+  box-shadow: 0 10px 18px rgba(0,0,0,0.08);
+  transform: rotate(-0.4deg);
+  /* Give the note an initial presence; content can expand it */
+  min-height: 180px;
+}
+
+.sticky-note::after {
+  /* subtle bottom shadow vignette for paper depth */
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 6px;
+  height: 10px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.06), rgba(0,0,0,0));
+  border-radius: 6px;
+  pointer-events: none;
+}
+
+.sticky-pin {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  width: 18px;
+  height: 18px;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 35%, #ef4444 0%, #dc2626 60%, #b91c1c 100%);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+}
+
+.sticky-note-textarea {
+  width: 100%;
+  min-height: 160px;
+  border: none;
+  background: transparent;
+  color: #374151;
+  font-size: 1rem;
+  line-height: 1.7;
+  resize: vertical;
+}
+
+/* Display mode for sticky note content */
+.sticky-note-display {
+  white-space: pre-wrap;
+  overflow-wrap: break-word;
+  min-height: 160px; /* match textarea for visual consistency */
+}
+
+.sticky-note-textarea::placeholder { color: #6b7280; opacity: 0.9; }
+.sticky-note-textarea:focus { outline: none; }
+.sticky-note:focus-within { box-shadow: 0 12px 22px rgba(0,0,0,0.12); }
+
+@media (max-width: 768px) {
+  .sticky-note { transform: none; box-shadow: 0 6px 12px rgba(0,0,0,0.08); }
 }
 
 /* Guidelines Section */

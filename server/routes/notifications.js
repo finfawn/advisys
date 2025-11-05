@@ -4,6 +4,12 @@ const { getPool } = require('../db/pool');
 const router = express.Router();
 
 function toClientRow(r) {
+  let data = null;
+  try {
+    data = r.data_json ? JSON.parse(r.data_json) : null;
+  } catch (e) {
+    data = null;
+  }
   return {
     id: r.id,
     type: r.type,
@@ -11,6 +17,7 @@ function toClientRow(r) {
     message: r.message,
     timestamp: r.created_at,
     isRead: !!r.is_read,
+    data,
   };
 }
 

@@ -146,7 +146,7 @@ async function runConsultationReminderJob() {
     // Load consultations starting within the next REMINDER_WINDOW_MINUTES
     const [rows] = await pool.query(
       `SELECT c.id, c.student_user_id, c.advisor_user_id, c.topic, c.start_datetime, c.end_datetime, c.status,
-              s.full_name AS student_name, a.full_name AS advisor_name, c.meeting_link, c.location
+              s.full_name AS student_name, a.full_name AS advisor_name, c.room_name, c.location
          FROM consultations c
          JOIN users s ON s.id = c.student_user_id
          JOIN users a ON a.id = c.advisor_user_id
@@ -189,18 +189,18 @@ async function runConsultationReminderJob() {
         date,
         time,
         minutes_until: minsUntil,
-        meeting_link: c.meeting_link || null,
+        room_name: c.room_name || null,
         location: c.location || null,
       };
 
       // Student reminder
       if (studentEnabled && !(await hasExistingReminder(c.student_user_id))) {
         const title = `Upcoming consultation with ${c.advisor_name}`;
-        const baseWhere = c.meeting_link ? 'Join the online meeting room.' : (c.location ? `Location: ${c.location}.` : '');
-        const guidance = c.meeting_link
+        const baseWhere = c.room_name ? 'Online meeting room will be available.' : (c.location ? `Location: ${c.location}.` : '');
+        const guidance = c.room_name
           ? (minsUntil > 0
-              ? 'If the room is not open yet, please wait for your advisor to start the call at the scheduled time.'
-              : 'If you see an authentication or access message, refresh or wait a moment — the room opens when your advisor starts the call.')
+              ? 'Your advisor will start the call at the scheduled time. Join via the in-app JaaS room.'
+              : 'If access errors occur, refresh or wait a moment — the room opens when your advisor starts the call.')
           : (c.location ? 'Arrive a few minutes early and bring any required materials.' : '');
         const message = `Your consultation '${c.topic}' is scheduled for ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
         await createNotification(pool, c.student_user_id, 'consultation_reminder', title, message, data);
@@ -209,11 +209,11 @@ async function runConsultationReminderJob() {
       // Advisor reminder
       if (advisorEnabled && !(await hasExistingReminder(c.advisor_user_id))) {
         const title = `Upcoming consultation with ${c.student_name}`;
-        const baseWhere = c.meeting_link ? 'Meeting room is ready.' : (c.location ? `Location: ${c.location}.` : '');
-        const guidance = c.meeting_link
+        const baseWhere = c.room_name ? 'Meeting room will be available.' : (c.location ? `Location: ${c.location}.` : '');
+        const guidance = c.room_name
           ? (minsUntil > 0
-              ? 'You can start the meeting when ready so students can join on time.'
-              : 'Start the meeting now to admit students. If they report access errors, ensure you are signed in with the correct account and the meeting is started.')
+              ? 'Start the meeting at the scheduled time so students can join on time.'
+              : 'If students report access errors, ensure you are signed in and the JaaS room is started.')
           : (c.location ? 'Please be on-site a few minutes early.' : '');
         const message = `You have a consultation for '${c.topic}' on ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
         await createNotification(pool, c.advisor_user_id, 'consultation_reminder', title, message, data);

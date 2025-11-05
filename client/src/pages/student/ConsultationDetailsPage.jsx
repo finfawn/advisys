@@ -18,6 +18,8 @@ import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
 import { useSidebar } from "../../contexts/SidebarContext";
+import { useNotifications } from "../../contexts/NotificationContext";
+import { ShineButton } from "../../lightswind/shine-button";
 import "./ConsultationDetailsPage.css";
 
 export default function ConsultationDetailsPage() {
@@ -25,10 +27,21 @@ export default function ConsultationDetailsPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const { collapsed, toggleSidebar } = useSidebar();
+  const { notifications } = useNotifications();
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  const [notesDraft, setNotesDraft] = useState('');
+  const [savingNotes, setSavingNotes] = useState(false);
+  const [saveNotesSuccess, setSaveNotesSuccess] = useState(false);
+  const [requestingEdit, setRequestingEdit] = useState(false);
+  const [requestSuccess, setRequestSuccess] = useState(false);
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+  const [aiSummaryDraft, setAiSummaryDraft] = useState('');
+  const [savingSummary, setSavingSummary] = useState(false);
+  const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
+  const [isEditingNotes, setIsEditingNotes] = useState(false);
 
   const fallback = {
     id: Number(consultationId) || 2,
@@ -72,7 +85,10 @@ export default function ConsultationDetailsPage() {
       .then(list => {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
-        if (found) setConsultationData(found);
+        if (found) {
+          setConsultationData(found);
+          if (found?.summaryNotes) setNotesDraft(found.summaryNotes);
+        }
         else setError('Consultation not found');
       })
       .catch(err => {
@@ -115,6 +131,90 @@ export default function ConsultationDetailsPage() {
     }
   };
 
+  const handleSaveNotes = async () => {
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    setSavingNotes(true);
+    setSaveNotesSuccess(false);
+    try {
+      const r = await fetch(`${base}/api/consultations/${consultationData.id}/summary-notes`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ summaryNotes: notesDraft || '' }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setSaveNotesSuccess(true);
+      setConsultationData({ ...consultationData, summaryNotes: notesDraft });
+      setTimeout(()=>setSaveNotesSuccess(false), 2500);
+    } catch (err) {
+      console.error('Save consultation notes failed', err);
+    } finally {
+      setSavingNotes(false);
+    }
+  };
+
+  const handleRequestSummaryEdit = async () => {
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    setRequestingEdit(true);
+    setRequestSuccess(false);
+    try {
+      const r = await fetch(`${base}/api/consultations/${consultationData.id}/summary-edit-request`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ reason: '' }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setRequestSuccess(true);
+      setTimeout(()=>setRequestSuccess(false), 2500);
+    } catch (err) {
+      console.error('Summary edit request failed', err);
+    } finally {
+      setRequestingEdit(false);
+    }
+  };
+
+  const handleSaveSummary = async () => {
+    // Save the student's approved edit by updating ai_summary (server will enforce approval)
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    setSavingSummary(true);
+    setSaveSummarySuccess(false);
+    try {
+      const r = await fetch(`${base}/api/consultations/${consultationData.id}/ai-summary`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ aiSummary: aiSummaryDraft || '' }),
+      });
+      if (r.status === 403) {
+        // Permission denied – surface request prompt and avoid error toast
+        setShowRequestPrompt(true);
+        setIsEditingSummary(false);
+        return;
+      }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setConsultationData({ ...consultationData, aiSummary: aiSummaryDraft });
+      setSaveSummarySuccess(true);
+      setTimeout(()=>setSaveSummarySuccess(false), 2500);
+    } catch (err) {
+      console.error('Save summary failed', err);
+    } finally {
+      setSavingSummary(false);
+    }
+  };
+
+  // Show request prompt only after the user clicks summary when not approved
+  const [showRequestPrompt, setShowRequestPrompt] = useState(false);
+
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -135,8 +235,12 @@ export default function ConsultationDetailsPage() {
     });
   };
 
+  const editApproved = Array.isArray(notifications)
+    && notifications.some(n => n?.type === 'consultation_summary_edit_approved' && Number(n?.data?.consultation_id) === Number(consultationData?.id));
+  const displayedSummary = consultationData.aiSummary || consultationData.summaryNotes || 'No summary available.';
+
   return (
-    <div className="consultation-details-wrap">
+    <div className="consultation-details-wrap advisor-details-page">
       <TopNavbar />
       
       <div className={`consultation-details-body ${collapsed ? "collapsed" : ""}`}>
@@ -154,7 +258,7 @@ export default function ConsultationDetailsPage() {
               onClick={() => navigate('/student-dashboard/consultations')}
             >
               <BsChevronLeft />
-              Back to Consultations
+              Back to My Consultations
             </button>
           </div>
 
@@ -227,7 +331,7 @@ export default function ConsultationDetailsPage() {
                 <section className="consultation-details-section">
                   <h2 className="section-title">
                     <BsFileText className="section-icon" />
-                    Your Request
+                    My Request
                   </h2>
                   <div className="section-content">
                     <div className="request-category">
@@ -235,9 +339,60 @@ export default function ConsultationDetailsPage() {
                       <span className="category-text">{consultationData.category}</span>
                     </div>
                     <div className="student-notes">
-                      <h3>Your Notes</h3>
+                      <h3>My Notes</h3>
                       <p className="notes-text">{consultationData.studentNotes}</p>
                     </div>
+                  </div>
+                </section>
+
+                {/* Consultation Summary Section (view + request edit) */}
+                <section className="consultation-details-section">
+                  <h2 className="section-title">
+                    <BsFileText className="section-icon" />
+                    Consultation Summary
+                  </h2>
+                  <div className="section-content">
+                    {!isEditingSummary ? (
+                      <p
+                        className="summary-text"
+                        onClick={()=>{
+                          if (editApproved) {
+                            setIsEditingSummary(true);
+                            setAiSummaryDraft(consultationData.aiSummary || displayedSummary || '');
+                          } else {
+                            setShowRequestPrompt(true);
+                          }
+                        }}
+                        title={editApproved ? 'Click to edit summary' : 'Request permission to edit'}
+                      >
+                        {displayedSummary}
+                      </p>
+                    ) : (
+                      <textarea
+                        className="edit-request-textarea"
+                        value={aiSummaryDraft}
+                        onChange={(e) => setAiSummaryDraft(e.target.value)}
+                        onBlur={()=>{ setIsEditingSummary(false); handleSaveSummary(); }}
+                        onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
+                        placeholder="Revise the consultation summary"
+                        rows={6}
+                        autoFocus
+                      />
+                    )}
+                    {savingSummary && <span className="success-text">Saving...</span>}
+                    {saveSummarySuccess && <span className="success-text">Summary saved.</span>}
+
+                    {!editApproved && showRequestPrompt && (
+                      <div className="edit-request-actions" style={{ marginTop: 12 }}>
+                        <ShineButton
+                          label={requestingEdit ? 'Requesting...' : 'Request Edit'}
+                          onClick={handleRequestSummaryEdit}
+                          className=""
+                          size="md"
+                        />
+                        {requestSuccess && <span className="success-text">Request sent to advisor.</span>}
+                      </div>
+                    )}
                   </div>
                 </section>
 
@@ -264,10 +419,38 @@ export default function ConsultationDetailsPage() {
 
               {/* Right Column */}
               <div className="consultation-details-right">
+                {/* Consultation Notes Section (sticky-note style) */}
+                <section className="consultation-details-section">
+                  <h2 className="section-title">
+                    <BsFileText className="section-icon" />
+                    Consultation Notes
+                  </h2>
+                  <div className="section-content">
+                    <div className="sticky-note" onClick={()=>{ if (!isEditingNotes) setIsEditingNotes(true); }}>
+                      <div className="sticky-pin" />
+                      {!isEditingNotes ? (
+                        <div className="sticky-note-display">{notesDraft || 'Click to add notes for this consultation.'}</div>
+                      ) : (
+                        <textarea
+                          className="sticky-note-textarea"
+                          value={notesDraft}
+                          onChange={(e) => setNotesDraft(e.target.value)}
+                          onBlur={()=>{ setIsEditingNotes(false); handleSaveNotes(); }}
+                          onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
+                          placeholder="General notes from the consultation (shared with advisor)"
+                          rows={8}
+                          autoFocus
+                        />
+                      )}
+                    </div>
+                    {savingNotes && <span className="success-text">Saving...</span>}
+                    {saveNotesSuccess && <span className="success-text">Notes saved.</span>}
+                  </div>
+                </section>
                 {/* Actions Section */}
                 <section className="consultation-details-section actions-section">
                   <h2 className="section-title">
-                    <BsCalendarEvent className="section-icon" />
+                    {/* Removed stray calendar icon */}
                     Actions
                   </h2>
                   <div className="section-content">

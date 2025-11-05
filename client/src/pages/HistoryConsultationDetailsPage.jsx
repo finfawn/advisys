@@ -16,6 +16,8 @@ import {
 import TopNavbar from '../components/student/TopNavbar';
 import Sidebar from '../components/student/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
+import { useNotifications } from '../contexts/NotificationContext';
+import { ShineButton } from '../lightswind/shine-button';
 import './student/ConsultationDetailsPage.css';
 
 const HistoryConsultationDetailsPage = () => {
@@ -28,6 +30,11 @@ const HistoryConsultationDetailsPage = () => {
   const [editReason, setEditReason] = useState('');
   const [editRequestSubmitting, setEditRequestSubmitting] = useState(false);
   const [editRequestSuccess, setEditRequestSuccess] = useState(false);
+  const [isEditingSummary, setIsEditingSummary] = useState(false);
+  const [summaryDraft, setSummaryDraft] = useState('');
+  const [savingSummary, setSavingSummary] = useState(false);
+  const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
+  const [showRequestPrompt, setShowRequestPrompt] = useState(false);
 
   useEffect(() => {
     const userStr = localStorage.getItem('advisys_user');
@@ -124,6 +131,9 @@ const HistoryConsultationDetailsPage = () => {
   };
 
   const statusInfo = consultation ? getStatusInfo() : { text: '', icon: null, class: '' };
+  const { notifications } = useNotifications();
+  const editApproved = Array.isArray(notifications)
+    && notifications.some(n => n?.type === 'consultation_summary_edit_approved' && Number(n?.data?.consultation_id) === Number(consultationId));
 
   const handleRequestEdit = async () => {
     if (!consultation) return;
@@ -151,8 +161,40 @@ const HistoryConsultationDetailsPage = () => {
     }
   };
 
+  const handleSaveSummary = async () => {
+    if (!consultation) return;
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    setSavingSummary(true);
+    setSaveSummarySuccess(false);
+    try {
+      const r = await fetch(`${base}/api/consultations/${consultation.id}/ai-summary`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ aiSummary: summaryDraft || '' }),
+      });
+      if (r.status === 403) {
+        setShowRequestPrompt(true);
+        setIsEditingSummary(false);
+        return;
+      }
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setConsultation({ ...consultation, aiSummary: summaryDraft });
+      setSaveSummarySuccess(true);
+      setTimeout(()=>setSaveSummarySuccess(false), 2500);
+    } catch (err) {
+      console.error('Save history summary failed', err);
+      alert('Failed to save summary.');
+    } finally {
+      setSavingSummary(false);
+    }
+  };
+
   return (
-    <div className="consultation-details-wrap">
+    <div className="consultation-details-wrap advisor-details-page">
       <TopNavbar />
       
       <div className={`consultation-details-body ${collapsed ? "collapsed" : ""}`}>
@@ -168,7 +210,7 @@ const HistoryConsultationDetailsPage = () => {
               onClick={() => navigate('/student-dashboard/consultations')}
             >
               <BsChevronLeft />
-              Back to Consultations
+              Back to My
             </button>
           </div>
 
@@ -223,59 +265,91 @@ const HistoryConsultationDetailsPage = () => {
             <div className="consultation-details-grid">
               {/* Left Column */}
               <div className="consultation-details-left">
-                {/* Consultation Summary Section */}
+                {/* Student Request Section */}
+                <section className="consultation-details-section">
+                  <h2 className="section-title">
+                    <BsFileText className="section-icon" />
+                    My Request
+                  </h2>
+                  <div className="section-content">
+                    <div className="request-category">
+                      <BsTag className="category-icon" />
+                      <span className="category-text">{consultation?.category || 'General'}</span>
+                    </div>
+                    <div className="student-notes">
+                      <h3>My Notes</h3>
+                      <p className="notes-text">{consultation?.studentNotes || 'No notes provided.'}</p>
+                    </div>
+                  </div>
+                </section>
+                {/* Consultation Summary Section (click-to-edit when approved, otherwise prompt to request) */}
                 <section className="consultation-details-section">
                   <h2 className="section-title">
                     <BsFileText className="section-icon" />
                     Consultation Summary
                   </h2>
                   <div className="section-content">
-                    <p className="summary-text">{consultation?.aiSummary || consultation?.summaryNotes || 'No summary available.'}</p>
-                    {consultation?.status === 'completed' && (
-                      <div className="summary-edit-request">
-                        <div className="edit-request-form">
-                          <label className="edit-request-label">Request an edit to this summary</label>
-                          <textarea
-                            className="edit-request-textarea"
-                            value={editReason}
-                            onChange={(e) => setEditReason(e.target.value)}
-                            placeholder="Optional: describe what needs to be clarified or corrected"
-                            rows={3}
-                          />
-                          <div className="edit-request-actions">
-                            <button
-                              className="action-btn"
-                              onClick={handleRequestEdit}
-                              disabled={editRequestSubmitting}
-                            >
-                              {editRequestSubmitting ? 'Submitting...' : 'Request Edit'}
-                            </button>
-                            {editRequestSuccess && (
-                              <span className="success-text">Your request has been sent to your advisor.</span>
-                            )}
-                          </div>
-                        </div>
+                    {!isEditingSummary ? (
+                      <p
+                        className="summary-text"
+                        onClick={()=>{
+                          if (editApproved) {
+                            setIsEditingSummary(true);
+                            setSummaryDraft(consultation?.aiSummary || consultation?.summaryNotes || '');
+                          } else {
+                            setShowRequestPrompt(true);
+                          }
+                        }}
+                        title={editApproved ? 'Click to edit summary' : 'Request permission to edit'}
+                      >
+                        {consultation?.aiSummary || consultation?.summaryNotes || 'No summary available.'}
+                      </p>
+                    ) : (
+                      <textarea
+                        className="edit-request-textarea"
+                        value={summaryDraft}
+                        onChange={(e)=>setSummaryDraft(e.target.value)}
+                        onBlur={()=>{ setIsEditingSummary(false); handleSaveSummary(); }}
+                        onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
+                        placeholder="Revise the consultation summary"
+                        rows={6}
+                        autoFocus
+                      />
+                    )}
+                    {savingSummary && <span className="success-text">Saving...</span>}
+                    {saveSummarySuccess && <span className="success-text">Summary saved.</span>}
+
+                    {consultation?.status === 'completed' && !editApproved && showRequestPrompt && (
+                      <div className="edit-request-actions" style={{ marginTop: 12 }}>
+                        <ShineButton
+                          label={editRequestSubmitting ? 'Submitting...' : 'Request Edit'}
+                          onClick={handleRequestEdit}
+                          size="md"
+                        />
+                        {editRequestSuccess && (
+                          <span className="success-text">Your request has been sent to your advisor.</span>
+                        )}
                       </div>
                     )}
-                  </div>
-                </section>
-
-                {/* Student Notes Section */}
-                <section className="consultation-details-section">
-                  <h2 className="section-title">
-                    <BsListCheck className="section-icon" />
-                    Your Notes
-                  </h2>
-                  <div className="section-content">
-                    <div className="notes-container">
-                      <pre className="student-notes">{consultation?.studentNotes || 'No notes provided.'}</pre>
-                    </div>
                   </div>
                 </section>
               </div>
 
               {/* Right Column */}
               <div className="consultation-details-right">
+                {/* Student Notes Section (sticky-note display) */}
+                <section className="consultation-details-section">
+                  <h2 className="section-title">
+                    <BsListCheck className="section-icon" />
+                    My Notes
+                  </h2>
+                  <div className="section-content">
+                    <div className="sticky-note">
+                      <div className="sticky-pin" />
+                      <div className="sticky-note-display">{consultation?.studentNotes || 'No notes provided.'}</div>
+                    </div>
+                  </div>
+                </section>
 
 
 

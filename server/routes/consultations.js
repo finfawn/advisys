@@ -233,7 +233,7 @@ router.get('/students/:studentId/consultations', async (req, res) => {
         },
         mode: r.mode,
         status: r.status,
-        meetingLink: r.meeting_link || undefined,
+        roomName: r.room_name || undefined,
         location: r.location || undefined,
         declineReason: r.decline_reason || undefined,
         duration: r.duration_minutes || 30,
@@ -298,7 +298,7 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       },
       mode: r.mode,
       status: r.status,
-      meetingLink: r.meeting_link || undefined,
+      roomName: r.room_name || undefined,
       location: r.location || undefined,
       declineReason: r.decline_reason || undefined,
       duration: r.duration_minutes || 30,
@@ -318,19 +318,17 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
 router.patch('/consultations/:id/status', async (req, res) => {
   const pool = getPool();
   const id = req.params.id;
-  const { status, meetingLink, declineReason, cancelReason, location, noShowParty, summaryNotes } = req.body || {};
+  const { status, declineReason, cancelReason, location, noShowParty, summaryNotes } = req.body || {};
   const allowed = new Set(['pending','approved','declined','completed','cancelled','missed']);
   if (!status || !allowed.has(status)) {
     return res.status(400).json({ error: 'Invalid or missing status' });
   }
   try {
     // Load existing fields for change detection (e.g., meeting_link transitions)
-    const [[before]] = await pool.query('SELECT meeting_link FROM consultations WHERE id = ?', [id]);
-    const prevMeetingLink = before ? before.meeting_link : null;
+    const [[before]] = await pool.query('SELECT location FROM consultations WHERE id = ?', [id]);
 
     const fields = ['status = ?'];
     const values = [status];
-    if (meetingLink !== undefined) { fields.push('meeting_link = ?'); values.push(meetingLink || null); }
     if (declineReason !== undefined) { fields.push('decline_reason = ?'); values.push(declineReason || null); }
     if (cancelReason !== undefined) { fields.push('cancel_reason = ?'); values.push(cancelReason || null); }
     if (location !== undefined) { fields.push('location = ?'); values.push(location || null); }
@@ -357,14 +355,7 @@ router.patch('/consultations/:id/status', async (req, res) => {
         const time = formatTimeRange(start, end);
         // Room ready trigger: if meeting_link transitioned from null -> non-null
         if (meetingLink !== undefined && !prevMeetingLink && c.meeting_link) {
-          const title = `Online meeting room is ready`;
-          const start = new Date(c.start_datetime);
-          const end = new Date(c.end_datetime);
-          const dateStr = formatDate(start);
-          const timeStr = formatTimeRange(start, end);
-          const msg = `Your consultation '${c.topic}' on ${dateStr} at ${timeStr} has an active meeting room. You can join when ready.`;
-          const data = { consultation_id: c.id, meeting_link: c.meeting_link };
-          await createNotification(pool, c.student_user_id, 'consultation_room_ready', title, msg, data);
+          // Room readiness is handled via /consultations/:id/room-ready endpoint
         }
 
         if (status === 'approved') {
@@ -408,7 +399,7 @@ router.patch('/consultations/:id/status', async (req, res) => {
   }
 });
 
-// Advisor updates AI summary (completed consultations)
+// Advisor or approved Student updates AI summary (completed consultations)
 // PATCH /api/consultations/:id/ai-summary { aiSummary }
 router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) => {
   const pool = getPool();
@@ -421,20 +412,78 @@ router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) =
   try {
     const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
     if (!c) return res.status(404).json({ error: 'Consultation not found' });
-    if (user.role !== 'advisor' || user.id !== c.advisor_user_id) {
-      return res.status(403).json({ error: 'Only the assigned advisor can edit the summary' });
+    const isAdvisor = user.role === 'advisor' && user.id === c.advisor_user_id;
+    const isStudent = user.role === 'student' && user.id === c.student_user_id;
+
+    // If advisor, always allowed. If student, require prior approval notification.
+    if (!isAdvisor && !isStudent) {
+      return res.status(403).json({ error: 'Only assigned advisor or student can edit the summary' });
     }
+
+    if (isStudent) {
+      // Check approval notification existence for this consultation
+      const [rows] = await pool.query(
+        `SELECT id, data_json FROM notifications WHERE user_id = ? AND type = 'consultation_summary_edit_approved' ORDER BY id DESC LIMIT 100`,
+        [c.student_user_id]
+      );
+      let approved = false;
+      for (const r of rows) {
+        try {
+          const data = r?.data_json ? JSON.parse(r.data_json) : {};
+          if (Number(data?.consultation_id) === Number(id)) { approved = true; break; }
+        } catch (_) {}
+      }
+      if (!approved) {
+        return res.status(403).json({ error: 'Student edit not approved for this consultation' });
+      }
+    }
+
     await pool.query('UPDATE consultations SET ai_summary = ? WHERE id = ?', [aiSummary, id]);
-    // Notify student that summary was updated
+
+    // Notify the other party that summary was updated
     try {
+      const notifyTarget = isAdvisor ? c.student_user_id : c.advisor_user_id;
+      const who = isAdvisor ? 'advisor' : 'student';
       const title = 'Consultation summary updated';
-      const message = `Your consultation summary for '${c.topic}' was updated by your advisor.`;
-      await createNotification(pool, c.student_user_id, 'consultation_summary_updated', title, message, { consultation_id: Number(id) });
+      const message = `Your consultation summary for '${c.topic}' was updated by the ${who}.`;
+      await createNotification(pool, notifyTarget, 'consultation_summary_updated', title, message, { consultation_id: Number(id) });
     } catch (_) {}
     return res.json({ success: true });
   } catch (err) {
     console.error('Update AI summary error:', err);
     return res.status(500).json({ error: 'Failed to update AI summary' });
+  }
+});
+
+// Advisor or Student updates shared consultation notes
+// PATCH /api/consultations/:id/summary-notes { summaryNotes }
+router.patch('/consultations/:id/summary-notes', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { summaryNotes } = req.body || {};
+  const user = req.user || {};
+  if (typeof summaryNotes !== 'string') {
+    return res.status(400).json({ error: 'summaryNotes must be a string' });
+  }
+  try {
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    const isAdvisor = user.role === 'advisor' && user.id === c.advisor_user_id;
+    const isStudent = user.role === 'student' && user.id === c.student_user_id;
+    if (!isAdvisor && !isStudent) {
+      return res.status(403).json({ error: 'Only assigned advisor or student can edit notes' });
+    }
+    await pool.query('UPDATE consultations SET summary_notes = ? WHERE id = ?', [summaryNotes, id]);
+
+    // Notify the other party that notes were updated
+    try {
+      const notifyTarget = isAdvisor ? c.student_user_id : c.advisor_user_id;
+      await createNotification(pool, notifyTarget, 'consultation_notes_updated', 'Consultation notes updated', `Notes for '${c.topic}' were updated.`, { consultation_id: Number(id) });
+    } catch (_) {}
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Update summary notes error:', err);
+    return res.status(500).json({ error: 'Failed to update summary notes' });
   }
 });
 
@@ -459,6 +508,54 @@ router.post('/consultations/:id/summary-edit-request', authMiddleware, async (re
   } catch (err) {
     console.error('Summary edit request error:', err);
     return res.status(500).json({ error: 'Failed to submit summary edit request' });
+  }
+});
+
+// Advisor approves a student's summary edit request
+// POST /api/consultations/:id/summary-edit-approve { note? }
+router.post('/consultations/:id/summary-edit-approve', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { note } = req.body || {};
+  const user = req.user || {};
+  try {
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    if (user.role !== 'advisor' || user.id !== c.advisor_user_id) {
+      return res.status(403).json({ error: 'Only the assigned advisor can approve requests' });
+    }
+    const title = 'Your summary edit was approved';
+    const message = `Advisor approved your summary edit request for '${c.topic}'.`;
+    const data = { consultation_id: Number(id), note: note || null };
+    await createNotification(pool, c.student_user_id, 'consultation_summary_edit_approved', title, message, data);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Summary edit approve error:', err);
+    return res.status(500).json({ error: 'Failed to approve summary edit request' });
+  }
+});
+
+// Advisor declines a student's summary edit request
+// POST /api/consultations/:id/summary-edit-decline { reason? }
+router.post('/consultations/:id/summary-edit-decline', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const id = req.params.id;
+  const { reason } = req.body || {};
+  const user = req.user || {};
+  try {
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    if (user.role !== 'advisor' || user.id !== c.advisor_user_id) {
+      return res.status(403).json({ error: 'Only the assigned advisor can decline requests' });
+    }
+    const title = 'Your summary edit was declined';
+    const message = `Advisor declined your summary edit request for '${c.topic}'.`;
+    const data = { consultation_id: Number(id), reason: reason || null };
+    await createNotification(pool, c.student_user_id, 'consultation_summary_edit_declined', title, message, data);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Summary edit decline error:', err);
+    return res.status(500).json({ error: 'Failed to decline summary edit request' });
   }
 });
 
@@ -608,7 +705,7 @@ router.patch('/consultations/:id', async (req, res) => {
       },
       mode: r.mode,
       status: r.status,
-      meetingLink: r.meeting_link || undefined,
+      roomName: r.room_name || undefined,
       location: r.location || undefined,
       duration: r.duration_minutes || 30,
       bookingDate: r.booking_date,
@@ -639,11 +736,7 @@ router.post('/consultations/:id/room-ready', async (req, res) => {
     );
     if (!c) return res.status(404).json({ error: 'Consultation not found' });
 
-    // Persist meeting link if provided and missing
-    if (meetingLink && !c.meeting_link) {
-      await pool.query('UPDATE consultations SET meeting_link = ? WHERE id = ?', [meetingLink, id]);
-      c.meeting_link = meetingLink;
-    }
+    // meeting_link deprecated; ignore any provided meetingLink
 
     // Persist room_name using the standard pattern advisys-<id> when missing
     const roomName = c.room_name || `advisys-${c.id}`;
@@ -658,7 +751,7 @@ router.post('/consultations/:id/room-ready', async (req, res) => {
     const time = formatTimeRange(start, end);
     const title = `Online meeting room is ready`;
     const msg = `Your consultation '${c.topic}' on ${date} at ${time} has an active meeting room. You can join when ready.`;
-    const data = { consultation_id: c.id, meeting_link: c.meeting_link || meetingLink || null, room_name: c.room_name };
+    const data = { consultation_id: c.id, room_name: c.room_name };
     await createNotification(pool, c.student_user_id, 'consultation_room_ready', title, msg, data);
     res.json({ success: true });
   } catch (err) {
