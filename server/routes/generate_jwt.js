@@ -56,11 +56,13 @@ router.post('/', (req, res) => {
         user: {
           name: user?.name || 'User',
           email: user?.email || undefined,
+          // Grant moderator only for advisors (server trusts explicit role)
+          moderator: (user?.role || '').toLowerCase() === 'advisor',
         },
         features: {
           livestreaming: true,
           recording: true,
-          transcription: true,
+          transcription: false,
           'screen-sharing': true,
         },
       },

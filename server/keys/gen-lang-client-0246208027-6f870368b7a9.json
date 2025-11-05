@@ -1,0 +1,13 @@
+{
+  "type": "service_account",
+  "project_id": "gen-lang-client-0246208027",
+  "private_key_id": "6f870368b7a9ffeddd5e42ab2fd1eb2e00a122ec",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQCwqyS+PlbQWMZa\nnMt1VDFWSMYJG3xTyla2UMseuwScEP3NoMbhF7dR21K8EhYYr81JgS4wVEzK7bKT\nhZQQQ1UhyndZl6XG6ivbd73Akn2yVfGXY0YXjfeE8noQ3KRutl4Ymkii52g2i82c\nVoGnQTlMs+JYs6yNS9xfJ7u80lhGwgn8TyNfRSbX6veikxmqucQKPCAoiTAz07QR\nGlaWwAbG6Py2T70KqTv4zwXg4tE6vZi82q8xx9zc/zSWFzgQqLdSsldHqLUjhWIJ\nJbF2MCzlkK58LqB3hr8Y7oLV9yTs23hSy1gKArTpbc/5TzAn1rngP4YPlnbUlt5U\nkNZf0sUZAgMBAAECggEABx8/IfQ9Z7TMekar5RT50DKq2R8kifQ0PrFPHvQHIYuF\nz85VdimQmFoxIafRADnGGtp8VDJxzhR7CHtwFp/ARNZ2rUPxyO0Ty4suOR8utgvE\n64dzAewVOGTWCuv6LQRpErDVkMunZduI9G6AV4/HkZIG4/CKWj/eqG9foCMSr/d9\nUmyjgFMfLPSsKsrFeAqFg/0agRtOSN5kqVJe/ByeqY39co/9IYPjw7b/DP0WjaP6\nSJYv0VSaUwoiijMQYlrzcEYA96RVbInxzhfJuHQQSRjOIKdB5HijR2hyoTnwJLNl\nhzi+Z6vFHu8tQs7pLieCOKv33iefAnqU9KZ3lPI+CQKBgQDt342Sb88yfAO3vFp+\n0pwzn1OhQqDPk2JYh+EWHRcleC07FMWkIl5hp00Cw/IPKcMvv5JLR+XzgjJZvHCb\naXKh8HsZfvWMrEk4OpFrmRZ1MdBNZX9CpIDAndmtQTJwJ0x04TPuwjZck93omSmf\naB+w3riTQ3P6q0uagPMS0ToaAwKBgQC+IZrQmYze1yuMsWso0MCWLpQl7UpNOwYK\nwIxb8m5HnPZg3/7KRpILYuAfBUjIx0kY5ftqWwQ/C7A23oi2GKTz7sT6L0ippA/x\n/bXRLVn8MTkv6vKPRIjUCShnWEAE8KALhenPLNgW9TfnLugiYLCahtaLfnkw9cjl\nt8QcwimHswKBgQCj3K4PxEn9QwTkmzHTz42e2hCoM9fHZoYG6oOZ0ixRuXmfC24i\n5TITH0ajswuaenBlAhjrFvpHRtccjf0ccgVvnNOP+q94Wm6N93qZnnmj/c66okKK\nS/wNtC9xdEokjE3U7hXyUYNVPt9NDcVodDfwhVysxXitozaPlmjb+5mEtQKBgHYQ\neApAz3ExPCHJqjlWJ8Eae3RxvUnn9QCIQKB4EnL1zSiq75S77cSUSYf5yBClb4a+\niTip/CEKKQppdYteElBHXJne8sgk0KH8YgLanp40EsbmpmjArha8+RHzgw2OPlPp\nfB7iQe0/qM8uGYf/cqsCQAevKaJ1faLoUidpilBxAoGAZ8R3IrZrdIvnzMDBe9IN\n0GsYNryUS6O9UX0zym9AoWCFRXtFmBwtQjGewoHrTtL5YRhpJaDjCANb7J6jFFd6\nrTU1I2pTexdSbwU4EcGqWp0zq4dRdV8VT63yKNgAWmE+8Rv4kibZTLZq6vTqpMFq\nOUUfRAVotqH1PTBL8nHfcDM=\n-----END PRIVATE KEY-----\n",
+  "client_email": "advisys-cloud-storage@gen-lang-client-0246208027.iam.gserviceaccount.com",
+  "client_id": "116139779062890948164",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/advisys-cloud-storage%40gen-lang-client-0246208027.iam.gserviceaccount.com",
+  "universe_domain": "googleapis.com"
+}

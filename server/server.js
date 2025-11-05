@@ -34,6 +34,9 @@ app.use('/api', transcriptionsRouter);
 // RS256 JaaS JWT generation endpoint mounted at root
 const generateJwtRouter = require('./routes/generate_jwt');
 app.use('/generate-jwt', generateJwtRouter);
+// JaaS Settings Provisioning endpoint (register this full URL in JaaS Control Center)
+const jaasSettingsRouter = require('./routes/jaas_settings');
+app.use('/api/jaas/settings-provisioning', jaasSettingsRouter);
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
