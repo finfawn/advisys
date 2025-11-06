@@ -20,8 +20,6 @@ export default function AdminDashboard() {
       navigate('/admin-dashboard');
     } else if (page === 'manage-users') {
       navigate('/admin-dashboard/manage-users');
-    } else if (page === 'appointments') {
-      navigate('/admin-dashboard/appointments');
     } else if (page === 'logout') {
       navigate('/logout');
     }
@@ -33,8 +31,8 @@ export default function AdminDashboard() {
 
       {/* Body */}
       <div className={`admin-dash-body ${collapsed ? "collapsed" : ""}`}>
-        {/* Sidebar - Hidden on mobile, visible on desktop */}
-        <div className="hidden md:block">
+        {/* Sidebar - Hide up to xl; show on ≥1280px */}
+        <div className="hidden xl:block">
           <AdminSidebar
             collapsed={collapsed}
             onToggle={toggleSidebar}

@@ -1,0 +1,125 @@
+/* Shared Admin Content Layout */
+.admin-content {
+  background: #f5f7fb;
+}
+
+/* Page header outside the table/card */
+.page-header {
+  margin-bottom: 8px;
+  display: grid;
+  grid-auto-rows: min-content;
+  gap: 4px;
+}
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: #1f2937;
+  margin: 0;
+}
+.page-subtitle {
+  font-size: 0.95rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.content-card {
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+  padding: 0;
+}
+
+.content-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #e5e7eb;
+}
+.content-left { display: flex; align-items: center; gap: 10px; }
+.content-title { font-size: 1.25rem; font-weight: 800; color: #1f2937; margin: 0; }
+.content-subtitle { font-size: 0.95rem; color: #6b7280; margin-top: 2px; }
+.content-tabs { display: inline-flex; gap: 8px; }
+.segmented-tabs .btn { border-radius: 10px; }
+
+/* Manage Users: improve tabs contrast to match dashboard header */
+.content-tabs .manage-tabs {
+  background: #f3f4f6; /* light pill group background */
+  display: inline-flex;
+  gap: 4px;
+}
+.content-tabs .manage-tabs button {
+  background: transparent !important;
+  border: none;
+  box-shadow: none;
+}
+.content-tabs .manage-tabs .tabs-bg-indicator {
+  background: #000000; /* black active pill to match sample */
+  border: none;
+  box-shadow: none;
+}
+
+/* Simplified segmented tabs for Students/Advisors */
+.segmented-tabs {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  background: #f5f6f9;
+  border: 1px solid #e6e6e6;
+  border-radius: 12px;
+  padding: 4px;
+}
+.segmented-tabs button {
+  padding: 8px 14px;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: none;
+  background: transparent;
+  color: #374151;
+}
+.segmented-tabs [aria-selected="true"] {
+  background: #4b5563;
+  color: #ffffff;
+}
+.segmented-tabs [aria-selected="false"] {
+  background: #ffffff;
+  color: #374151;
+}
+
+.content-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.content-body { padding: 14px 16px; overflow-x: auto; }
+
+/* Allow tabs to scroll horizontally on narrow screens */
+.content-tabs {
+  max-width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+/* Reduce spacing for tighter mobile layout */
+@media (max-width: 640px) {
+  .page-title { font-size: 1.25rem; }
+  .content-header { gap: 8px; padding: 10px 12px; }
+  .content-tabs .manage-tabs { padding: 2px; }
+}
+
+/* Tablet: stack header into two rows */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .content-header { flex-wrap: wrap; }
+  .content-left { width: 100%; }
+  .content-right { width: 100%; justify-content: flex-start; }
+}
+
+/* Mobile: vertical header */
+@media (max-width: 640px) {
+  .content-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+  .content-right { width: 100%; }
+}

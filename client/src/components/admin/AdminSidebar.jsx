@@ -1,5 +1,5 @@
 import React from "react";
-import { HomeIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
+import { HomeIcon, UsersIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
 import "../student/Sidebar.css";
 import DashboardSidebar from "../shared/DashboardSidebar";
 
@@ -7,14 +7,12 @@ function AdminSidebar({ collapsed, onToggle, onNavigate }) {
   const items = [
     { key: "admin-dashboard", label: "Dashboard", Icon: HomeIcon },
     { key: "admin-manage-users", label: "Manage Users", Icon: UsersIcon },
-    { key: "admin-appointments", label: "Appointments", Icon: CalendarDaysIcon },
     { key: "admin-logout", label: "Logout", Icon: ArrowRightOnRectangleIcon, isLogout: true },
   ];
 
   const handleNavigation = (key) => {
     if (key === "admin-dashboard") onNavigate && onNavigate("dashboard");
     else if (key === "admin-manage-users") onNavigate && onNavigate("manage-users");
-    else if (key === "admin-appointments") onNavigate && onNavigate("appointments");
     else if (key === "admin-logout") onNavigate && onNavigate("logout");
   };
 

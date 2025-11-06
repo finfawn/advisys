@@ -3,11 +3,13 @@ import { useNavigate } from "react-router-dom";
 import { useSidebar } from "../../contexts/SidebarContext";
 import AdminTopNavbar from "../../components/admin/AdminTopNavbar";
 import AdminSidebar from "../../components/admin/AdminSidebar";
-import AdminManageLeftTabs from "../../components/admin/manage/AdminManageLeftTabs";
+import AdminContentLayout from "../../components/admin/AdminContentLayout";
+import AdminManageTabs from "../../components/admin/manage/AdminManageTabs";
 import AdminManageFilters from "../../components/admin/manage/AdminManageFilters";
 import AdminManageUserList from "../../components/admin/manage/AdminManageUserList";
 import AdminUserHistoryModal from "../../components/admin/manage/AdminUserHistoryModal";
 import "./AdminManageUsers.css";
+import "./AdminContent.css";
 import {
   Drawer,
   DrawerTrigger,
@@ -41,6 +43,9 @@ export default function AdminManageUsers() {
   const [sortBy, setSortBy] = useState("name-asc");
   const [addOpen, setAddOpen] = useState(false);
   const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadError, setUploadError] = useState(null);
+  const [uploadRows, setUploadRows] = useState([]);
+  const [uploadRole, setUploadRole] = useState("students"); // students | advisors
   const [confirmDeactivate, setConfirmDeactivate] = useState(null);
   const [confirmClosing, setConfirmClosing] = useState(false);
   const [pendingAction, setPendingAction] = useState(null);
@@ -121,8 +126,32 @@ export default function AdminManageUsers() {
   const handleNavigation = (page) => {
     if (page === "dashboard") navigate("/admin-dashboard");
     if (page === "manage-users") navigate("/admin-dashboard/manage-users");
-    if (page === "appointments") navigate("/admin-dashboard/appointments");
     if (page === "logout") navigate("/logout");
+  };
+
+  // CSV export for current filtered list
+  const exportCSV = () => {
+    const headersStudents = ["First Name","Last Name","Email","Year","Program","Active"];
+    const headersAdvisors = ["First Name","Last Name","Email","Department","Active"];
+    const headers = activeTab === "students" ? headersStudents : headersAdvisors;
+    const rows = filteredList.map((item) => {
+      const [first = "", ...rest] = (item.name || "").split(" ");
+      const last = rest.join(" ");
+      if (activeTab === "students") {
+        return [first,last,item.email || "", item.year || "", item.program || "", item.active ? "true" : "false"]; 
+      }
+      return [first,last,item.email || "", item.department || "", item.active ? "true" : "false"]; 
+    });
+    const csv = [headers.join(","), ...rows.map(r => r.map(v => String(v).replace(/\r|\n/g, " ")).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = activeTab === "students" ? "students.csv" : "advisors.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   const handleToggleActive = (item) => {
@@ -375,33 +404,121 @@ export default function AdminManageUsers() {
     resetAddUserForm();
   };
 
-  // Upload Users stub
+  // Upload Users (.csv only) — parse and stage rows
   const [uploadFile, setUploadFile] = useState(null);
-  const processUpload = () => {
-    // For now, simulate adding two users
-    if (!uploadFile) {
+  const getTemplateHeaders = () => {
+    return uploadRole === "students"
+      ? ["First Name","Last Name","Email","Year","Program"]
+      : ["First Name","Last Name","Email","Department"];
+  };
+
+  const downloadCSVTemplate = () => {
+    const headers = getTemplateHeaders();
+    const example = uploadRole === "students"
+      ? ["Juan","Dela Cruz","juan@example.com","1st Year","BSIT"]
+      : ["Jane","Doe","jane@example.com","CIT"];
+    const csv = [headers.join(","), example.join(",")].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = uploadRole === "students" ? "students_template.csv" : "advisors_template.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const parseCSVText = (text) => {
+    const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+    if (lines.length === 0) return { headers: [], rows: [] };
+    const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
+    const expectedStudents = ["first name","last name","email","year","program"];
+    const expectedAdvisors = ["first name","last name","email","department"];
+    const expected = uploadRole === "students" ? expectedStudents : expectedAdvisors;
+    const ok = expected.every((h) => headers.includes(h));
+    if (!ok) {
+      throw new Error(`CSV headers must include: ${expected.join(", ")}`);
+    }
+    const rows = lines.slice(1).map(line => line.split(",").map(c => c.trim()));
+    return { headers, rows };
+  };
+
+  const handleUploadFileChange = (file) => {
+    setUploadError(null);
+    setUploadRows([]);
+    setUploadFile(file || null);
+    if (!file) return;
+    const nameLower = (file.name || "").toLowerCase();
+    if (!nameLower.endsWith(".csv")) {
+      setUploadError("Only .csv files are accepted.");
       return;
     }
-    const idBase = Date.now();
-    setStudentsData((prev) => [
-      ...prev,
-      {
-        id: idBase,
-        name: "Imported Student A",
-        year: "1st Year",
-        program: "BSIT",
-        active: true,
-      },
-      {
-        id: idBase + 1,
-        name: "Imported Student B",
-        year: "2nd Year",
-        program: "BSIT",
-        active: true,
-      },
-    ]);
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const text = String(e.target?.result || "");
+        const { rows } = parseCSVText(text);
+        // Filter out empty rows
+        const cleaned = rows.filter(r => r.some(v => v && v.length));
+        setUploadRows(cleaned);
+      } catch (err) {
+        console.error("Upload parse error", err);
+        setUploadError(err.message || "Failed to parse CSV.");
+      }
+    };
+    reader.onerror = () => {
+      setUploadError("Failed to read file.");
+    };
+    reader.readAsText(file);
+  };
+
+  const processUpload = () => {
+    if (!uploadFile) {
+      setUploadError("Please select a .csv file.");
+      return;
+    }
+    if (uploadRows.length === 0) {
+      setUploadError("No valid rows found in CSV.");
+      return;
+    }
+    const idStart = Date.now();
+    if (uploadRole === "students") {
+      let id = idStart;
+      const toAdd = uploadRows.map((cols) => {
+        // Expect: First Name, Last Name, Email, Year, Program
+        const [first = "", last = "", email = "", year = "", program = ""] = cols;
+        return {
+          id: id++,
+          name: `${first} ${last}`.trim(),
+          email,
+          year: year || "1st Year",
+          program: program || "BSIT",
+          active: true,
+        };
+      });
+      setStudentsData((prev) => [...prev, ...toAdd]);
+      setActiveTab("students");
+    } else {
+      let id = idStart;
+      const toAdd = uploadRows.map((cols) => {
+        // Expect: First Name, Last Name, Email, Department
+        const [first = "", last = "", email = "", department = ""] = cols;
+        return {
+          id: id++,
+          name: `${first} ${last}`.trim(),
+          email,
+          department: department || "CIT",
+          active: true,
+        };
+      });
+      setAdvisorData((prev) => [...prev, ...toAdd]);
+      setActiveTab("advisors");
+    }
     setUploadOpen(false);
     setUploadFile(null);
+    setUploadRows([]);
+    setUploadError(null);
   };
 
   const handleHistory = (item) => {
@@ -480,8 +597,8 @@ export default function AdminManageUsers() {
       <AdminTopNavbar />
 
       <div className={`admin-dash-body ${collapsed ? "collapsed" : ""}`}>
-        {/* Sidebar - Hidden on mobile, visible on desktop */}
-        <div className="hidden md:block">
+        {/* Sidebar - Hide up to xl; show on ≥1280px */}
+        <div className="hidden xl:block">
           <AdminSidebar
             collapsed={collapsed}
             onToggle={toggleSidebar}
@@ -490,52 +607,52 @@ export default function AdminManageUsers() {
         </div>
 
         <main className="admin-dash-main">
-          <div className="dashboard-card manage-users-card">
-            <div className="manage-grid">
-              {/* Left filter column */}
-              <AdminManageLeftTabs
-                activeTab={activeTab}
-                onChange={setActiveTab}
-              />
-
-              {/* Main content */}
-              <section className="manage-right">
-                {/* Top filters */}
-                <AdminManageFilters
-                  search={search}
-                  onSearchChange={setSearch}
-                  onClearSearch={() => setSearch("")}
-                  isStudent={activeTab === "students"}
-                  yearFilter={yearFilter}
-                  onYearChange={setYearFilter}
-                  statusFilter={statusFilter}
-                  onStatusChange={setStatusFilter}
-                  sortBy={sortBy}
-                  onSortChange={setSortBy}
-                  onAddUserOpen={() => setAddOpen(true)}
-                  onUploadUsersOpen={() => setUploadOpen(true)}
-                  onExport={() => {}}
-                />
-
-                {/* List */}
-                <AdminManageUserList
-                  items={filteredList}
-                  isStudent={activeTab === "students"}
-                  onView={handleView}
-                  onToggleActive={handleToggleActive}
-                  onHistory={handleHistory}
-                  loading={activeTab === "students" ? loadingStudents : loadingAdvisors}
-                />
-
-                <AdminUserHistoryModal
-                  open={historyOpen}
-                  user={historyUser}
-                  consultations={historyItems}
-                  onClose={() => setHistoryOpen(false)}
-                />
-              </section>
-            </div>
+          {/* Page header outside the table/card */}
+          <div className="page-header">
+            <h1 className="page-title">Manage Users</h1>
+            <p className="page-subtitle">
+              {activeTab === "students"
+                ? "Manage student accounts and records"
+                : "Manage advisor accounts and records"}
+            </p>
           </div>
+
+          <AdminContentLayout
+            tabs={<AdminManageTabs activeTab={activeTab} onChange={setActiveTab} />}
+            filters={
+              <AdminManageFilters
+                search={search}
+                onSearchChange={setSearch}
+                onClearSearch={() => setSearch("")}
+                isStudent={activeTab === "students"}
+                yearFilter={yearFilter}
+                onYearChange={setYearFilter}
+                statusFilter={statusFilter}
+                onStatusChange={setStatusFilter}
+                sortBy={sortBy}
+                onSortChange={setSortBy}
+                onAddUserOpen={() => setAddOpen(true)}
+                onUploadUsersOpen={() => setUploadOpen(true)}
+                onExport={exportCSV}
+              />
+            }
+          >
+            <AdminManageUserList
+              items={filteredList}
+              isStudent={activeTab === "students"}
+              onView={handleView}
+              onToggleActive={handleToggleActive}
+              onHistory={handleHistory}
+              loading={activeTab === "students" ? loadingStudents : loadingAdvisors}
+            />
+
+            <AdminUserHistoryModal
+              open={historyOpen}
+              user={historyUser}
+              consultations={historyItems}
+              onClose={() => setHistoryOpen(false)}
+            />
+          </AdminContentLayout>
         </main>
       </div>
 
@@ -729,22 +846,46 @@ export default function AdminManageUsers() {
           <DrawerHeader>
             <DrawerTitle>Upload Users</DrawerTitle>
             <DrawerDescription>
-              Import users from a CSV or Excel file
+              Required file extension: <strong>.csv</strong>
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-4">
+            {/* Import Target Role */}
             <div>
-              <a href="#" className="text-sm text-blue-600">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Import for</label>
+              <Select value={uploadRole} onValueChange={setUploadRole}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select user type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="students">Students</SelectItem>
+                  <SelectItem value="advisors">Advisors</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div>
+              <a href="#" className="text-sm text-blue-600" onClick={(e) => { e.preventDefault(); downloadCSVTemplate(); }}>
                 Download CSV template
               </a>
+            </div>
+            <div className="bg-gray-50 border border-gray-200 rounded-md p-3 text-sm text-gray-700">
+              <p className="mb-1"><strong>Expected columns</strong> ({uploadRole === "students" ? "Students" : "Advisors"}):</p>
+              {uploadRole === "students" ? (
+                <p>First Name, Last Name, Email, Year, Program</p>
+              ) : (
+                <p>First Name, Last Name, Email, Department</p>
+              )}
             </div>
             <div>
               <input
                 type="file"
-                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
+                accept=".csv,text/csv"
+                onChange={(e) => handleUploadFileChange(e.target.files?.[0] || null)}
               />
             </div>
+            {uploadError && (
+              <p className="text-sm text-red-600">{uploadError}</p>
+            )}
             <p className="text-sm text-gray-500">
               A confirmation step will appear before import completes.
             </p>

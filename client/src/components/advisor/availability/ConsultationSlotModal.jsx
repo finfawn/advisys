@@ -528,16 +528,11 @@ export default function ConsultationSlotModal({
                   onChange={(e) => setDraftStart(e.target.value)}
                   onBlur={() => handleStartChange(normalizeToHHmm(draftStart))}
                   onKeyDown={(e) => { if (e.key === "Enter") handleStartChange(normalizeToHHmm(draftStart)); }}
-                  className="booking-input time-input custom-icon"
+                  onClick={() => { const el = startInputRef?.current; try { el?.showPicker?.(); } catch {} }}
+                  className="booking-input time-input"
                   aria-label="Start time"
                   ref={startInputRef}
                 />
-                <button type="button" className="time-icon-btn" aria-label="Open start time picker" onClick={() => {
-                  const el = startInputRef?.current;
-                  if (!el) return;
-                  try { el.showPicker?.(); } catch {}
-                  el.focus();
-                }}><BsClock /></button>
               </div>
             </div>
             <div>
@@ -549,16 +544,11 @@ export default function ConsultationSlotModal({
                   onChange={(e) => setDraftEnd(e.target.value)}
                   onBlur={() => handleEndChange(normalizeToHHmm(draftEnd))}
                   onKeyDown={(e) => { if (e.key === "Enter") handleEndChange(normalizeToHHmm(draftEnd)); }}
-                  className="booking-input time-input custom-icon"
+                  onClick={() => { const el = endInputRef?.current; try { el?.showPicker?.(); } catch {} }}
+                  className="booking-input time-input"
                   aria-label="End time"
                   ref={endInputRef}
                 />
-                <button type="button" className="time-icon-btn" aria-label="Open end time picker" onClick={() => {
-                  const el = endInputRef?.current;
-                  if (!el) return;
-                  try { el.showPicker?.(); } catch {}
-                  el.focus();
-                }}><BsClock /></button>
               </div>
             </div>
           </div>

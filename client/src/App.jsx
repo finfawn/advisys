@@ -26,7 +26,6 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManageUsers from "./pages/admin/AdminManageUsers";
-import AdminAppointments from "./pages/admin/AdminAppointments";
 
 // Simple auth guard to protect routes
 function RequireAuth({ allowedRoles = [] }) {
@@ -44,6 +43,7 @@ function RequireAuth({ allowedRoles = [] }) {
     // No token: redirect to auth, preserve intended path
     return <Navigate to="/auth" replace state={{ from: location }} />;
   }
+
 
   if (allowedRoles.length && !allowedRoles.includes(userRole)) {
     // Has token but wrong role: send to their dashboard or home
@@ -112,7 +112,6 @@ function App() {
           <Route element={<RequireAuth allowedRoles={["admin"]} />}> 
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/admin-dashboard/manage-users" element={<AdminManageUsers />} />
-            <Route path="/admin-dashboard/appointments" element={<AdminAppointments />} />
           </Route>
           
           {/* Fallback */}

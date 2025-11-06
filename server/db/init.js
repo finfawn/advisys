@@ -21,10 +21,38 @@ const mysql = require('mysql2/promise');
       port: DB_PORT,
       user: DB_USER,
       password: DB_PASSWORD,
+      database: DB_NAME,
       multipleStatements: true,
     });
-    console.log('Connected. Creating database and tables...');
+    console.log('Connected. Applying tables to database...', DB_NAME);
     await conn.query(sql);
+    // Clean up legacy email verification artifacts if present
+    try {
+      const [[tbl]] = await conn.query(
+        `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'email_verifications' LIMIT 1`,
+        [DB_NAME]
+      );
+      if (tbl && tbl.TABLE_NAME) {
+        console.log('Dropping legacy table: email_verifications');
+        await conn.query(`DROP TABLE IF EXISTS email_verifications`);
+      }
+
+      const [cols] = await conn.query(
+        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
+        [DB_NAME]
+      );
+      const names = new Set(cols.map(c => c.COLUMN_NAME));
+      const dropCols = [];
+      if (names.has('email_verified')) dropCols.push('email_verified');
+      if (names.has('email_verified_at')) dropCols.push('email_verified_at');
+      if (dropCols.length) {
+        console.log('Dropping legacy columns on users:', dropCols.join(', '));
+        const alters = dropCols.map(c => `DROP COLUMN ${c}`).join(', ');
+        await conn.query(`ALTER TABLE users ${alters}`);
+      }
+    } catch (e) {
+      console.warn('Legacy verification cleanup skipped or failed:', e?.message || e);
+    }
     console.log(`Schema applied successfully. Database '${DB_NAME}' ready.`);
   } catch (err) {
     console.error('Failed to initialize database:', err.message);

@@ -1,11 +1,8 @@
--- AdviSys MySQL schema (XAMPP local)
--- Charset: utf8mb4
+-- NOTE: Database creation is handled by admin. This schema assumes
+-- the target database already exists and the connection selects it.
 
-CREATE DATABASE IF NOT EXISTS `advisys`
-  CHARACTER SET utf8mb4
-  COLLATE utf8mb4_unicode_ci;
-
-USE `advisys`;
+-- Temporarily disable foreign key checks while creating tables
+SET FOREIGN_KEY_CHECKS = 0;
 
 -- Users (admin, advisor, student)
 CREATE TABLE IF NOT EXISTS `users` (
@@ -20,23 +17,7 @@ CREATE TABLE IF NOT EXISTS `users` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
--- Transcriptions captured during consultations
-CREATE TABLE IF NOT EXISTS `transcriptions` (
-  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  `consultation_id` INT UNSIGNED NOT NULL,
-  `meeting_id` VARCHAR(255) NOT NULL,
-  `advisor_user_id` INT UNSIGNED NULL,
-  `student_user_id` INT UNSIGNED NULL,
-  `speaker` VARCHAR(50) NULL,
-  `text` TEXT NOT NULL,
-  `timestamp` DATETIME NOT NULL,
-  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `idx_transcripts_consultation` (`consultation_id`),
-  KEY `idx_transcripts_meeting` (`meeting_id`),
-  CONSTRAINT `fk_transcriptions_consultation`
-    FOREIGN KEY (`consultation_id`) REFERENCES `consultations`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- Advisor availability slots (per-date occurrences created in UI)
 CREATE TABLE IF NOT EXISTS `advisor_slots` (
@@ -55,6 +36,7 @@ CREATE TABLE IF NOT EXISTS `advisor_slots` (
   CONSTRAINT `fk_slots_advisor`
     FOREIGN KEY (`advisor_user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 
 -- Advisor profile details
 CREATE TABLE IF NOT EXISTS `advisor_profiles` (
@@ -181,6 +163,24 @@ CREATE TABLE IF NOT EXISTS `consultation_guidelines` (
     FOREIGN KEY (`consultation_id`) REFERENCES `consultations`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Transcriptions captured during consultations (after consultations)
+CREATE TABLE IF NOT EXISTS `transcriptions` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `consultation_id` INT UNSIGNED NOT NULL,
+  `meeting_id` VARCHAR(255) NOT NULL,
+  `advisor_user_id` INT UNSIGNED NULL,
+  `student_user_id` INT UNSIGNED NULL,
+  `speaker` VARCHAR(50) NULL,
+  `text` TEXT NOT NULL,
+  `timestamp` DATETIME NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_transcripts_consultation` (`consultation_id`),
+  KEY `idx_transcripts_meeting` (`meeting_id`),
+  CONSTRAINT `fk_transcriptions_consultation`
+    FOREIGN KEY (`consultation_id`) REFERENCES `consultations`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Notifications (system-generated user notifications)
 CREATE TABLE IF NOT EXISTS `notifications` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
@@ -223,3 +223,6 @@ CREATE TABLE IF NOT EXISTS `advisor_settings` (
   CONSTRAINT `fk_advisor_settings_user`
     FOREIGN KEY (`advisor_user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Re-enable foreign key checks after all tables are created
+SET FOREIGN_KEY_CHECKS = 1;

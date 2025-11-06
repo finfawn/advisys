@@ -56,7 +56,10 @@ function AuthPage({ embedded = false }) {
           body: JSON.stringify({ email: form.email.trim(), password: form.password })
         });
         const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Login failed");
+        if (!res.ok) {
+          const errMsg = data?.error || "Login failed";
+          throw new Error(errMsg);
+        }
         localStorage.setItem("advisys_token", data.token);
         localStorage.setItem("advisys_user", JSON.stringify(data.user));
         if (data.user.role === "student") navigate("/student-dashboard");

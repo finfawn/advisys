@@ -1,6 +1,7 @@
 import React from "react";
 import AdminManageUserRow from "./AdminManageUserRow";
 import { Skeleton } from "../../../lightswind/skeleton";
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "../../../lightswind/table";
 
 export default function AdminManageUserList({
   items,
@@ -12,107 +13,101 @@ export default function AdminManageUserList({
 }) {
   if (loading) {
     return (
-      <div className="manage-list">
-        <div className="manage-row header">
-          <div className="col name-col">Name</div>
-          <div className="col program-dept-col">
-            {isStudent ? "Program" : "Department"}
-          </div>
-          {isStudent && <div className="col year-col">Year</div>}
-          <div className="col status-col">Status</div>
-          <div className="col actions-col" style={{ textAlign: "right" }}>
-            Actions
-          </div>
-        </div>
-        {Array.from({ length: 6 }).map((_, idx) => (
-          <div key={idx} className="manage-row">
-            <div className="col name-col">
-              <Skeleton variant="circle" width={40} height={40} shimmer />
-              <div className="flex-1 min-w-0 ml-2">
-                <Skeleton width="60%" height={14} shimmer />
-                <div className="mt-1">
-                  <Skeleton width="40%" height={12} shimmer />
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>{isStudent ? "Program" : "Department"}</TableHead>
+            {isStudent && <TableHead>Year</TableHead>}
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <TableRow key={idx}>
+              <TableCell>
+                <div className="flex items-center gap-3 min-w-0">
+                  <Skeleton variant="circle" width={32} height={32} shimmer />
+                  <div className="flex-1 min-w-0">
+                    <Skeleton width="60%" height={12} shimmer />
+                    <div className="mt-1">
+                      <Skeleton width="40%" height={10} shimmer />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            <div className="col program-dept-col">
-              <Skeleton width={100} height={22} shimmer />
-            </div>
-            {isStudent && (
-              <div className="col year-col">
-                <Skeleton width={80} height={20} shimmer />
-              </div>
-            )}
-            <div className="col status-col">
-              <Skeleton width={80} height={26} shimmer />
-            </div>
-            <div className="col actions-col" style={{ textAlign: "right" }}>
-              <div className="flex gap-2 justify-end w-full">
-                <Skeleton width={70} height={32} shimmer />
-                <Skeleton width={80} height={32} shimmer />
-                <Skeleton width={95} height={32} shimmer />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+              </TableCell>
+              <TableCell>
+                <Skeleton width={100} height={20} shimmer />
+              </TableCell>
+              {isStudent && (
+                <TableCell>
+                  <Skeleton width={60} height={16} shimmer />
+                </TableCell>
+              )}
+              <TableCell>
+                <Skeleton width={80} height={24} shimmer />
+              </TableCell>
+              <TableCell>
+                <div className="flex gap-2 justify-end w-full">
+                  <Skeleton variant="circle" width={32} height={32} shimmer />
+                  <Skeleton variant="circle" width={32} height={32} shimmer />
+                  <Skeleton variant="circle" width={32} height={32} shimmer />
+                </div>
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
     );
   }
 
   if (!items || items.length === 0) {
     return (
-      <div className="manage-list">
-        <div className="manage-row header">
-          <div className="col name-col">Name</div>
-          <div className="col program-dept-col">
-            {isStudent ? "Program" : "Department"}
-          </div>
-          {isStudent && <div className="col year-col">Year</div>}
-          <div className="col status-col">Status</div>
-          <div className="col actions-col" style={{ textAlign: "right" }}>
-            Actions
-          </div>
-        </div>
-        <div className="manage-row empty-row">
-          <div
-            className="col"
-            style={{
-              gridColumn: "1 / -1",
-              textAlign: "center",
-              padding: "32px 16px",
-              color: "#9ca3af",
-            }}
-          >
-            No users found
-          </div>
-        </div>
-      </div>
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>Name</TableHead>
+            <TableHead>{isStudent ? "Program" : "Department"}</TableHead>
+            {isStudent && <TableHead>Year</TableHead>}
+            <TableHead>Status</TableHead>
+            <TableHead className="text-right">Actions</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell colSpan={isStudent ? 5 : 4} className="text-center text-sm text-muted-foreground py-8">
+              No users found
+            </TableCell>
+          </TableRow>
+        </TableBody>
+      </Table>
     );
   }
 
   return (
-    <div className="manage-list">
-      <div className="manage-row header">
-        <div className="col name-col">Name</div>
-        <div className="col program-dept-col">
-          {isStudent ? "Program" : "Department"}
-        </div>
-        {isStudent && <div className="col year-col">Year</div>}
-        <div className="col status-col">Status</div>
-        <div className="col actions-col" style={{ textAlign: "right" }}>
-          Actions
-        </div>
-      </div>
-      {items.map((item) => (
-        <AdminManageUserRow
-          key={item.id}
-          item={item}
-          isStudent={isStudent}
-          onView={onView}
-          onHistory={onHistory}
-          onToggleActive={onToggleActive}
-        />
-      ))}
-    </div>
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead>Name</TableHead>
+          <TableHead>{isStudent ? "Program" : "Department"}</TableHead>
+          {isStudent && <TableHead>Year</TableHead>}
+          <TableHead>Status</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <AdminManageUserRow
+            key={item.id}
+            item={item}
+            isStudent={isStudent}
+            onView={onView}
+            onHistory={onHistory}
+            onToggleActive={onToggleActive}
+          />
+        ))}
+      </TableBody>
+    </Table>
   );
 }

@@ -871,6 +871,11 @@ body {
   transform-origin: center center;
 }
 
+/* Solid black pill for tabs indicator (used by manage tabs) */
+.bg-gradient-tabs {
+  background: #000000;
+}
+
 /* Sidebar Menu Indicator */
 .sidebar-menu-indicator {
   position: absolute;

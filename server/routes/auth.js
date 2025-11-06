@@ -6,6 +6,10 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+// Email verification removed entirely: no toggle, always disabled
+
+// Email validation removed: accept provided email as-is (trim + lowercase)
+
 function makeToken(user) {
   const payload = {
     id: user.id,
@@ -26,8 +30,12 @@ router.post('/register', async (req, res) => {
   if (!firstName || !lastName) return res.status(400).json({ error: 'First and last name required' });
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
+  // Normalize email; email format/domain validation removed
+  const emailNorm = String(email).trim().toLowerCase();
+  // No email format/domain checks; proceed with registration
+
   try {
-    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [email]);
+    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [emailNorm]);
     if (existing.length) return res.status(409).json({ error: 'Email already registered' });
 
     const password_hash = await bcrypt.hash(password, 10);
@@ -35,7 +43,7 @@ router.post('/register', async (req, res) => {
 
     const [resUser] = await pool.query(
       'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
-      [role, email, password_hash, full_name, 'active']
+      [role, emailNorm, password_hash, full_name, 'active']
     );
     const userId = resUser.insertId;
 
@@ -53,10 +61,11 @@ router.post('/register', async (req, res) => {
       await pool.query('INSERT INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userId, 1, 1]);
     }
 
-    const token = makeToken({ id: userId, role, email, full_name });
+    // Email verification removed: issue JWT and return user directly
+    const token = makeToken({ id: userId, role, email: emailNorm, full_name });
     return res.json({
       token,
-      user: { id: userId, role, email, full_name },
+      user: { id: userId, role, email: emailNorm, full_name }
     });
   } catch (err) {
     console.error('Register failed:', err);
@@ -71,7 +80,8 @@ router.post('/login', async (req, res) => {
   const { email, password } = req.body || {};
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
   try {
-    const [rows] = await pool.query('SELECT id, role, email, password_hash, full_name FROM users WHERE email = ?', [email]);
+    const emailNorm = String(email).trim().toLowerCase();
+    const [rows] = await pool.query('SELECT id, role, email, password_hash, full_name FROM users WHERE email = ?', [emailNorm]);
     if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
     const user = rows[0];
     if (!user.password_hash) return res.status(401).json({ error: 'Invalid credentials' });
@@ -84,6 +94,8 @@ router.post('/login', async (req, res) => {
     return res.status(500).json({ error: 'Login failed' });
   }
 });
+
+// Email verification endpoints removed
 
 // POST /api/auth/change-password
 // Body: { currentPassword, newPassword }

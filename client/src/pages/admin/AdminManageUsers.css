@@ -47,6 +47,8 @@
 .manage-right {
     padding: 0;
     background: #fafafa;
+    /* Allow grid item to shrink and avoid overflow clipping */
+    min-width: 0;
 }
 
 .manage-filters {
@@ -55,10 +57,19 @@
     justify-content: flex-end;
     flex-wrap: wrap;
     gap: 10px;
-    padding: 16px 12px;
-    background: #fafafa;
-    border-bottom: 2px solid #e5e7eb;
-    border-radius: 8px 8px 0 0;
+    padding: 10px 0;
+    background: transparent; /* keep header clean */
+    border-bottom: none;
+    border-radius: 0;
+}
+
+/* Make header action buttons simpler and tighter */
+.manage-filters button {
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 8px;
+  box-shadow: none;
+  font-weight: 600;
 }
 
 .segmented {
@@ -114,44 +125,48 @@
     display: flex;
     flex-direction: column;
     background: #ffffff;
-    overflow: hidden;
+    overflow: visible;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
 }
 
 .manage-row {
     display: grid;
     grid-template-columns: 2fr 1fr 0.8fr 0.7fr 1.2fr;
     align-items: center;
-    gap: 16px;
-    padding: 16px 12px;
-    border-bottom: 1px solid #e5e7eb;
+    gap: 12px;
+    padding: 12px 10px;
+    border-bottom: 1px solid #e6e6e6; /* subtle row divider like simple tables */
     transition: background-color 0.2s ease;
+    font-size: 0.8125rem;
 }
 
 .manage-row:hover:not(.header) {
-    background-color: #f9fafb;
+    background-color: transparent; /* no hover tint for simpler look */
 }
 
-/* When year column is hidden (advisors), adjust grid */
-.manage-row:not(:has(.year-col)) {
+/* Remove zebra striping for a cleaner, neutral table */
+.manage-row:not(.header):nth-child(even) { background: transparent; }
+
+/* Advisors layout (no year column) */
+.manage-row.advisors {
     grid-template-columns: 2fr 1.2fr 0.8fr 1.3fr;
 }
 
 .manage-row.header {
-    font-weight: 700;
-    font-size: 0.75rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+    font-weight: 600;
+    font-size: 0.80rem;
+    text-transform: none;
+    letter-spacing: 0;
     color: #6b7280;
-    background: #f9fafb;
+    background: #f8fafc; /* subtle tint like simple table header */
     position: sticky;
     top: 0;
     z-index: 10;
-    border-bottom: 2px solid #d1d5db;
+    border-bottom: 2px solid #e5e7eb;
 }
 
-.manage-row.header:hover {
-    background: #f9fafb;
-}
+.manage-row.header:hover { background: #f8fafc; }
 
 .manage-row .name-col {
     display: flex;
@@ -163,23 +178,26 @@
 .manage-row .avatar {
     display: grid;
     place-items: center;
-    width: 40px;
-    height: 40px;
+    width: 26px;
+    height: 26px;
     border-radius: 50%;
     background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
     color: #1e40af;
-    font-size: 20px;
+    font-size: 16px;
     flex-shrink: 0;
 }
 
 .manage-row .name-text {
     font-weight: 600;
-    font-size: 0.95rem;
-    color: #111827;
+    font-size: 0.80rem;
+    color: #2563eb; /* link-like title, simple table style */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
+/* underline on hover to emulate link behavior visually without changing logic */
+.manage-row .name-col:hover .name-text { text-decoration: underline; }
 
 .manage-row .year-col {
     display: flex;
@@ -187,7 +205,7 @@
     gap: 6px;
     color: #374151;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.80rem;
 }
 
 .manage-row .year-col svg {
@@ -201,7 +219,7 @@
     gap: 8px;
     color: #374151;
     font-weight: 500;
-    font-size: 0.9rem;
+    font-size: 0.80rem;
 }
 
 .manage-row .program-dept-col svg {
@@ -212,13 +230,13 @@
 .manage-row .program-dept-text {
     display: inline-flex;
     align-items: center;
-    padding: 4px 10px;
-    background: #eff6ff;
-    border: 1px solid #bfdbfe;
-    border-radius: 6px;
-    color: #1e40af;
-    font-weight: 600;
-    font-size: 0.85rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    color: #4b5563; /* slightly muted secondary text */
+    font-weight: 500;
+    font-size: 0.80rem;
     letter-spacing: 0.025em;
 }
 
@@ -239,25 +257,28 @@
     color: #9ca3af;
 }
 
-/* Tablet: treat like mobile — single column stacking with full-width actions */
+/* Tablet adjustments: use cards for smoother responsiveness */
 @media (max-width: 1024px) {
+  .manage-row.header { display: none; }
+  .manage-list { gap: 10px; padding: 10px; }
   .manage-row {
-    grid-template-columns: 1fr;
+    display: flex;
+    flex-direction: column;
     gap: 12px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    background: #fff;
+    align-items: flex-start;
   }
-  .manage-row .actions-col {
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 8px;
-  }
-  .manage-row .actions-col button:last-child {
-    grid-column: 1 / -1;
-  }
-  .manage-row .status-col {
-    justify-self: start;
-  }
+  .manage-row .col { width: 100%; }
+  .manage-row .name-col { gap: 10px; justify-content: flex-start; }
+  .actions-col { justify-content: flex-start; flex-wrap: wrap; gap: 6px; }
+  .actions-col button { padding: 6px 10px; font-size: 12px; min-height: 28px; }
 }
+
+/* Tablet portrait: sidebar hidden via layout; right pane uses full width */
 
 .manage-row.inactive .program-dept-text {
     background: #f3f4f6;
@@ -277,17 +298,9 @@
     align-items: center;
 }
 
-.actions-col button {
-    font-size: 0.8125rem;
-    font-weight: 600;
-    padding: 6px 12px;
-    transition: all 0.15s ease;
+/* Let Lightswind Button variants control visuals; only manage layout spacing */
+.actions-col > button {
     white-space: nowrap;
-}
-
-.actions-col button:hover {
-    transform: translateY(-1px);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
 }
 
 .pill-btn {
@@ -305,7 +318,8 @@
     color: #b91c1c;
 }
 
-@media (max-width: 992px) {
+/* Mobile & small tablet: stack columns and turn rows into cards */
+@media (max-width: 768px) {
     .manage-grid {
         grid-template-columns: 1fr;
     }
@@ -320,199 +334,232 @@
     }
 }
 
+/* Mobile phones: turn rows into cards for readability */
 @media (max-width: 640px) {
-    /* Hide table header on mobile */
-    .manage-row.header {
-        display: none;
-    }
+  .manage-row.header { display: none; }
+  .manage-list { gap: 8px; padding: 8px; }
+  .manage-row {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+    background: #fff;
+    align-items: flex-start; /* prevent centered content in column layout */
+  }
+  .manage-row .col { width: 100%; }
+  .manage-row .name-col { justify-content: flex-start; }
+  .manage-row .avatar { width: 24px; height: 24px; font-size: 12px; }
+  .manage-row .name-text { font-size: 0.78rem; }
+  .manage-row .year-col, .manage-row .program-dept-text { font-size: 0.74rem; }
+  .manage-row .program-dept-col { margin-top: 6px; }
+  .manage-row .year-col { margin-top: 4px; }
+  .manage-row .status-col { order: 3; }
+  .actions-col { order: 4; justify-content: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .actions-col button { padding: 6px 10px; font-size: 12px; min-height: 26px; }
+  .program-dept-text { padding: 3px 8px; }
+}
 
-    /* Transform rows into advisor-style cards */
-    .manage-list {
-        display: grid;
-        grid-template-columns: 1fr;
-        gap: 14px;
-        padding: 8px;
-    }
+/* Tablet (768–1024px): convert rows to cards like consultations */
+@media (min-width: 768px) and (max-width: 1024px) {
+  .admin-dash-body,
+  .admin-dash-body.collapsed {
+    grid-template-columns: 1fr;
+  }
+  .manage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Move left tabs to top row and remove sticky sidebar behavior */
+  .manage-left {
+    flex-direction: row;
+    border-right: none;
+    border-bottom: 1px solid #e5e7eb;
+    position: static;
+    height: auto;
+    overflow: visible;
+    gap: 8px;
+    padding: 12px 10px;
+    background: #fff;
+  }
+  .left-pill { flex: 1; }
+
+  .manage-row.header { display: none; }
+  .manage-list { gap: 10px; padding: 10px; }
+
+  .manage-row {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    background: #fff;
+    align-items: flex-start; /* avoid centered content in column layout */
+  }
+  .manage-row .col { width: 100%; }
+  .manage-row .name-col { gap: 10px; justify-content: flex-start; }
+  .manage-row .avatar { width: 28px; height: 28px; font-size: 14px; }
+  .manage-row .name-text { font-size: 0.80rem; font-weight: 600; }
+  .manage-row .year-col, .manage-row .program-dept-text { font-size: 0.78rem; }
+  .manage-row .program-dept-col { margin-top: 6px; }
+  .manage-row .year-col { margin-top: 4px; }
+  .manage-row .program-dept-text { padding: 3px 8px; border-radius: 6px; }
+  .manage-row .status-col { order: 3; }
+  .actions-col { order: 4; justify-content: flex-start; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .actions-col button { font-size: 12px; padding: 6px 10px; min-height: 28px; }
+
+  /* Filters: align left and wrap nicely on tablet */
+  .manage-filters {
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 12px 10px;
+    background: #fff;
+  }
+  .manage-search { min-width: 200px; max-width: 100%; padding: 8px 10px; font-size: 14px; }
+}
+
+/* Small desktop (1025–1366px): keep compact table layout */
+@media (min-width: 1025px) and (max-width: 1366px) {
+  .admin-dash-body,
+  .admin-dash-body.collapsed {
+    grid-template-columns: 1fr;
+  }
+  .manage-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Compact list: tighter spacing, smaller fonts, smaller avatars */
+  .manage-row.header {
+    font-size: 0.7rem;
+    letter-spacing: 0.04em;
+  }
+
+  .manage-row {
+    grid-template-columns: 1.8fr 1fr 0.8fr 0.7fr 1fr;
+    gap: 10px;
+    padding: 10px 8px;
+  }
+
+  .manage-row.advisors {
+    grid-template-columns: 1.9fr 1.1fr 0.8fr 1.1fr;
+  }
+
+  .manage-row .name-col {
+    gap: 10px;
+  }
+
+  .manage-row .avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 16px;
+  }
+
+  .manage-row .name-text {
+    font-size: 0.80rem;
+    font-weight: 600;
+  }
+
+  .manage-row .year-col,
+  .manage-row .program-dept-text {
+    font-size: 0.78rem;
+  }
+
+  .manage-row .program-dept-text {
+    padding: 3px 8px;
+    border-radius: 5px;
+  }
+
+  .actions-col {
+    gap: 4px;
+  }
+
+  .actions-col button {
+    font-size: 12px;
+    padding: 6px 10px;
+    min-height: 30px;
+  }
+
+  .pill-btn {
+    padding: 6px 10px;
+    font-weight: 600;
+  }
+
+  .manage-filters {
+    gap: 8px;
+    padding: 12px 10px;
+  }
+
+  .segmented {
+    padding: 3px;
+  }
+
+  .seg-btn {
+    padding: 6px 10px;
+    font-size: 12px;
+  }
+
+  .manage-search {
+    min-width: 200px;
+    max-width: 360px;
+    padding: 8px 12px;
+    font-size: 14px;
+  }
+
+  .status-indicator {
+    width: 7px;
+    height: 7px;
+  }
+}
+
+/* Large desktop table: widen columns progressively (1367px–1536px) */
+@media (min-width: 1367px) and (max-width: 1536px) {
+  .manage-grid { grid-template-columns: 260px 1fr; }
+  .manage-list { gap: 12px; }
+  .manage-header { grid-template-columns: 2.1fr 1.2fr 0.9fr 0.8fr 1.2fr; }
+  .manage-row { grid-template-columns: 2.1fr 1.2fr 0.9fr 0.8fr 1.2fr; padding: 12px 10px; gap: 12px; }
+  .manage-row.advisors { grid-template-columns: 2.1fr 1.3fr 0.9fr 1.2fr; }
+}
+
+/* Ultra-wide desktop: further increase readable column widths (≥1537px) */
+@media (min-width: 1537px) {
+  .manage-grid { grid-template-columns: 280px 1fr; }
+  .manage-list { gap: 14px; }
+  .manage-header { grid-template-columns: 2.3fr 1.4fr 1fr 0.9fr 1.3fr; }
+  .manage-row { grid-template-columns: 2.3fr 1.4fr 1fr 0.9fr 1.3fr; padding: 14px 12px; gap: 14px; }
+  .manage-row.advisors { grid-template-columns: 2.3fr 1.5fr 1fr 1.3fr; }
+}
+
+@media (min-width: 641px) and (max-width: 768px) {
+    /* Tablet portrait: use cards like consultations */
+    .manage-row.header { display: none; }
+    .manage-list { display: flex; flex-direction: column; gap: 10px; padding: 10px; }
 
     .manage-row {
         display: flex;
         flex-direction: column;
-        gap: 0;
-        padding: 16px;
-        margin: 0;
-        background: #ffffff;
+        gap: 12px;
+        padding: 14px;
         border: 1px solid #e5e7eb;
         border-radius: 12px;
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
-        transition: all 0.2s ease;
-    }
-
-    .manage-row:active {
-        transform: scale(0.98);
-    }
-
-    .manage-row:hover {
-        border-color: #3b82f6;
-        box-shadow: 0 2px 8px rgba(59, 130, 246, 0.12);
-    }
-
-    .manage-row.inactive {
-        opacity: 0.65;
-        background: #fafafa;
-    }
-
-    /* Header section with avatar and name */
-    .manage-row .name-col {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        padding: 0;
-        margin-bottom: 14px;
-        width: 100%;
-    }
-
-    .manage-row .avatar {
-        width: 44px;
-        height: 44px;
-        font-size: 24px;
-        color: #ffffff;
-        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-        border-radius: 50%;
-        flex-shrink: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 4px rgba(59, 130, 246, 0.2);
-    }
-
-    .manage-row.inactive .avatar {
-        background: #d1d5db;
-        box-shadow: none;
-    }
-
-    .manage-row .name-text {
-        flex: 1;
-        font-size: 15px;
-        font-weight: 600;
-        color: #111827;
-        min-width: 0;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-
-    /* Info section - program/dept and year displayed inline */
-    .manage-row .program-dept-col,
-    .manage-row .year-col {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        padding: 6px 12px;
-        margin-right: 8px;
-        margin-bottom: 12px;
-        font-size: 13px;
-        background: #f9fafb;
-        border: 1px solid #e5e7eb;
-        border-radius: 8px;
-        color: #374151;
-        font-weight: 500;
-    }
-
-    .manage-row .program-dept-col {
-        display: flex;
-        align-items: center;
-        justify-content: flex-start;
-        gap: 0;
-        padding: 0;
-        margin-right: 0;
-        margin-bottom: 12px;
-        width: auto;
-    }
-
-    .manage-row .program-dept-col svg {
-        display: none;
-    }
-
-    .manage-row .program-dept-text {
-        font-size: 13px;
-        font-weight: 600;
-        line-height: 1.4;
-        padding: 6px 12px;
-        white-space: nowrap;
-    }
-
-    .manage-row .year-col svg {
-        flex-shrink: 0;
-        color: #6b7280;
-        font-size: 14px;
-    }
-
-    /* Status badge */
-    .manage-row .status-col {
-        display: flex;
-        align-items: center;
-        margin-bottom: 16px;
-    }
-
-    /* Actions section */
-    .actions-col {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
-        padding: 0;
-        margin-top: 4px;
-    }
-
-    .actions-col button {
-        min-width: 0;
-        padding: 10px 12px;
-        font-size: 13px;
-        font-weight: 600;
-        white-space: nowrap;
-        min-height: 44px;
-    }
-
-    /* Make the last button span full width */
-    .actions-col button:last-child {
-        grid-column: 1 / -1;
-    }
-
-    /* Make filters stack and fill width on mobile */
-    .manage-filters {
-        flex-direction: column;
-        align-items: stretch;
-        gap: 10px;
-        padding: 16px 12px;
+        box-shadow: 0 1px 4px rgba(0,0,0,0.06);
         background: #ffffff;
-        border-radius: 0;
-        border-bottom: 1px solid #e5e7eb;
     }
 
-    .manage-list {
-        border: none;
-        border-radius: 0;
-    }
+    .manage-row .name-text { font-size: 0.78rem; }
+    .manage-row .year-col, .manage-row .program-dept-text { font-size: 0.75rem; }
+    .manage-row .avatar { width: 26px; height: 26px; font-size: 14px; }
 
-    .manage-filters > * {
-        width: 100%;
-    }
+    .actions-col { gap: 6px; flex-wrap: wrap; justify-content: flex-start; }
+    .actions-col button { padding: 6px 8px; font-size: 12px; min-height: 28px; }
 
-    .manage-filters .relative {
-        width: 100%;
-    }
-
-    .manage-filters button {
-        min-height: 44px;
-        padding: 10px 16px;
-        font-size: 14px;
-        font-weight: 600;
-    }
-
-    .manage-search {
-        min-width: 100%;
-        padding: 12px 16px;
-        font-size: 15px;
-    }
+    .manage-filters { flex-direction: row; align-items: center; flex-wrap: wrap; gap: 8px; }
+    .manage-filters > * { width: auto; }
+    .manage-search { min-width: 180px; max-width: 100%; padding: 8px 10px; font-size: 14px; }
 }
 
 /* Admin History Modal */
@@ -1185,4 +1232,13 @@
     .generate-password-btn {
         width: 100%;
     }
+}
+/* Place search at the start of the controls row and constrain width */
+.content-right .manage-filters > .flex {
+  margin-left: 0; /* override ml-auto from class */
+  max-width: 420px;
+  width: auto;
+}
+.content-right .manage-filters input {
+  height: 36px;
 }

@@ -19,6 +19,13 @@
   --sb-ico-col: 2rem;
 }
 
+/* Tablet: reduce admin sidebar width to free main content space */
+@media (min-width: 768px) and (max-width: 1180px) {
+  .admin-dash-wrap .dash-sidebar {
+    min-width: 160px;
+  }
+}
+
 /* Hide WebKit scrollbars explicitly */
 .dash-sidebar::-webkit-scrollbar { 
   width: 0; 

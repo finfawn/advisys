@@ -288,6 +288,10 @@
   opacity: 0.9;
   margin-right: 0; /* pull indicator to the edge */
 }
+.slot-modal-content .time-input::-webkit-calendar-picker-indicator {
+  opacity: 0 !important;
+  display: none !important; /* hide native indicator in slot modal */
+}
 .time-input::-webkit-datetime-edit-fields-wrapper {
   padding: 0 2px;
 }
@@ -297,25 +301,24 @@
 }
 
 /* Custom icon overlay for time inputs */
-.time-input-wrapper { position: relative; }
-.time-input.custom-icon { padding-right: 38px; }
+.time-input-wrapper { position: relative; overflow: visible; }
+.time-input.custom-icon { padding-right: 42px; position: relative; z-index: 1; }
 .time-icon-btn {
   position: absolute;
   right: 10px;
-  top: 50%;
+  top: 40%;
   transform: translateY(-50%);
-  display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
+  width: 24px;
+  height: 24px;
   background: transparent;
   border: none;
-  color: #6b7280;
+  color: #64748b; /* slate-500 */
   cursor: pointer;
 }
 .time-icon-btn:hover { color: #374151; }
-.time-input.custom-icon::-webkit-calendar-picker-indicator { opacity: 0; }
+.time-input.custom-icon::-webkit-calendar-picker-indicator { opacity: 0; display: none !important; }
 
 /* Generated Slot Preview List */
 .slot-preview-list {
@@ -459,9 +462,11 @@
 /* Section wrapper for Generated Slots; align with header/footer gutters */
 .slot-preview-section { padding: 0 24px; }
 /* --- Overrides appended --- */
-/* Ensure custom clock icon is visible above input */
-.time-icon-btn { z-index: 2; }
-.time-icon-btn svg { width: 16px; height: 16px; }
+/* Ensure custom clock icon is visible above input and actually paints */
+.slot-modal-content .time-icon-btn { z-index: 20; }
+.slot-modal-content .time-icon-btn svg { width: 20px; height: 20px; display: inline-block; opacity: 1; color: #64748b; fill: currentColor; stroke: currentColor; }
+.slot-modal-content .time-input-wrapper { overflow: visible; }
+.slot-modal-content .time-input.custom-icon { padding-right: 42px; }
 
 /* Fixed modal height; scroll inside without changing outer size */
 .slot-modal-content {

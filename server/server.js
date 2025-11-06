@@ -13,8 +13,12 @@ const authRouter = require('./routes/auth');
 app.use('/api/auth', authRouter);
 const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
-const jaasRouter = require('./routes/jaas');
-app.use('/api/jaas', jaasRouter);
+// Conditionally mount JaaS routes only when provider is set to 'jaas'
+const MEETING_PROVIDER = (process.env.MEETING_PROVIDER || 'stream').toLowerCase();
+if (MEETING_PROVIDER === 'jaas') {
+  const jaasRouter = require('./routes/jaas');
+  app.use('/api/jaas', jaasRouter);
+}
 const advisorsRouter = require('./routes/advisors');
 app.use('/api/advisors', advisorsRouter);
 const consultationsRouter = require('./routes/consultations');
@@ -34,12 +38,13 @@ app.use('/api', transcriptionsRouter);
 // Stream Video token minting
 const streamRouter = require('./routes/stream');
 app.use('/api/stream', streamRouter);
-// RS256 JaaS JWT generation endpoint mounted at root
-const generateJwtRouter = require('./routes/generate_jwt');
-app.use('/generate-jwt', generateJwtRouter);
-// JaaS Settings Provisioning endpoint (register this full URL in JaaS Control Center)
-const jaasSettingsRouter = require('./routes/jaas_settings');
-app.use('/api/jaas/settings-provisioning', jaasSettingsRouter);
+// RS256 JaaS JWT generation and Settings Provisioning: mount only if using JaaS
+if (MEETING_PROVIDER === 'jaas') {
+  const generateJwtRouter = require('./routes/generate_jwt');
+  app.use('/generate-jwt', generateJwtRouter);
+  const jaasSettingsRouter = require('./routes/jaas_settings');
+  app.use('/api/jaas/settings-provisioning', jaasSettingsRouter);
+}
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
@@ -202,7 +207,7 @@ async function runConsultationReminderJob() {
         const baseWhere = c.room_name ? 'Online meeting room will be available.' : (c.location ? `Location: ${c.location}.` : '');
         const guidance = c.room_name
           ? (minsUntil > 0
-              ? 'Your advisor will start the call at the scheduled time. Join via the in-app JaaS room.'
+              ? 'Your advisor will start the call at the scheduled time. Join via the Stream video room in-app.'
               : 'If access errors occur, refresh or wait a moment — the room opens when your advisor starts the call.')
           : (c.location ? 'Arrive a few minutes early and bring any required materials.' : '');
         const message = `Your consultation '${c.topic}' is scheduled for ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
@@ -216,7 +221,7 @@ async function runConsultationReminderJob() {
         const guidance = c.room_name
           ? (minsUntil > 0
               ? 'Start the meeting at the scheduled time so students can join on time.'
-              : 'If students report access errors, ensure you are signed in and the JaaS room is started.')
+              : 'If students report access errors, ensure you are signed in and the Stream video room is started.')
           : (c.location ? 'Please be on-site a few minutes early.' : '');
         const message = `You have a consultation for '${c.topic}' on ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
         await createNotification(pool, c.advisor_user_id, 'consultation_reminder', title, message, data);

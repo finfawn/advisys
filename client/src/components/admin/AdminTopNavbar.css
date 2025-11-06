@@ -409,7 +409,8 @@
   }
 }
 /* Tablet: mirror mobile navbar behavior (hide brand/greeting/user dropdown) */
-@media (max-width: 1024px) {
+/* Tablet and small desktop: mirror mobile navbar behavior */
+@media (max-width: 1366px) {
   .admin-topbar .admin-brand { display: none !important; }
   .admin-topbar .admin-greeting { display: none !important; }
   .admin-topbar .user-dropdown { display: none !important; }

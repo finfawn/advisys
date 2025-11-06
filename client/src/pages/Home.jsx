@@ -191,11 +191,7 @@ function Home() {
                     label: authInfo.isLoggedIn ? "Dashboard" : "Sign In",
                     onClick: () => {
                       const current = getAuthInfo();
-                      navigate(
-                        current.isLoggedIn
-                          ? getDashboardPath(current.role)
-                          : "/auth",
-                      );
+                      navigate(current.isLoggedIn ? getDashboardPath(current.role) : "/auth");
                     },
                   },
                 ]}
@@ -216,11 +212,7 @@ function Home() {
                 <HeroSection
                   onGetStarted={() => {
                     const current = getAuthInfo();
-                    navigate(
-                      current.isLoggedIn
-                        ? getDashboardPath(current.role)
-                        : "/auth",
-                    );
+                    navigate(current.isLoggedIn ? getDashboardPath(current.role) : "/auth");
                   }}
                 />
               </div>
