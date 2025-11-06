@@ -159,7 +159,22 @@ export default function AdvisorAvailability() {
   };
 
   const slotsForSelected = useMemo(() => {
-    return events.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
+    const base = events.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
+    // If selected date is today, hide slots whose end time has already passed
+    const today = new Date();
+    const isSelectedToday = selectedDate &&
+      selectedDate.getFullYear() === today.getFullYear() &&
+      selectedDate.getMonth() === today.getMonth() &&
+      selectedDate.getDate() === today.getDate();
+    if (!isSelectedToday) return base;
+    return base.filter((ev) => {
+      try {
+        const end = new Date(ev.end);
+        return end.getTime() > Date.now();
+      } catch (_) {
+        return true;
+      }
+    });
   }, [events, selectedDate]);
 
   // Group slots into morning/afternoon/evening buckets
@@ -167,10 +182,17 @@ export default function AdvisorAvailability() {
     const groups = { morning: [], afternoon: [], evening: [] };
     for (const slot of slotsForSelected) {
       const hour = new Date(slot.start).getHours();
-      if (hour >= 8 && hour < 12) groups.morning.push(slot);
-      else if (hour >= 12 && hour < 16) groups.afternoon.push(slot);
-      else if (hour >= 16 && hour < 20) groups.evening.push(slot);
-      else groups.morning.push(slot); // default bucket
+      // Morning: 8:00–11:59, Afternoon: 12:00–15:59, Evening: 16:00–20:59
+      if (hour >= 8 && hour < 12) {
+        groups.morning.push(slot);
+      } else if (hour >= 12 && hour < 16) {
+        groups.afternoon.push(slot);
+      } else if (hour >= 16 && hour < 21) {
+        groups.evening.push(slot);
+      } else {
+        // Fallback: hours >= 21 belong to evening; early hours (< 8) to morning
+        (hour >= 21 ? groups.evening : groups.morning).push(slot);
+      }
     }
     return groups;
   }, [slotsForSelected]);

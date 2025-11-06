@@ -77,7 +77,7 @@ router.get('/:id', async (req, res) => {
   try {
     const advisorId = req.params.id;
     const [[u]] = await pool.query(
-      `SELECT u.id, u.full_name, ap.title, ap.department, ap.bio
+      `SELECT u.id, u.full_name, ap.title, ap.department, ap.bio, ap.office_location
        FROM users u JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE u.id = ? AND u.role='advisor'`, [advisorId]
     );
@@ -115,6 +115,7 @@ router.get('/:id', async (req, res) => {
       title: u.title,
       department: u.department,
       bio: u.bio,
+      officeLocation: u.office_location || null,
       topicsCanHelpWith: topics.map(t => t.topic),
       consultationGuidelines: guidelines.map(g => g.guideline_text),
       coursesTaught: courses.map(c => c.course_name),

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useLocation } from "react-router-dom";
 import { 
   BsPersonCircle, 
   BsCalendarCheck,
@@ -13,11 +13,13 @@ import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import ConsultationModal from "../../components/student/ConsultationModal";
 import { useSidebar } from "../../contexts/SidebarContext";
+import { Skeleton } from "../../lightswind/skeleton";
 import "./AdvisorProfilePage.css";
 
 export default function AdvisorProfilePage() {
   const { advisorId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { collapsed, toggleSidebar } = useSidebar();
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -54,10 +56,15 @@ export default function AdvisorProfilePage() {
 
             let nextSlotStr = null;
             if (availableSlots.length > 0) {
-              const next = availableSlots
+              const now = new Date();
+              const futureSlots = availableSlots
                 .map(s => ({ ...s, start: new Date(s.start_datetime), end: new Date(s.end_datetime) }))
-                .sort((a, b) => a.start - b.start)[0];
-              nextSlotStr = `${toDateLabel(next.start)} • ${toTimeStr(next.start)} - ${toTimeStr(next.end)}`;
+                .filter(s => s.start > now)
+                .sort((a, b) => a.start - b.start);
+              if (futureSlots.length > 0) {
+                const next = futureSlots[0];
+                nextSlotStr = `${toDateLabel(next.start)} • ${toTimeStr(next.start)} - ${toTimeStr(next.end)}`;
+              }
             }
 
             // Derive consultation modes from slots (reflects advisor settings)
@@ -127,6 +134,14 @@ export default function AdvisorProfilePage() {
     loadAdvisor();
   }, [advisorId]);
 
+  // Auto-open booking modal when navigated with ?openBooking=true
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    if (params.get('openBooking') === 'true') {
+      setIsModalOpen(true);
+    }
+  }, [location.search]);
+
   const handleNavigation = (page) => {
     if (page === 'dashboard') {
       navigate('/student-dashboard');
@@ -151,7 +166,7 @@ export default function AdvisorProfilePage() {
     navigate('/student-dashboard/consultations?tab=requests');
   };
 
-  // Guard against null state during initial fetch
+  // Guard against null state during initial fetch with skeletons
   if (!advisorData) {
     return (
       <div className="profile-wrap">
@@ -161,16 +176,102 @@ export default function AdvisorProfilePage() {
             <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
           </div>
           <main className="profile-main relative">
+            {/* Back Button skeleton spacing */}
+            <div className="profile-back">
+              <Skeleton className="h-8 w-36 rounded-md" shimmer />
+            </div>
+
             <div className="profile-container">
+              {/* Header Section Skeleton */}
               <section className="profile-header">
                 <div className="header-content">
-                  <div className="advisor-avatar"><BsPersonCircle /></div>
-                  <div className="advisor-info">
-                    <h1 className="advisor-name">Loading advisor...</h1>
-                    <p className="advisor-title">Please wait</p>
+                  <div className="advisor-avatar">
+                    <Skeleton className="w-16 h-16 rounded-full" shimmer />
+                  </div>
+                  <div className="advisor-info w-full">
+                    <Skeleton className="h-6 w-1/2 mb-2" shimmer />
+                    <Skeleton className="h-4 w-1/3" shimmer />
                   </div>
                 </div>
               </section>
+
+              <div className="profile-grid">
+                {/* Left Column Skeleton */}
+                <div className="profile-left">
+                  <section className="profile-section">
+                    <h2 className="section-title">
+                      <FaUserTie className="section-icon" />
+                      About
+                    </h2>
+                    <div className="section-content space-y-3">
+                      <Skeleton className="h-4 w-full" shimmer />
+                      <Skeleton className="h-4 w-5/6" shimmer />
+                      <Skeleton className="h-4 w-2/3" shimmer />
+                      <div className="topics-section">
+                        <h3>Topics I Can Help With</h3>
+                        <div className="flex flex-wrap gap-2">
+                          {Array.from({ length: 5 }).map((_, i) => (
+                            <Skeleton key={`topic-${i}`} className="h-6 w-24 rounded-full" shimmer />
+                          ))}
+                        </div>
+                      </div>
+                      <div className="guidelines-section">
+                        <h3>Preferred Consultation Guidelines</h3>
+                        <div className="space-y-2">
+                          {Array.from({ length: 4 }).map((_, i) => (
+                            <div key={`guideline-${i}`} className="flex items-center gap-2">
+                              <Skeleton className="h-4 w-3/4" shimmer />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="courses-taught">
+                        <h3>Courses Taught</h3>
+                        <div className="space-y-2">
+                          {Array.from({ length: 3 }).map((_, i) => (
+                            <Skeleton key={`course-${i}`} className="h-4 w-1/2" shimmer />
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </section>
+                </div>
+
+                {/* Right Column Skeleton */}
+                <div className="profile-right">
+                  <section className="profile-section availability-section">
+                    <h2 className="section-title">
+                      <BsClock className="section-icon" />
+                      Availability
+                    </h2>
+                    <div className="section-content space-y-4">
+                      <div className="weekly-schedule">
+                        <h3>Weekly Schedule</h3>
+                        <div className="grid grid-cols-2 gap-3">
+                          {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={`sched-${i}`} className="flex items-center justify-between gap-3">
+                              <Skeleton className="h-4 w-24" shimmer />
+                              <Skeleton className="h-4 w-32" shimmer />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="consultation-modes">
+                        <h3>Consultation Mode</h3>
+                        <div className="flex gap-2">
+                          <Skeleton className="h-6 w-20 rounded-full" shimmer />
+                          <Skeleton className="h-6 w-20 rounded-full" shimmer />
+                        </div>
+                      </div>
+                      <div className="next-available">
+                        <h3>Next Available Slot</h3>
+                        <Skeleton className="h-4 w-2/3" shimmer />
+                      </div>
+                      <Skeleton className="h-10 w-48 rounded-md" shimmer />
+                    </div>
+                  </section>
+                </div>
+              </div>
             </div>
           </main>
         </div>

@@ -48,25 +48,25 @@
   border-bottom: 1px solid #e5e7eb;
 }
 
-.advisor-info {
-  display: flex;
+/* Scope advisor header bits to the modal to avoid leaking styles */
+.consultation-modal .advisor-info {
   align-items: center;
   gap: 12px;
 }
 
-.profile-icon {
+.consultation-modal .profile-icon {
   width: 38px;
   height: 38px;
   color: #4b5563;
 }
 
-.advisor-name {
-  font-weight: 600;
+.consultation-modal .advisor-name {
+  font-weight: 200;
 }
 
-.advisor-department {
+.consultation-modal .advisor-department {
   color: #6b7280;
-  font-size: 0.925rem;
+  font-size: 0.5rem;
 }
 
 .close-button {
@@ -104,22 +104,73 @@
 }
 
 .faculty-card {
-  border: 1px solid #e5e7eb;
-  border-radius: 12px;
-  padding: 12px;
-  background: #fff;
+  /* Match Advisor Profile header card styling */
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 16px;
+  padding: 12px 14px;
   margin-bottom: 12px;
+  /* Low-key look: remove shadow */
+  box-shadow: none;
 }
 
-.faculty-avatar {
-  width: 42px;
-  height: 42px;
+/* Copy avatar look from profile header */
+.consultation-modal .faculty-avatar {
+  width: 48px;
+  height: 48px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
+  /* Low-key avatar styling */
   background: #f3f4f6;
   color: #6b7280;
+  border: 2px solid #e5e7eb;
+  box-shadow: none;
+  overflow: hidden;
+}
+
+.consultation-modal .faculty-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+}
+
+.consultation-modal .faculty-name {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1f2937;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
+}
+
+.consultation-modal .faculty-title {
+  font-size: 0.95rem;
+  color: #4b5563;
+  margin: 0 0 4px 0;
+  font-weight: 500;
+}
+
+.consultation-modal .faculty-department {
+  font-size: 0.9rem;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.consultation-modal .faculty-availability {
+  font-size: 0.85rem;
+  color: #6b7280;
+  margin: 0;
+}
+
+/* Mobile tweaks inside modal */
+@media (max-width: 576px) {
+  .consultation-modal .faculty-avatar {
+    width: 42px;
+    height: 42px;
+  }
+  .consultation-modal .faculty-name { font-size: 1.05rem; }
 }
 
 .form-label {

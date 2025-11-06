@@ -16,6 +16,10 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
   };
 
   const getStatusInfo = () => {
+    const inSession = String(consultation.status) === 'approved' && !!consultation.actual_start_datetime && !consultation.actual_end_datetime;
+    if (inSession) {
+      return { text: 'In Session', icon: <BsClock />, class: 'status-insession' };
+    }
     switch (consultation.status) {
       case 'approved':
         return { text: 'Approved', icon: <BsCheckCircle />, class: 'status-approved' };

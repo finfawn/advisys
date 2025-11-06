@@ -35,6 +35,9 @@ const settingsRouter = require('./routes/settings');
 app.use('/api/settings', settingsRouter);
 const transcriptionsRouter = require('./routes/transcriptions');
 app.use('/api', transcriptionsRouter);
+// AI Debug routes
+const aiDebugRouter = require('./routes/ai_debug');
+app.use('/api', aiDebugRouter);
 // Stream Video token minting
 const streamRouter = require('./routes/stream');
 app.use('/api/stream', streamRouter);
@@ -94,7 +97,15 @@ app.get('/api/consultations/reminders/run', async (req, res) => {
 // --- Consultation Reminder Background Job ---
 // Sends notifications to both student and advisor when a consultation is near.
 // Respects each user's notification settings (consultation_reminders) and avoids duplicates.
-const REMINDER_WINDOW_MINUTES = Number(process.env.REMINDER_WINDOW_MINUTES || 30);
+// Support multiple reminder thresholds (e.g., 30 and 5 minutes)
+const REMINDER_THRESHOLDS = (process.env.REMINDER_THRESHOLDS || '30,5')
+  .split(',')
+  .map(v => Number(String(v).trim()))
+  .filter(n => Number.isFinite(n) && n > 0);
+// Window should be the max threshold to ensure we pick up upcoming consultations
+const REMINDER_WINDOW_MINUTES = Number(
+  process.env.REMINDER_WINDOW_MINUTES || (REMINDER_THRESHOLDS.length ? Math.max(...REMINDER_THRESHOLDS) : 30)
+);
 const REMINDER_POLL_MS = Number(process.env.REMINDER_POLL_MS || 60_000); // 1 minute
 let reminderJobRunning = false;
 
@@ -176,14 +187,15 @@ async function runConsultationReminderJob() {
       const advisorEnabled = await getConsultationRemindersEnabled(c.advisor_user_id);
 
       // Helper to ensure we don't duplicate reminders for the same consultation/user
-      async function hasExistingReminder(userId) {
+      async function hasExistingReminder(userId, thresholdMin) {
         try {
           const [[existing]] = await pool.query(
             `SELECT id FROM notifications
               WHERE user_id = ? AND type = 'consultation_reminder'
                 AND JSON_EXTRACT(data_json, '$.consultation_id') = ?
+                AND JSON_EXTRACT(data_json, '$.threshold_minutes') = ?
               LIMIT 1`,
-            [userId, c.id]
+            [userId, c.id, thresholdMin]
           );
           return !!existing;
         } catch (_) {
@@ -192,39 +204,46 @@ async function runConsultationReminderJob() {
         }
       }
 
-      const data = {
-        consultation_id: c.id,
-        date,
-        time,
-        minutes_until: minsUntil,
-        room_name: c.room_name || null,
-        location: c.location || null,
-      };
+      // Iterate thresholds (e.g., 30 and 5) and send reminders per threshold without duplicates
+      const thresholds = REMINDER_THRESHOLDS.length ? REMINDER_THRESHOLDS : [REMINDER_WINDOW_MINUTES];
+      for (const thresholdMin of thresholds) {
+        if (minsUntil > thresholdMin) continue; // not within this threshold yet
 
-      // Student reminder
-      if (studentEnabled && !(await hasExistingReminder(c.student_user_id))) {
-        const title = `Upcoming consultation with ${c.advisor_name}`;
-        const baseWhere = c.room_name ? 'Online meeting room will be available.' : (c.location ? `Location: ${c.location}.` : '');
-        const guidance = c.room_name
-          ? (minsUntil > 0
-              ? 'Your advisor will start the call at the scheduled time. Join via the Stream video room in-app.'
-              : 'If access errors occur, refresh or wait a moment — the room opens when your advisor starts the call.')
-          : (c.location ? 'Arrive a few minutes early and bring any required materials.' : '');
-        const message = `Your consultation '${c.topic}' is scheduled for ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
-        await createNotification(pool, c.student_user_id, 'consultation_reminder', title, message, data);
-      }
+        const data = {
+          consultation_id: c.id,
+          date,
+          time,
+          minutes_until: minsUntil,
+          threshold_minutes: thresholdMin,
+          room_name: c.room_name || null,
+          location: c.location || null,
+        };
 
-      // Advisor reminder
-      if (advisorEnabled && !(await hasExistingReminder(c.advisor_user_id))) {
-        const title = `Upcoming consultation with ${c.student_name}`;
-        const baseWhere = c.room_name ? 'Meeting room will be available.' : (c.location ? `Location: ${c.location}.` : '');
-        const guidance = c.room_name
-          ? (minsUntil > 0
-              ? 'Start the meeting at the scheduled time so students can join on time.'
-              : 'If students report access errors, ensure you are signed in and the Stream video room is started.')
-          : (c.location ? 'Please be on-site a few minutes early.' : '');
-        const message = `You have a consultation for '${c.topic}' on ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
-        await createNotification(pool, c.advisor_user_id, 'consultation_reminder', title, message, data);
+        // Student reminder for this threshold
+        if (studentEnabled && !(await hasExistingReminder(c.student_user_id, thresholdMin))) {
+          const title = `Upcoming consultation with ${c.advisor_name}`;
+          const baseWhere = c.room_name ? 'Online meeting room will be available.' : (c.location ? `Location: ${c.location}.` : '');
+          const guidance = c.room_name
+            ? (minsUntil > 0
+                ? 'Your advisor will start the call at the scheduled time. Join via the Stream video room in-app.'
+                : 'If access errors occur, refresh or wait a moment — the room opens when your advisor starts the call.')
+            : (c.location ? 'Arrive a few minutes early and bring any required materials.' : '');
+          const message = `Your consultation '${c.topic}' is scheduled for ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
+          await createNotification(pool, c.student_user_id, 'consultation_reminder', title, message, data);
+        }
+
+        // Advisor reminder for this threshold
+        if (advisorEnabled && !(await hasExistingReminder(c.advisor_user_id, thresholdMin))) {
+          const title = `Upcoming consultation with ${c.student_name}`;
+          const baseWhere = c.room_name ? 'Meeting room will be available.' : (c.location ? `Location: ${c.location}.` : '');
+          const guidance = c.room_name
+            ? (minsUntil > 0
+                ? 'Start the meeting at the scheduled time so students can join on time.'
+                : 'If students report access errors, ensure you are signed in and the Stream video room is started.')
+            : (c.location ? 'Please be on-site a few minutes early.' : '');
+          const message = `You have a consultation for '${c.topic}' on ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
+          await createNotification(pool, c.advisor_user_id, 'consultation_reminder', title, message, data);
+        }
       }
     }
   } catch (err) {
@@ -320,6 +339,31 @@ app.get('/api/consultations/missed/run', async (req, res) => {
     res.status(500).json({ error: 'Failed to run missed job' });
   }
 });
+
+// --- Advisor Slots Cleanup Job ---
+// Periodically deletes expired advisor availability slots (end_datetime <= NOW())
+// so past-time slots are removed from the database without requiring a fetch-trigger.
+const SLOTS_CLEANUP_POLL_MS = Number(process.env.SLOTS_CLEANUP_POLL_MS || 60_000); // 1 minute
+let slotsCleanupRunning = false;
+
+async function runAdvisorSlotsCleanupJob() {
+  if (slotsCleanupRunning) return;
+  slotsCleanupRunning = true;
+  const pool = getPool();
+  try {
+    await pool.query(
+      `DELETE FROM advisor_slots
+       WHERE end_datetime <= NOW()`
+    );
+  } catch (err) {
+    console.error('Advisor slots cleanup job error', err);
+  } finally {
+    slotsCleanupRunning = false;
+  }
+}
+
+// Kick off periodic advisor slots cleanup job
+setInterval(runAdvisorSlotsCleanupJob, SLOTS_CLEANUP_POLL_MS);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));

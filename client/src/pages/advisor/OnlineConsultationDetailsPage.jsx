@@ -3,7 +3,7 @@ import { useParams, useNavigate, useLocation } from "react-router-dom";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
-import JitsiMeetCall from "../../components/student/JitsiMeetCall";
+import StreamMeetCall from "../../components/student/StreamMeetCall";
 import { useSidebar } from "../../contexts/SidebarContext";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
@@ -47,6 +47,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [saveNotesSuccess, setSaveNotesSuccess] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   useEffect(() => {
     const userRaw = localStorage.getItem('advisys_user');
@@ -77,6 +78,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
       .finally(() => setLoading(false));
   }, [consultationId]);
   const [inCall, setInCall] = useState(false);
+  const [callWin, setCallWin] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [isDesktop, setIsDesktop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : true));
@@ -110,6 +112,80 @@ export default function AdvisorOnlineConsultationDetailsPage() {
       setSavingSummary(false);
     }
   };
+
+  // Refresh helper to reload this consultation from API
+  const refreshConsultationOnce = async () => {
+    try {
+      const userRaw = localStorage.getItem('advisys_user');
+      const token = localStorage.getItem('advisys_token');
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      const advisorId = user?.id || user?.advisorId || null;
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      if (!advisorId) return;
+      const r = await fetch(`${base}/api/advisors/${advisorId}/consultations`, { headers });
+      const list = await r.json();
+      const idNum = Number(consultationId);
+      const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
+      if (found) {
+        setConsultationData(found);
+      }
+    } catch (_) {}
+  };
+
+  // Listen for call window notifying that the call has ended
+  useEffect(() => {
+    const handler = (evt) => {
+      const data = evt?.data || {};
+      if (data && data.type === 'advisys-call-ended') {
+        const cid = String(data.cid || '');
+        if (cid && String(cid) === String(consultationId)) {
+          refreshConsultationOnce();
+        }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [consultationId]);
+
+  // Lightweight polling to reflect backend changes automatically
+  useEffect(() => {
+    let timer;
+    const start = () => {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        refreshConsultationOnce();
+      }, 20000);
+    };
+    start();
+    return () => clearInterval(timer);
+  }, [consultationId]);
+
+  // Poll for AI summary when consultation is completed but summary not available yet
+  useEffect(() => {
+    if (String(consultationData?.status).toLowerCase() === 'completed' && !consultationData?.aiSummary) {
+      setSummaryLoading(true);
+      let attempts = 0;
+      const id = setInterval(async () => {
+        attempts += 1;
+        try {
+          await refreshConsultationOnce();
+          if (consultationData?.aiSummary) {
+            setSummaryLoading(false);
+            clearInterval(id);
+          }
+        } catch (_) {}
+        if (attempts >= 20) {
+          setSummaryLoading(false);
+          clearInterval(id);
+        }
+      }, 6000);
+      return () => clearInterval(id);
+    } else {
+      setSummaryLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consultationData?.status, consultationData?.aiSummary]);
 
   const handleSaveNotes = async () => {
     const token = localStorage.getItem('advisys_token');
@@ -188,13 +264,28 @@ export default function AdvisorOnlineConsultationDetailsPage() {
 
   // Derived UI state for status/mode and action visibility
   const statusRaw = String(consultationData?.status || '').toLowerCase();
-  const statusClass = ['approved','pending','declined','completed','cancelled','missed'].includes(statusRaw) ? statusRaw : 'approved';
+  const fromHistory = Boolean(location.state?.isHistory || location.state?.fromHistory || location.state?.source === 'history' || location.state?.tab === 'history');
+  const deriveHistoryAwareStatus = () => {
+    let s = statusRaw;
+    if (fromHistory) {
+      if (s === 'cancelled' || s === 'missed' || s === 'completed') return s;
+      // Map any non-history statuses to completed/missed by schedule
+      const start = getStartDate(consultationData);
+      const durationMin = Number(consultationData?.duration || consultationData?.duration_minutes || 30);
+      const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+      if (start && Date.now() >= (start.getTime() + graceMs)) return 'missed';
+      return 'completed';
+    }
+    return s;
+  };
+  const statusClass = ['completed','cancelled','missed','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : 'approved';
   const statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
   const isCompletedLike = ['completed','cancelled','missed'].includes(statusClass);
   const modeRaw = String(consultationData?.mode || 'online').toLowerCase();
   const modeClass = modeRaw === 'in-person' ? 'in-person' : 'online';
   const modeLabel = modeClass === 'in-person' ? 'In-Person' : 'Online';
-  const showActions = statusClass === 'approved' && !isCompletedLike;
+  const backTab = location.state?.tab || location.state?.source || (fromHistory ? 'history' : null);
+  const showActions = (statusClass === 'approved' && !isCompletedLike && !fromHistory);
 
   return (
     <div className="consultation-details-wrap advisor-details-page">
@@ -242,7 +333,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
 
         <main className="consultation-details-main relative">
           <div className="consultation-details-back">
-            <button className="back-button" onClick={()=>navigate('/advisor-dashboard/consultations')}>
+            <button className="back-button" onClick={()=>navigate(backTab ? `/advisor-dashboard/consultations?tab=${backTab}` : '/advisor-dashboard/consultations')}>
               <BsChevronLeft />
               Back to My Consultations
             </button>
@@ -291,7 +382,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                         <div className="meeting-details">
                           <span className="meeting-label">Video Conference</span>
                           <span className="meeting-link-text">Secure AdviSys Video Call</span>
-                          <span className="meeting-subtitle">Powered by Jitsi Meet</span>
+                          <span className="meeting-subtitle">Powered by Stream</span>
                         </div>
                       </div>
                     </div>
@@ -313,6 +404,9 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                 <section className="consultation-details-section">
                   <h2 className="section-title"><BsFileText className="section-icon"/> Consultation Summary</h2>
                   <div className="section-content">
+                    {summaryLoading && !consultationData.aiSummary && (
+                      <div className="details-loading">Generating summary…</div>
+                    )}
                     {!isEditingSummary ? (
                       <p
                         className="summary-text"
@@ -360,14 +454,34 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                       <div className="section-content">
                         <div className="action-buttons">
                           {modeClass === 'online' && (
-                            <button
-                              className="action-btn join-meeting"
-                              onClick={() => setInCall(true)}
-                              disabled={!canStart}
-                              title={canStart ? 'Start the meeting' : 'Available 5 minutes before start time'}
-                            >
-                              <BsPlayCircle /> Start
-                            </button>
+                            !inCall ? (
+                              <button
+                                className="action-btn join-meeting"
+                                onClick={() => {
+                                  try { localStorage.setItem(`advisys_consultation_${consultationData.id}`, JSON.stringify(consultationData)); } catch (_) {}
+                                  const url = `/call?cid=${consultationData.id}`;
+                                  const win = window.open(url, '_blank', 'noopener,noreferrer');
+                                  setCallWin(win);
+                                  setInCall(true);
+                                }}
+                                disabled={!canStart}
+                                title={canStart ? 'Start the meeting' : 'Available 5 minutes before start time'}
+                              >
+                                <BsPlayCircle /> Start
+                              </button>
+                            ) : (
+                              <button
+                                className="action-btn cancel-consultation"
+                                onClick={() => {
+                                  try { callWin?.postMessage({ type: 'advisys-leave', cid: consultationData.id }, '*'); } catch (_) {}
+                                  setTimeout(() => { try { if (callWin && !callWin.closed) callWin.close(); } catch (_) {} setCallWin(null); refreshConsultationOnce(); }, 300);
+                                  setInCall(false);
+                                }}
+                                title="End the meeting"
+                              >
+                                <BsXCircle /> End
+                              </button>
+                            )
                           )}
                           <button
                             className="action-btn cancel-consultation"
@@ -394,14 +508,34 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                         <CollapsibleContent className="section-content">
                           <div className="action-buttons">
                             {modeClass === 'online' && (
-                              <button
-                                className="action-btn join-meeting"
-                                onClick={() => setInCall(true)}
-                                disabled={!canStart}
-                                title={canStart ? 'Start the meeting' : 'Available 5 minutes before start time'}
-                              >
-                                <BsPlayCircle /> Start
-                              </button>
+                              !inCall ? (
+                                <button
+                                  className="action-btn join-meeting"
+                                  onClick={() => {
+                                    try { localStorage.setItem(`advisys_consultation_${consultationData.id}`, JSON.stringify(consultationData)); } catch (_) {}
+                                    const url = `/call?cid=${consultationData.id}`;
+                                    const win = window.open(url, '_blank', 'noopener,noreferrer');
+                                    setCallWin(win);
+                                    setInCall(true);
+                                  }}
+                                  disabled={!canStart}
+                                  title={canStart ? 'Start the meeting' : 'Available 5 minutes before start time'}
+                                >
+                                  <BsPlayCircle /> Start
+                                </button>
+                              ) : (
+                                <button
+                                  className="action-btn cancel-consultation"
+                                  onClick={() => {
+                                    try { callWin?.postMessage({ type: 'advisys-leave', cid: consultationData.id }, '*'); } catch (_) {}
+                                    setTimeout(() => { try { if (callWin && !callWin.closed) callWin.close(); } catch (_) {} setCallWin(null); }, 300);
+                                    setInCall(false);
+                                  }}
+                                  title="End the meeting"
+                                >
+                                  <BsXCircle /> End
+                                </button>
+                              )
                             )}
                             <button
                               className="action-btn cancel-consultation"
@@ -475,14 +609,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
         isCancelling={isCancelling}
       />
 
-      {inCall && (
-        <JitsiMeetCall
-          roomName={`consultation-${consultationData.id}`}
-          displayName="Advisor"
-          onClose={()=>setInCall(false)}
-          consultationData={consultationData}
-        />
-      )}
+
     </div>
   );
 }

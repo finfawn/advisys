@@ -289,11 +289,20 @@ export default function AdvisorConsultations() {
     setDeletedDeclinedItems(prev => prev.filter(item => item.id !== consultation.id));
   };
 
-  const handleActionClick = (c) => {
+  const handleActionClick = (c, sourceTab) => {
+    const state = { consultation: c };
+    if (sourceTab) {
+      state.tab = sourceTab;
+      if (sourceTab === 'history') {
+        state.isHistory = true;
+        state.fromHistory = true;
+        state.source = 'history';
+      }
+    }
     if (c.mode === 'online') {
-      navigate(`/advisor-dashboard/consultations/online/${c.id}` , { state: { consultation: c } });
+      navigate(`/advisor-dashboard/consultations/online/${c.id}`, { state });
     } else {
-      navigate(`/advisor-dashboard/consultations/${c.id}` , { state: { consultation: c } });
+      navigate(`/advisor-dashboard/consultations/${c.id}`, { state });
     }
   };
 
@@ -487,7 +496,7 @@ export default function AdvisorConsultations() {
                         key={c.id}
                         consultation={c}
                         onMarkMissed={handleMarkMissed}
-                        onActionClick={handleActionClick}
+                        onActionClick={(cons) => handleActionClick(cons, 'upcoming')}
                       />
                     ))}
                     {filteredUpcoming.length === 0 && (
@@ -538,7 +547,7 @@ export default function AdvisorConsultations() {
                         onApprove={handleApprove}
                         onDecline={handleDecline}
                         onDelete={handleDelete}
-                        onActionClick={handleActionClick}
+                        onActionClick={(cons) => handleActionClick(cons, 'requests')}
                       />
                     ))}
                     {filteredRequests.length === 0 && (
@@ -621,7 +630,7 @@ export default function AdvisorConsultations() {
                       <AdvisorConsultationCard
                         key={consultation.id}
                         consultation={consultation}
-                        onActionClick={handleActionClick}
+                        onActionClick={(cons) => handleActionClick(cons, 'history')}
                         onDelete={handleDeleteHistory}
                       />
                     ))}

@@ -26,20 +26,44 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   // Character limit for description
   const MAX_DESCRIPTION_LENGTH = 300;
 
-  // Sample faculty data if not provided
-  const defaultFaculty = {
-    name: "Dr. Maria Santos",
-    title: "Professor of Computer Science",
-    avatar: null,
-    subjects: ["Data Structures", "Algorithms", "Software Engineering"],
-    availability: "Available Mon-Fri, 9AM-5PM"
+
+  const facultyData = faculty;
+
+  // Safe display helpers to avoid showing null/empty strings
+  const safeText = (v, fallback = '') => {
+    const s = typeof v === 'string' ? v.trim() : v;
+    if (!s || String(s).toLowerCase() === 'null') return fallback;
+    return String(s);
   };
+  const displayTitle = safeText(facultyData?.title, 'Advisor');
+  const availabilityText = (() => {
+    // Prefer explicit availability field when present
+    const explicit = safeText(facultyData?.availability, '');
+    if (explicit) return explicit;
+    // Build from status/schedule/time without injecting nulls
+    const parts = [
+      safeText(facultyData?.status, ''),
+      safeText(facultyData?.schedule, ''),
+      safeText(facultyData?.time, ''),
+    ].filter(Boolean);
+    return parts.length ? parts.join(', ') : '';
+  })();
 
-  const facultyData = faculty || defaultFaculty;
-
-  // Categories come strictly from advisor profile topics in DB (no hardcoded fallback)
+  // Categories from advisor profile topics with robust fallbacks
   const categories = React.useMemo(() => {
-    return Array.isArray(facultyData?.topicsCanHelpWith) ? facultyData.topicsCanHelpWith : [];
+    const raw = (facultyData?.topicsCanHelpWith ?? facultyData?.topics ?? []);
+    if (Array.isArray(raw)) {
+      return raw
+        .map((t) => (typeof t === 'string' ? t.trim() : String(t || '').trim()))
+        .filter((t) => t && t.toLowerCase() !== 'null');
+    }
+    if (typeof raw === 'string') {
+      return raw
+        .split(',')
+        .map((t) => t.trim())
+        .filter((t) => t && t.toLowerCase() !== 'null');
+    }
+    return [];
   }, [facultyData]);
 
   // Advisor-defined rooms derived from upcoming in-person slots
@@ -97,12 +121,16 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
       return sDay === dayStr && status === "available" && modeOk;
     });
     const groups = { morning: [], afternoon: [], evening: [] };
+    const isToday = fmtDate(new Date()) === dayStr;
+    const now = new Date();
     list
       .map((s) => ({
         ...s,
         start: new Date(s.start_datetime),
         end: new Date(s.end_datetime),
       }))
+      // Exclude slots that have already passed when viewing the current day
+      .filter((slot) => !isToday || slot.start > now)
       .sort((a, b) => a.start - b.start)
       .forEach((slot) => {
         const h = slot.start.getHours();
@@ -133,7 +161,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
           description: "",
           category: "",
           mode: "in-person",
-          location: ""
+          // Prefill location with advisor office location for in-person fallback
+          location: safeText(facultyData?.officeLocation, "")
         });
         setSelectedDate(new Date());
       }
@@ -238,7 +267,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     setFormData(prev => ({ 
       ...prev, 
       mode,
-      location: mode === 'online' ? '' : prev.location
+      // For in-person, use existing location or advisor office location as fallback
+      location: mode === 'online' ? '' : (prev.location || safeText(facultyData?.officeLocation, ''))
     }));
   };
 
@@ -254,7 +284,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     setFormData(prev => ({
       ...prev,
       mode: mappedMode,
-      location: mappedMode === 'in-person' ? (slot?.room || prev.location || '') : ''
+      location: mappedMode === 'in-person' ? (slot?.room || prev.location || safeText(facultyData?.officeLocation, '')) : ''
     }));
   };
 
@@ -410,9 +440,14 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                   </div>
                 </Col>
                 <Col>
-                  <h3 className="faculty-name">{facultyData.name}</h3>
-                  <p className="faculty-title">{facultyData.title}</p>
-                  <p className="faculty-availability">{facultyData.availability}</p>
+                  <h3 className="faculty-name">{safeText(facultyData?.name, 'Advisor')}</h3>
+                  <p className="faculty-title">{displayTitle}</p>
+                  {safeText(facultyData?.department, '') && (
+                    <p className="faculty-department">{safeText(facultyData?.department, '')}</p>
+                  )}
+                  {availabilityText && (
+                    <p className="faculty-availability">{availabilityText}</p>
+                  )}
                 </Col>
               </Row>
             </div>

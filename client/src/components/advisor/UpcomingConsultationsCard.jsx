@@ -3,13 +3,16 @@ import { BsClock, BsChevronRight, BsCalendar } from "react-icons/bs";
 import "./UpcomingConsultationsCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../lightswind/card";
 import { useNavigate } from "react-router-dom";
+import { Skeleton } from "../../lightswind/skeleton";
 
 export default function UpcomingConsultationsCard() {
   const navigate = useNavigate();
   const [allConsultations, setAllConsultations] = useState([]);
+  const [loading, setLoading] = useState(true);
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
+        setLoading(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const storedUser = localStorage.getItem('advisys_user');
         const storedToken = localStorage.getItem('advisys_token');
@@ -23,15 +26,33 @@ export default function UpcomingConsultationsCard() {
       } catch (err) {
         console.error('Failed to load advisor consultations', err);
       }
+      finally {
+        setLoading(false);
+      }
     };
     fetchConsultations();
   }, []);
 
-  const consultations = useMemo(() => (
-    allConsultations
-      .filter(c => c.status === 'approved')
-      .sort((a, b) => new Date(a.date) - new Date(b.date))
-  ), [allConsultations]);
+  const consultations = useMemo(() => {
+    const now = new Date();
+    return allConsultations
+      .map(c => {
+        const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
+        const durationMin = c.duration || c.duration_minutes || 30;
+        const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+        let status = c.status;
+        let inGrace = false;
+        if (start) {
+          inGrace = now < (start.getTime() + graceMs);
+          if (status === 'approved' && !inGrace && now >= (start.getTime() + graceMs)) {
+            status = 'missed';
+          }
+        }
+        return { ...c, status, _start: start, _inGrace: inGrace };
+      })
+      .filter(c => c.status === 'approved' && c._start && (c._start >= now || c._inGrace))
+      .sort((a, b) => new Date(a._start || a.date) - new Date(b._start || b.date));
+  }, [allConsultations]);
 
   const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -72,6 +93,25 @@ export default function UpcomingConsultationsCard() {
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="upcoming-consultations-list">
+          {loading && (
+            <>
+              {Array.from({ length: 3 }).map((_, idx) => (
+                <div key={`skeleton-${idx}`} className="compact-consultation-card">
+                  <div className="compact-date-section">
+                    <Skeleton className="h-12 w-12 rounded-lg" shimmer />
+                  </div>
+                  <div className="compact-content w-full">
+                    <Skeleton className="h-5 w-2/3 mb-2" shimmer />
+                    <Skeleton className="h-4 w-1/2 mb-2" shimmer />
+                    <Skeleton className="h-4 w-24" shimmer />
+                  </div>
+                  <div className="compact-action">
+                    <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
           {consultations.length === 0 && (
             <div className="upcoming-empty">
               <BsCalendar className="upcoming-empty-icon" />
@@ -88,7 +128,7 @@ export default function UpcomingConsultationsCard() {
               </button>
             </div>
           )}
-          {consultations.slice(0, 5).map((consultation, index) => (
+          {!loading && consultations.slice(0, 5).map((consultation, index) => (
             <div key={consultation.id} className="compact-consultation-card">
             <div className="compact-date-section">
               <div className="compact-date">

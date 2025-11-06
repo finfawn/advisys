@@ -20,18 +20,42 @@ function AdvisorCard({
   onNavigateToConsultations
 }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const navigate = useNavigate();
-
-  const facultyData = {
+  const [facultyData, setFacultyData] = useState({
     id: advisorId,
     name,
     title,
     avatar: null,
     subjects: ["Academic Planning", "Course Selection", "Research Guidance"],
-    availability: `Available ${schedule}, ${time}`
-  };
+    availability: `Available ${schedule}, ${time}`,
+    status,
+    schedule,
+    time,
+    coursesTaught,
+  });
+  const navigate = useNavigate();
 
-  const handleBookClick = () => {
+  const handleBookClick = async () => {
+    // Load full advisor profile so the modal shows categories and modes
+    try {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const res = await fetch(`${base}/api/advisors/${advisorId}`);
+      const data = await res.json();
+      // Merge card-known fields for graceful fallbacks
+      const merged = {
+        ...data,
+        id: advisorId,
+        name: data.name || name,
+        title: data.title || title,
+        status,
+        schedule,
+        time,
+        coursesTaught: data.coursesTaught || coursesTaught,
+      };
+      setFacultyData(merged);
+    } catch (err) {
+      // If fetch fails, proceed with existing minimal data
+      console.warn('Failed to load advisor profile for booking modal from card:', err);
+    }
     setIsModalOpen(true);
     if (onBookClick) {
       onBookClick();

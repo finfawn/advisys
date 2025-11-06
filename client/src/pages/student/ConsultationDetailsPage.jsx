@@ -235,8 +235,14 @@ export default function ConsultationDetailsPage() {
     });
   };
 
-  const editApproved = Array.isArray(notifications)
-    && notifications.some(n => n?.type === 'consultation_summary_edit_approved' && Number(n?.data?.consultation_id) === Number(consultationData?.id));
+  const approvedByFlag = !!consultationData?.summaryEditApprovedAt;
+  const approvedByNotification = Array.isArray(notifications) && notifications.some(n => {
+    const typeOk = n?.type === 'consultation_summary_edit_approved' || n?.type === 'summary_edit_approved';
+    if (!typeOk) return false;
+    const cid = Number(n?.data?.consultation_id);
+    return Number.isFinite(cid) && cid === Number(consultationData?.id);
+  });
+  const editApproved = approvedByFlag || approvedByNotification;
   const displayedSummary = consultationData.aiSummary || consultationData.summaryNotes || 'No summary available.';
 
   return (
@@ -270,10 +276,15 @@ export default function ConsultationDetailsPage() {
                   <div className="consultation-title-section">
                     <h1 className="consultation-title">{consultationData.topic}</h1>
                     <div className="consultation-badges">
-                      <span className="status-badge approved">
-                        <BsCheckCircle />
-                        <span>Approved</span>
-                      </span>
+                      {(() => {
+                        const inSession = String(consultationData?.status) === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
+                        return (
+                          <span className={`status-badge ${inSession ? 'insession' : 'approved'}`}>
+                            {inSession ? <BsClock /> : <BsCheckCircle />}
+                            <span>{inSession ? 'In Session' : 'Approved'}</span>
+                          </span>
+                        );
+                      })()}
                       <span className="mode-badge in-person">
                         <BsGeoAlt />
                         <span>In-Person</span>
@@ -349,6 +360,10 @@ export default function ConsultationDetailsPage() {
                   <h2 className="section-title">
                     <BsFileText className="section-icon" />
                     Consultation Summary
+                    <span className={`approval-badge ${editApproved ? 'approved' : 'required'}`}
+                      title={editApproved ? 'You have approval to edit this summary' : 'Approval required before editing'}>
+                      {editApproved ? 'Edit Approved' : 'Approval Required'}
+                    </span>
                   </h2>
                   <div className="section-content">
                     {!isEditingSummary ? (

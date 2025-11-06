@@ -10,6 +10,7 @@ import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
 import { useSidebar } from "../../contexts/SidebarContext";
+import { Skeleton } from "../../lightswind/skeleton";
 import "./StudentDashboard.css";
 
 export default function StudentDashboard() {
@@ -89,9 +90,11 @@ export default function StudentDashboard() {
 
   // Fetch consultations from backend and compute upcoming + top topic
   const [allConsultations, setAllConsultations] = useState([]);
+  const [loadingConsultations, setLoadingConsultations] = useState(true);
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
+        setLoadingConsultations(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const storedUser = localStorage.getItem('advisys_user');
         const storedToken = localStorage.getItem('advisys_token');
@@ -104,15 +107,19 @@ export default function StudentDashboard() {
         setAllConsultations(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load consultations', err);
+      } finally {
+        setLoadingConsultations(false);
       }
     };
     fetchConsultations();
   }, []);
 
   // Fetch availability: today and calendar for current month
+  const [loadingAvailability, setLoadingAvailability] = useState(true);
   useEffect(() => {
     const loadAvailability = async () => {
       try {
+        setLoadingAvailability(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         // Available Today
         const resToday = await fetch(`${base}/api/availability/today`);
@@ -125,6 +132,8 @@ export default function StudentDashboard() {
         await loadCalendarForMonth(y, m0);
       } catch (err) {
         console.error('Failed to load availability', err);
+      } finally {
+        setLoadingAvailability(false);
       }
     };
     loadAvailability();
@@ -205,7 +214,23 @@ export default function StudentDashboard() {
               </CollapsibleTrigger>
               <CollapsibleContent>
                 <div className="mobile-upcoming-content">
-                  {upcomingConsultations.length > 0 ? (
+                  {loadingConsultations ? (
+                    Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={`skeleton-mobile-${idx}`} className="compact-consultation-card">
+                        <div className="compact-date-section">
+                          <Skeleton className="h-12 w-12 rounded-lg" shimmer />
+                        </div>
+                        <div className="compact-content w-full">
+                          <Skeleton className="h-5 w-2/3 mb-2" shimmer />
+                          <Skeleton className="h-4 w-1/2 mb-2" shimmer />
+                          <Skeleton className="h-4 w-24" shimmer />
+                        </div>
+                        <div className="compact-action">
+                          <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                        </div>
+                      </div>
+                    ))
+                  ) : upcomingConsultations.length > 0 ? (
                     upcomingConsultations.slice(0, 4).map(consultation => (
                       <CompactConsultationCard
                         key={consultation.id}
@@ -298,7 +323,23 @@ export default function StudentDashboard() {
                   </button>
                 </div>
                 <div className="upcoming-consultations-list">
-                  {upcomingConsultations.length > 0 ? (
+                  {loadingConsultations ? (
+                    Array.from({ length: 3 }).map((_, idx) => (
+                      <div key={`skeleton-${idx}`} className="compact-consultation-card">
+                        <div className="compact-date-section">
+                          <Skeleton className="h-12 w-12 rounded-lg" shimmer />
+                        </div>
+                        <div className="compact-content w-full">
+                          <Skeleton className="h-5 w-2/3 mb-2" shimmer />
+                          <Skeleton className="h-4 w-1/2 mb-2" shimmer />
+                          <Skeleton className="h-4 w-24" shimmer />
+                        </div>
+                        <div className="compact-action">
+                          <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                        </div>
+                      </div>
+                    ))
+                  ) : upcomingConsultations.length > 0 ? (
                     upcomingConsultations.slice(0, 4).map(consultation => (
                       <CompactConsultationCard
                         key={consultation.id}
@@ -383,7 +424,28 @@ export default function StudentDashboard() {
                   </button>
                 </div>
                 <div className="available-fixed-grid">
-                  {availableToday.length > 0 ? (
+                  {loadingAvailability ? (
+                    Array.from({ length: 4 }).map((_, idx) => (
+                      <div key={`avail-skel-${idx}`} className="advisor-card-new h-full flex flex-col rounded-lg border bg-card p-4">
+                        <div className="flex items-center gap-3 mb-3">
+                          <Skeleton className="w-12 h-12 rounded-full" shimmer />
+                          <div className="flex-1 min-w-0">
+                            <Skeleton className="h-5 w-2/3 mb-2" shimmer />
+                            <Skeleton className="h-4 w-1/2" shimmer />
+                          </div>
+                        </div>
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-full" shimmer />
+                          <Skeleton className="h-4 w-5/6" shimmer />
+                          <Skeleton className="h-5 w-24 rounded-full" shimmer />
+                        </div>
+                        <div className="pt-3 grid grid-cols-2 gap-2 mt-auto">
+                          <Skeleton className="h-9 w-full rounded-md" shimmer />
+                          <Skeleton className="h-9 w-full rounded-md" shimmer />
+                        </div>
+                      </div>
+                    ))
+                  ) : availableToday.length > 0 ? (
                     availableToday.slice(0, 4).map((adv, idx) => (
                       <AdvisorCard
                         key={adv.id || idx}
@@ -434,7 +496,20 @@ export default function StudentDashboard() {
                     <h3 className="selected-date-title">{formatSelectedDate(selectedDate)}</h3>
                   </div>
                   <div className="availability-content">
-                    {list.length > 0 ? (
+                    {loadingAvailability ? (
+                      <div className="space-y-3">
+                        {Array.from({ length: 4 }).map((_, i) => (
+                          <div key={`cal-skel-${i}`} className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                            <div className="flex-1">
+                              <Skeleton className="h-4 w-2/3 mb-2" shimmer />
+                              <Skeleton className="h-4 w-1/2" shimmer />
+                            </div>
+                            <Skeleton className="h-5 w-20 rounded-full" shimmer />
+                          </div>
+                        ))}
+                      </div>
+                    ) : list.length > 0 ? (
                       <ul className="faculty-list">
                         {list.map((a, i) => (
                           <li 

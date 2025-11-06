@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import CustomPieChart from "./PieChart";
 import "./ConsultationModeCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
+import { Skeleton } from "../../../lightswind/skeleton";
 
 export default function ConsultationModeCard() {
   const [data, setData] = useState([
@@ -49,7 +50,11 @@ export default function ConsultationModeCard() {
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="consultation-mode-content">
-          {loaded && data.every(d => Number(d.value) === 0) ? (
+          {!loaded ? (
+            <div className="w-full flex items-center justify-center py-6">
+              <Skeleton className="h-40 w-40 rounded-full" shimmer />
+            </div>
+          ) : loaded && data.every(d => Number(d.value) === 0) ? (
             <div className="mode-empty">
               <h4>No data yet</h4>
               <p>When consultations are recorded, mode breakdown appears here.</p>

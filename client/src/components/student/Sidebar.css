@@ -2,9 +2,9 @@
 
 .dash-sidebar {
   position: sticky;
-  top: 60px; /* match advisor topbar height */
+  top: 64px; /* match student topbar height */
   align-self: start;
-  height: calc(100vh - 60px); /* align with advisor topbar */
+  height: calc(100vh - 64px); /* align with student topbar */
   /* Ensure white background even when shared CSS sets var(--sb-bg) */
   --sb-bg: #ffffff;
   background: #ffffff;

@@ -95,13 +95,30 @@ export default function AdvisorConsultationDetailsPage() {
 
   // Derived UI state for status/mode and action visibility
   const statusRaw = String(consultationData?.status || '').toLowerCase();
-  const statusClass = ['approved','pending','declined','completed','cancelled','missed'].includes(statusRaw) ? statusRaw : 'approved';
-  const statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
+  // If coming from History, never show Approved/Declined/Pending; derive completed/missed/cancelled
+  const fromHistory = Boolean(location.state?.isHistory || location.state?.fromHistory || location.state?.source === 'history' || location.state?.tab === 'history');
+  const deriveHistoryAwareStatus = () => {
+    let s = statusRaw;
+    if (fromHistory) {
+      if (s === 'cancelled' || s === 'missed' || s === 'completed') return s;
+      // Map any non-history statuses to completed/missed by schedule
+      const start = getStartDate(consultationData);
+      const durationMin = Number(consultationData?.duration || consultationData?.duration_minutes || 30);
+      const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+      if (start && Date.now() >= (start.getTime() + graceMs)) return 'missed';
+      return 'completed';
+    }
+    return s;
+  };
+  const statusClass = ['completed','cancelled','missed','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : 'approved';
+  const inSession = statusClass === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
+  const statusLabel = inSession ? 'In Session' : (statusClass.charAt(0).toUpperCase() + statusClass.slice(1));
   const isCompletedLike = ['completed','cancelled','missed'].includes(statusClass);
   const modeRaw = String(consultationData?.mode || 'in-person').toLowerCase();
   const modeClass = modeRaw === 'online' ? 'online' : 'in-person';
   const modeLabel = modeClass === 'online' ? 'Online' : 'In-Person';
-  const showActions = statusClass === 'approved' && !isCompletedLike;
+  const backTab = location.state?.tab || location.state?.source || (fromHistory ? 'history' : null);
+  const showActions = (statusClass === 'approved' && !isCompletedLike && !fromHistory);
 
   const handleStart = () => {
     // Mark consultation as started to record actual start time
@@ -258,7 +275,7 @@ export default function AdvisorConsultationDetailsPage() {
 
         <main className="consultation-details-main relative">
           <div className="consultation-details-back">
-            <button className="back-button" onClick={()=>navigate('/advisor-dashboard/consultations')}>
+            <button className="back-button" onClick={()=>navigate(backTab ? `/advisor-dashboard/consultations?tab=${backTab}` : '/advisor-dashboard/consultations')}>
               <BsChevronLeft />
               Back to My Consultations
             </button>
@@ -481,7 +498,7 @@ export default function AdvisorConsultationDetailsPage() {
           setTimeout(()=>{
             setIsCancelling(false);
             setShowCancelModal(false);
-            navigate('/advisor-dashboard/consultations');
+            navigate(backTab ? `/advisor-dashboard/consultations?tab=${backTab}` : '/advisor-dashboard/consultations');
           }, 800);
         }}
         consultation={consultationData}

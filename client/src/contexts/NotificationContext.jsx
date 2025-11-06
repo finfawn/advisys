@@ -105,22 +105,42 @@ export const NotificationProvider = ({ children }) => {
             localStorage.setItem(lastSeenKey, String(lastSeenCreatedAtRef.current));
           } catch (_) {}
 
-          // Fire browser notifications for any newly arrived items strictly newer than last-seen
+          // Fire native notifications when the tab is hidden or unfocused
           try {
+            const shouldNativeNotify = () => {
+              if (typeof document === 'undefined') return false;
+              return document.hidden || !document.hasFocus();
+            };
+            const allowedTypes = new Set([
+              'consultation_request',
+              'consultation_approved',
+              'consultation_declined',
+              'consultation_cancelled',
+              'consultation_rescheduled',
+              'consultation_reminder',
+              'consultation_missed',
+              'system_announcement',
+            ]);
             if (typeof window !== 'undefined' && 'Notification' in window) {
               if (Notification.permission === 'default') {
                 await Notification.requestPermission();
               }
-              if (Notification.permission === 'granted') {
+              if (Notification.permission === 'granted' && shouldNativeNotify()) {
                 for (const n of newItems) {
-                  if (!n) continue;
+                  if (!n || (n.type && !allowedTypes.has(n.type))) continue;
                   const ts = Number(new Date(n?.timestamp).getTime());
                   if (!Number.isFinite(ts)) continue;
                   if (lastSeenCreatedAtRef.current && ts <= lastSeenCreatedAtRef.current) continue;
-                  new Notification(n.title || 'Notification', {
+                  const notif = new Notification(n.title || 'Notification', {
                     body: n.message || '',
                     icon: '/logo_s.png'
                   });
+                  try {
+                    notif.onclick = () => {
+                      window.focus();
+                      notif.close();
+                    };
+                  } catch (_) {}
                 }
               }
             }
@@ -173,13 +193,43 @@ export const NotificationProvider = ({ children }) => {
     
     setNotifications(prev => [newNotification, ...prev]);
     
-    // Show browser notification if permission is granted
-    if (Notification.permission === 'granted') {
-      new Notification(notification.title, {
-        body: notification.message,
-        icon: '/logo_s.png'
-      });
-    }
+    // Show native notification only when tab is hidden/unfocused
+    try {
+      if (typeof window !== 'undefined' && 'Notification' in window) {
+        const allowedTypes = new Set([
+          'consultation_request',
+          'consultation_approved',
+          'consultation_declined',
+          'consultation_cancelled',
+          'consultation_rescheduled',
+          'consultation_reminder',
+          'consultation_missed',
+          'system_announcement',
+        ]);
+        const hiddenOrUnfocused = typeof document !== 'undefined' && (document.hidden || !document.hasFocus());
+        const showIfGranted = () => {
+          if (Notification.permission === 'granted' && hiddenOrUnfocused && (!notification.type || allowedTypes.has(notification.type))) {
+            const notif = new Notification(notification.title || 'Notification', {
+              body: notification.message || '',
+              icon: '/logo_s.png'
+            });
+            try {
+              notif.onclick = () => {
+                window.focus();
+                notif.close();
+              };
+            } catch (_) {}
+          }
+        };
+        if (Notification.permission === 'default') {
+          Notification.requestPermission().then(() => {
+            showIfGranted();
+          }).catch(() => {});
+        } else {
+          showIfGranted();
+        }
+      }
+    } catch (_) {}
   };
 
   const markAsRead = async (notificationId) => {

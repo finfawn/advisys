@@ -3,6 +3,7 @@ import { BsPeopleFill } from "react-icons/bs";
 import CustomBarChart from "./BarChart";
 import "./TotalConsultationsCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
+import { Skeleton } from "../../../lightswind/skeleton";
 
 export default function TotalConsultationsCard() {
   const [total, setTotal] = useState(0);
@@ -12,10 +13,12 @@ export default function TotalConsultationsCard() {
     { label: "Third Year", value: 0 },
     { label: "Fourth Year", value: 0 }
   ]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSummary = async () => {
       try {
+        setLoading(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const storedUser = localStorage.getItem('advisys_user');
         const storedToken = localStorage.getItem('advisys_token');
@@ -36,6 +39,9 @@ export default function TotalConsultationsCard() {
       } catch (err) {
         console.error('Failed to load dashboard summary (totals)', err);
       }
+      finally {
+        setLoading(false);
+      }
     };
     fetchSummary();
   }, []);
@@ -45,17 +51,33 @@ export default function TotalConsultationsCard() {
       <CardHeader spacing="default" className="pb-2">
         <div className="header-content">
           <div className="icon-circle">
-            <BsPeopleFill size={30} />
+            {loading ? (
+              <Skeleton className="h-6 w-6 rounded-full" shimmer />
+            ) : (
+              <BsPeopleFill size={30} />
+            )}
           </div>
           <div>
-            <div className="total-count">{total}</div>
-            <CardTitle size="default" className="total-label">Total Consultations Completed</CardTitle>
+            {loading ? (
+              <Skeleton className="h-8 w-24 mb-1" shimmer />
+            ) : (
+              <div className="total-count">{total}</div>
+            )}
+            {loading ? (
+              <Skeleton className="h-4 w-48" shimmer />
+            ) : (
+              <CardTitle size="default" className="total-label">Total Consultations Completed</CardTitle>
+            )}
           </div>
         </div>
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="bar-chart-wrapper">
-          <CustomBarChart data={data} />
+          {loading ? (
+            <Skeleton className="h-40 w-full rounded-md" shimmer />
+          ) : (
+            <CustomBarChart data={data} />
+          )}
         </div>
       </CardContent>
     </Card>

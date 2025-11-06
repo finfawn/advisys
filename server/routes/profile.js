@@ -17,7 +17,7 @@ router.get('/me', authMiddleware, async (req, res) => {
       const [sRows] = await pool.query('SELECT program, year_level, avatar_url FROM student_profiles WHERE user_id = ?', [userId]);
       if (sRows.length) Object.assign(result, sRows[0]);
     } else if (u.role === 'advisor') {
-      const [aRows] = await pool.query('SELECT department, title, avatar_url FROM advisor_profiles WHERE user_id = ?', [userId]);
+      const [aRows] = await pool.query('SELECT department, title, avatar_url, office_location FROM advisor_profiles WHERE user_id = ?', [userId]);
       if (aRows.length) Object.assign(result, aRows[0]);
     }
     return res.json(result);
@@ -73,6 +73,18 @@ router.patch('/me', authMiddleware, async (req, res) => {
       if (body.department !== undefined) { fields.push('department = ?'); values.push(body.department || null); }
       if (body.title !== undefined) { fields.push('title = ?'); values.push(body.title || null); }
       if (body.avatar_url !== undefined) { fields.push('avatar_url = ?'); values.push(body.avatar_url || null); }
+      if (body.office_location !== undefined || body.officeLocation !== undefined) {
+        const ol = body.office_location ?? body.officeLocation;
+        // Debug: log advisor office_location update intent
+        console.log('[Profile] Advisor update', {
+          userId,
+          department: body.department,
+          title: body.title,
+          avatar_url: body.avatar_url,
+          office_location: ol
+        });
+        fields.push('office_location = ?'); values.push(ol || null);
+      }
       if (fields.length) {
         values.push(userId);
         await pool.query(`UPDATE advisor_profiles SET ${fields.join(', ')} WHERE user_id = ?`, values);

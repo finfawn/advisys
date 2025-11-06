@@ -2,13 +2,16 @@ import React, { useEffect, useState } from "react";
 import "./AverageSessionCard.css";
 import CountUp from './CountUp';
 import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
+import { Skeleton } from "../../../lightswind/skeleton";
 
 export default function AverageSessionCard() {
   const [avg, setAvg] = useState(0);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchSummary = async () => {
       try {
+        setLoading(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const storedUser = localStorage.getItem('advisys_user');
         const storedToken = localStorage.getItem('advisys_token');
@@ -22,6 +25,9 @@ export default function AverageSessionCard() {
       } catch (err) {
         console.error('Failed to load dashboard summary (average session)', err);
       }
+      finally {
+        setLoading(false);
+      }
     };
     fetchSummary();
   }, []);
@@ -32,15 +38,24 @@ export default function AverageSessionCard() {
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="average-session-length">
-          <CountUp
-            from={0}
-            to={avg}
-            separator="," 
-            direction="up"
-            duration={1}
-            className="count-up-text"
-          />
-          <span>min</span>
+          {loading ? (
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-10 w-24" shimmer />
+              <Skeleton className="h-4 w-10" shimmer />
+            </div>
+          ) : (
+            <>
+              <CountUp
+                from={0}
+                to={avg}
+                separator="," 
+                direction="up"
+                duration={1}
+                className="count-up-text"
+              />
+              <span>min</span>
+            </>
+          )}
         </div>
       </CardContent>
     </Card>

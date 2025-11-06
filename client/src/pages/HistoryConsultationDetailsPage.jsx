@@ -102,30 +102,26 @@ const HistoryConsultationDetailsPage = () => {
   };
 
   const getStatusInfo = () => {
-    // Derive display status to keep history details consistent with list cards.
-    // If an approved consultation is now beyond the grace window, show Missed.
-    const original = consultation.status;
-    let derived = original;
+    // History page: never show Approved/Declined/Pending; map to Completed/Missed/Cancelled only.
+    const original = String(consultation.status || '').toLowerCase();
+    const startRaw = consultation.start_datetime || consultation.date;
+    const start = startRaw ? new Date(startRaw) : null;
+    const durationMin = consultation.duration || consultation.duration_minutes || 30;
+    const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
 
-    if (original === 'approved') {
-      const startRaw = consultation.start_datetime || consultation.date;
-      const start = new Date(startRaw);
-      if (!isNaN(start.getTime())) {
-        const durationMin = consultation.duration || consultation.duration_minutes || 30;
-        const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
-        if (Date.now() >= start.getTime() + graceMs) {
-          derived = 'missed';
-        }
+    let derived = original;
+    if (derived === 'cancelled' || derived === 'missed' || derived === 'completed') {
+      // keep as is
+    } else {
+      // Map any non-history statuses to completed/missed based on schedule
+      if (start && !isNaN(start.getTime()) && Date.now() >= start.getTime() + graceMs) {
+        derived = 'missed';
+      } else {
+        derived = 'completed';
       }
     }
 
     switch (derived) {
-      case 'approved':
-        return { text: 'Approved', icon: <BsCheckCircle />, class: 'approved status-approved' };
-      case 'pending':
-        return { text: 'Awaiting Approval', icon: <BsClock />, class: 'status-pending' };
-      case 'declined':
-        return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
       case 'completed':
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
@@ -133,14 +129,20 @@ const HistoryConsultationDetailsPage = () => {
       case 'missed':
         return { text: 'Missed', icon: <BsClock />, class: 'status-missed' };
       default:
-        return { text: 'Unknown', icon: <BsClock />, class: 'status-pending' };
+        return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
     }
   };
 
   const statusInfo = consultation ? getStatusInfo() : { text: '', icon: null, class: '' };
   const { notifications } = useNotifications();
-  const editApproved = Array.isArray(notifications)
-    && notifications.some(n => n?.type === 'consultation_summary_edit_approved' && Number(n?.data?.consultation_id) === Number(consultationId));
+  const approvedByFlag = !!consultation?.summaryEditApprovedAt;
+  const approvedByNotification = Array.isArray(notifications) && notifications.some(n => {
+    const typeOk = n?.type === 'consultation_summary_edit_approved' || n?.type === 'summary_edit_approved';
+    if (!typeOk) return false;
+    const cid = Number(n?.data?.consultation_id);
+    return Number.isFinite(cid) && cid === Number(consultationId);
+  });
+  const editApproved = approvedByFlag || approvedByNotification;
 
   const handleRequestEdit = async () => {
     if (!consultation) return;
@@ -320,6 +322,10 @@ const HistoryConsultationDetailsPage = () => {
                   <h2 className="section-title">
                     <BsFileText className="section-icon" />
                     Consultation Summary
+                    <span className={`approval-badge ${editApproved ? 'approved' : 'required'}`}
+                      title={editApproved ? 'You have approval to edit this summary' : 'Approval required before editing'}>
+                      {editApproved ? 'Edit Approved' : 'Approval Required'}
+                    </span>
                   </h2>
                   <div className="section-content">
                     {!isEditingSummary ? (

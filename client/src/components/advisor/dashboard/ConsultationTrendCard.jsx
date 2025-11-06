@@ -4,6 +4,7 @@ import { BsChevronDown } from "react-icons/bs";
 import "./ConsultationTrendCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../lightswind/dropdown-menu";
+import { Skeleton } from "../../../lightswind/skeleton";
 
 export default function ConsultationTrendCard() {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
@@ -84,7 +85,11 @@ export default function ConsultationTrendCard() {
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="chart-container">
-          {loaded && (!currentData || currentData.length === 0) ? (
+          {!loaded ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Skeleton className="h-40 w-full rounded-md" shimmer />
+            </div>
+          ) : loaded && (!currentData || currentData.length === 0) ? (
             <div className="trend-empty">
               <h4>No trend data</h4>
               <p>There are no consultations for the selected period.</p>

@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { BsBell, BsCheck, BsX, BsCalendar, BsClock, BsPersonCircle, BsCheckCircle, BsXCircle, BsExclamationTriangle, BsCameraVideo, BsGeoAlt, BsDownload, BsTrash } from "react-icons/bs";
 import { useNotifications } from "../contexts/NotificationContext";
 import "./NotificationModal.css";
+import SummaryEditActionModal from "./SummaryEditActionModal";
 
 function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const modalRef = useRef(null);
@@ -16,6 +17,88 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const [undoToast, setUndoToast] = useState({ open: false, timeoutId: null, message: "" });
   // Confirm delete-all when there are unread notifications
   const [confirmDelete, setConfirmDelete] = useState({ open: false });
+
+  // Inline approve/decline (no modal)
+  const [actionMode, setActionMode] = useState('approve'); // 'approve' | 'decline'
+  const [actionResolving, setActionResolving] = useState(false);
+
+  // Attempt to resolve consultation_id for legacy notifications missing data.consultation_id
+  const resolveConsultationIdForNotification = async (notification) => {
+    // If present in notification data, use it
+    const directId = Number(notification?.data?.consultation_id);
+    if (Number.isFinite(directId) && directId > 0) return directId;
+
+    // Try to parse topic from the message: e.g., "summary for 'Topic'"
+    const msg = String(notification?.message || '');
+    const m = msg.match(/summary for '(.+?)'/i) || msg.match(/summary for "(.+?)"/i);
+    const topic = m?.[1]?.trim();
+    if (!topic) return null;
+
+    // Fetch advisor consultations and try to find a matching topic
+    try {
+      const rawUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+      const storedUser = rawUser ? JSON.parse(rawUser) : null;
+      const advisorId = storedUser?.id;
+      if (!advisorId) return null;
+      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const res = await fetch(`${apiBase}/api/advisors/${advisorId}/consultations`, {
+        headers: {
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+      });
+      if (!res.ok) return null;
+      const list = await res.json();
+      if (!Array.isArray(list) || list.length === 0) return null;
+      // Filter by exact topic match
+      const matches = list.filter(c => String(c?.topic || '').trim() === topic);
+      if (matches.length === 1) return Number(matches[0].id) || null;
+      if (matches.length > 1) {
+        // Prefer the most recent by start_datetime
+        const sorted = matches.slice().sort((a,b)=>{
+          const ta = Number(new Date(a.start_datetime).getTime()) || 0;
+          const tb = Number(new Date(b.start_datetime).getTime()) || 0;
+          return tb - ta;
+        });
+        return Number(sorted[0].id) || null;
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  };
+
+  const performInlineApproval = async (mode, notification) => {
+    setActionMode(mode);
+    setActionResolving(true);
+    try {
+      const cid = await resolveConsultationIdForNotification(notification);
+      if (!cid) {
+        throw new Error('Unable to resolve consultation ID for this request');
+      }
+      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const url = `${apiBase}/api/consultations/${cid}/${mode === 'approve' ? 'summary-edit-approve' : 'summary-edit-decline'}`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({}),
+      });
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || 'Failed to submit action');
+      }
+      // Mark and remove the original request notification from advisor's list
+      markAsRead(notification.id);
+      deleteNotification(notification.id);
+    } catch (e) {
+      console.error('Summary edit action failed:', e);
+      alert(e?.message || 'Action failed. Please try again.');
+    } finally {
+      setActionResolving(false);
+    }
+  };
 
   const showUndoToast = (message) => {
     if (undoToast.timeoutId) {
@@ -253,64 +336,14 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     navigate(route);
   };
 
-  const handleApproveEditRequest = async (e, notification) => {
+  const handleApproveEditRequest = (e, notification) => {
     e.stopPropagation();
-    try {
-      const cid = notification?.data?.consultation_id;
-      if (!cid) {
-        alert('Missing consultation id in notification data.');
-        return;
-      }
-      const note = typeof window !== 'undefined' ? window.prompt('Optional note to student:', '') : '';
-      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-      const res = await fetch(`${apiBase}/api/consultations/${cid}/summary-edit-approve`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ note: note || null }),
-      });
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Failed to approve request');
-      }
-      markAsRead(notification.id);
-      deleteNotification(notification.id);
-    } catch (err) {
-      console.error('Approve edit request error:', err);
-      alert('Failed to approve: ' + (err?.message || 'Unknown error'));
-    }
+    performInlineApproval('approve', notification);
   };
 
-  const handleDeclineEditRequest = async (e, notification) => {
+  const handleDeclineEditRequest = (e, notification) => {
     e.stopPropagation();
-    try {
-      const cid = notification?.data?.consultation_id;
-      if (!cid) {
-        alert('Missing consultation id in notification data.');
-        return;
-      }
-      const reason = typeof window !== 'undefined' ? window.prompt('Reason for decline (optional):', '') : '';
-      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-      const res = await fetch(`${apiBase}/api/consultations/${cid}/summary-edit-decline`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        },
-        body: JSON.stringify({ reason: reason || null }),
-      });
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Failed to decline request');
-      }
-      markAsRead(notification.id);
-      deleteNotification(notification.id);
-    } catch (err) {
-      console.error('Decline edit request error:', err);
-      alert('Failed to decline: ' + (err?.message || 'Unknown error'));
-    }
+    performInlineApproval('decline', notification);
   };
 
   const handleMarkAllAsRead = () => {
@@ -350,25 +383,43 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
   };
 
   const formatTimestamp = (timestamp) => {
-    const now = new Date();
-    const notificationTime = new Date(timestamp);
-    const diffInMinutes = Math.floor((now - notificationTime) / (1000 * 60));
-    const diffInHours = Math.floor(diffInMinutes / 60);
-    const diffInDays = Math.floor(diffInHours / 24);
+    if (!timestamp) return '';
+    const now = Date.now();
 
-    if (diffInMinutes < 60) {
-      return `${diffInMinutes} minutes ago`;
-    } else if (diffInHours < 24) {
-      return `${diffInHours} hours ago`;
-    } else if (diffInDays < 7) {
-      return `${diffInDays} days ago`;
-    } else {
-      return notificationTime.toLocaleDateString('en-US', { 
-        month: 'short', 
-        day: 'numeric',
-        year: 'numeric'
-      });
+    // Normalize timestamp to a safe epoch (handles ISO, MySQL DATETIME strings, and numbers)
+    let ts;
+    if (typeof timestamp === 'number') {
+      ts = timestamp;
+    } else if (timestamp instanceof Date) {
+      ts = timestamp.getTime();
+    } else if (typeof timestamp === 'string') {
+      const trimmed = timestamp.trim();
+      // If it looks like "YYYY-MM-DD HH:mm:ss" (no timezone), treat as LOCAL time
+      // This uses the browser's timezone for display, as requested.
+      if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)) {
+        const [datePart, timePart] = trimmed.split(' ');
+        const [y, m, d] = datePart.split('-').map((n) => Number(n));
+        const [hh, mm, ss] = timePart.split(':').map((n) => Number(n));
+        ts = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, ss || 0).getTime();
+      } else {
+        // Parse ISO-like strings normally (respects embedded timezone if present)
+        ts = Date.parse(trimmed);
+      }
     }
+
+    if (!Number.isFinite(ts)) return '';
+
+    const diffMs = Math.max(0, now - ts);
+    const minutes = Math.floor(diffMs / 60000);
+    const hours = Math.floor(diffMs / 3600000);
+    const days = Math.floor(diffMs / 86400000);
+
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
+    if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
+    const d = new Date(ts);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
   };
 
 
@@ -489,16 +540,18 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
                     {notification.type === 'consultation_summary_edit_requested' && userType === 'advisor' ? (
                       <div className="notification-actions">
                         <button
-                          className="notification-action"
+                          className={`notification-action ${actionResolving ? 'disabled' : ''}`}
                           onClick={(e) => handleApproveEditRequest(e, notification)}
+                          disabled={actionResolving}
                         >
-                          Approve
+                          {actionResolving && actionMode === 'approve' ? 'Approving…' : 'Approve'}
                         </button>
                         <button
-                          className="notification-action"
+                          className={`notification-action ${actionResolving ? 'disabled' : ''}`}
                           onClick={(e) => handleDeclineEditRequest(e, notification)}
+                          disabled={actionResolving}
                         >
-                          Decline
+                          {actionResolving && actionMode === 'decline' ? 'Declining…' : 'Decline'}
                         </button>
                       </div>
                     ) : (
@@ -562,6 +615,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
             </div>
           </div>
         )}
+
+        {/* Inline actions only; modal removed per design */}
       </div>
     </div>
   );

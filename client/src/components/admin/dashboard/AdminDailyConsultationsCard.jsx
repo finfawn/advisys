@@ -1,8 +1,9 @@
 import React, { useState } from "react";
+import { Skeleton } from "../../../lightswind/skeleton";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import "./AdminDailyConsultationsCard.css";
 
-export default function AdminDailyConsultationsCard() {
+export default function AdminDailyConsultationsCard({ loading = false }) {
   const [period, setPeriod] = useState('this_month');
 
   const dataThisMonth = [
@@ -38,21 +39,27 @@ export default function AdminDailyConsultationsCard() {
         </div>
       </div>
       <div className="chart-container">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={data} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#1d4ed8" stopOpacity={0.25} />
-                <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-            <XAxis dataKey="day" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-            <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
-            <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8 }} />
-            <Area type="monotone" dataKey="count" stroke="#1d4ed8" fillOpacity={1} fill="url(#colorCount)" strokeWidth={2} />
-          </AreaChart>
-        </ResponsiveContainer>
+        {loading ? (
+          <div className="w-full h-full flex items-center justify-center">
+            <Skeleton className="w-11/12 h-40 rounded-lg" shimmer />
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={data} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#1d4ed8" stopOpacity={0.25} />
+                  <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <XAxis dataKey="day" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
+              <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 8 }} />
+              <Area type="monotone" dataKey="count" stroke="#1d4ed8" fillOpacity={1} fill="url(#colorCount)" strokeWidth={2} />
+            </AreaChart>
+          </ResponsiveContainer>
+        )}
       </div>
     </div>
   );

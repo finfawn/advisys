@@ -7,6 +7,7 @@ import { Card, CardContent } from '../../lightswind/card';
 import { Badge } from '../../lightswind/badge';
 import { Button } from '../../lightswind/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../lightswind/select';
+import { Skeleton, TemplateCardSkeleton } from '../../lightswind/skeleton';
 import ConsultationCard from "../../components/student/ConsultationCard";
 import ConsultationModal from "../../components/student/ConsultationModal";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
@@ -17,6 +18,7 @@ import "./MyConsultationsPage.css";
 export default function MyConsultationsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const [activeTab, setActiveTab] = useState("upcoming");
+  const [isLoading, setIsLoading] = useState(true);
   const [upcomingFilter, setUpcomingFilter] = useState("all");
   const [requestFilter, setRequestFilter] = useState("all");
   const [historyFilter, setHistoryFilter] = useState("all");
@@ -57,6 +59,7 @@ export default function MyConsultationsPage() {
   const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
   const reloadConsultations = async () => {
     try {
+      setIsLoading(true);
       const storedUser = localStorage.getItem('advisys_user');
       const parsed = storedUser ? JSON.parse(storedUser) : null;
       const studentId = parsed?.id || 1;
@@ -65,11 +68,14 @@ export default function MyConsultationsPage() {
       setAllConsultations(Array.isArray(data) ? data : []);
     } catch (err) {
       console.error('Reload consultations failed', err);
+    } finally {
+      setIsLoading(false);
     }
   };
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
+        setIsLoading(true);
         const storedUser = localStorage.getItem('advisys_user');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const studentId = parsed?.id || 1;
@@ -80,6 +86,8 @@ export default function MyConsultationsPage() {
         setAllConsultations(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load consultations', err);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchConsultations();
@@ -459,30 +467,37 @@ export default function MyConsultationsPage() {
                     <span className="section-count">{filteredUpcoming.length} upcoming</span>
                   </div>
                 </div>
-                
-                <div className="consultations-grid">
-                  {filteredUpcoming.map(consultation => (
-                    <ConsultationCard
-                      key={consultation.id}
-                      consultation={consultation}
-                      onActionClick={() => handleJoinConsultation(consultation)}
-                      onCancel={handleCancelConsultation}
-                      onReschedule={handleOpenReschedule}
-                      onMarkMissed={handleMarkMissed}
-                    />
-                  ))}
-                  
-                  {/* Add New Consultation Card */}
-                  <Card hoverable className="add-consultation-card-new cursor-pointer" onClick={handleNewConsultation}>
-                    <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
-                      <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
-                        <BsPlus className="text-4xl text-blue-600" />
-                      </div>
-                      <h3 className="text-lg font-semibold text-gray-900">Add New Consultation</h3>
-                      <p className="text-sm text-gray-600 text-center">Book a new consultation session</p>
-                    </CardContent>
-                  </Card>
-                </div>
+                {isLoading ? (
+                  <div className="consultations-grid">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <TemplateCardSkeleton key={idx} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="consultations-grid">
+                    {filteredUpcoming.map(consultation => (
+                      <ConsultationCard
+                        key={consultation.id}
+                        consultation={consultation}
+                        onActionClick={() => handleJoinConsultation(consultation)}
+                        onCancel={handleCancelConsultation}
+                        onReschedule={handleOpenReschedule}
+                        onMarkMissed={handleMarkMissed}
+                      />
+                    ))}
+                    
+                    {/* Add New Consultation Card */}
+                    <Card hoverable className="add-consultation-card-new cursor-pointer" onClick={handleNewConsultation}>
+                      <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
+                        <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                          <BsPlus className="text-4xl text-blue-600" />
+                        </div>
+                        <h3 className="text-lg font-semibold text-gray-900">Add New Consultation</h3>
+                        <p className="text-sm text-gray-600 text-center">Book a new consultation session</p>
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
               </section>
             )}
 
@@ -505,35 +520,42 @@ export default function MyConsultationsPage() {
                     <span className="section-count">{filteredRequests.length} requests</span>
                   </div>
                 </div>
-                
-                <div className="consultations-grid">
-                  {filteredRequests.map(consultation => (
-                    <ConsultationCard
-                      key={consultation.id}
-                      consultation={consultation}
-                      onActionClick={() => handleJoinConsultation(consultation)}
-                      onDelete={handleDeleteDeclinedConsultation}
-                      onCancel={handleCancelConsultation}
-                      onReschedule={handleOpenReschedule}
-                    />
-                  ))}
-                  
-                  {filteredRequests.length === 0 && (
-                    <div className="no-consultations">
-                      <BsClockHistory className="no-consultations-icon" />
-                      <h3>No pending requests</h3>
-                      <p>You don't have any pending or declined consultation requests.</p>
-                      <Button 
-                        variant="primary" 
-                        onClick={handleNewConsultation}
-                        className="add-consultation-btn"
-                      >
-                        <BsPlus className="btn-icon" />
-                        Book New Consultation
-                      </Button>
-                    </div>
-                  )}
-                </div>
+                {isLoading ? (
+                  <div className="consultations-grid">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <TemplateCardSkeleton key={idx} />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="consultations-grid">
+                    {filteredRequests.map(consultation => (
+                      <ConsultationCard
+                        key={consultation.id}
+                        consultation={consultation}
+                        onActionClick={() => handleJoinConsultation(consultation)}
+                        onDelete={handleDeleteDeclinedConsultation}
+                        onCancel={handleCancelConsultation}
+                        onReschedule={handleOpenReschedule}
+                      />
+                    ))}
+                    
+                    {filteredRequests.length === 0 && (
+                      <div className="no-consultations">
+                        <BsClockHistory className="no-consultations-icon" />
+                        <h3>No pending requests</h3>
+                        <p>You don't have any pending or declined consultation requests.</p>
+                        <Button 
+                          variant="primary" 
+                          onClick={handleNewConsultation}
+                          className="add-consultation-btn"
+                        >
+                          <BsPlus className="btn-icon" />
+                          Book New Consultation
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Undo Notification for Declined Consultations */}
                 {deletedDeclinedItems.length > 0 && (
@@ -592,26 +614,33 @@ export default function MyConsultationsPage() {
                     <span className="section-count">{filteredHistory.length} past sessions</span>
                   </div>
                 </div>
-                
-                {filteredHistory.length > 0 ? (
-                  <>
-                    <div className="consultations-grid">
-                      {filteredHistory.map(consultation => (
-                        <ConsultationCard
-                          key={consultation.id}
-                          consultation={consultation}
-                          onActionClick={() => handleViewHistoryDetails(consultation)}
-                          onDelete={handleDeleteHistoryItem}
-                        />
-                      ))}
-                    </div>
-                  </>
-                ) : (
-                  <div className="no-history">
-                    <BsListCheck className="no-history-icon" />
-                    <h3>No consultation history</h3>
-                    <p>You haven't completed any consultation sessions yet.</p>
+                {isLoading ? (
+                  <div className="consultations-grid">
+                    {Array.from({ length: 3 }).map((_, idx) => (
+                      <TemplateCardSkeleton key={idx} />
+                    ))}
                   </div>
+                ) : (
+                  filteredHistory.length > 0 ? (
+                    <>
+                      <div className="consultations-grid">
+                        {filteredHistory.map(consultation => (
+                          <ConsultationCard
+                            key={consultation.id}
+                            consultation={consultation}
+                            onActionClick={() => handleViewHistoryDetails(consultation)}
+                            onDelete={handleDeleteHistoryItem}
+                          />
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="no-history">
+                      <BsListCheck className="no-history-icon" />
+                      <h3>No consultation history</h3>
+                      <p>You haven't completed any consultation sessions yet.</p>
+                    </div>
+                  )
                 )}
 
                 {/* Undo Notification */}

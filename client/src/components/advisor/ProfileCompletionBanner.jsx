@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import './ProfileCompletionBanner.css';
 import { useNavigate } from 'react-router-dom';
 
 export default function ProfileCompletionBanner() {
@@ -100,30 +101,16 @@ export default function ProfileCompletionBanner() {
   if (checking || !show || missing.length === 0) return null;
 
   return (
-    <div className="profile-completion-banner" style={{
-      background: '#fff7ed',
-      border: '1px solid #fdba74',
-      color: '#7c2d12',
-      padding: '12px 16px',
-      borderRadius: 8,
-      display: 'flex',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-      marginBottom: '16px'
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-        <span style={{ fontWeight: 700 }}>Improve your consultation setup</span>
-        <span style={{ fontSize: 14 }}>
+    <div className="profile-completion-banner">
+      <div className="banner-content">
+        <span className="banner-title">Improve your consultation setup</span>
+        <span className="banner-text">
           {`Add ${missing.join(', ')} to make your profile more helpful to students.`}
         </span>
       </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-        <button onClick={handleGoToSettings} style={{
-          background: '#1d4ed8', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 12px', cursor: 'pointer', fontWeight: 600
-        }}>Go to Settings</button>
-        <button onClick={handleGoToAvailability} style={{
-          background: '#78350f', color: '#fff', border: 'none', borderRadius: 6, padding: '8px 12px', cursor: 'pointer', fontWeight: 600
-        }}>Set Availability</button>
+      <div className="banner-actions">
+        <button onClick={handleGoToSettings} className="banner-btn primary">Go to Settings</button>
+        <button onClick={handleGoToAvailability} className="banner-btn secondary">Set Availability</button>
       </div>
     </div>
   );

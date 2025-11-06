@@ -45,6 +45,7 @@ CREATE TABLE IF NOT EXISTS `advisor_profiles` (
   `department` VARCHAR(255) NULL,
   `avatar_url` TEXT NULL,
   `bio` TEXT NULL,
+  `office_location` VARCHAR(255) NULL,
   `status` ENUM('available','unavailable','busy') NOT NULL DEFAULT 'available',
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_advisor_profile_user`

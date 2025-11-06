@@ -29,6 +29,10 @@ const {
   GCP_STORAGE_KEY_PATH,
   GCS_BUCKET_NAME,
 } = process.env;
+// Allow disabling STT upload for local/dev environments
+const DISABLE_STT_UPLOAD = String(process.env.DISABLE_STT_UPLOAD || '').toLowerCase() === 'true';
+// Optional: retain uploaded audio in cloud storage (default: delete after STT completes)
+const KEEP_RECORDINGS_AT_REST = String(process.env.KEEP_RECORDINGS_AT_REST || '').toLowerCase() === 'true';
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB cap
 
 // Helper: derive consultation id from meetingId like "advisys-<id>"
@@ -110,6 +114,14 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
     const consultationId = Number(consultationIdRaw);
     if (!consultationId) return res.status(400).json({ error: 'Missing or invalid consultationId' });
 
+    // Dev-friendly bypass: skip STT and succeed to avoid blocking UX
+    if (DISABLE_STT_UPLOAD) {
+      try {
+        await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]);
+      } catch (_) {}
+      return res.json({ success: true, transcriptLength: 0, summarized: false, bypassed: true });
+    }
+
     // Guard: ensure Google client is available
     if (!SpeechClient) {
       return res.status(500).json({ error: 'Speech-to-Text client not available on server' });
@@ -170,8 +182,39 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
     };
 
     // Use longrunningRecognize to handle longer audio clips reliably
-    const [operation] = await client.longrunningRecognize({ config, audio });
-    const [response] = await operation.promise();
+    console.log('[STT] Starting longrunningRecognize', {
+      usingGCS: Boolean(uploadedGsUri),
+      uri: uploadedGsUri || null,
+      encoding,
+      languageCode,
+      model: config.model,
+    });
+    let response;
+    try {
+      // Correct Google STT method name: longRunningRecognize
+      const [operation] = await client.longRunningRecognize({ config, audio });
+      [response] = await operation.promise();
+      const resultsCount = Array.isArray(response?.results) ? response.results.length : 0;
+      console.log('[STT] Completed longrunningRecognize', { resultsCount });
+    } catch (sttErr) {
+      console.error('Google STT error:', sttErr?.message || sttErr);
+      // Graceful fallback: store empty transcript and return non-blocking success
+      try {
+        await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]);
+      } catch (_) {}
+      // If audio was uploaded to GCS, delete it to avoid unintended retention when KEEP_RECORDINGS_AT_REST is false
+      try {
+        if (uploadedGsUri && !KEEP_RECORDINGS_AT_REST && Storage && GCS_BUCKET_NAME) {
+          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
+          const bucket = storage.bucket(GCS_BUCKET_NAME);
+          const path = uploadedGsUri.replace(`gs://${GCS_BUCKET_NAME}/`, '');
+          await bucket.file(path).delete({ ignoreNotFound: true });
+        }
+      } catch (delErr) {
+        console.warn('Failed to delete GCS object after STT error:', delErr);
+      }
+      return res.json({ success: true, transcriptLength: 0, summarized: false, sttError: sttErr?.message || String(sttErr) });
+    }
     const parts = [];
     for (const result of response.results || []) {
       const alt = result.alternatives && result.alternatives[0];
@@ -208,21 +251,33 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
 
     // If we uploaded to GCS, delete the object to avoid retention
     if (uploadedGsUri) {
-      try {
-        const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-        const bucket = storage.bucket(GCS_BUCKET_NAME);
-        const path = uploadedGsUri.replace(`gs://${GCS_BUCKET_NAME}/`, '');
-        await bucket.file(path).delete({ ignoreNotFound: true });
-      } catch (delErr) {
-        console.warn('Failed to delete GCS object after STT:', delErr);
+      if (KEEP_RECORDINGS_AT_REST) {
+        // Best-effort: store URI if a column exists; ignore if schema lacks recording_uri
+        try {
+          await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [uploadedGsUri, consultationId]);
+        } catch (dbErr) {
+          const code = String(dbErr?.code || '');
+          if (code !== 'ER_BAD_FIELD_ERROR') {
+            console.warn('Failed to store recording_uri:', dbErr);
+          }
+        }
+      } else {
+        try {
+          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
+          const bucket = storage.bucket(GCS_BUCKET_NAME);
+          const path = uploadedGsUri.replace(`gs://${GCS_BUCKET_NAME}/`, '');
+          await bucket.file(path).delete({ ignoreNotFound: true });
+        } catch (delErr) {
+          console.warn('Failed to delete GCS object after STT:', delErr);
+        }
       }
     }
 
     // Return status.
-    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), usedGCS: Boolean(uploadedGsUri) });
+    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), usedGCS: Boolean(uploadedGsUri), recordingUri: KEEP_RECORDINGS_AT_REST ? uploadedGsUri : null });
   } catch (err) {
-    console.error('Transcriptions upload error:', err);
-    return res.status(500).json({ error: 'Failed to process uploaded audio' });
+    console.error('Transcriptions upload error:', err?.message || err);
+    return res.status(500).json({ error: 'Failed to process uploaded audio', details: err?.message || String(err) });
   }
 });
 
@@ -256,8 +311,15 @@ router.post('/transcriptions/finalize', async (req, res) => {
       [meetingId, consultationId]
     );
 
-    // If there are no transcript entries, attempt a fallback summary using existing notes
+    // If there are no transcript entries, optionally skip AI summarization entirely
+    // Controlled by AI_SUMMARY_REQUIRE_TRANSCRIPT (default: true)
+    const REQUIRE_TRANSCRIPT = String(process.env.AI_SUMMARY_REQUIRE_TRANSCRIPT || 'true').toLowerCase() === 'true';
+    // If no transcript and summaries require transcript, do not call AI
     if (!entries || entries.length === 0) {
+      if (REQUIRE_TRANSCRIPT) {
+        return res.json({ success: true, mergedLength: 0, summarized: false });
+      }
+      // Otherwise, attempt a fallback summary using existing notes
       try {
         const [[c]] = await pool.query(
           `SELECT c.*, s.full_name AS student_name, a.full_name AS advisor_name

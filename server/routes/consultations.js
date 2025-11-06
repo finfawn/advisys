@@ -32,6 +32,40 @@ function formatTimeRange(start, end) {
   return `${fmt(start)} - ${fmt(end)}`;
 }
 
+// Load notification settings for a user, with safe defaults
+async function getNotificationSettings(userId) {
+  const pool = getPool();
+  try {
+    const [rows] = await pool.query(
+      `SELECT email_notifications, consultation_reminders, new_request_notifications
+       FROM notification_settings
+       WHERE user_id = ?
+       LIMIT 1`,
+      [userId]
+    );
+    if (!rows || rows.length === 0) {
+      return {
+        email_notifications: false,
+        consultation_reminders: true,
+        new_request_notifications: true,
+      };
+    }
+    const row = rows[0];
+    return {
+      email_notifications: !!row.email_notifications,
+      consultation_reminders: !!row.consultation_reminders,
+      new_request_notifications: !!row.new_request_notifications,
+    };
+  } catch (err) {
+    // On error, default to enabling in-app notifications (email skipped later)
+    return {
+      email_notifications: false,
+      consultation_reminders: true,
+      new_request_notifications: true,
+    };
+  }
+}
+
 // Create a new consultation (student books a slot)
 // POST /api/consultations
 // Body: {
@@ -113,6 +147,27 @@ router.post('/consultations', async (req, res) => {
     );
 
     const newId = insertRes.insertId;
+
+    // Snapshot advisor's current consultation guidelines into this consultation
+    try {
+      const [glRows] = await conn.query(
+        'SELECT guideline_text FROM advisor_guidelines WHERE advisor_user_id = ?',
+        [advisorId]
+      );
+      for (const g of glRows) {
+        const txt = String(g.guideline_text || '').trim();
+        if (txt) {
+          await conn.query(
+            'INSERT INTO consultation_guidelines (consultation_id, guideline_text) VALUES (?, ?)',
+            [newId, txt]
+          );
+        }
+      }
+    } catch (e) {
+      // Non-fatal: if guidelines copy fails, proceed with booking
+      console.warn('Failed to snapshot advisor guidelines for consultation', e);
+    }
+
     await conn.commit();
 
     // Return the newly created consultation in the same shape as GET endpoints
@@ -138,13 +193,16 @@ router.post('/consultations', async (req, res) => {
       const studentName = stu?.full_name || 'Student';
       const title = `New consultation request from ${studentName}`;
       const message = `${studentName} requested a consultation for '${topic}' on ${date} at ${time}.`;
-      await createNotification(pool, advisorId, 'consultation_request', title, message, {
-        consultation_id: newId,
-        date,
-        time,
-        topic,
-        mode: modeNorm,
-      });
+      const settings = await getNotificationSettings(advisorId);
+      if (settings?.new_request_notifications) {
+        await createNotification(pool, advisorId, 'consultation_request', title, message, {
+          consultation_id: newId,
+          date,
+          time,
+          topic,
+          mode: modeNorm,
+        });
+      }
     } catch (err) {
       console.error('Advisor request notification error', err);
     }
@@ -166,6 +224,12 @@ router.post('/consultations', async (req, res) => {
     } catch (err) {
       console.error('Student request notification error', err);
     }
+    // Load any copied guidelines to include in the response shape
+    const [cgRows] = await pool.query(
+      'SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?',
+      [r.id]
+    );
+
     return res.status(201).json({
       id: r.id,
       date,
@@ -181,7 +245,7 @@ router.post('/consultations', async (req, res) => {
       location: r.location || undefined,
       duration: r.duration_minutes || 30,
       bookingDate: r.booking_date,
-      guidelines: [],
+      guidelines: cgRows.map(g => g.guideline_text),
     });
   } catch (err) {
     console.error('Create consultation error', err);
@@ -225,6 +289,8 @@ router.get('/students/:studentId/consultations', async (req, res) => {
         // Include raw datetimes for prefill/edit scenarios
         start_datetime: r.start_datetime,
         end_datetime: r.end_datetime,
+        actual_start_datetime: r.actual_start_datetime || null,
+        actual_end_datetime: r.actual_end_datetime || null,
         // Retain original category and notes for editing
         category: r.category || undefined,
         student_notes: r.student_notes || undefined,
@@ -233,6 +299,7 @@ router.get('/students/:studentId/consultations', async (req, res) => {
         summaryNotes: r.summary_notes || undefined,
         finalTranscript: r.final_transcript || undefined,
         aiSummary: r.ai_summary || undefined,
+        summaryEditApprovedAt: r.summary_edit_approved_at || undefined,
         topic: r.topic,
         faculty: {
           id: r.advisor_user_id,
@@ -299,6 +366,8 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       // Expose raw datetimes for client-side logic (e.g., 15-min no-show)
       start_datetime: r.start_datetime,
       end_datetime: r.end_datetime,
+      actual_start_datetime: r.actual_start_datetime || null,
+      actual_end_datetime: r.actual_end_datetime || null,
       topic: r.topic,
       // Include student-selected category and notes to render accurate details
       category: r.category || undefined,
@@ -307,6 +376,7 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       summaryNotes: r.summary_notes || undefined,
       finalTranscript: r.final_transcript || undefined,
       aiSummary: r.ai_summary || undefined,
+      summaryEditApprovedAt: r.summary_edit_approved_at || undefined,
       student: {
         name: r.student_name,
         course,
@@ -339,11 +409,11 @@ router.patch('/consultations/:id/status', async (req, res) => {
     return res.status(400).json({ error: 'Invalid or missing status' });
   }
   try {
-    // Load existing fields for change detection (e.g., meeting_link transitions)
+    // Load existing fields for change detection if needed in future
     const [[before]] = await pool.query('SELECT location FROM consultations WHERE id = ?', [id]);
 
     const fields = ['status = ?'];
-    const values = [status];
+    let values = [status];
     if (declineReason !== undefined) { fields.push('decline_reason = ?'); values.push(declineReason || null); }
     if (cancelReason !== undefined) { fields.push('cancel_reason = ?'); values.push(cancelReason || null); }
     if (location !== undefined) { fields.push('location = ?'); values.push(location || null); }
@@ -397,10 +467,8 @@ router.patch('/consultations/:id/status', async (req, res) => {
         const end = new Date(c.end_datetime);
         const date = formatDate(start);
         const time = formatTimeRange(start, end);
-        // Room ready trigger: if meeting_link transitioned from null -> non-null
-        if (meetingLink !== undefined && !prevMeetingLink && c.meeting_link) {
-          // Room readiness is handled via /consultations/:id/room-ready endpoint
-        }
+        // Room readiness is handled via /consultations/:id/room-ready endpoint.
+        // No meetingLink handling here to avoid undefined references.
 
         if (status === 'approved') {
           const title = `${c.advisor_name} approved your consultation`;
@@ -414,8 +482,9 @@ router.patch('/consultations/:id/status', async (req, res) => {
         } else if (status === 'cancelled') {
           const title = `Consultation cancelled`;
           const message = `The consultation for '${c.topic}' on ${date} at ${time} was cancelled.`;
-          // Notify the other party (advisor)
+          // Notify both parties to ensure visibility regardless of who initiated
           await createNotification(pool, c.advisor_user_id, 'consultation_cancelled', title, message, { consultation_id: c.id });
+          await createNotification(pool, c.student_user_id, 'consultation_cancelled', title, message, { consultation_id: c.id });
         } else if (status === 'missed') {
           // Neutral "missed" state replaces "no-show" without blaming either party
           const title = `Consultation missed`;
@@ -472,7 +541,7 @@ router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) =
     return res.status(400).json({ error: 'aiSummary must be a string' });
   }
   try {
-    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic, summary_edit_approved_at FROM consultations WHERE id = ?', [id]);
     if (!c) return res.status(404).json({ error: 'Consultation not found' });
     const isAdvisor = user.role === 'advisor' && user.id === c.advisor_user_id;
     const isStudent = user.role === 'student' && user.id === c.student_user_id;
@@ -483,20 +552,24 @@ router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) =
     }
 
     if (isStudent) {
-      // Check approval notification existence for this consultation
-      const [rows] = await pool.query(
-        `SELECT id, data_json FROM notifications WHERE user_id = ? AND type = 'consultation_summary_edit_approved' ORDER BY id DESC LIMIT 100`,
-        [c.student_user_id]
-      );
-      let approved = false;
-      for (const r of rows) {
-        try {
-          const data = r?.data_json ? JSON.parse(r.data_json) : {};
-          if (Number(data?.consultation_id) === Number(id)) { approved = true; break; }
-        } catch (_) {}
-      }
-      if (!approved) {
-        return res.status(403).json({ error: 'Student edit not approved for this consultation' });
+      // Strict per-consultation approval: prefer the persisted flag, fallback to exact notification match
+      await ensureSummaryApprovalColumn(pool);
+      const flagApproved = !!c.summary_edit_approved_at;
+      if (!flagApproved) {
+        const [rows] = await pool.query(
+          `SELECT id, type, data_json FROM notifications WHERE user_id = ? AND type IN ('consultation_summary_edit_approved', 'summary_edit_approved') ORDER BY id DESC LIMIT 200`,
+          [c.student_user_id]
+        );
+        let approved = false;
+        for (const r of rows) {
+          try {
+            const data = r?.data_json ? JSON.parse(r.data_json) : {};
+            if (Number(data?.consultation_id) === Number(id)) { approved = true; break; }
+          } catch (_) {}
+        }
+        if (!approved) {
+          return res.status(403).json({ error: 'Student edit not approved for this consultation' });
+        }
       }
     }
 
@@ -561,6 +634,16 @@ async function ensurePrivateNotesColumns(pool) {
     const [cols2] = await pool.query('SHOW COLUMNS FROM consultations LIKE "student_private_notes"');
     if (!cols2 || cols2.length === 0) {
       try { await pool.query('ALTER TABLE consultations ADD COLUMN student_private_notes TEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+}
+
+// Summary edit approval flag: ensure column exists to track per-consultation approvals
+async function ensureSummaryApprovalColumn(pool) {
+  try {
+    const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "summary_edit_approved_at"');
+    if (!cols || cols.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN summary_edit_approved_at DATETIME NULL'); } catch (_) {}
     }
   } catch (_) {}
 }
@@ -658,6 +741,11 @@ router.post('/consultations/:id/summary-edit-approve', authMiddleware, async (re
     const message = `Advisor approved your summary edit request for '${c.topic}'.`;
     const data = { consultation_id: Number(id), note: note || null };
     await createNotification(pool, c.student_user_id, 'consultation_summary_edit_approved', title, message, data);
+    // Persist per-consultation approval flag
+    try {
+      await ensureSummaryApprovalColumn(pool);
+      await pool.query('UPDATE consultations SET summary_edit_approved_at = NOW() WHERE id = ?', [id]);
+    } catch (_) {}
     return res.json({ success: true });
   } catch (err) {
     console.error('Summary edit approve error:', err);
@@ -682,6 +770,11 @@ router.post('/consultations/:id/summary-edit-decline', authMiddleware, async (re
     const message = `Advisor declined your summary edit request for '${c.topic}'.`;
     const data = { consultation_id: Number(id), reason: reason || null };
     await createNotification(pool, c.student_user_id, 'consultation_summary_edit_declined', title, message, data);
+    // Clear per-consultation approval flag on decline
+    try {
+      await ensureSummaryApprovalColumn(pool);
+      await pool.query('UPDATE consultations SET summary_edit_approved_at = NULL WHERE id = ?', [id]);
+    } catch (_) {}
     return res.json({ success: true });
   } catch (err) {
     console.error('Summary edit decline error:', err);

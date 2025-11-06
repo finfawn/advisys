@@ -100,7 +100,17 @@ export default function AvailabilityCalendar({
         });
         if (!resp.ok) throw new Error('Failed to fetch month slots');
         const rows = await resp.json();
-        const next = rows.map((s) => ({
+        // Exclude slots whose end time has already passed to avoid misleading dots on today
+        const nowTs = Date.now();
+        const filtered = Array.isArray(rows) ? rows.filter((s) => {
+          try {
+            const endTs = new Date(s.end_datetime).getTime();
+            return endTs > nowTs;
+          } catch (_) {
+            return true;
+          }
+        }) : [];
+        const next = filtered.map((s) => ({
           id: s.id,
           title: 'Available',
           start: new Date(s.start_datetime),

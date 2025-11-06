@@ -33,6 +33,7 @@ export default function OnlineConsultationDetailsPage() {
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [inCall, setInCall] = useState(false);
+  const [callWin, setCallWin] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [notesDraft, setNotesDraft] = useState('');
@@ -45,6 +46,7 @@ export default function OnlineConsultationDetailsPage() {
   const [savingSummary, setSavingSummary] = useState(false);
   const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [summaryLoading, setSummaryLoading] = useState(false);
 
   const fallback = {
     id: Number(consultationId) || 1,
@@ -113,12 +115,103 @@ export default function OnlineConsultationDetailsPage() {
   };
 
   const handleJoinMeeting = () => {
+    try {
+      // Persist consultation data for the call window to read
+      localStorage.setItem(`advisys_consultation_${consultationData.id}`, JSON.stringify(consultationData));
+    } catch (_) {}
+    const url = `/call?cid=${consultationData.id}`;
+    const win = window.open(url, '_blank', 'noopener,noreferrer');
+    setCallWin(win);
     setInCall(true);
   };
 
   const handleLeaveCall = () => {
+    try {
+      // Ask the call window to leave gracefully
+      callWin?.postMessage({ type: 'advisys-leave', cid: consultationData.id }, '*');
+    } catch (_) {}
+    setTimeout(() => {
+      try { if (callWin && !callWin.closed) callWin.close(); } catch (_) {}
+      setCallWin(null);
+      // Trigger a refresh shortly after leaving; summary may start generating
+      refreshConsultationOnce();
+    }, 300);
     setInCall(false);
   };
+
+  // Refresh helper to reload this consultation from API
+  const refreshConsultationOnce = async () => {
+    try {
+      const userRaw = localStorage.getItem('advisys_user');
+      const token = localStorage.getItem('advisys_token');
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      const studentId = user?.id || user?.studentId || null;
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      if (!studentId) return;
+      const r = await fetch(`${base}/api/students/${studentId}/consultations`, { headers });
+      const list = await r.json();
+      const idNum = Number(consultationId);
+      const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
+      if (found) {
+        setConsultationData(found);
+      }
+    } catch (_) {}
+  };
+
+  // Listen for call window notifying that the call has ended
+  useEffect(() => {
+    const handler = (evt) => {
+      const data = evt?.data || {};
+      if (data && data.type === 'advisys-call-ended') {
+        const cid = String(data.cid || '');
+        if (cid && String(cid) === String(consultationId)) {
+          refreshConsultationOnce();
+        }
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, [consultationId]);
+
+  // Lightweight polling to reflect backend changes automatically
+  useEffect(() => {
+    let timer;
+    const start = () => {
+      clearInterval(timer);
+      timer = setInterval(() => {
+        refreshConsultationOnce();
+      }, 20000);
+    };
+    start();
+    return () => clearInterval(timer);
+  }, [consultationId]);
+
+  // Poll for AI summary when consultation is completed but summary not available yet
+  useEffect(() => {
+    if (String(consultationData?.status).toLowerCase() === 'completed' && !consultationData?.aiSummary) {
+      setSummaryLoading(true);
+      let attempts = 0;
+      const id = setInterval(async () => {
+        attempts += 1;
+        try {
+          await refreshConsultationOnce();
+          if (consultationData?.aiSummary) {
+            setSummaryLoading(false);
+            clearInterval(id);
+          }
+        } catch (_) {}
+        if (attempts >= 20) { // ~2 minutes at 6s interval
+          setSummaryLoading(false);
+          clearInterval(id);
+        }
+      }, 6000);
+      return () => clearInterval(id);
+    } else {
+      setSummaryLoading(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [consultationData?.status, consultationData?.aiSummary]);
 
   const handleCancelConsultation = () => {
     setShowCancelModal(true);
@@ -281,8 +374,14 @@ export default function OnlineConsultationDetailsPage() {
     });
   };
 
-  const editApproved = Array.isArray(notifications)
-    && notifications.some(n => n?.type === 'consultation_summary_edit_approved' && Number(n?.data?.consultation_id) === Number(consultationData?.id));
+  const approvedByFlag = !!consultationData?.summaryEditApprovedAt;
+  const approvedByNotification = Array.isArray(notifications) && notifications.some(n => {
+    const typeOk = n?.type === 'consultation_summary_edit_approved' || n?.type === 'summary_edit_approved';
+    if (!typeOk) return false;
+    const cid = Number(n?.data?.consultation_id);
+    return Number.isFinite(cid) && cid === Number(consultationData?.id);
+  });
+  const editApproved = approvedByFlag || approvedByNotification;
   const displayedSummary = consultationData.aiSummary || consultationData.summaryNotes || 'No summary available.';
 
   return (
@@ -421,8 +520,15 @@ export default function OnlineConsultationDetailsPage() {
                   <h2 className="section-title">
                     <BsFileText className="section-icon" />
                     Consultation Summary
+                    <span className={`approval-badge ${editApproved ? 'approved' : 'required'}`}
+                      title={editApproved ? 'You have approval to edit this summary' : 'Approval required before editing'}>
+                      {editApproved ? 'Edit Approved' : 'Approval Required'}
+                    </span>
                   </h2>
                   <div className="section-content">
+                    {summaryLoading && !consultationData.aiSummary && (
+                      <div className="details-loading">Generating summary…</div>
+                    )}
                     {!isEditingSummary ? (
                       <p
                         className="summary-text"
@@ -506,15 +612,26 @@ export default function OnlineConsultationDetailsPage() {
                   </h2>
                   <div className="section-content">
                     <div className="action-buttons">
-                      <button 
-                        className="action-btn join-meeting"
-                        onClick={handleJoinMeeting}
-                        disabled={!canJoin}
-                        title={!canJoin ? 'Available 5 minutes before start time' : undefined}
-                      >
-                        <BsBoxArrowUpRight />
-                        Join Meeting
-                      </button>
+                      {!inCall ? (
+                        <button 
+                          className="action-btn join-meeting"
+                          onClick={handleJoinMeeting}
+                          disabled={!canJoin}
+                          title={!canJoin ? 'Available 5 minutes before start time' : undefined}
+                        >
+                          <BsBoxArrowUpRight />
+                          Join Meeting
+                        </button>
+                      ) : (
+                        <button 
+                          className="action-btn cancel-consultation"
+                          onClick={handleLeaveCall}
+                          title="Leave the meeting"
+                        >
+                          <BsXCircle />
+                          Leave Meeting
+                        </button>
+                      )}
                       <button 
                         className="action-btn cancel-consultation"
                         onClick={handleCancelConsultation}
@@ -569,15 +686,6 @@ export default function OnlineConsultationDetailsPage() {
         isCancelling={isCancelling}
       />
 
-      {/* Stream Video Call */}
-      {inCall && (
-        <StreamMeetCall
-          roomName={`consultation-${consultationData.id}`}
-          displayName="Student"
-          onClose={handleLeaveCall}
-          consultationData={consultationData}
-        />
-      )}
     </div>
   );
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import "./TopTopicsCard.css";
 import AreaChartComponent from "./AreaChart";
 import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/card";
+import { Skeleton } from "../../../lightswind/skeleton";
 
 export default function TopTopicsCard() {
   const [topics, setTopics] = useState([]);
@@ -19,7 +20,10 @@ export default function TopTopicsCard() {
           headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
         });
         const json = await res.json();
-        const data = (json?.topTopics || []).map(t => ({ name: t.topic, count: t.count }));
+        const raw = Array.isArray(json?.topTopics) ? json.topTopics : [];
+        const data = raw
+          .map(t => ({ name: t.name ?? t.topic ?? '', count: Number(t.count || 0) }))
+          .filter(t => typeof t.name === 'string' && t.name.trim().length > 0);
         setTopics(data);
       } catch (err) {
         console.error('Failed to load dashboard summary (top topics)', err);
@@ -39,7 +43,11 @@ export default function TopTopicsCard() {
       </CardHeader>
       <CardContent padding="default" removeTopPadding>
         <div className="topics-chart-container">
-          {loaded && (!topics || topics.length === 0) ? (
+          {!loaded ? (
+            <div className="w-full h-full flex items-center justify-center">
+              <Skeleton className="h-40 w-full rounded-md" shimmer />
+            </div>
+          ) : loaded && (!topics || topics.length === 0) ? (
             <div className="topics-empty">
               <h4>No topics yet</h4>
               <p>After consultations, top topics will show here.</p>

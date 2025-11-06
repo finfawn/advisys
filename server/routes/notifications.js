@@ -1,5 +1,6 @@
 const express = require('express');
 const { getPool } = require('../db/pool');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -22,10 +23,15 @@ function toClientRow(r) {
 }
 
 // GET /api/notifications/users/:userId/notifications
-router.get('/users/:userId/notifications', async (req, res) => {
+// Only allow the authenticated user to read their own notifications.
+router.get('/users/:userId/notifications', authMiddleware, async (req, res) => {
   const pool = getPool();
   try {
-    const userId = req.params.userId;
+    const userId = Number(req.params.userId);
+    const authUser = req.user || {};
+    if (!authUser || Number(authUser.id) !== userId) {
+      return res.status(403).json({ error: 'Forbidden: can only read your own notifications' });
+    }
     const [rows] = await pool.query(
       `SELECT id, user_id, type, title, message, data_json, is_read, created_at
        FROM notifications
@@ -66,11 +72,13 @@ router.post('/', async (req, res) => {
 });
 
 // PATCH /api/notifications/:id/read
-router.patch('/:id/read', async (req, res) => {
+// Only allow the owner to mark their notification as read.
+router.patch('/:id/read', authMiddleware, async (req, res) => {
   const pool = getPool();
   try {
     const id = req.params.id;
-    const [result] = await pool.query(`UPDATE notifications SET is_read = 1 WHERE id = ?`, [id]);
+    const authUser = req.user || {};
+    const [result] = await pool.query(`UPDATE notifications SET is_read = 1 WHERE id = ? AND user_id = ?`, [id, authUser.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Notification not found' });
     return res.json({ success: true });
   } catch (err) {
@@ -80,13 +88,12 @@ router.patch('/:id/read', async (req, res) => {
 });
 
 // PATCH /api/notifications/read-all
-// Body: { user_id }
-router.patch('/read-all', async (req, res) => {
+// Marks all notifications for the authenticated user as read.
+router.patch('/read-all', authMiddleware, async (req, res) => {
   const pool = getPool();
   try {
-    const { user_id } = req.body || {};
-    if (!user_id) return res.status(400).json({ error: 'Missing required field: user_id' });
-    await pool.query(`UPDATE notifications SET is_read = 1 WHERE user_id = ?`, [user_id]);
+    const authUser = req.user || {};
+    await pool.query(`UPDATE notifications SET is_read = 1 WHERE user_id = ?`, [authUser.id]);
     return res.json({ success: true });
   } catch (err) {
     console.error('Mark all read error', err);
@@ -95,11 +102,13 @@ router.patch('/read-all', async (req, res) => {
 });
 
 // DELETE /api/notifications/:id
-router.delete('/:id', async (req, res) => {
+// Only allow the owner to delete a notification.
+router.delete('/:id', authMiddleware, async (req, res) => {
   const pool = getPool();
   try {
     const id = req.params.id;
-    const [result] = await pool.query(`DELETE FROM notifications WHERE id = ?`, [id]);
+    const authUser = req.user || {};
+    const [result] = await pool.query(`DELETE FROM notifications WHERE id = ? AND user_id = ?`, [id, authUser.id]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Notification not found' });
     return res.json({ success: true });
   } catch (err) {
@@ -109,13 +118,12 @@ router.delete('/:id', async (req, res) => {
 });
 
 // DELETE /api/notifications/clear
-// Body: { user_id }
-router.delete('/clear', async (req, res) => {
+// Clears all notifications for the authenticated user.
+router.delete('/clear', authMiddleware, async (req, res) => {
   const pool = getPool();
   try {
-    const { user_id } = req.body || {};
-    if (!user_id) return res.status(400).json({ error: 'Missing required field: user_id' });
-    const [result] = await pool.query(`DELETE FROM notifications WHERE user_id = ?`, [user_id]);
+    const authUser = req.user || {};
+    const [result] = await pool.query(`DELETE FROM notifications WHERE user_id = ?`, [authUser.id]);
     return res.json({ success: true, deleted_count: result.affectedRows || 0 });
   } catch (err) {
     console.error('Clear notifications error', err);

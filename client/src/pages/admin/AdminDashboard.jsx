@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "../../contexts/SidebarContext";
 import AdminTopNavbar from "../../components/admin/AdminTopNavbar";
@@ -12,6 +12,13 @@ export default function AdminDashboard() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    // Simulate data loading; in future, tie to real API fetches
+    const t = setTimeout(() => setIsLoading(false), 800);
+    return () => clearTimeout(t);
+  }, []);
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -44,13 +51,13 @@ export default function AdminDashboard() {
         <main className="admin-dash-main">
           <div className="admin-dashboard-grid">
             <div className="grid-left-top">
-              <AdminTotalConsultationsCard />
+              <AdminTotalConsultationsCard loading={isLoading} />
             </div>
             <div className="grid-right-topics" style={{ gridRow: 'span 2' }}>
-              <AdminTopTopicsCard />
+              <AdminTopTopicsCard loading={isLoading} />
             </div>
             <div className="grid-left-bottom">
-              <AdminDailyConsultationsCard />
+              <AdminDailyConsultationsCard loading={isLoading} />
             </div>
           </div>
         </main>

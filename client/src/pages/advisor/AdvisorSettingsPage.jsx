@@ -105,20 +105,46 @@ export default function AdvisorSettingsPage() {
     const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
     const fullName = `${(editData.firstName || '').trim()} ${(editData.lastName || '').trim()}`.trim();
     const body = {
-      fullName,
+      full_name: fullName,
       department: editData.department || null,
       title: editData.position || null,
-      avatarUrl: editData.profilePicture || null,
+      avatar_url: editData.profilePicture || null,
+      office_location: (editData.officeLocation ?? '').trim() || null,
     };
     fetch(`${base}/api/profile/me`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeader },
       body: JSON.stringify(body),
-    }).then(() => {
-      if (advisorData.profilePicture && advisorData.profilePicture !== editData.profilePicture) {
-        URL.revokeObjectURL(advisorData.profilePicture);
+    }).then(async (res) => {
+      // After saving, refetch profile to reflect persisted values
+      try {
+        const pRes = await fetch(`${base}/api/profile/me`, { headers: authHeader });
+        if (pRes.ok) {
+          const p = await pRes.json();
+          const name = String(p.full_name || '').split(' ');
+          const firstName = name[0] || '';
+          const lastName = name.slice(1).join(' ') || '';
+          const nextAdvisor = {
+            ...editData,
+            firstName,
+            lastName,
+            department: p.department || editData.department || '',
+            position: p.title || editData.position || '',
+            email: p.email || editData.email || '',
+            profilePicture: p.avatar_url || editData.profilePicture || null,
+            officeLocation: p.office_location ?? editData.officeLocation ?? '',
+          };
+          if (advisorData.profilePicture && advisorData.profilePicture !== editData.profilePicture) {
+            URL.revokeObjectURL(advisorData.profilePicture);
+          }
+          setAdvisorData(nextAdvisor);
+          setEditData(nextAdvisor);
+        } else {
+          setAdvisorData({ ...editData });
+        }
+      } catch (_) {
+        setAdvisorData({ ...editData });
       }
-      setAdvisorData({ ...editData });
       setIsEditing(false);
     }).catch(() => {
       setAdvisorData({ ...editData });
@@ -313,21 +339,30 @@ export default function AdvisorSettingsPage() {
       try {
         const pRes = await fetch(`${base}/api/profile/me`, { headers: authHeader });
         if (pRes.ok) {
-          const p = await pRes.json();
-          const name = String(p.full_name || '').split(' ');
-          const firstName = name[0] || '';
-          const lastName = name.slice(1).join(' ') || '';
-          setAdvisorData(prev => ({
-            ...prev,
-            firstName,
-            lastName,
-            department: p.department || '',
-            position: p.title || '',
-            email: p.email || prev.email || '',
-            profilePicture: p.avatar_url || null,
-          }));
-          setEditData(ed => ({ ...ed, firstName, lastName, department: p.department || '', position: p.title || '', email: p.email || ed.email || '' }));
-        }
+        const p = await pRes.json();
+        const name = String(p.full_name || '').split(' ');
+        const firstName = name[0] || '';
+        const lastName = name.slice(1).join(' ') || '';
+        setAdvisorData(prev => ({
+          ...prev,
+          firstName,
+          lastName,
+          department: p.department || '',
+          position: p.title || '',
+          email: p.email || prev.email || '',
+          profilePicture: p.avatar_url || null,
+          officeLocation: p.office_location || '',
+        }));
+        setEditData(ed => ({
+          ...ed,
+          firstName,
+          lastName,
+          department: p.department || '',
+          position: p.title || '',
+          email: p.email || ed.email || '',
+          officeLocation: p.office_location || '',
+        }));
+      }
       } catch (_) {}
 
       try {

@@ -22,6 +22,7 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
   import AdvisorSettingsPage from "./pages/advisor/AdvisorSettingsPage";
   import AdvisorConsultationDetailsPage from "./pages/advisor/ConsultationDetailsPage";
   import AdvisorOnlineConsultationDetailsPage from "./pages/advisor/OnlineConsultationDetailsPage";
+  import CallWindow from "./pages/call/CallWindow";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
@@ -106,6 +107,11 @@ function App() {
             <Route path="/advisor-dashboard/consultations/online/:consultationId" element={<AdvisorOnlineConsultationDetailsPage />} />
             <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
             <Route path="/advisor-dashboard/profile" element={<AdvisorSettingsPage />} />
+          </Route>
+
+          {/* Call window route for both students and advisors */}
+          <Route element={<RequireAuth allowedRoles={["student", "advisor"]} />}> 
+            <Route path="/call" element={<CallWindow />} />
           </Route>
 
           {/* Admin routes */}
