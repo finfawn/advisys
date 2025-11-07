@@ -1,0 +1,10 @@
+node_modules
+npm-debug.log
+.DS_Store
+.env
+keys/
+scripts/
+db/*
+!db/pool.js
+*.log
+coverage/

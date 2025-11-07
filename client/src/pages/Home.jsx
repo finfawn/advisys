@@ -97,14 +97,8 @@ function Home() {
         entries.forEach((entry) => {
           if (entry.isIntersecting) {
             const sectionId = entry.target.id;
+            // Only update active section; do not auto-scroll
             setActiveSection(sectionId);
-
-            // Scroll snap to the section when 1/3 is visible
-            entry.target.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-              inline: "nearest",
-            });
           }
         });
       },
@@ -207,7 +201,7 @@ function Home() {
                 zIndex={40}
               />
             </div>
-            <div className="md:snap-y md:snap-mandatory">
+            <div>
               <div id="hero">
                 <HeroSection
                   onGetStarted={() => {

@@ -1,0 +1,14 @@
+{
+  "projects": {
+    "default": "gen-lang-client-0246208027"
+  },
+  "targets": {
+    "gen-lang-client-0246208027": {
+      "hosting": {
+        "default": [
+          "gen-lang-client-0246208027"
+        ]
+      }
+    }
+  }
+}

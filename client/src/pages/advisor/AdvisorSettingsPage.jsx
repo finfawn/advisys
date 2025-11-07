@@ -322,8 +322,37 @@ export default function AdvisorSettingsPage() {
   const handleProfilePictureChange = (e) => {
     const file = e.target.files[0];
     if (file) {
-      const imageUrl = URL.createObjectURL(file);
-      handleInputChange('profilePicture', imageUrl);
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
+      const form = new FormData();
+      form.append('avatar', file);
+
+      // Upload to backend and use returned URL for persistence
+      fetch(`${base}/api/uploads/avatar`, {
+        method: 'POST',
+        headers: { ...authHeader }, // Do not set Content-Type for FormData
+        body: form,
+      })
+        .then(async (res) => {
+          if (!res.ok) throw new Error('Upload failed');
+          const data = await res.json();
+          const uploadedPath = data?.url || null; // e.g., /uploads/avatars/...
+          const fullUrl = uploadedPath ? `${base}${uploadedPath}` : null;
+          if (fullUrl) {
+            handleInputChange('profilePicture', fullUrl);
+          } else {
+            // Fallback to local preview if upload response missing URL
+            const preview = URL.createObjectURL(file);
+            handleInputChange('profilePicture', preview);
+          }
+        })
+        .catch(() => {
+          // Fallback to local preview on error; won’t persist across refresh
+          const preview = URL.createObjectURL(file);
+          handleInputChange('profilePicture', preview);
+        });
     }
   };
 

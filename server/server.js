@@ -1,12 +1,16 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const { getPool } = require('./db/pool');
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+
+// Serve uploaded files statically under /uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
 // routes
 const authRouter = require('./routes/auth');
@@ -35,6 +39,9 @@ const settingsRouter = require('./routes/settings');
 app.use('/api/settings', settingsRouter);
 const transcriptionsRouter = require('./routes/transcriptions');
 app.use('/api', transcriptionsRouter);
+// File uploads (avatars, etc.)
+const uploadsRouter = require('./routes/uploads');
+app.use('/api/uploads', uploadsRouter);
 // AI Debug routes
 const aiDebugRouter = require('./routes/ai_debug');
 app.use('/api', aiDebugRouter);

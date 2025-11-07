@@ -1,8 +1,10 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const crypto = require('crypto');
 const { getPool } = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
+const { sendEmail } = require('../services/email');
 
 const router = express.Router();
 
@@ -121,3 +123,77 @@ router.post('/change-password', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+// --- Forgot Password ---
+// POST /api/auth/forgot-password
+// Body: { email }
+router.post('/forgot-password', async (req, res) => {
+  const pool = getPool();
+  const { email } = req.body || {};
+  if (!email) return res.status(400).json({ error: 'Email required' });
+  const emailNorm = String(email).trim().toLowerCase();
+  try {
+    const [[user]] = await pool.query(
+      'SELECT id, email, full_name FROM users WHERE email = ? LIMIT 1',
+      [emailNorm]
+    );
+    // Always return success to avoid account enumeration
+    if (!user) return res.json({ success: true });
+
+    const token = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+    const minutes = Number(process.env.RESET_TOKEN_EXPIRE_MINUTES || 30);
+    const expiresAt = new Date(Date.now() + minutes * 60_000);
+
+    await pool.query(
+      `INSERT INTO password_resets (user_id, token_hash, expires_at) VALUES (?,?,?)`,
+      [user.id, tokenHash, expiresAt]
+    );
+
+    const baseUrl = (process.env.APP_BASE_URL || 'http://localhost:5173').replace(/\/$/, '');
+    const resetLink = `${baseUrl}/reset-password?token=${token}`;
+    const subject = 'Reset your AdviSys password';
+    const html = `
+      <p>Hello ${user.full_name || ''},</p>
+      <p>You requested to reset your password. Click the link below to set a new password. This link expires in ${minutes} minutes.</p>
+      <p><a href="${resetLink}">Reset Password</a></p>
+      <p>If you didn’t request this, you can ignore this email.</p>
+    `;
+    try {
+      await sendEmail({ to: user.email, subject, html });
+    } catch (emailErr) {
+      console.warn('Password reset email send error:', emailErr?.message || emailErr);
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Forgot password failed:', err);
+    return res.status(500).json({ error: 'Forgot password failed' });
+  }
+});
+
+// POST /api/auth/reset-password
+// Body: { token, newPassword }
+router.post('/reset-password', async (req, res) => {
+  const pool = getPool();
+  const { token, newPassword } = req.body || {};
+  if (!token || !newPassword) return res.status(400).json({ error: 'Token and newPassword required' });
+  try {
+    const tokenHash = crypto.createHash('sha256').update(String(token)).digest('hex');
+    const [[row]] = await pool.query(
+      `SELECT id, user_id, expires_at, used_at FROM password_resets WHERE token_hash = ? LIMIT 1`,
+      [tokenHash]
+    );
+    if (!row) return res.status(400).json({ error: 'Invalid or expired token' });
+    if (row.used_at) return res.status(400).json({ error: 'Token already used' });
+    if (new Date(row.expires_at).getTime() < Date.now()) {
+      return res.status(400).json({ error: 'Token expired' });
+    }
+
+    const new_hash = await bcrypt.hash(String(newPassword), 10);
+    await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [new_hash, row.user_id]);
+    await pool.query('UPDATE password_resets SET used_at = NOW() WHERE id = ?', [row.id]);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Reset password failed:', err);
+    return res.status(500).json({ error: 'Reset password failed' });
+  }
+});

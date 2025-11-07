@@ -1,0 +1,13 @@
+# Reduce source upload for gcloud builds
+node_modules/
+.env
+keys/
+*.log
+.git/
+dist/
+coverage/
+.vscode/
+tmp/
+Thumbs.db
+npm-debug.log*
+client/
