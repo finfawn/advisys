@@ -99,15 +99,15 @@ async function seed() {
     };
 
     await insertMany(
-      'INSERT INTO advisor_courses (advisor_user_id, course_name) VALUES (?,?)',
+      'INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)',
       [
-        [userIds['maria.santos@example.com'], 'CS 101'],
-        [userIds['maria.santos@example.com'], 'CS 301'],
-        [userIds['maria.santos@example.com'], 'CS 401'],
-        [userIds['jennifer.lee@example.com'], 'PSY 101'],
-        [userIds['jennifer.lee@example.com'], 'PSY 301'],
-        [userIds['david.kim@example.com'], 'STAT 201'],
-        [userIds['david.kim@example.com'], 'STAT 301'],
+        [userIds['maria.santos@example.com'], 'CS 101', 'CS101', 'Introduction to Computer Science'],
+        [userIds['maria.santos@example.com'], 'CS 301', 'CS301', 'Data Structures and Algorithms'],
+        [userIds['maria.santos@example.com'], 'CS 401', 'CS401', 'Machine Learning Fundamentals'],
+        [userIds['jennifer.lee@example.com'], 'PSY 101', 'PSY101', 'Introduction to Psychology'],
+        [userIds['jennifer.lee@example.com'], 'PSY 301', 'PSY301', 'Cognitive Psychology'],
+        [userIds['david.kim@example.com'], 'STAT 201', 'STAT201', 'Applied Statistics'],
+        [userIds['david.kim@example.com'], 'STAT 301', 'STAT301', 'Statistical Modeling'],
       ]
     );
 

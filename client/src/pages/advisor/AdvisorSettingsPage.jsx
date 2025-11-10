@@ -58,7 +58,8 @@ export default function AdvisorSettingsPage() {
   // Simple add-input buffers
   const [newTopic, setNewTopic] = useState("");
   const [newGuideline, setNewGuideline] = useState("");
-  const [newCourse, setNewCourse] = useState("");
+  const [newCourseCode, setNewCourseCode] = useState("");
+  const [newCourseName, setNewCourseName] = useState("");
   // List editing helpers for topics, guidelines, and courses
   const addItem = (field) => {
     setEditConsultation(prev => ({ ...prev, [field]: [...(prev[field] || []), ""] }));
@@ -75,6 +76,25 @@ export default function AdvisorSettingsPage() {
       const nextArr = [...(prev[field] || [])];
       nextArr.splice(index, 1);
       return { ...prev, [field]: nextArr };
+    });
+  };
+
+  // Course-specific editing helpers (name/code)
+  const updateCourseField = (index, field, value) => {
+    setEditConsultation(prev => {
+      const next = [...(prev.courses || [])];
+      const row = { ...(next[index] || {}) };
+      row[field] = value;
+      next[index] = row;
+      return { ...prev, courses: next };
+    });
+  };
+
+  const removeCourseRow = (index) => {
+    setEditConsultation(prev => {
+      const next = [...(prev.courses || [])];
+      next.splice(index, 1);
+      return { ...prev, courses: next };
     });
   };
 
@@ -259,11 +279,17 @@ export default function AdvisorSettingsPage() {
 
   const handleSaveConsultation = () => {
     const sanitize = (arr) => (arr || []).map(s => (s || "").trim()).filter(Boolean);
+    const sanitizeCourses = (arr) => (arr || [])
+      .map(c => ({
+        code: (c?.code || "").trim() || null,
+        name: (c?.name || "").trim() || null,
+      }))
+      .filter(c => c.name || c.code);
     const updated = {
       ...editConsultation,
       topics: sanitize(editConsultation.topics),
       guidelines: sanitize(editConsultation.guidelines),
-      courses: sanitize(editConsultation.courses)
+      courses: sanitizeCourses(editConsultation.courses)
     };
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
@@ -290,7 +316,8 @@ export default function AdvisorSettingsPage() {
     setEditConsultation({ ...consultationData });
     setNewTopic("");
     setNewGuideline("");
-    setNewCourse("");
+    setNewCourseCode("");
+    setNewCourseName("");
     setIsEditingConsult(false);
   };
 
@@ -311,10 +338,12 @@ export default function AdvisorSettingsPage() {
     setNewGuideline("");
   };
   const addNewCourse = () => {
-    const v = newCourse.trim();
-    if (!v) return;
-    setEditConsultation(prev => ({ ...prev, courses: [...(prev.courses || []), v] }));
-    setNewCourse("");
+    const code = newCourseCode.trim();
+    const name = newCourseName.trim();
+    if (!code && !name) return;
+    setEditConsultation(prev => ({ ...prev, courses: [...(prev.courses || []), { code, name }] }));
+    setNewCourseCode("");
+    setNewCourseName("");
   };
 
   // No longer needed: previously used to parse textarea lines into arrays
@@ -1015,38 +1044,73 @@ export default function AdvisorSettingsPage() {
                       <h3 className="consult-subtitle">Courses Taught</h3>
                       {!isEditingConsult ? (
                         <ul className="courses-list">
-                          {consultationData.courses.map((c, i) => (
-                            <li key={i} className="course-item">{c}</li>
-                          ))}
+                          {(consultationData.courses || []).map((c, i) => {
+                            const name = (typeof c === 'string') ? c : (c?.name || c?.course_name || '');
+                            const code = (typeof c === 'string') ? '' : (c?.code || c?.subject_code || '');
+                            return (
+                              <li key={i} className="course-item flex items-center justify-between">
+                                <span className="course-name">{name || 'No Subject Name'}</span>
+                                <span className="course-code text-gray-600">{code || ''}</span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       ) : (
                         <>
                           <ul className="courses-list">
                             {(editConsultation.courses || []).map((c, idx) => (
                               <li key={idx} className="course-item editable">
-                                {c}
-                                <BsX
-                                  className="row-delete-ico"
-                                  onClick={() => removeItem('courses', idx)}
-                                  aria-label="Remove course"
-                                  role="button"
-                                />
+                                <div className="flex gap-2 items-center w-full">
+                                  <input
+                                    type="text"
+                                    className="inline-input flex-1"
+                                    value={c?.name || ''}
+                                    onChange={e => updateCourseField(idx, 'name', e.target.value)}
+                                    placeholder="Subject name"
+                                  />
+                                  <input
+                                    type="text"
+                                    className="inline-input w-36"
+                                    value={c?.code || ''}
+                                    onChange={e => updateCourseField(idx, 'code', e.target.value)}
+                                    placeholder="Code"
+                                  />
+                                  <BsX
+                                    className="row-delete-ico"
+                                    onClick={() => removeCourseRow(idx)}
+                                    aria-label="Remove course"
+                                    role="button"
+                                  />
+                                </div>
                               </li>
                             ))}
                           </ul>
-                          <div className="list-add-row">
+                          <div className="list-add-row flex gap-2 items-center">
                             <input
                               type="text"
-                              className="inline-input"
-                              value={newCourse}
-                              onChange={e => setNewCourse(e.target.value)}
+                              className="inline-input flex-1"
+                              value={newCourseName}
+                              onChange={e => setNewCourseName(e.target.value)}
                               onKeyDown={e => {
                                 if (e.key === 'Enter') {
                                   e.preventDefault();
                                   addNewCourse();
                                 }
                               }}
-                              placeholder="e.g., CS101 — Intro to Programming"
+                              placeholder="e.g., Intro to Programming"
+                            />
+                            <input
+                              type="text"
+                              className="inline-input w-36"
+                              value={newCourseCode}
+                              onChange={e => setNewCourseCode(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  addNewCourse();
+                                }
+                              }}
+                              placeholder="e.g., CS101"
                             />
                             <Button variant="outline-primary" onClick={addNewCourse} className="add-item-btn">
                               <BsPlus className="btn-icon" /> Add course

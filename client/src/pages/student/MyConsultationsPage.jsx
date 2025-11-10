@@ -91,6 +91,11 @@ export default function MyConsultationsPage() {
       }
     };
     fetchConsultations();
+    // Lightweight polling to auto-refresh list every 20s
+    const intervalId = setInterval(() => {
+      reloadConsultations();
+    }, 20000);
+    return () => clearInterval(intervalId);
   }, []);
 
   // Set active tab from route query or hash on navigation

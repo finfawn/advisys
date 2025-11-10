@@ -1,5 +1,5 @@
 import React from "react";
-import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
+import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
 import "./CompactConsultationCard.css";
 
 function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
@@ -92,11 +92,10 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
       <div className="compact-content">
         <div className="compact-faculty-info">
           <div className="compact-faculty-name">{consultation.faculty.name}</div>
-          <div className="compact-faculty-title">{consultation.faculty.title}</div>
+          <div className="compact-faculty-title">{consultation.faculty.title || consultation.category || consultation.topic || 'No Topic'}</div>
         </div>
         
         <div className="compact-time-info">
-          <BsClock className="time-icon" />
           <span className="time-text">{consultation.time}</span>
         </div>
         

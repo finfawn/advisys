@@ -131,11 +131,16 @@ function AdvisorCard({
         <CardContent className="space-y-3 flex-1">
           <div className="advisor-card-courses">
             <div className="flex flex-wrap gap-1.5">
-              {coursesTaught.map((course, index) => (
-                <Badge key={index} variant="outline" size="sm" className="text-xs">
-                  {course}
-                </Badge>
-              ))}
+              {coursesTaught.map((course, index) => {
+                const name = (typeof course === 'string') ? course : (course?.name || course?.course_name || '');
+                const code = (typeof course === 'string') ? '' : (course?.code || course?.subject_code || '');
+                return (
+                  <Badge key={index} variant="outline" size="sm" className="text-xs">
+                    {name}
+                    {code ? ` — ${code}` : ''}
+                  </Badge>
+                );
+              })}
             </div>
           </div>
           

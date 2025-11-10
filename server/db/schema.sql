@@ -68,6 +68,8 @@ CREATE TABLE IF NOT EXISTS `advisor_courses` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `advisor_user_id` INT UNSIGNED NOT NULL,
   `course_name` VARCHAR(255) NOT NULL,
+  `subject_code` VARCHAR(64) NULL,
+  `subject_name` VARCHAR(255) NULL,
   PRIMARY KEY (`id`),
   KEY `idx_courses_advisor` (`advisor_user_id`),
   CONSTRAINT `fk_courses_advisor`

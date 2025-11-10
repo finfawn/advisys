@@ -87,6 +87,17 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     const h12 = hrs % 12 || 12;
     return `${h12}:${String(mins).padStart(2, "0")} ${ampm}`;
   };
+  // Parse MySQL DATETIME string reliably as local time
+  const parseDbDatetime = (s) => {
+    if (!s) return null;
+    try {
+      const cleaned = typeof s === 'string' ? s.replace(' ', 'T') : s;
+      const d = new Date(cleaned);
+      return isNaN(d.getTime()) ? null : d;
+    } catch (_) {
+      return null;
+    }
+  };
   const pad = (n) => String(n).padStart(2, "0");
   const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
@@ -111,7 +122,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   const slotsForSelectedDate = useMemo(() => {
     const dayStr = fmtDate(selectedDate);
     const list = advisorSlots.filter((s) => {
-      const sd = new Date(s.start_datetime);
+      const sd = parseDbDatetime(s.start_datetime);
       const sDay = fmtDate(sd);
       const status = String(s.status || "").toLowerCase();
       const mode = String(s.mode || "").toLowerCase();
@@ -126,8 +137,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     list
       .map((s) => ({
         ...s,
-        start: new Date(s.start_datetime),
-        end: new Date(s.end_datetime),
+        start: parseDbDatetime(s.start_datetime),
+        end: parseDbDatetime(s.end_datetime),
       }))
       // Exclude slots that have already passed when viewing the current day
       .filter((slot) => !isToday || slot.start > now)
@@ -148,7 +159,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
       // Prefill when editing
       if (modeType === 'edit' && initialData) {
         const startISO = initialData.start_datetime || null;
-        const prefillDate = startISO ? new Date(startISO) : new Date();
+        const prefillDate = startISO ? parseDbDatetime(startISO) || new Date() : new Date();
         setFormData({
           description: initialData.student_notes || initialData.studentNotes || "",
           category: initialData.category || initialData.topic || "",
@@ -206,10 +217,10 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
           // Attempt to preselect the original slot when editing
           if (modeType === 'edit' && initialData?.start_datetime && initialData?.end_datetime) {
             const match = arr.find((s) => {
-              const s1 = new Date(s.start_datetime).getTime();
-              const e1 = new Date(s.end_datetime).getTime();
-              const s2 = new Date(initialData.start_datetime).getTime();
-              const e2 = new Date(initialData.end_datetime).getTime();
+              const s1 = (parseDbDatetime(s.start_datetime) || new Date(s.start_datetime)).getTime();
+              const e1 = (parseDbDatetime(s.end_datetime) || new Date(s.end_datetime)).getTime();
+              const s2 = (parseDbDatetime(initialData.start_datetime) || new Date(initialData.start_datetime)).getTime();
+              const e2 = (parseDbDatetime(initialData.end_datetime) || new Date(initialData.end_datetime)).getTime();
               return s1 === s2 && e1 === e2;
             });
             if (match) setSelectedSlot(match);

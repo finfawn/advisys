@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowSyntheticDefaultImports": true,
+    "target": "ES2016"
+  },
+  "include": ["vite.config.ts", "playwright.config.ts", "e2e/**/*.ts", "e2e/**/*.tsx"]
+}

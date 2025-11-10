@@ -318,8 +318,8 @@ router.get('/students/:studentId/consultations', async (req, res) => {
     }
     res.json(result);
   } catch (err) {
-    console.error('Student consultations error', err);
-    res.status(500).json({ error: 'Failed to load consultations' });
+    console.error('Error fetching student consultations:', err);
+    res.status(500).json({ error: 'Failed to fetch student consultations' });
   }
 });
 

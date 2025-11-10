@@ -359,12 +359,18 @@ export default function AvailabilityCalendar({
                         ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
                       },
                       body: JSON.stringify({
-                        slots: arr.map((p) => ({
-                          start: p.start.toISOString(),
-                          end: p.end.toISOString(),
-                          mode: p.mode,
-                          room: p.room || null,
-                        }))
+                        slots: arr.map((p) => {
+                          const pad = (n) => String(n).padStart(2, '0');
+                          const toLocalIso = (d) => {
+                            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+                          };
+                          return {
+                            start: toLocalIso(p.start),
+                            end: toLocalIso(p.end),
+                            mode: p.mode,
+                            room: p.room || null,
+                          };
+                        })
                       }),
                     });
                     if (!resp.ok) throw new Error('Failed to persist slots');
@@ -374,8 +380,8 @@ export default function AvailabilityCalendar({
                       ...created.map((s) => ({
                         id: s.id,
                         title: 'Available',
-                        start: new Date(s.start_datetime),
-                        end: new Date(s.end_datetime),
+                        start: new Date(String(s.start_datetime).replace(' ', 'T')),
+                        end: new Date(String(s.end_datetime).replace(' ', 'T')),
                         type: 'available',
                         mode: s.mode,
                         room: s.room || "",

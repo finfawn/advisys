@@ -1,5 +1,5 @@
 import React from "react";
-import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
+import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
 import { Card, CardHeader, CardContent, CardFooter } from "../../../lightswind/card";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
@@ -131,10 +131,9 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
       </CardHeader>
 
       <CardContent className="space-y-3 flex-1">
-        <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.topic}</h3>
+        <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.category || consultation.topic || 'No Topic'}</h3>
         
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <BsClock className="w-4 h-4 text-blue-600" />
           <span>{formatDate(consultation)} • {consultation.time}</span>
         </div>
         

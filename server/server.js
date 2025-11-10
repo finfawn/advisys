@@ -17,12 +17,7 @@ const authRouter = require('./routes/auth');
 app.use('/api/auth', authRouter);
 const usersRouter = require('./routes/users');
 app.use('/api/users', usersRouter);
-// Conditionally mount JaaS routes only when provider is set to 'jaas'
-const MEETING_PROVIDER = (process.env.MEETING_PROVIDER || 'stream').toLowerCase();
-if (MEETING_PROVIDER === 'jaas') {
-  const jaasRouter = require('./routes/jaas');
-  app.use('/api/jaas', jaasRouter);
-}
+
 const advisorsRouter = require('./routes/advisors');
 app.use('/api/advisors', advisorsRouter);
 const consultationsRouter = require('./routes/consultations');
@@ -49,12 +44,7 @@ app.use('/api', aiDebugRouter);
 const streamRouter = require('./routes/stream');
 app.use('/api/stream', streamRouter);
 // RS256 JaaS JWT generation and Settings Provisioning: mount only if using JaaS
-if (MEETING_PROVIDER === 'jaas') {
-  const generateJwtRouter = require('./routes/generate_jwt');
-  app.use('/generate-jwt', generateJwtRouter);
-  const jaasSettingsRouter = require('./routes/jaas_settings');
-  app.use('/api/jaas/settings-provisioning', jaasSettingsRouter);
-}
+
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
@@ -374,3 +364,4 @@ setInterval(runAdvisorSlotsCleanupJob, SLOTS_CLEANUP_POLL_MS);
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+

@@ -85,7 +85,7 @@ router.get('/:id', async (req, res) => {
 
     const [topics] = await pool.query('SELECT topic FROM advisor_topics WHERE advisor_user_id=?', [advisorId]);
     const [guidelines] = await pool.query('SELECT guideline_text FROM advisor_guidelines WHERE advisor_user_id=?', [advisorId]);
-    const [courses] = await pool.query('SELECT course_name FROM advisor_courses WHERE advisor_user_id=?', [advisorId]);
+    const [courses] = await pool.query('SELECT subject_code, subject_name, course_name FROM advisor_courses WHERE advisor_user_id=?', [advisorId]);
     const [modes] = await pool.query('SELECT online_enabled, in_person_enabled FROM advisor_modes WHERE advisor_user_id=?', [advisorId]);
     const [avail] = await pool.query('SELECT day_of_week, start_time, end_time FROM advisor_availability WHERE advisor_user_id=?', [advisorId]);
 
@@ -118,7 +118,10 @@ router.get('/:id', async (req, res) => {
       officeLocation: u.office_location || null,
       topicsCanHelpWith: topics.map(t => t.topic),
       consultationGuidelines: guidelines.map(g => g.guideline_text),
-      coursesTaught: courses.map(c => c.course_name),
+      coursesTaught: courses.map(c => ({
+        code: c.subject_code || null,
+        name: c.subject_name || c.course_name || null,
+      })),
       weeklySchedule,
       consultationMode,
       nextAvailableSlot: null,
@@ -331,8 +334,25 @@ router.patch('/:id/consultation-settings', async (req, res) => {
 
     await conn.query(`DELETE FROM advisor_courses WHERE advisor_user_id = ?`, [advisorId]);
     for (const crs of cList) {
-      const v = String(crs || '').trim();
-      if (v) await conn.query(`INSERT INTO advisor_courses (advisor_user_id, course_name) VALUES (?, ?)`, [advisorId, v]);
+      if (crs && typeof crs === 'object') {
+        const code = String(crs.code || '').trim() || null;
+        const name = String(crs.name || '').trim() || null;
+        const legacy = name || code; // keep something in course_name for compatibility
+        if (name || code) {
+          await conn.query(
+            `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
+            [advisorId, legacy, code, name]
+          );
+        }
+      } else {
+        const v = String(crs || '').trim();
+        if (v) {
+          await conn.query(
+            `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
+            [advisorId, v, null, v]
+          );
+        }
+      }
     }
 
     await conn.commit();

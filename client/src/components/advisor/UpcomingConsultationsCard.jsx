@@ -144,7 +144,6 @@ export default function UpcomingConsultationsCard() {
               </div>
               
               <div className="compact-time-info">
-                <BsClock className="time-icon" />
                 <span className="time-text">{consultation.time}</span>
               </div>
               

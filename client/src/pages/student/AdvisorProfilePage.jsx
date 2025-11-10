@@ -359,12 +359,19 @@ export default function AdvisorProfilePage() {
                       <div className="courses-taught">
                         <h3>Courses Taught</h3>
                         <ul className="courses-list">
-                          {advisorData.coursesTaught?.map((course, index) => (
-                            <li key={index} className="course-item">
-                              <BsBook className="course-icon" />
-                              {course}
-                            </li>
-                          ))}
+                          {advisorData.coursesTaught?.map((course, index) => {
+                            const name = (typeof course === 'string') ? course : (course?.name || course?.course_name || '');
+                            const code = (typeof course === 'string') ? '' : (course?.code || course?.subject_code || '');
+                            return (
+                              <li key={index} className="course-item flex items-center justify-between">
+                                <div className="flex items-center gap-2">
+                                  <BsBook className="course-icon" />
+                                  <span className="course-name">{name || 'No Subject Name'}</span>
+                                </div>
+                                <span className="course-code text-gray-600">{code || ''}</span>
+                              </li>
+                            );
+                          })}
                         </ul>
                       </div>
                     )}

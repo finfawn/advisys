@@ -128,7 +128,7 @@ function AuthPage({ embedded = false }) {
               <div>
                 <label className="block text-xs text-gray-600 mb-1">Sign up as</label>
                 <Select value={role} onValueChange={(v) => setRole(v)}>
-                  <SelectTrigger className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-white">
+                  <SelectTrigger data-testid="role-select-trigger" className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-white">
                     <SelectValue placeholder="Select role" />
                   </SelectTrigger>
                   <SelectContent>
@@ -218,7 +218,7 @@ function AuthPage({ embedded = false }) {
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Department</label>
                   <Select value={form.department || ""} onValueChange={(v) => onChange("department", v)}>
-                    <SelectTrigger className={`w-full rounded-md border px-3 py-2 text-sm ${errors.department ? "border-red-400" : "border-gray-300 bg-white"}`}>
+                    <SelectTrigger data-testid="department-select-trigger" className={`w-full rounded-md border px-3 py-2 text-sm ${errors.department ? "border-red-400" : "border-gray-300 bg-white"}`}>
                       <SelectValue placeholder="Select department" />
                     </SelectTrigger>
                     <SelectContent>
