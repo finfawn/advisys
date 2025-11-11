@@ -102,6 +102,100 @@ router.get('/', async (req, res) => {
   }
 });
 
+// General profile update
+// PATCH /api/users/:id
+// Accepts base fields in users plus role-specific profile fields
+router.patch('/:id', async (req, res) => {
+  const pool = getPool();
+  const userId = req.params.id;
+  const {
+    full_name,
+    email,
+    role,
+    status,
+    password,
+    program,
+    year_level,
+    department,
+    title,
+  } = req.body || {};
+
+  try {
+    // Ensure user exists
+    const [rows] = await pool.query('SELECT id, role FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    const existingRole = rows[0].role;
+    const roleToUse = role || existingRole;
+
+    // Update users table
+    const fields = [];
+    const values = [];
+    if (typeof full_name === 'string') { fields.push('full_name = ?'); values.push(full_name); }
+    if (typeof email === 'string') { fields.push('email = ?'); values.push(email); }
+    if (typeof status === 'string') { fields.push('status = ?'); values.push(status === 'active' ? 'active' : 'inactive'); }
+    if (typeof password === 'string' && password.length > 0) { fields.push('password_hash = ?'); values.push(password); }
+    if (fields.length) {
+      values.push(userId);
+      await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values);
+    }
+
+    // Role-specific tables
+    if (roleToUse === 'student') {
+      const sFields = [];
+      const sValues = [];
+      if (typeof program === 'string') { sFields.push('program = ?'); sValues.push(program); }
+      if (typeof year_level !== 'undefined') { sFields.push('year_level = ?'); sValues.push(Number(year_level) || 1); }
+      if (sFields.length) {
+        sValues.push(userId);
+        await pool.query(`UPDATE student_profiles SET ${sFields.join(', ')} WHERE user_id = ?`, sValues);
+      }
+    }
+    if (roleToUse === 'advisor') {
+      const aFields = [];
+      const aValues = [];
+      if (typeof department === 'string') { aFields.push('department = ?'); aValues.push(department); }
+      if (typeof title === 'string') { aFields.push('title = ?'); aValues.push(title); }
+      if (aFields.length) {
+        aValues.push(userId);
+        await pool.query(`UPDATE advisor_profiles SET ${aFields.join(', ')} WHERE user_id = ?`, aValues);
+      }
+    }
+
+    res.json({ id: Number(userId), success: true });
+  } catch (err) {
+    console.error('Failed to update user:', err);
+    res.status(500).json({ error: 'Failed to update user' });
+  }
+});
+
+// Permanently delete a user (expects user to be inactive)
+// DELETE /api/users/:id
+router.delete('/:id', async (req, res) => {
+  const pool = getPool();
+  const userId = req.params.id;
+  try {
+    const [rows] = await pool.query('SELECT status FROM users WHERE id = ?', [userId]);
+    if (rows.length === 0) return res.status(404).json({ error: 'User not found' });
+    if (rows[0].status !== 'inactive') {
+      return res.status(400).json({ error: 'User must be inactive before deletion' });
+    }
+
+    // Delete from dependent tables first to be safe
+    await pool.query('DELETE FROM student_profiles WHERE user_id = ?', [userId]);
+    await pool.query('DELETE FROM advisor_profiles WHERE user_id = ?', [userId]);
+    await pool.query('DELETE FROM consultations WHERE student_id = ? OR advisor_id = ?', [userId, userId]);
+    await pool.query('DELETE FROM notifications WHERE user_id = ?', [userId]);
+
+    // Now delete the user
+    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+    res.json({ id: Number(userId), success: true });
+  } catch (err) {
+    console.error('Failed to delete user:', err);
+    res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
 module.exports = router;
 
 // Update user status (activate/deactivate)

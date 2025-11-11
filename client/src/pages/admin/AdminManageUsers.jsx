@@ -7,9 +7,11 @@ import AdminContentLayout from "../../components/admin/AdminContentLayout";
 import AdminManageTabs from "../../components/admin/manage/AdminManageTabs";
 import AdminManageFilters from "../../components/admin/manage/AdminManageFilters";
 import AdminManageUserList from "../../components/admin/manage/AdminManageUserList";
-import AdminUserHistoryModal from "../../components/admin/manage/AdminUserHistoryModal";
+import AdminUserHistoryDrawer from "../../components/admin/manage/AdminUserHistoryDrawer";
 import "./AdminManageUsers.css";
 import "./AdminContent.css";
+// Reuse shared admin layout styles for consistent heights and grid
+import "./AdminDashboard.css";
 import {
   Drawer,
   DrawerTrigger,
@@ -523,8 +525,76 @@ export default function AdminManageUsers() {
 
   const handleHistory = (item) => {
     setHistoryUser(item);
-    setHistoryItems(generateMockConsultations(item));
     setHistoryOpen(true);
+    (async () => {
+      try {
+        const isStudent = activeTab === "students" || item.role === "student";
+        const base = apiBase;
+        const url = isStudent
+          ? `${base}/api/consultations/students/${item.id}/consultations`
+          : `${base}/api/consultations/advisors/${item.id}/consultations`;
+        const token = localStorage.getItem('advisys_token');
+        const res = await fetch(url, {
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+        });
+        if (!res.ok) throw new Error(`Failed to fetch consultations: ${res.status}`);
+        let data = await res.json();
+        if (!Array.isArray(data)) data = [];
+        // Adapt response shapes to HistoryCard expectations (uses consultation.faculty)
+        if (isStudent) {
+          // Student endpoint returns advisor{}; map to faculty{}
+          data = data.map((c) => {
+            const name = c?.advisor?.name || item?.name || 'Advisor';
+            const initials = String(name)
+              .split(' ')
+              .filter(Boolean)
+              .map((p) => p[0])
+              .slice(0, 2)
+              .join('');
+            return {
+              ...c,
+              faculty: {
+                id: c?.advisor?.id,
+                name,
+                title: c?.advisor?.title || 'Advisor',
+                avatar: initials || '👤',
+              },
+            };
+          });
+        } else {
+          // Advisor endpoint returns student{}; map to faculty{} with student info
+          data = data.map((c) => {
+            const name = c?.student?.name || 'Student';
+            const initials = String(name)
+              .split(' ')
+              .filter(Boolean)
+              .map((p) => p[0])
+              .slice(0, 2)
+              .join('');
+            return {
+              ...c,
+              faculty: {
+                name,
+                title: c?.student?.course || 'Student',
+                avatar: initials || '👤',
+              },
+            };
+          });
+        }
+        setHistoryItems(data);
+      } catch (err) {
+        console.error("History fetch error", err);
+        // Fallback to mock consultations for now
+        try {
+          setHistoryItems(generateMockConsultations(item));
+        } catch (_) {
+          setHistoryItems([]);
+        }
+      }
+    })();
   };
 
   const handleView = (item) => {
@@ -544,7 +614,7 @@ export default function AdminManageUsers() {
     setViewOpen(true);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!editForm.firstName.trim() || !editForm.lastName.trim()) {
       alert("Please enter first and last name");
       return;
@@ -556,6 +626,7 @@ export default function AdminManageUsers() {
 
     const fullName = `${editForm.firstName.trim()} ${editForm.lastName.trim()}`;
 
+    // Optimistic update UI first
     if (activeTab === "students") {
       setStudentsData((prev) =>
         prev.map((u) =>
@@ -589,7 +660,107 @@ export default function AdminManageUsers() {
       );
     }
 
-    setViewOpen(false);
+    // Persist to backend
+    try {
+      const payload = {
+        full_name: fullName,
+        email: editForm.email.trim(),
+        role: activeTab === "students" ? "student" : "advisor",
+        status: editForm.active ? "active" : "inactive",
+        program: activeTab === "students" ? editForm.program : undefined,
+        year_level: activeTab === "students" ? (
+          Number(editForm.year?.[0]) || 1
+        ) : undefined,
+        department: activeTab === "advisors" ? editForm.department : undefined,
+        password: editForm.password?.trim() || undefined,
+      };
+      const res = await fetch(`${apiBase}/api/users/${viewUser.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Failed to save changes');
+      }
+      // Ensure the list reflects persisted changes
+      await reloadActiveTab();
+      setViewOpen(false);
+    } catch (err) {
+      console.error('Failed to persist user changes', err);
+      alert('Saving failed on the server. The drawer remains open so you can retry.');
+    }
+  };
+
+  const reloadActiveTab = async () => {
+    try {
+      const role = activeTab === 'students' ? 'student' : 'advisor';
+      // Show loading skeleton during refresh to avoid empty state flash
+      if (activeTab === 'students') setLoadingStudents(true);
+      else setLoadingAdvisors(true);
+      const res = await fetch(`${apiBase}/api/users?role=${role}`);
+      if (!res.ok) {
+        if (activeTab === 'students') setLoadingStudents(false);
+        else setLoadingAdvisors(false);
+        return;
+      }
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        if (activeTab === 'students') setStudentsData(data);
+        else setAdvisorData(data);
+      }
+    } catch (err) {
+      console.error('Failed to reload users', err);
+    } finally {
+      if (activeTab === 'students') setLoadingStudents(false);
+      else setLoadingAdvisors(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!viewOpen) {
+      reloadActiveTab();
+    }
+  }, [viewOpen, activeTab]);
+
+  const handleDeleteConsultation = async (consultation) => {
+    try {
+      const res = await fetch(`${apiBase}/api/consultations/${consultation.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) throw new Error('Failed to delete consultation');
+      setHistoryItems((prev) => prev.filter((c) => c.id !== consultation.id));
+    } catch (err) {
+      console.error('Delete consultation failed', err);
+      alert('Could not delete consultation. Please try again.');
+    }
+  };
+
+  const handleDeleteUserPermanent = async () => {
+    if (!viewUser) return;
+    if (editForm.active) {
+      alert('User must be inactive before permanent deletion.');
+      return;
+    }
+    if (!confirm('This will permanently delete the user. Continue?')) return;
+    try {
+      const res = await fetch(`${apiBase}/api/users/${viewUser.id}`, {
+        method: 'DELETE',
+      });
+      if (!res.ok) {
+        const text = await res.text();
+        throw new Error(text || 'Delete failed');
+      }
+      if (activeTab === 'students') {
+        setStudentsData((prev) => prev.filter((u) => u.id !== viewUser.id));
+      } else {
+        setAdvisorData((prev) => prev.filter((u) => u.id !== viewUser.id));
+      }
+      setViewOpen(false);
+    } catch (err) {
+      console.error('Permanent delete failed', err);
+      alert('Failed to delete user permanently.');
+    }
   };
 
   return (
@@ -646,11 +817,12 @@ export default function AdminManageUsers() {
               loading={activeTab === "students" ? loadingStudents : loadingAdvisors}
             />
 
-            <AdminUserHistoryModal
+            <AdminUserHistoryDrawer
               open={historyOpen}
               user={historyUser}
               consultations={historyItems}
               onClose={() => setHistoryOpen(false)}
+              onDelete={handleDeleteConsultation}
             />
           </AdminContentLayout>
         </main>
@@ -1174,6 +1346,11 @@ export default function AdminManageUsers() {
               Cancel
             </Button>
             <Button onClick={handleSaveProfile}>Save Changes</Button>
+            {!editForm.active && (
+              <Button variant="destructive" onClick={handleDeleteUserPermanent}>
+                Delete Permanently
+              </Button>
+            )}
           </DrawerFooter>
         </DrawerContent>
       </Drawer>

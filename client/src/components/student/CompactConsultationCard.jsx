@@ -3,13 +3,19 @@ import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle,
 import "./CompactConsultationCard.css";
 
 function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+  const formatParts = () => {
+    const source = consultation?.start_datetime || consultation?.date;
+    const date = new Date(source);
+    const parts = new Intl.DateTimeFormat('en-PH', {
+      timeZone: 'Asia/Manila',
       weekday: 'short',
-      month: 'short', 
-      day: 'numeric' 
-    });
+      month: 'short',
+      day: 'numeric',
+    }).formatToParts(date);
+    return {
+      dow: parts.find(p => p.type === 'weekday')?.value || '',
+      dom: parts.find(p => p.type === 'day')?.value || '',
+    };
   };
 
   const getStatusInfo = () => {
@@ -84,15 +90,19 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
     <div className="compact-consultation-card">
       <div className="compact-date-section">
         <div className="compact-date">
-          <div className="compact-dow">{formatDate(consultation.date).split(' ')[0]}</div>
-          <div className="compact-dom">{formatDate(consultation.date).split(' ')[2]}</div>
+          {(() => { const p = formatParts(); return (
+            <>
+              <div className="compact-dow">{p.dow}</div>
+              <div className="compact-dom">{p.dom}</div>
+            </>
+          ); })()}
         </div>
       </div>
       
       <div className="compact-content">
         <div className="compact-faculty-info">
-          <div className="compact-faculty-name">{consultation.faculty.name}</div>
-          <div className="compact-faculty-title">{consultation.faculty.title || consultation.category || consultation.topic || 'No Topic'}</div>
+          <div className="compact-faculty-name">{consultation?.faculty?.name || 'Advisor'}</div>
+          <div className="compact-faculty-title">{consultation?.faculty?.title || consultation.category || consultation.topic || 'No Topic'}</div>
         </div>
         
         <div className="compact-time-info">

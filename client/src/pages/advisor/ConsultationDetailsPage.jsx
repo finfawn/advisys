@@ -55,6 +55,34 @@ export default function AdvisorConsultationDetailsPage() {
   const [saveNotesSuccess, setSaveNotesSuccess] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
 
+  // Normalize asset URLs for student avatars
+  const resolveAssetUrl = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const u = url.trim();
+    if (!u) return null;
+    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
+    if (u.startsWith('/')) return `${base}${u}`;
+    return `${base}/${u.replace(/^\/*/, '')}`;
+  };
+
+  const shapeConsultation = (c) => {
+    const avatarCandidate = (
+      c?.student?.avatar ||
+      c?.student?.avatar_url ||
+      c?.student_avatar_url ||
+      c?.studentAvatarUrl
+    );
+    const shapedAvatar = resolveAssetUrl(avatarCandidate);
+    return {
+      ...c,
+      student: {
+        ...(c?.student || {}),
+        avatar: shapedAvatar || c?.student?.avatar || null,
+      },
+    };
+  };
+
   useEffect(() => {
     const userRaw = localStorage.getItem('advisys_user');
     const token = localStorage.getItem('advisys_token');
@@ -64,12 +92,12 @@ export default function AdvisorConsultationDetailsPage() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     if (!advisorId) return; // rely on fallback if advisor id not available
     setLoading(true);
-    fetch(`${base}/api/advisors/${advisorId}/consultations`, { headers })
+    fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, { headers })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(list => {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
-        if (found) setConsultationData(found);
+        if (found) setConsultationData(shapeConsultation(found));
         if (found?.aiSummary) setAiSummaryDraft(found.aiSummary);
         if (found?.advisorPrivateNotes) setNotesDraft(found.advisorPrivateNotes);
         else if (found?.summaryNotes) setNotesDraft(found.summaryNotes);
@@ -303,7 +331,18 @@ export default function AdvisorConsultationDetailsPage() {
                 </div>
 
                 <div className="advisor-info-card">
-                  <div className="advisor-avatar"><BsPersonCircle /></div>
+                  <div className="advisor-avatar">
+                    {consultationData?.student?.avatar ? (
+                      <img
+                        src={consultationData.student.avatar}
+                        alt={consultationData.student?.name ? `${consultationData.student.name} avatar` : 'Student avatar'}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <BsPersonCircle />
+                    )}
+                  </div>
                   <div className="advisor-details">
                     <h3 className="advisor-name">{consultationData.student?.name || 'Student'}</h3>
                     <p className="advisor-title">{consultationData.student?.title || 'Student'}</p>
@@ -503,6 +542,7 @@ export default function AdvisorConsultationDetailsPage() {
         }}
         consultation={consultationData}
         isCancelling={isCancelling}
+        variant="admin"
       />
     </div>
   );

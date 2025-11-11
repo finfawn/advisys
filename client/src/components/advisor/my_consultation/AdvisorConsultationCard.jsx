@@ -1,5 +1,5 @@
 import React from "react";
-import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
+import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsClock, BsXCircle, BsTrash } from "react-icons/bs";
 import { Card, CardHeader, CardContent, CardFooter } from "../../../lightswind/card";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
@@ -138,8 +138,17 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         </div>
         
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0">
-            {(consultation.student && consultation.student.avatar) || <BsPersonCircle />}
+          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+            {consultation?.student?.avatar ? (
+              <img
+                src={consultation.student.avatar}
+                alt={consultation.student?.name ? `${consultation.student.name} avatar` : 'Student avatar'}
+                className="w-full h-full object-cover"
+                loading="lazy"
+              />
+            ) : (
+              <BsPersonCircle className="w-6 h-6" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-gray-900 text-sm truncate">{consultation.student?.name || 'Student'}</div>

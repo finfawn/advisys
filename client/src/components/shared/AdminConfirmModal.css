@@ -1,0 +1,61 @@
+/* Basic shared admin-style modal */
+.admin-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: overlayIn 180ms ease-out;
+}
+
+.admin-modal-overlay.closing {
+  animation: overlayOut 180ms ease-in forwards;
+}
+
+.admin-modal {
+  background: var(--card, #fff);
+  color: var(--foreground, #0f172a);
+  width: min(640px, 92vw);
+  border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(2, 6, 23, 0.3);
+  overflow: hidden;
+  transform: translateY(0);
+  animation: modalIn 180ms ease-out;
+}
+
+.admin-modal.closing {
+  animation: modalOut 180ms ease-in forwards;
+}
+
+.admin-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-bottom: 1px solid rgba(2, 6, 23, 0.08);
+}
+
+.admin-modal-title { font-size: 1rem; font-weight: 600; }
+
+.admin-modal-close {
+  background: none;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  cursor: pointer;
+  color: inherit;
+  opacity: 0.8;
+}
+
+.admin-modal-close:hover { opacity: 1; }
+
+.admin-modal-body { padding: 16px 18px; max-height: 60vh; overflow: auto; }
+
+.admin-modal-footer { padding: 12px 18px; border-top: 1px solid rgba(2, 6, 23, 0.08); display: flex; gap: 8px; justify-content: flex-end; }
+
+@keyframes overlayIn { from { opacity: 0 } to { opacity: 1 } }
+@keyframes overlayOut { from { opacity: 1 } to { opacity: 0 } }
+@keyframes modalIn { from { transform: translateY(12px); opacity: 0 } to { transform: translateY(0); opacity: 1 } }
+@keyframes modalOut { from { transform: translateY(0); opacity: 1 } to { transform: translateY(12px); opacity: 0 } }

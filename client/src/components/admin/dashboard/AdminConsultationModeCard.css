@@ -1,0 +1,16 @@
+/* Admin Consultation Mode Card */
+.admin-consultation-mode-card {
+  height: 260px;
+}
+
+.admin-consultation-mode-card .card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.admin-consultation-mode-card .mode-chart-container {
+  width: 100%;
+  height: calc(100% - 40px);
+}

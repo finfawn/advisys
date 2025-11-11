@@ -1,6 +1,10 @@
 /* Shared Admin Content Layout */
 .admin-content {
   background: #f5f7fb;
+  /* Fill available vertical space in admin pages */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 /* Page header outside the table/card */
@@ -27,6 +31,10 @@
   border: 1px solid rgba(0,0,0,0.08);
   border-radius: 16px;
   padding: 0;
+  /* Ensure the card stretches and the body can scroll */
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .content-header {
@@ -96,7 +104,14 @@
   flex-wrap: wrap;
 }
 
-.content-body { padding: 14px 16px; overflow-x: auto; }
+.content-body {
+  padding: 16px;
+  flex: 1; /* Allow content body to grow and fill available space */
+  min-height: 0; /* Allow flex child to shrink and scroll inside */
+  display: flex;
+  flex-direction: column;
+  overflow: auto; /* Enable scrolling for content if it overflows */
+}
 
 /* Allow tabs to scroll horizontally on narrow screens */
 .content-tabs {

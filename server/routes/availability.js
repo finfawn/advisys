@@ -24,11 +24,13 @@ function fmtRange(start, end) {
 // Format a Date object into 12-hour time string
 function formatTimeFromDate(dt) {
   if (!(dt instanceof Date)) return '';
-  const h = dt.getHours();
-  const m = dt.getMinutes();
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+  const fmt = new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return fmt.format(dt);
 }
 
 // GET /api/availability/today
@@ -118,7 +120,9 @@ router.get('/calendar', async (req, res) => {
       // Non-fatal: continue building calendar
     }
 
-    // Load advisor slots for the month, only active advisors and available slots, excluding past days
+const moment = require('moment-timezone');
+
+// Load advisor slots for the month, only active advisors and available slots, excluding past days
     const [rows] = await pool.query(
       `SELECT s.advisor_user_id AS id, u.full_name, s.start_datetime, s.end_datetime, s.mode, s.status
        FROM advisor_slots s
@@ -134,9 +138,20 @@ router.get('/calendar', async (req, res) => {
     // Group by date and advisor; compute earliest/latest slot per day and combined mode
     const byDateAdvisor = new Map();
     for (const r of rows) {
-      const start = new Date(r.start_datetime);
-      const end = new Date(r.end_datetime);
-      const dateKey = `${start.getFullYear()}-${pad(start.getMonth() + 1)}-${pad(start.getDate())}`;
+      // Interpret the naive DATETIME from the database as Asia/Manila time
+      const start = moment.tz(r.start_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
+      const end = moment.tz(r.end_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
+      // Build date key using Asia/Manila to keep grouping consistent with PH timezone
+      const parts = new Intl.DateTimeFormat('en-PH', {
+        timeZone: 'Asia/Manila',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).formatToParts(start);
+      const y = parts.find((p) => p.type === 'year')?.value || String(start.getFullYear());
+      const m = parts.find((p) => p.type === 'month')?.value || String(start.getMonth() + 1).padStart(2, '0');
+      const d = parts.find((p) => p.type === 'day')?.value || String(start.getDate()).padStart(2, '0');
+      const dateKey = `${y}-${m}-${d}`;
       const mapKey = `${dateKey}:${r.id}`;
       const curr = byDateAdvisor.get(mapKey) || {
         dateKey,

@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState, useCallback, useRef } from "react"
 import moment from "moment";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../../lightswind/dialog";
 import { Button } from "../../../lightswind/button";
+import { ConfettiButton } from "../../../lightswind/confetti-button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../../../lightswind/select";
 import { Input } from "../../../lightswind/input";
 import { BsClock, BsCalendar, BsGeoAlt, BsCameraVideo } from "react-icons/bs";
@@ -412,7 +413,8 @@ export default function ConsultationSlotModal({
     return payloads;
   };
 
-  const handleSubmit = (e) => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const handleSubmit = async (e) => {
     e?.preventDefault();
 
     const [sh, sm] = startTime.split(":").map(Number);
@@ -474,7 +476,17 @@ export default function ConsultationSlotModal({
     }
 
     setConflictMessage("");
-    onSubmit?.(occurrences);
+    // Perform async submit and handle button disabled state
+    setIsSubmitting(true);
+    try {
+      await onSubmit?.(occurrences);
+      // Allow confetti to render before closing
+      setTimeout(() => onClose?.(), 300);
+    } catch (error) {
+      console.error("Failed to submit slots:", error);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -855,7 +867,12 @@ export default function ConsultationSlotModal({
           </div>
           <div className="slot-footer-actions">
             <Button variant="outline" onClick={onClose}>Cancel</Button>
-            <Button onClick={handleSubmit} disabled={!canSubmit}>{editEvent ? "Save Changes" : "Create"}</Button>
+            <ConfettiButton
+              onClick={handleSubmit}
+              disabled={!canSubmit || isSubmitting}
+            >
+              {editEvent ? "Save Changes" : "Create"}
+            </ConfettiButton>
           </div>
         </DialogFooter>
       </DialogContent>

@@ -20,15 +20,57 @@ export default function AdvisorConsultations() {
   const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
   const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
 
+  // Normalize asset URLs (absolute, blob, or server-relative paths)
+  const resolveAssetUrl = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const u = url.trim();
+    if (!u) return null;
+    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
+    if (u.startsWith('/')) return `${base}${u}`;
+    // Handle relative paths (rare in API responses)
+    return `${base}/${u.replace(/^\/*/, '')}`;
+  };
+
+  // Shape consultation to ensure student avatar is consistently available
+  const shapeConsultation = (c) => {
+    try {
+      const avatarCandidate = (
+        c?.student?.avatar ||
+        c?.student?.avatar_url ||
+        c?.student_avatar_url ||
+        c?.studentAvatarUrl ||
+        c?.avatar_url
+      );
+      const shapedAvatar = resolveAssetUrl(avatarCandidate);
+
+      // Preserve existing student fields, gently augment with avatar and name/course fallbacks
+      const studentName = c?.student?.name ?? c?.student_name ?? c?.studentFullName ?? c?.full_name ?? null;
+      const studentCourse = c?.student?.course ?? c?.student_program ?? c?.program ?? null;
+
+      return {
+        ...c,
+        student: {
+          ...(c?.student || {}),
+          ...(studentName ? { name: studentName } : {}),
+          ...(studentCourse ? { course: studentCourse } : {}),
+          avatar: shapedAvatar || c?.student?.avatar || null,
+        },
+      };
+    } catch (_) {
+      return c;
+    }
+  };
+
   // Helper to refresh list after actions
   const reloadConsultations = async () => {
     try {
       const storedUser = localStorage.getItem('advisys_user');
       const parsed = storedUser ? JSON.parse(storedUser) : null;
       const advisorId = parsed?.id || 1;
-      const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, { headers: { ...authHeader } });
+      const res = await fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, { headers: { ...authHeader } });
       const data = await res.json();
-      setAllConsultations(Array.isArray(data) ? data : []);
+      const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
+      setAllConsultations(shaped);
     } catch (err) {
       console.error('Reload consultations failed', err);
     }
@@ -106,11 +148,12 @@ export default function AdvisorConsultations() {
         const storedUser = localStorage.getItem('advisys_user');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const advisorId = parsed?.id || 1;
-        const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, {
+        const res = await fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, {
           headers: { ...authHeader },
         });
         const data = await res.json();
-        setAllConsultations(Array.isArray(data) ? data : []);
+        const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
+        setAllConsultations(shaped);
       } catch (err) {
         console.error('Failed to load consultations', err);
       }

@@ -18,7 +18,7 @@ export default function UpcomingConsultationsCard() {
         const storedToken = localStorage.getItem('advisys_token');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const advisorId = parsed?.id || 1;
-        const res = await fetch(`${base}/api/advisors/${advisorId}/consultations`, {
+        const res = await fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, {
           headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
         });
         const data = await res.json();

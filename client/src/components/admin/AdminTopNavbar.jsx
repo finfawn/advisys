@@ -1,28 +1,20 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsBell, BsPersonCircle, BsChevronDown, BsGear, BsBoxArrowRight } from "react-icons/bs";
+import { BsPersonCircle, BsChevronDown, BsBoxArrowRight } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
-import NotificationModal from "../NotificationModal";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
-import { useNotifications } from "../../contexts/NotificationContext";
 import "./AdminTopNavbar.css";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 
 function AdminTopNavbar() {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
-  const [isNotificationOpen, setIsNotificationOpen] = useState(false);
   const dropdownRef = useRef(null);
-  const { unreadCount } = useNotifications();
 
   const adminName = "System Admin";
 
-  const handleSettingsClick = () => {
-    // Future: navigate to admin settings when route exists
-    // navigate('/admin-dashboard/settings');
-    setIsDropdownOpen(false);
-  };
+  // Removed settings from dropdown per request
 
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const handleLogout = () => {
@@ -34,10 +26,7 @@ function AdminTopNavbar() {
     navigate('/logout');
   };
 
-  const handleNotificationClick = () => {
-    setIsNotificationOpen(!isNotificationOpen);
-    setIsDropdownOpen(false);
-  };
+  // Notification removed from navbar per request
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -147,14 +136,6 @@ function AdminTopNavbar() {
       </div>
 
       <div className="admin-topbar-right">
-        <button
-          className="notification-btn"
-          aria-label="Notifications"
-          onClick={handleNotificationClick}
-        >
-          <BsBell className="bell-icon" />
-          {unreadCount > 0 && <span className="notification-dot"></span>}
-        </button>
 
         {/* User Profile Dropdown - Desktop only */}
         <div className="user-dropdown hidden md:block" ref={dropdownRef}>
@@ -187,13 +168,7 @@ function AdminTopNavbar() {
               <div className="dropdown-divider"></div>
 
               <div className="dropdown-items">
-                <button
-                  className="dropdown-item"
-                  onClick={handleSettingsClick}
-                >
-                  <BsGear className="dropdown-item-icon" />
-                  <span>Settings</span>
-                </button>
+                {/* Settings removed per request */}
 
                 <div className="dropdown-divider"></div>
 
@@ -210,24 +185,21 @@ function AdminTopNavbar() {
         </div>
       </div>
 
-      {/* Notification Modal */}
-      <NotificationModal
-        isOpen={isNotificationOpen}
-        onClose={() => setIsNotificationOpen(false)}
-        userType="admin"
-      />
+      {/* Notification modal removed per request */}
 
       {/* Logout Confirmation Modal */}
       <AlertDialog open={showLogoutModal} onOpenChange={(open) => { if (!open) setShowLogoutModal(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to logout? You'll need to sign in again.
+            <AlertDialogTitle className="leading-none text-center">Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              Are you sure you want to logout?
+              <br />
+              You'll need to sign in again to access your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="sm:items-center">
-            <AlertDialogCancel className="min-w-[96px] mt-0">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="sm:items-center sm:justify-between">
+            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

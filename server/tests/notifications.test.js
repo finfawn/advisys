@@ -38,9 +38,11 @@ describe('Notifications routes', () => {
   });
 
   test('POST /api/notifications creates a notification', async () => {
-    // First INSERT returns [result] where result.insertId is used
-    // Second SELECT returns [[row]] for the created notification
+    // First SELECT checks notifications_muted and returns not muted
+    // Second INSERT returns [result] where result.insertId is used
+    // Third SELECT returns [[row]] for the created notification
     global.__mockPoolQuery
+      .mockResolvedValueOnce([[{ notifications_muted: 0 }]])
       .mockResolvedValueOnce([{ insertId: 99 }])
       .mockResolvedValueOnce([[{
         id: 99,

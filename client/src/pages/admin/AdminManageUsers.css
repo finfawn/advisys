@@ -124,8 +124,9 @@
 .manage-list {
     display: flex;
     flex-direction: column;
+    flex-grow: 1; /* Allow the list to grow and fill available space */
     background: #ffffff;
-    overflow: visible;
+    overflow: auto; /* Scroll internally when content exceeds available height */
     border: 1px solid #e5e7eb;
     border-radius: 8px;
 }

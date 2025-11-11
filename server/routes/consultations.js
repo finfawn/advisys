@@ -4,8 +4,31 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+async function ensureNotificationsMutedColumn(poolOrConn) {
+  try {
+    const [cols] = await poolOrConn.query('SHOW COLUMNS FROM notification_settings LIKE "notifications_muted"');
+    if (!cols || cols.length === 0) {
+      await poolOrConn.query('ALTER TABLE notification_settings ADD COLUMN notifications_muted TINYINT(1) NOT NULL DEFAULT 0');
+    }
+  } catch (_) {
+    // ignore
+  }
+}
+
+async function isNotificationsMuted(poolOrConn, userId) {
+  try {
+    await ensureNotificationsMutedColumn(poolOrConn);
+    const [[row]] = await poolOrConn.query('SELECT notifications_muted FROM notification_settings WHERE user_id = ? LIMIT 1', [userId]);
+    return !!(row && row.notifications_muted);
+  } catch (_) {
+    return false;
+  }
+}
+
 async function createNotification(poolOrConn, userId, type, title, message, data = null) {
   try {
+    const muted = await isNotificationsMuted(poolOrConn, userId);
+    if (muted) return null;
     const dataJson = data ? JSON.stringify(data) : null;
     await poolOrConn.query(
       `INSERT INTO notifications (user_id, type, title, message, data_json) VALUES (?,?,?,?,?)`,
@@ -17,19 +40,28 @@ async function createNotification(poolOrConn, userId, type, title, message, data
 }
 
 function formatDate(d) {
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  // Always format date in Asia/Manila to avoid server-local timezone drift
+  const parts = new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(d);
+  const y = parts.find((p) => p.type === 'year')?.value || String(d.getFullYear());
+  const m = parts.find((p) => p.type === 'month')?.value || String(d.getMonth() + 1).padStart(2, '0');
+  const day = parts.find((p) => p.type === 'day')?.value || String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
 }
 
 function formatTimeRange(start, end) {
-  function fmt(d) {
-    const h = d.getHours();
-    const m = d.getMinutes();
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
-  }
-  return `${fmt(start)} - ${fmt(end)}`;
+  // Format time using Asia/Manila timezone and 12-hour style
+  const fmt = new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  });
+  return `${fmt.format(start)} - ${fmt.format(end)}`;
 }
 
 // Load notification settings for a user, with safe defaults
@@ -37,7 +69,7 @@ async function getNotificationSettings(userId) {
   const pool = getPool();
   try {
     const [rows] = await pool.query(
-      `SELECT email_notifications, consultation_reminders, new_request_notifications
+      `SELECT email_notifications, consultation_reminders, new_request_notifications, notifications_muted
        FROM notification_settings
        WHERE user_id = ?
        LIMIT 1`,
@@ -48,6 +80,7 @@ async function getNotificationSettings(userId) {
         email_notifications: false,
         consultation_reminders: true,
         new_request_notifications: true,
+        notifications_muted: false,
       };
     }
     const row = rows[0];
@@ -55,6 +88,7 @@ async function getNotificationSettings(userId) {
       email_notifications: !!row.email_notifications,
       consultation_reminders: !!row.consultation_reminders,
       new_request_notifications: !!row.new_request_notifications,
+      notifications_muted: !!row.notifications_muted,
     };
   } catch (err) {
     // On error, default to enabling in-app notifications (email skipped later)
@@ -62,6 +96,7 @@ async function getNotificationSettings(userId) {
       email_notifications: false,
       consultation_reminders: true,
       new_request_notifications: true,
+      notifications_muted: false,
     };
   }
 }
@@ -172,7 +207,7 @@ router.post('/consultations', async (req, res) => {
 
     // Return the newly created consultation in the same shape as GET endpoints
     const [rows] = await pool.query(
-      `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title
+      `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.advisor_user_id
        JOIN advisor_profiles ap ON ap.user_id = u.id
@@ -238,6 +273,7 @@ router.post('/consultations', async (req, res) => {
       faculty: {
         name: r.advisor_name,
         title: r.advisor_title,
+        avatar_url: r.advisor_avatar_url || null,
       },
       mode: r.mode,
       status: r.status,
@@ -256,70 +292,74 @@ router.post('/consultations', async (req, res) => {
   }
 });
 
-router.get('/students/:studentId/consultations', async (req, res) => {
+// Get consultations for a specific student
+// GET /api/consultations/students/:studentId/consultations
+// Note: consultations router is mounted at '/api', so include '/consultations' in path
+router.get('/consultations/students/:studentId/consultations', authMiddleware, async (req, res) => {
   const pool = getPool();
+  const studentId = req.params.studentId;
+
   try {
-    const studentId = req.params.studentId;
     const [rows] = await pool.query(
-      `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title
+      `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.advisor_user_id
        JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE c.student_user_id = ?
-       ORDER BY c.start_datetime ASC`, [studentId]
+       ORDER BY c.start_datetime DESC`,
+      [studentId]
     );
-    const result = [];
-    for (const r of rows) {
-      const start = new Date(r.start_datetime);
-      const end = new Date(r.end_datetime);
-      const date = formatDate(start);
-      const time = formatTimeRange(start, end);
-      const [guidelines] = await pool.query('SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?', [r.id]);
-      // Compute duration: prefer actual timestamps if available
+
+    const consultations = rows.map(r => {
+      const startDt = new Date(r.start_datetime);
+      const endDt = new Date(r.end_datetime);
+      const date = formatDate(startDt);
+      const time = formatTimeRange(startDt, endDt);
+
+      // Prefer actual duration if advisor marked start/end; otherwise use scheduled or stored duration_minutes
       const actualStart = r.actual_start_datetime ? new Date(r.actual_start_datetime) : null;
       const actualEnd = r.actual_end_datetime ? new Date(r.actual_end_datetime) : null;
       const computedDuration = (actualStart && actualEnd)
         ? Math.max(0, Math.round((actualEnd.getTime() - actualStart.getTime()) / 60000))
-        : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)));
+        : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((endDt.getTime() - startDt.getTime()) / 60000)));
 
-      result.push({
+      return {
         id: r.id,
         date,
         time,
-        // Include raw datetimes for prefill/edit scenarios
+        // Expose raw datetimes for client-side history logic
         start_datetime: r.start_datetime,
         end_datetime: r.end_datetime,
         actual_start_datetime: r.actual_start_datetime || null,
         actual_end_datetime: r.actual_end_datetime || null,
-        // Retain original category and notes for editing
-        category: r.category || undefined,
-        student_notes: r.student_notes || undefined,
-        studentNotes: r.student_notes || undefined,
-        studentPrivateNotes: r.student_private_notes || undefined,
-        summaryNotes: r.summary_notes || undefined,
-        finalTranscript: r.final_transcript || undefined,
-        aiSummary: r.ai_summary || undefined,
-        summaryEditApprovedAt: r.summary_edit_approved_at || undefined,
         topic: r.topic,
-        faculty: {
+        category: r.category,
+        mode: r.mode,
+        status: r.status,
+        meetingLink: r.meeting_link || undefined,
+        location: r.location || undefined,
+        duration: computedDuration,
+        bookingDate: r.booking_date,
+        advisor: {
           id: r.advisor_user_id,
           name: r.advisor_name,
           title: r.advisor_title,
+          avatar_url: r.advisor_avatar_url || null,
         },
-        mode: r.mode,
-        status: r.status,
-        roomName: r.room_name || undefined,
-        location: r.location || undefined,
-        declineReason: r.decline_reason || undefined,
-        duration: computedDuration,
-        bookingDate: r.booking_date,
-        guidelines: guidelines.map(g => g.guideline_text),
-      });
-    }
-    res.json(result);
+        // Notes and summary
+        studentNotes: r.student_notes || undefined,
+        studentPrivateNotes: r.student_private_notes || undefined,
+        advisorPrivateNotes: r.advisor_private_notes || undefined,
+        summaryNotes: r.summary_notes || undefined,
+        finalTranscript: r.final_transcript || undefined,
+        aiSummary: r.ai_summary || undefined,
+      };
+    });
+
+    return res.status(200).json(consultations);
   } catch (err) {
-    console.error('Error fetching student consultations:', err);
-    res.status(500).json({ error: 'Failed to fetch student consultations' });
+    console.error('Failed to fetch student consultations:', err?.message || err);
+    return res.status(500).json({ error: 'Failed to fetch student consultations' });
   }
 });
 
@@ -332,12 +372,12 @@ function yearLabel(yrRaw) {
 
 // GET /api/advisors/:advisorId/consultations
 // Returns consultations for an advisor, including student display info
-router.get('/advisors/:advisorId/consultations', async (req, res) => {
+router.get('/consultations/advisors/:advisorId/consultations', async (req, res) => {
   const pool = getPool();
   try {
     const advisorId = req.params.advisorId;
     const [rows] = await pool.query(
-      `SELECT c.*, u.full_name AS student_name, sp.program AS student_program, sp.year_level AS student_year
+      `SELECT c.*, u.full_name AS student_name, sp.program AS student_program, sp.year_level AS student_year, sp.avatar_url AS student_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.student_user_id
        LEFT JOIN student_profiles sp ON sp.user_id = u.id
@@ -380,6 +420,7 @@ router.get('/advisors/:advisorId/consultations', async (req, res) => {
       student: {
         name: r.student_name,
         course,
+        avatar_url: r.student_avatar_url || null,
       },
       mode: r.mode,
       status: r.status,
@@ -903,7 +944,7 @@ router.patch('/consultations/:id', async (req, res) => {
 
     // Return updated consultation in student shape
     const [[r]] = await pool.query(
-      `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title
+      `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.advisor_user_id
        JOIN advisor_profiles ap ON ap.user_id = u.id
@@ -925,6 +966,7 @@ router.patch('/consultations/:id', async (req, res) => {
         id: r.advisor_user_id,
         name: r.advisor_name,
         title: r.advisor_title,
+        avatar_url: r.advisor_avatar_url || null,
       },
       mode: r.mode,
       status: r.status,

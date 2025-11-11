@@ -99,24 +99,25 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     }
   };
   const pad = (n) => String(n).padStart(2, "0");
-  const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  // Format date string in Asia/Manila timezone to ensure correct day grouping
+  const fmtDate = (d) => new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'Asia/Manila',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(d);
 
   // Compact time range label: 9:00–9:30 AM or 11:30 AM–12:00 PM
   const toRangeStr = (startDate, endDate) => {
     const s = new Date(startDate);
     const e = new Date(endDate);
-    const sH = s.getHours();
-    const eH = e.getHours();
-    const sM = s.getMinutes();
-    const eM = e.getMinutes();
-    const sAm = sH >= 12 ? 'PM' : 'AM';
-    const eAm = eH >= 12 ? 'PM' : 'AM';
-    const h12 = (h) => h % 12 || 12;
-    const m2 = (m) => String(m).padStart(2, '0');
-    if (sAm === eAm) {
-      return `${h12(sH)}:${m2(sM)}–${h12(eH)}:${m2(eM)} ${sAm}`;
-    }
-    return `${h12(sH)}:${m2(sM)} ${sAm}–${h12(eH)}:${m2(eM)} ${eAm}`;
+    const fmt = new Intl.DateTimeFormat('en-PH', {
+      timeZone: 'Asia/Manila',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+    return `${fmt.format(s)}–${fmt.format(e)}`;
   };
 
   const slotsForSelectedDate = useMemo(() => {
@@ -631,7 +632,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                       <div className="summary-icon calendar-icon"><BsCalendar /></div>
                       <div className="summary-label">Date & Time</div>
                       <div className="summary-value">
-                        {selectedDate.toLocaleDateString()} {selectedSlot ? `• ${toRangeStr(new Date(selectedSlot.start_datetime), new Date(selectedSlot.end_datetime))}` : ''}
+                        {new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric' }).format(selectedDate)} {selectedSlot ? `• ${toRangeStr(new Date(selectedSlot.start_datetime), new Date(selectedSlot.end_datetime))}` : ''}
                       </div>
                     </div>
 

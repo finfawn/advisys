@@ -80,13 +80,25 @@ export default function ConsultationDetailsPage() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     if (!studentId) return; // rely on fallback if student id not available
     setLoading(true);
-    fetch(`${base}/api/students/${studentId}/consultations`, { headers })
+    fetch(`${base}/api/consultations/students/${studentId}/consultations`, { headers })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(list => {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
         if (found) {
-          setConsultationData(found);
+          // Normalize faculty avatar
+          const resolveAssetUrl = (u) => {
+            if (!u) return null;
+            const s = String(u);
+            if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+            if (s.startsWith('/')) return `${base}${s}`;
+            return `${base}/${s}`;
+          };
+          const name = found?.advisor?.name ?? found?.faculty?.name ?? found?.advisor_name ?? null;
+          const title = found?.advisor?.title ?? found?.faculty?.title ?? found?.advisor_title ?? null;
+          const avatarRaw = found?.advisor?.avatar_url ?? found?.faculty?.avatar_url ?? found?.advisor_avatar_url ?? found?.faculty?.avatar ?? null;
+          const shaped = { ...found, faculty: { id: found?.advisor?.id ?? found?.advisor_user_id ?? found?.faculty?.id ?? null, name, title, avatar: resolveAssetUrl(avatarRaw) } };
+          setConsultationData(shaped);
           if (found?.studentPrivateNotes) setNotesDraft(found.studentPrivateNotes);
         }
         else setError('Consultation not found');
@@ -306,16 +318,16 @@ export default function ConsultationDetailsPage() {
 
                 <div className="advisor-info-card">
                   <div className="advisor-avatar">
-                    {consultationData.faculty.avatar ? (
-                      <img src={consultationData.faculty.avatar} alt={consultationData.faculty.name} />
+                    {consultationData && consultationData.faculty && consultationData.faculty.avatar ? (
+                      <img src={consultationData.faculty.avatar} alt={consultationData.faculty.name || 'Advisor'} />
                     ) : (
                       <BsPersonCircle />
                     )}
                   </div>
                   <div className="advisor-details">
-                    <h3 className="advisor-name">{consultationData.faculty.name}</h3>
-                    <p className="advisor-title">{consultationData.faculty.title}</p>
-                    <p className="advisor-department">{consultationData.faculty.department}</p>
+                    <h3 className="advisor-name">{consultationData?.faculty?.name || 'Advisor'}</h3>
+                    <p className="advisor-title">{consultationData?.faculty?.title || ''}</p>
+                    <p className="advisor-department">{consultationData?.faculty?.department || ''}</p>
                   </div>
                 </div>
               </div>
@@ -521,6 +533,7 @@ export default function ConsultationDetailsPage() {
         onConfirm={handleConfirmCancel}
         consultation={consultationData}
         isCancelling={isCancelling}
+        variant="admin"
       />
     </div>
   );

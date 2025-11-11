@@ -26,6 +26,9 @@ export default function AvailabilityCalendar({
   editEvent, // when provided, open edit modal for this event
   onRequestModalClose, // notify parent to clear edit state when modal closes
 }) {
+  // Serialize Date in local time (no timezone) as YYYY-MM-DDTHH:mm:ss
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toLocalIso = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
   // Controlled current date for navigation
   const [currentDate, setCurrentDate] = useState(new Date());
   // Controlled view so toolbar view buttons work reliably
@@ -113,8 +116,8 @@ export default function AvailabilityCalendar({
         const next = filtered.map((s) => ({
           id: s.id,
           title: 'Available',
-          start: new Date(s.start_datetime),
-          end: new Date(s.end_datetime),
+          start: new Date(String(s.start_datetime).replace(' ', 'T')),
+          end: new Date(String(s.end_datetime).replace(' ', 'T')),
           type: 'available',
           mode: s.mode,
           room: s.room || '',
@@ -285,8 +288,8 @@ export default function AvailabilityCalendar({
                     },
                     body: JSON.stringify({
                       slots: arr.map((p) => ({
-                        start: p.start.toISOString(),
-                        end: p.end.toISOString(),
+                        start: toLocalIso(p.start),
+                        end: toLocalIso(p.end),
                         mode: p.mode,
                         room: p.room || null,
                       }))
@@ -299,8 +302,8 @@ export default function AvailabilityCalendar({
                     ...created.map((s) => ({
                       id: s.id,
                       title: 'Available',
-                      start: new Date(s.start_datetime),
-                      end: new Date(s.end_datetime),
+                      start: new Date(String(s.start_datetime).replace(' ', 'T')),
+                      end: new Date(String(s.end_datetime).replace(' ', 'T')),
                       type: 'available',
                       mode: s.mode,
                       room: s.room || "",
@@ -359,18 +362,12 @@ export default function AvailabilityCalendar({
                         ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
                       },
                       body: JSON.stringify({
-                        slots: arr.map((p) => {
-                          const pad = (n) => String(n).padStart(2, '0');
-                          const toLocalIso = (d) => {
-                            return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-                          };
-                          return {
-                            start: toLocalIso(p.start),
-                            end: toLocalIso(p.end),
-                            mode: p.mode,
-                            room: p.room || null,
-                          };
-                        })
+                        slots: arr.map((p) => ({
+                          start: toLocalIso(p.start),
+                          end: toLocalIso(p.end),
+                          mode: p.mode,
+                          room: p.room || null,
+                        }))
                       }),
                     });
                     if (!resp.ok) throw new Error('Failed to persist slots');

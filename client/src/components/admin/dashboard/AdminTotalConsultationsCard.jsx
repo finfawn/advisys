@@ -3,8 +3,8 @@ import { Skeleton } from "../../../lightswind/skeleton";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import "./AdminTotalConsultationsCard.css";
 
-export default function AdminTotalConsultationsCard({ loading = false }) {
-  const data = [
+export default function AdminTotalConsultationsCard({ loading = false, data = null }) {
+  const fallback = [
     { month: "Jan", online: 10, inPerson: 5 },
     { month: "Feb", online: 40, inPerson: 30 },
     { month: "Mar", online: 90, inPerson: 80 },
@@ -18,6 +18,7 @@ export default function AdminTotalConsultationsCard({ loading = false }) {
     { month: "Nov", online: 240, inPerson: 240 },
     { month: "Dec", online: 250, inPerson: 250 }
   ];
+  const chartData = Array.isArray(data) && data.length ? data : fallback;
 
   return (
     <div className="dashboard-card admin-total-consultations-card">
@@ -35,7 +36,7 @@ export default function AdminTotalConsultationsCard({ loading = false }) {
           </div>
         ) : (
           <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={data} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
+            <LineChart data={chartData} margin={{ top: 10, right: 20, left: -10, bottom: 0 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="month" stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />
               <YAxis stroke="#6b7280" fontSize={12} tickLine={false} axisLine={false} />

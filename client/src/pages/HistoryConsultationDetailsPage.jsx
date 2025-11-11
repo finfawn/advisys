@@ -52,7 +52,7 @@ const HistoryConsultationDetailsPage = () => {
       return;
     }
     setLoading(true);
-    fetch(`${base}/api/students/${studentId}/consultations`, { headers })
+    fetch(`${base}/api/consultations/students/${studentId}/consultations`, { headers })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(list => {
         const idNum = Number(consultationId);
@@ -405,6 +405,17 @@ const HistoryConsultationDetailsPage = () => {
                   </div>
                 </section>
 
+                {/* Advisor Notes (read-only) */}
+                <section className="consultation-details-section">
+                  <h2 className="section-title">
+                    <BsFileText className="section-icon" />
+                    Advisor Notes
+                  </h2>
+                  <div className="section-content">
+                    <p className="notes-text">{consultation?.advisorPrivateNotes || 'No advisor notes provided.'}</p>
+                  </div>
+                </section>
+
 
 
                 {/* Details Section */}
@@ -416,7 +427,7 @@ const HistoryConsultationDetailsPage = () => {
                   <div className="section-content">
                     <div className="info-grid">
                       <div className="info-item">
-                        <span className="info-label">Duration</span>
+                        <span className="info-label">{consultation?.actual_start_datetime && consultation?.actual_end_datetime ? 'Actual Duration' : 'Duration'}</span>
                         <span className="info-value">{consultation ? `${consultation.duration} minutes` : ''}</span>
                       </div>
                       <div className="info-item">

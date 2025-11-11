@@ -27,6 +27,26 @@ export default function AdvisorAvailability() {
   // Undo toast state (like student pages)
   const [undoToast, setUndoToast] = useState({ open: false, items: [], timeoutId: null, message: '' });
 
+  // Helper: serialize Date to local ISO without timezone (YYYY-MM-DDTHH:mm:ss)
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const toLocalIso = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  // Format helpers: always render times in Asia/Manila to match advisor intent
+  const formatTimePH = (date) => new Intl.DateTimeFormat('en-PH', {
+    timeZone: 'Asia/Manila',
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true,
+  }).format(new Date(date));
+  const getPHHour24 = (date) => {
+    const parts = new Intl.DateTimeFormat('en-PH', {
+      timeZone: 'Asia/Manila',
+      hour: 'numeric',
+      hour12: false,
+    }).formatToParts(new Date(date));
+    const hourStr = parts.find((p) => p.type === 'hour')?.value || '0';
+    return Number(hourStr);
+  };
+
   const showUndoToast = (items, message) => {
     // Clear previous timer if any
     if (undoToast.timeoutId) {
@@ -56,8 +76,8 @@ export default function AdvisorAvailability() {
             },
             body: JSON.stringify({
               slots: undoToast.items.map((p) => ({
-                start: p.start.toISOString(),
-                end: p.end.toISOString(),
+                start: toLocalIso(p.start),
+                end: toLocalIso(p.end),
                 mode: p.mode,
                 room: p.room || null,
               }))
@@ -70,8 +90,8 @@ export default function AdvisorAvailability() {
               ...created.map((s) => ({
                 id: s.id,
                 title: 'Available',
-                start: new Date(s.start_datetime),
-                end: new Date(s.end_datetime),
+                start: new Date(String(s.start_datetime).replace(' ', 'T')),
+                end: new Date(String(s.end_datetime).replace(' ', 'T')),
                 type: 'available',
                 mode: s.mode,
                 room: s.room || "",
@@ -181,7 +201,7 @@ export default function AdvisorAvailability() {
   const groupedSlots = useMemo(() => {
     const groups = { morning: [], afternoon: [], evening: [] };
     for (const slot of slotsForSelected) {
-      const hour = new Date(slot.start).getHours();
+      const hour = getPHHour24(slot.start);
       // Morning: 8:00–11:59, Afternoon: 12:00–15:59, Evening: 16:00–20:59
       if (hour >= 8 && hour < 12) {
         groups.morning.push(slot);
@@ -427,7 +447,7 @@ export default function AdvisorAvailability() {
                               (activeSection === 'morning' ? groupedSlots.morning : activeSection === 'afternoon' ? groupedSlots.afternoon : groupedSlots.evening).map((slot) => (
                                 <div key={slot.id} className="slot-card">
                                   <div className="slot-info">
-                                    <div className="slot-time">{moment(slot.start).format('h:mm a')} – {moment(slot.end).format('h:mm a')}</div>
+                                    <div className="slot-time">{formatTimePH(slot.start)} – {formatTimePH(slot.end)}</div>
                                     <div className="slot-mode">Mode: {slot.mode === 'face_to_face' ? 'In-person' : (slot.mode === 'hybrid' ? 'Both' : 'Online')}</div>
                                     {(() => {
                                       const m = String(slot.mode || '').toLowerCase();
@@ -461,7 +481,7 @@ export default function AdvisorAvailability() {
               <AlertDialogHeader>
                 <AlertDialogTitle>Delete Slot</AlertDialogTitle>
                 <AlertDialogDescription>
-                  {pendingDeleteEvent ? `Delete the slot from ${moment(pendingDeleteEvent.start).format('h:mm a')} to ${moment(pendingDeleteEvent.end).format('h:mm a')}?` : 'Delete this slot?'}
+                  {pendingDeleteEvent ? `Delete the slot from ${formatTimePH(pendingDeleteEvent.start)} to ${formatTimePH(pendingDeleteEvent.end)}?` : 'Delete this slot?'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="items-center">

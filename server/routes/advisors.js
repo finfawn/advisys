@@ -1,5 +1,6 @@
 const express = require('express');
 const { getPool } = require('../db/pool');
+const moment = require('moment-timezone');
 
 const router = express.Router();
 
@@ -10,49 +11,57 @@ function dayLabel(dow) {
   return map[dow] || dow;
 }
 
-function formatTimeRange(rows) {
-  if (!rows || rows.length === 0) return null;
-  // Get earliest start and latest end across availabilities
-  const toMinutes = (t) => parseInt(t.split(':')[0], 10) * 60 + parseInt(t.split(':')[1], 10);
-  let minStart = Infinity;
-  let maxEnd = -Infinity;
-  for (const r of rows) {
-    const s = toMinutes(r.start_time);
-    const e = toMinutes(r.end_time);
-    minStart = Math.min(minStart, s);
-    maxEnd = Math.max(maxEnd, e);
-  }
-  function fmt(m) {
-    const h = Math.floor(m / 60);
-    const min = m % 60;
-    const ampm = h >= 12 ? 'PM' : 'AM';
-    const h12 = h % 12 || 12;
-    return `${h12}:${String(min).padStart(2, '0')} ${ampm}`;
-  }
-  return `${fmt(minStart)}–${fmt(maxEnd)}`;
-}
-
 router.get('/', async (req, res) => {
   const pool = getPool();
   try {
     const [rows] = await pool.query(
       `SELECT u.id, u.full_name, ap.title, ap.department, ap.status
        FROM users u
-       JOIN advisor_profiles ap ON ap.user_id = u.id
+       LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE u.role = 'advisor' AND u.status = 'active'`
     );
     const result = [];
     for (const row of rows) {
-      const [avail] = await pool.query('SELECT day_of_week, start_time, end_time FROM advisor_availability WHERE advisor_user_id = ?', [row.id]);
-      const [modes] = await pool.query('SELECT online_enabled, in_person_enabled FROM advisor_modes WHERE advisor_user_id = ?', [row.id]);
-      const scheduleDays = avail.map(a => dayLabel(a.day_of_week)).join(', ');
-      const timeRange = formatTimeRange(avail);
-      let modeStr = 'Online';
-      if (modes && modes[0]) {
-        const m = modes[0];
-        if (m.online_enabled && m.in_person_enabled) modeStr = 'In-person/Online';
-        else if (m.in_person_enabled) modeStr = 'In-person';
-        else modeStr = 'Online';
+      // Fetch actual available slots for the advisor
+      const [availableSlots] = await pool.query(
+        `SELECT start_datetime, end_datetime
+         FROM advisor_slots
+         WHERE advisor_user_id = ? AND end_datetime >= NOW()
+         ORDER BY start_datetime ASC`,
+        [row.id]
+      );
+
+      let displayTimeRange = null;
+      if (availableSlots.length > 0) {
+        const earliestStart = moment.tz(availableSlots[0].start_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila');
+        const latestEnd = moment.tz(availableSlots[availableSlots.length - 1].end_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila');
+        displayTimeRange = `${earliestStart.format('h:mm A')}–${latestEnd.format('h:mm A')}`;
+      }
+
+      // Fetch consultation modes from advisor_slots, considering only future slots
+      const [slotModes] = await pool.query(
+        'SELECT DISTINCT mode FROM advisor_slots WHERE advisor_user_id = ? AND end_datetime >= NOW()',
+        [row.id]
+      );
+      let courses = [];
+      try {
+        const [cRows] = await pool.query('SELECT subject_code, subject_name, course_name FROM advisor_courses WHERE advisor_user_id = ? LIMIT 6', [row.id]);
+        courses = cRows.map(c => ({ subject_code: c.subject_code, name: c.subject_name || c.course_name }));
+      } catch (e) {
+        // If courses table missing, continue without it
+        courses = [];
+      }
+      const scheduleDays = null; // No longer using static schedule days
+      const timeRange = displayTimeRange; // Use the dynamically calculated time range
+      let modeStr = ''; // Default to empty if no modes found
+      if (slotModes && slotModes.length > 0) {
+        const modes = slotModes.map(sm => sm.mode);
+        const hasOnline = modes.includes('online');
+        const hasInPerson = modes.includes('face_to_face');
+
+        if (hasOnline && hasInPerson) modeStr = 'In-person/Online';
+        else if (hasInPerson) modeStr = 'In-person';
+        else if (hasOnline) modeStr = 'Online';
       }
       result.push({
         id: row.id,
@@ -63,6 +72,7 @@ router.get('/', async (req, res) => {
         schedule: scheduleDays,
         time: timeRange,
         mode: modeStr,
+        coursesTaught: courses,
       });
     }
     res.json(result);
@@ -77,17 +87,48 @@ router.get('/:id', async (req, res) => {
   try {
     const advisorId = req.params.id;
     const [[u]] = await pool.query(
-      `SELECT u.id, u.full_name, ap.title, ap.department, ap.bio, ap.office_location
-       FROM users u JOIN advisor_profiles ap ON ap.user_id = u.id
+      `SELECT u.id, u.full_name, ap.title, ap.department, ap.bio, ap.office_location, ap.avatar_url
+       FROM users u LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE u.id = ? AND u.role='advisor'`, [advisorId]
     );
     if (!u) return res.status(404).json({ error: 'Advisor not found' });
 
-    const [topics] = await pool.query('SELECT topic FROM advisor_topics WHERE advisor_user_id=?', [advisorId]);
-    const [guidelines] = await pool.query('SELECT guideline_text FROM advisor_guidelines WHERE advisor_user_id=?', [advisorId]);
-    const [courses] = await pool.query('SELECT subject_code, subject_name, course_name FROM advisor_courses WHERE advisor_user_id=?', [advisorId]);
-    const [modes] = await pool.query('SELECT online_enabled, in_person_enabled FROM advisor_modes WHERE advisor_user_id=?', [advisorId]);
-    const [avail] = await pool.query('SELECT day_of_week, start_time, end_time FROM advisor_availability WHERE advisor_user_id=?', [advisorId]);
+    // Fetch optional sections defensively so missing tables/rows don't 500
+    let topics = [];
+    let guidelines = [];
+    let courses = [];
+    let modes = [];
+    let avail = [];
+    try {
+      const [tRows] = await pool.query('SELECT topic FROM advisor_topics WHERE advisor_user_id=?', [advisorId]);
+      topics = tRows;
+    } catch (e) {
+      console.warn('advisor_topics query failed; continuing with empty list', e.message);
+    }
+    try {
+      const [gRows] = await pool.query('SELECT guideline_text FROM advisor_guidelines WHERE advisor_user_id=?', [advisorId]);
+      guidelines = gRows;
+    } catch (e) {
+      console.warn('advisor_guidelines query failed; continuing with empty list', e.message);
+    }
+    try {
+      const [cRows] = await pool.query('SELECT subject_code, subject_name, course_name FROM advisor_courses WHERE advisor_user_id=?', [advisorId]);
+      courses = cRows;
+    } catch (e) {
+      console.warn('advisor_courses query failed; continuing with empty list', e.message);
+    }
+    try {
+      const [mRows] = await pool.query('SELECT online_enabled, in_person_enabled FROM advisor_modes WHERE advisor_user_id=?', [advisorId]);
+      modes = mRows;
+    } catch (e) {
+      console.warn('advisor_modes query failed; continuing with defaults', e.message);
+    }
+    try {
+      const [aRows] = await pool.query('SELECT day_of_week, start_time, end_time FROM advisor_availability WHERE advisor_user_id=?', [advisorId]);
+      avail = aRows;
+    } catch (e) {
+      console.warn('advisor_availability query failed; continuing with Unavailable', e.message);
+    }
 
     const weeklySchedule = {
       monday: 'Unavailable', tuesday: 'Unavailable', wednesday: 'Unavailable', thursday: 'Unavailable', friday: 'Unavailable', saturday: 'Unavailable', sunday: 'Unavailable'
@@ -104,9 +145,20 @@ router.get('/:id', async (req, res) => {
     }
 
     const consultationMode = [];
-    if (modes && modes[0]) {
-      if (modes[0].in_person_enabled) consultationMode.push('In-person');
-      if (modes[0].online_enabled) consultationMode.push('Online');
+    // Fetch consultation modes from advisor_slots, considering only future slots
+    const [slotModes] = await pool.query(
+      'SELECT DISTINCT mode FROM advisor_slots WHERE advisor_user_id = ? AND end_datetime >= NOW()',
+      [advisorId]
+    );
+
+    if (slotModes && slotModes.length > 0) {
+      const modes = slotModes.map(sm => sm.mode);
+      const hasOnline = modes.includes('online');
+      const hasInPerson = modes.includes('face_to_face');
+
+      if (hasOnline && hasInPerson) consultationMode.push('In-person/Online');
+      else if (hasInPerson) consultationMode.push('In-person');
+      else if (hasOnline) consultationMode.push('Online');
     }
 
     res.json({
@@ -116,6 +168,7 @@ router.get('/:id', async (req, res) => {
       department: u.department,
       bio: u.bio,
       officeLocation: u.office_location || null,
+      avatar: u.avatar_url || null,
       topicsCanHelpWith: topics.map(t => t.topic),
       consultationGuidelines: guidelines.map(g => g.guideline_text),
       coursesTaught: courses.map(c => ({
@@ -230,6 +283,27 @@ router.post('/:id/slots', async (req, res) => {
 
     await conn.beginTransaction();
     const created = [];
+    // Helper: parse local ISO (YYYY-MM-DDTHH:mm[:ss]) as Asia/Manila wall time
+    // When client sends local time without timezone, Node parses using server timezone.
+    // To keep advisor intent, treat it explicitly as Asia/Manila (+08:00).
+    const parseManilaLocal = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      if (typeof val === 'string') {
+        const s = val.trim();
+        // If timezone offset or Z is present, respect it
+        if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+          const d = new Date(s);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        // Otherwise, assume Asia/Manila local time and append +08:00
+        const withSeconds = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s) ? `${s}:00` : s;
+        const d = new Date(`${withSeconds}+08:00`);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
     for (const s of slots) {
       const startIso = s.start_datetime || s.start;
       const endIso = s.end_datetime || s.end;
@@ -237,8 +311,8 @@ router.post('/:id/slots', async (req, res) => {
         await conn.rollback();
         return res.status(400).json({ error: 'Each slot must include start/end datetime' });
       }
-      const start = new Date(startIso);
-      const end = new Date(endIso);
+      const start = parseManilaLocal(startIso);
+      const end = parseManilaLocal(endIso);
       if (isNaN(start.getTime()) || isNaN(end.getTime())) {
         await conn.rollback();
         return res.status(400).json({ error: 'Invalid datetime format in slot payload' });
@@ -315,43 +389,79 @@ router.patch('/:id/consultation-settings', async (req, res) => {
   try {
     await conn.beginTransaction();
 
-    await conn.query(
-      `UPDATE advisor_profiles SET bio = ? WHERE user_id = ?`,
-      [bio || null, advisorId]
-    );
-
-    await conn.query(`DELETE FROM advisor_topics WHERE advisor_user_id = ?`, [advisorId]);
-    for (const topic of tList) {
-      const v = String(topic || '').trim();
-      if (v) await conn.query(`INSERT INTO advisor_topics (advisor_user_id, topic) VALUES (?, ?)`, [advisorId, v]);
-    }
-
-    await conn.query(`DELETE FROM advisor_guidelines WHERE advisor_user_id = ?`, [advisorId]);
-    for (const gl of gList) {
-      const v = String(gl || '').trim();
-      if (v) await conn.query(`INSERT INTO advisor_guidelines (advisor_user_id, guideline_text) VALUES (?, ?)`, [advisorId, v]);
-    }
-
-    await conn.query(`DELETE FROM advisor_courses WHERE advisor_user_id = ?`, [advisorId]);
-    for (const crs of cList) {
-      if (crs && typeof crs === 'object') {
-        const code = String(crs.code || '').trim() || null;
-        const name = String(crs.name || '').trim() || null;
-        const legacy = name || code; // keep something in course_name for compatibility
-        if (name || code) {
-          await conn.query(
-            `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
-            [advisorId, legacy, code, name]
-          );
-        }
+    // Update bio if advisor_profiles table exists
+    try {
+      await conn.query(
+        `UPDATE advisor_profiles SET bio = ? WHERE user_id = ?`,
+        [bio || null, advisorId]
+      );
+    } catch (e) {
+      if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
+        console.warn('advisor_profiles missing; skipping bio update');
       } else {
-        const v = String(crs || '').trim();
-        if (v) {
-          await conn.query(
-            `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
-            [advisorId, v, null, v]
-          );
+        throw e;
+      }
+    }
+
+    // Replace topics list (defensive against missing table)
+    try {
+      await conn.query(`DELETE FROM advisor_topics WHERE advisor_user_id = ?`, [advisorId]);
+      for (const topic of tList) {
+        const v = String(topic || '').trim();
+        if (v) await conn.query(`INSERT INTO advisor_topics (advisor_user_id, topic) VALUES (?, ?)`, [advisorId, v]);
+      }
+    } catch (e) {
+      if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
+        console.warn('advisor_topics missing; skipping topics update');
+      } else {
+        throw e;
+      }
+    }
+
+    // Replace guidelines list
+    try {
+      await conn.query(`DELETE FROM advisor_guidelines WHERE advisor_user_id = ?`, [advisorId]);
+      for (const gl of gList) {
+        const v = String(gl || '').trim();
+        if (v) await conn.query(`INSERT INTO advisor_guidelines (advisor_user_id, guideline_text) VALUES (?, ?)`, [advisorId, v]);
+      }
+    } catch (e) {
+      if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
+        console.warn('advisor_guidelines missing; skipping guidelines update');
+      } else {
+        throw e;
+      }
+    }
+
+    // Replace courses list; accept multiple input shapes
+    try {
+      await conn.query(`DELETE FROM advisor_courses WHERE advisor_user_id = ?`, [advisorId]);
+      for (const crs of cList) {
+        if (crs && typeof crs === 'object') {
+          const code = String(crs.code || crs.subject_code || '').trim() || null;
+          const name = String(crs.name || crs.subject_name || crs.course_name || '').trim() || null;
+          const legacy = name || code; // keep something in course_name for compatibility
+          if (name || code) {
+            await conn.query(
+              `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
+              [advisorId, legacy, code, name]
+            );
+          }
+        } else {
+          const v = String(crs || '').trim();
+          if (v) {
+            await conn.query(
+              `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
+              [advisorId, v, null, v]
+            );
+          }
         }
+      }
+    } catch (e) {
+      if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
+        console.warn('advisor_courses missing; skipping courses update');
+      } else {
+        throw e;
       }
     }
 

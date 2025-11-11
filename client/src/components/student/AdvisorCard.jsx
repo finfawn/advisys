@@ -26,7 +26,7 @@ function AdvisorCard({
     title,
     avatar: null,
     subjects: ["Academic Planning", "Course Selection", "Research Guidance"],
-    availability: `Available ${schedule}, ${time}`,
+    availability: schedule && time ? `Available ${schedule}, ${time}` : null,
     status,
     schedule,
     time,
@@ -129,51 +129,56 @@ function AdvisorCard({
         </CardHeader>
         
         <CardContent className="space-y-3 flex-1">
-          <div className="advisor-card-courses">
-            <div className="flex flex-wrap gap-1.5">
-              {coursesTaught.map((course, index) => {
-                const name = (typeof course === 'string') ? course : (course?.name || course?.course_name || '');
-                const code = (typeof course === 'string') ? '' : (course?.code || course?.subject_code || '');
-                return (
-                  <Badge key={index} variant="outline" size="sm" className="text-xs">
-                    {name}
-                    {code ? ` — ${code}` : ''}
-                  </Badge>
-                );
-              })}
+          {Array.isArray(coursesTaught) && coursesTaught.length > 0 && (
+            <div className="advisor-card-courses">
+              <div className="flex flex-wrap gap-1.5">
+                {coursesTaught.map((course, index) => {
+                  // Prefer course code for compact pills; fallback to name
+                  const label = (typeof course === 'string')
+                    ? course
+                    : (course?.subject_code || course?.code || course?.course_code || course?.name || course?.course_name || '');
+                  if (!label) return null;
+                  return (
+                    <Badge key={index} variant="outline" size="sm" className="text-xs font-semibold">
+                      {label}
+                    </Badge>
+                  );
+                })}
+              </div>
             </div>
-          </div>
+          )}
           
-          <div className="advisor-card-meta">
-            <BsClock className="w-4 h-4 text-blue-600 flex-shrink-0" />
-            <div className="flex-1 text-sm text-gray-700">
-              <div className="font-medium">{schedule}</div>
-              <div className="text-gray-600">{time}</div>
-              {modeInfo.showSeparate ? (
-                <div className="flex gap-2 mt-2">
-                  <Badge variant="info" size="sm" className="flex items-center gap-1">
-                    <BsCameraVideo className="w-3 h-3" />
-                    Online
-                  </Badge>
-                  <Badge variant="warning" size="sm" className="flex items-center gap-1">
-                    <BsGeoAlt className="w-3 h-3" />
-                    In-Person
-                  </Badge>
-                </div>
-              ) : (
-                <div className="mt-2">
-                  <Badge 
-                    variant={modeInfo.class === 'online-mode' ? 'info' : modeInfo.class === 'inperson-mode' ? 'warning' : 'secondary'} 
-                    size="sm" 
-                    className="flex items-center gap-1 w-fit"
-                  >
-                    {modeInfo.icons}
-                    {modeInfo.text}
-                  </Badge>
-                </div>
-              )}
+          {time && (
+            <div className="advisor-card-availability">
+              <Badge variant="info" size="sm" className="flex items-center gap-1 w-fit text-xs font-medium">
+                <BsClock className="w-3 h-3" />
+                {time}
+              </Badge>
             </div>
-          </div>
+          )}
+          {modeInfo.showSeparate ? (
+            <div className="flex gap-2 mt-2">
+              <Badge variant="info" size="sm" className="flex items-center gap-1">
+                <BsCameraVideo className="w-3 h-3" />
+                Online
+              </Badge>
+              <Badge variant="warning" size="sm" className="flex items-center gap-1">
+                <BsGeoAlt className="w-3 h-3" />
+                In-Person
+              </Badge>
+            </div>
+          ) : (
+            <div className="mt-2">
+              <Badge 
+                variant={modeInfo.class === 'online-mode' ? 'info' : modeInfo.class === 'inperson-mode' ? 'warning' : 'secondary'} 
+                size="sm" 
+                className="flex items-center gap-1 w-fit"
+              >
+                {modeInfo.icons}
+                {modeInfo.text}
+              </Badge>
+            </div>
+          )}
         </CardContent>
         
         <CardFooter className="pt-3 gap-2" align="between">

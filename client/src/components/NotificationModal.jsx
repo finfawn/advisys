@@ -41,7 +41,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       const advisorId = storedUser?.id;
       if (!advisorId) return null;
       const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-      const res = await fetch(`${apiBase}/api/advisors/${advisorId}/consultations`, {
+      const res = await fetch(`${apiBase}/api/consultations/advisors/${advisorId}/consultations`, {
         headers: {
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         },

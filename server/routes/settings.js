@@ -3,13 +3,27 @@ const { getPool } = require('../db/pool');
 
 const router = express.Router();
 
+// Ensure the notifications_muted column exists for backward compatibility
+async function ensureNotificationsMutedColumn(pool) {
+  try {
+    const [cols] = await pool.query('SHOW COLUMNS FROM notification_settings LIKE "notifications_muted"');
+    if (!cols || cols.length === 0) {
+      await pool.query('ALTER TABLE notification_settings ADD COLUMN notifications_muted TINYINT(1) NOT NULL DEFAULT 0');
+    }
+  } catch (err) {
+    // If table doesn't exist yet or other error, ignore; creation path may handle it
+    console.warn('ensureNotificationsMutedColumn warning:', err?.message || err);
+  }
+}
+
 // GET /api/settings/users/:userId/notifications
 router.get('/users/:userId/notifications', async (req, res) => {
   const pool = getPool();
   try {
     const userId = Number(req.params.userId);
+    await ensureNotificationsMutedColumn(pool);
     const [[row]] = await pool.query(
-      `SELECT user_id, email_notifications, consultation_reminders, new_request_notifications
+      `SELECT user_id, email_notifications, consultation_reminders, new_request_notifications, notifications_muted
        FROM notification_settings WHERE user_id = ?`,
       [userId]
     );
@@ -19,6 +33,7 @@ router.get('/users/:userId/notifications', async (req, res) => {
         emailNotifications: true,
         consultationReminders: true,
         newRequestNotifications: true,
+        notificationsMuted: false,
       });
     }
     return res.json({
@@ -26,6 +41,7 @@ router.get('/users/:userId/notifications', async (req, res) => {
       emailNotifications: !!row.email_notifications,
       consultationReminders: !!row.consultation_reminders,
       newRequestNotifications: !!row.new_request_notifications,
+      notificationsMuted: !!row.notifications_muted,
     });
   } catch (err) {
     console.error('Failed to get notification settings:', err);
@@ -38,20 +54,21 @@ router.patch('/users/:userId/notifications', async (req, res) => {
   const pool = getPool();
   try {
     const userId = Number(req.params.userId);
-    const { emailNotifications, consultationReminders, newRequestNotifications } = req.body || {};
+    await ensureNotificationsMutedColumn(pool);
+    const { emailNotifications, consultationReminders, newRequestNotifications, notificationsMuted } = req.body || {};
     const [[exists]] = await pool.query('SELECT user_id FROM notification_settings WHERE user_id = ?', [userId]);
     if (exists) {
       await pool.query(
         `UPDATE notification_settings
-         SET email_notifications = ?, consultation_reminders = ?, new_request_notifications = ?
+         SET email_notifications = ?, consultation_reminders = ?, new_request_notifications = ?, notifications_muted = ?
          WHERE user_id = ?`,
-        [emailNotifications ? 1 : 0, consultationReminders ? 1 : 0, newRequestNotifications ? 1 : 0, userId]
+        [emailNotifications ? 1 : 0, consultationReminders ? 1 : 0, newRequestNotifications ? 1 : 0, notificationsMuted ? 1 : 0, userId]
       );
     } else {
       await pool.query(
-        `INSERT INTO notification_settings (user_id, email_notifications, consultation_reminders, new_request_notifications)
-         VALUES (?,?,?,?)`,
-        [userId, emailNotifications ? 1 : 0, consultationReminders ? 1 : 0, newRequestNotifications ? 1 : 0]
+        `INSERT INTO notification_settings (user_id, email_notifications, consultation_reminders, new_request_notifications, notifications_muted)
+         VALUES (?,?,?,?,?)`,
+        [userId, emailNotifications ? 1 : 0, consultationReminders ? 1 : 0, newRequestNotifications ? 1 : 0, notificationsMuted ? 1 : 0]
       );
     }
     res.json({ success: true });

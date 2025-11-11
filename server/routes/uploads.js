@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { authMiddleware } = require('../middleware/auth');
 
-const router = express.Router();
+
 
 // Ensure upload directory exists
 const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
@@ -53,41 +53,6 @@ const { getPool } = require('../db/pool');
 
 const router = express.Router();
 
-// Ensure upload directory exists
-const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
-const AVATARS_DIR = path.join(UPLOADS_DIR, 'avatars');
-function ensureDirs() {
-  try {
-    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
-    if (!fs.existsSync(AVATARS_DIR)) fs.mkdirSync(AVATARS_DIR);
-  } catch (err) {
-    console.error('Failed to ensure upload directories:', err);
-  }
-}
-ensureDirs();
-
-// Configure Multer storage for avatars
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    ensureDirs();
-    cb(null, AVATARS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const userId = req.user?.id || 'anon';
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const safeExt = ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext) ? ext : '.png';
-    const name = `avatar_${userId}_${Date.now()}${safeExt}`;
-    cb(null, name);
-  },
-});
-
-function fileFilter(req, file, cb) {
-  const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
-  if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(new Error('Only image files are allowed'));
-}
-
-const uploadAvatar = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
 
 // POST /api/uploads/avatar
 // FormData: { avatar: File }
@@ -112,6 +77,27 @@ router.post(
       const relativePath = path.join('uploads', 'avatars', req.file.filename);
       let urlPath = `/${relativePath.replace(/\\/g, '/')}`; // Normalize for Windows
 
+      // Fetch existing avatar for the user so we can clean it up later
+      const pool = getPool();
+      const userId = req.user?.id;
+      let role = null;
+      let previousUrl = null;
+      try {
+        if (userId) {
+          const [[uRow]] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
+          role = uRow?.role || null;
+          if (role === 'student') {
+            const [[row]] = await pool.query('SELECT avatar_url FROM student_profiles WHERE user_id = ?', [userId]);
+            previousUrl = row?.avatar_url || null;
+          } else if (role === 'advisor') {
+            const [[row]] = await pool.query('SELECT avatar_url FROM advisor_profiles WHERE user_id = ?', [userId]);
+            previousUrl = row?.avatar_url || null;
+          }
+        }
+      } catch (prevErr) {
+        console.error('Failed to read previous avatar_url:', prevErr);
+      }
+
       // If GCS is configured, upload the local file to the bucket and prefer the public URL
       const { GCS_BUCKET_NAME, GCP_STORAGE_KEY_PATH } = process.env;
       if (Storage && GCS_BUCKET_NAME) {
@@ -126,15 +112,6 @@ router.post(
             metadata: { contentType: req.file.mimetype || 'image/png' },
           });
 
-          // Make the object publicly readable; alternatively generate signed URLs
-          const file = bucket.file(gcsKey);
-          try {
-            await file.makePublic();
-          } catch (_) {
-            // If uniform bucket-level access is enabled, public ACLs may be disallowed.
-            // In that case, consider using signed URLs or a CDN; for now, keep local URL.
-          }
-
           // Prefer the public GCS URL if object is accessible
           urlPath = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsKey}`;
 
@@ -147,15 +124,31 @@ router.post(
 
       // Persist avatar_url to DB for the authenticated user
       try {
-        const pool = getPool();
-        const userId = req.user?.id;
-        if (userId) {
-          const [[uRow]] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
-          const role = uRow?.role;
+        if (userId && role) {
           if (role === 'student') {
             await pool.query('UPDATE student_profiles SET avatar_url = ? WHERE user_id = ?', [urlPath, userId]);
           } else if (role === 'advisor') {
             await pool.query('UPDATE advisor_profiles SET avatar_url = ? WHERE user_id = ?', [urlPath, userId]);
+          }
+
+          // After saving the new avatar URL, delete the previous asset if different
+          if (previousUrl && previousUrl !== urlPath) {
+            try {
+              // If previous was on GCS, delete the object by bucket/key
+              const gcsMatch = previousUrl.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
+              if (gcsMatch && Storage) {
+                const [_, prevBucket, prevKey] = gcsMatch;
+                const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
+                await storage.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true });
+              } else if (previousUrl.startsWith('/uploads/avatars/')) {
+                // If previous was local, remove the file from avatars dir
+                const prevName = path.basename(previousUrl);
+                const prevLocal = path.join(AVATARS_DIR, prevName);
+                try { fs.unlinkSync(prevLocal); } catch (_) {}
+              }
+            } catch (delErr) {
+              console.error('Failed to delete previous avatar asset:', delErr);
+            }
           }
         }
       } catch (dbErr) {

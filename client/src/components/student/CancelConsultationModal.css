@@ -110,48 +110,58 @@
 }
 
 /* Consultation Summary */
-.consultation-summary {
+.cancel-consultation-modal .consultation-summary,
+.admin-modal-body .consultation-summary {
   margin-bottom: 24px;
 }
 
-.summary-title {
+.cancel-consultation-modal .summary-title,
+.admin-modal-body .summary-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 16px 0;
 }
 
-.summary-content {
+.cancel-consultation-modal .summary-content,
+.admin-modal-body .summary-content {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
+  display: block; /* prevent grid overrides from other pages */
 }
 
-.summary-item {
+.cancel-consultation-modal .summary-item,
+.admin-modal-body .summary-item {
   display: flex;
   align-items: center;
   gap: 12px;
   margin-bottom: 12px;
 }
 
-.summary-item:last-child {
+.cancel-consultation-modal .summary-item:last-child,
+.admin-modal-body .summary-item:last-child {
   margin-bottom: 0;
 }
 
-.summary-icon {
+.cancel-consultation-modal .summary-icon,
+.admin-modal-body .summary-icon {
   color: #6b7280;
   font-size: 1.1rem;
   flex-shrink: 0;
+  width: auto; /* ensure icon doesn't allocate a wide column */
 }
 
-.summary-text {
+.cancel-consultation-modal .summary-text,
+.admin-modal-body .summary-text {
   display: flex;
   flex-direction: column;
   gap: 2px;
 }
 
-.summary-topic {
+.cancel-consultation-modal .summary-topic,
+.admin-modal-body .summary-topic {
   display: flex;
   flex-direction: column;
   gap: 2px;
@@ -160,7 +170,8 @@
   border-top: 1px solid #e5e7eb;
 }
 
-.summary-label {
+.cancel-consultation-modal .summary-label,
+.admin-modal-body .summary-label {
   font-size: 0.85rem;
   font-weight: 500;
   color: #6b7280;
@@ -168,38 +179,44 @@
   letter-spacing: 0.5px;
 }
 
-.summary-value {
+.cancel-consultation-modal .summary-value,
+.admin-modal-body .summary-value {
   font-size: 0.95rem;
   font-weight: 500;
   color: #1f2937;
 }
 
 /* Cancellation Reason Section */
-.cancellation-reason-section {
+.cancel-consultation-modal .cancellation-reason-section,
+.admin-modal-body .cancellation-reason-section {
   margin-bottom: 24px;
 }
 
-.reason-title {
+.cancel-consultation-modal .reason-title,
+.admin-modal-body .reason-title {
   font-size: 1.1rem;
   font-weight: 600;
   color: #1f2937;
   margin: 0 0 8px 0;
 }
 
-.reason-subtitle {
+.cancel-consultation-modal .reason-subtitle,
+.admin-modal-body .reason-subtitle {
   font-size: 0.9rem;
   color: #6b7280;
   margin: 0 0 20px 0;
   line-height: 1.5;
 }
 
-.reason-options {
+.cancel-consultation-modal .reason-options,
+.admin-modal-body .reason-options {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
 
-.reason-option {
+.cancel-consultation-modal .reason-option,
+.admin-modal-body .reason-option {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -211,27 +228,32 @@
   background: white;
 }
 
-.reason-option:hover {
+.cancel-consultation-modal .reason-option:hover,
+.admin-modal-body .reason-option:hover {
   border-color: #d1d5db;
   background: #f9fafb;
 }
 
-.reason-option input[type="radio"] {
+.cancel-consultation-modal .reason-option input[type="radio"],
+.admin-modal-body .reason-option input[type="radio"] {
   margin: 0;
   accent-color: #3b82f6;
 }
 
-.option-text {
+.cancel-consultation-modal .option-text,
+.admin-modal-body .option-text {
   font-size: 0.95rem;
   font-weight: 500;
   color: #374151;
 }
 
-.custom-reason {
+.cancel-consultation-modal .custom-reason,
+.admin-modal-body .custom-reason {
   margin-top: 16px;
 }
 
-.custom-reason-input {
+.cancel-consultation-modal .custom-reason-input,
+.admin-modal-body .custom-reason-input {
   width: 100%;
   padding: 12px 16px;
   border: 1px solid #d1d5db;
@@ -243,13 +265,15 @@
   transition: border-color 0.2s ease;
 }
 
-.custom-reason-input:focus {
+.cancel-consultation-modal .custom-reason-input:focus,
+.admin-modal-body .custom-reason-input:focus {
   outline: none;
   border-color: #3b82f6;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
 }
 
-.custom-reason-input::placeholder {
+.cancel-consultation-modal .custom-reason-input::placeholder,
+.admin-modal-body .custom-reason-input::placeholder {
   color: #9ca3af;
 }
 

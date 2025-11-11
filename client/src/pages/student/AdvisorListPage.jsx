@@ -7,6 +7,14 @@ import Sidebar from "../../components/student/Sidebar";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorListPage.css";
 import { TemplateCardSkeleton } from "../../lightswind/skeleton";
+import {
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+} from "../../lightswind/select";
 
 export default function AdvisorListPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -57,7 +65,7 @@ export default function AdvisorListPage() {
           setStudentConsultations([]);
           return;
         }
-        const res = await fetch(`${base}/api/students/${user.id}/consultations`, {
+        const res = await fetch(`${base}/api/consultations/students/${user.id}/consultations`, {
           headers: token ? { 'Authorization': `Bearer ${token}` } : {}
         });
         const data = await res.json();
@@ -72,20 +80,21 @@ export default function AdvisorListPage() {
     fetchStudentConsultations();
   }, []);
 
-  // Create generic categories for filter
-  const categories = useMemo(() => {
-    const deptSet = new Set((allAdvisors || []).map(advisor => advisor.department).filter(Boolean));
-    const departments = Array.from(deptSet).sort();
-    return departments.map((dept, index) => ({
-      value: dept,
-      label: `Category ${index + 1}`
-    }));
-  }, [allAdvisors]);
+  // No department filters for now; only mode filters
 
   // Filter advisors based on selected filter
   const filteredAdvisors = useMemo(() => {
     if (filter === "all") return allAdvisors;
-    return (allAdvisors || []).filter(advisor => advisor.department === filter);
+    if (filter.startsWith("mode:")) {
+      const modeKey = filter.split(":")[1];
+      if (modeKey === "online") {
+        return (allAdvisors || []).filter((a) => (a.mode || "").includes("Online"));
+      }
+      if (modeKey === "in_person") {
+        return (allAdvisors || []).filter((a) => (a.mode || "").includes("In-person"));
+      }
+    }
+    return allAdvisors;
   }, [filter, allAdvisors]);
 
 
@@ -95,11 +104,22 @@ export default function AdvisorListPage() {
   const endIndex = showAll ? filteredAdvisors.length : startIndex + itemsPerPage;
   const displayedAdvisors = filteredAdvisors.slice(0, endIndex);
 
-  const handleFilterChange = (e) => {
-    setFilter(e.target.value);
+  const handleSelectChange = (value) => {
+    setFilter(value);
     setCurrentPage(1);
     setShowAll(false);
   };
+
+  const filterLabel = useMemo(() => {
+    if (filter === "all") return "All Faculty";
+    if (filter.startsWith("mode:")) {
+      const key = filter.split(":")[1];
+      if (key === "online") return "Online";
+      if (key === "in_person") return "In-person";
+      return "Mode";
+    }
+    return "All Faculty";
+  }, [filter]);
 
   const handleLoadMore = () => {
     if (endIndex >= filteredAdvisors.length) {
@@ -232,18 +252,19 @@ export default function AdvisorListPage() {
                 <h2 className="section-title">All Faculty</h2>
                 
                 <div className="section-controls">
-                  {/* Filter Dropdown */}
-                  <select 
-                    id="advisor-filter" 
-                    className="filter-dropdown"
-                    value={filter}
-                    onChange={handleFilterChange}
-                  >
-                    <option value="all">All Faculty</option>
-                    {categories.map(category => (
-                      <option key={category.value} value={category.value}>{category.label}</option>
-                    ))}
-                  </select>
+                  {/* Filter Dropdown (Lightswind Select) */}
+                  <Select value={filter} onValueChange={handleSelectChange}>
+                    <SelectTrigger className="filter-dropdown">
+                      <span>{filterLabel}</span>
+                    </SelectTrigger>
+                    <SelectContent align="end">
+                      <SelectItem value="all">All Faculty</SelectItem>
+                      <SelectSeparator />
+                      <SelectLabel>Mode</SelectLabel>
+                      <SelectItem value="mode:online">Online</SelectItem>
+                      <SelectItem value="mode:in_person">In-person</SelectItem>
+                    </SelectContent>
+                  </Select>
                   
                   <span className="section-count">{filteredAdvisors.length} total</span>
                 </div>

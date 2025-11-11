@@ -18,7 +18,9 @@ export default function AdminUserHistoryModal({
   const handleClose = () => {
     setIsClosing(true);
     setTimeout(() => {
+      // Notify parent to set open=false, then clear closing state so overlay unmounts
       onClose && onClose();
+      setIsClosing(false);
     }, 150); // Match animation duration
   };
 

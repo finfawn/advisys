@@ -1,5 +1,9 @@
 const express = require('express');
 const { getPool } = require('../db/pool');
+const fs = require('fs');
+const path = require('path');
+let Storage;
+try { Storage = require('@google-cloud/storage').Storage; } catch (_) { Storage = null; }
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -54,6 +58,21 @@ router.patch('/me', authMiddleware, async (req, res) => {
     const [uRows] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
     if (!uRows.length) return res.status(404).json({ error: 'User not found' });
     const role = uRows[0].role;
+    let previousAvatarUrl = null;
+    const willChangeAvatar = body.avatar_url !== undefined;
+    if (willChangeAvatar) {
+      try {
+        if (role === 'student') {
+          const [[row]] = await pool.query('SELECT avatar_url FROM student_profiles WHERE user_id = ?', [userId]);
+          previousAvatarUrl = row?.avatar_url || null;
+        } else if (role === 'advisor') {
+          const [[row]] = await pool.query('SELECT avatar_url FROM advisor_profiles WHERE user_id = ?', [userId]);
+          previousAvatarUrl = row?.avatar_url || null;
+        }
+      } catch (prevErr) {
+        console.error('Failed to read previous avatar_url before update:', prevErr);
+      }
+    }
     if (role === 'student') {
       const fields = [];
       const values = [];
@@ -89,6 +108,26 @@ router.patch('/me', authMiddleware, async (req, res) => {
         values.push(userId);
         await pool.query(`UPDATE advisor_profiles SET ${fields.join(', ')} WHERE user_id = ?`, values);
       }
+    }
+
+    // After saving, if avatar_url changed, delete the previous asset
+    try {
+      if (willChangeAvatar && previousAvatarUrl && previousAvatarUrl !== (body.avatar_url || null)) {
+        const { GCP_STORAGE_KEY_PATH } = process.env;
+        const gcsMatch = previousAvatarUrl.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
+        if (gcsMatch && Storage) {
+          const [_, prevBucket, prevKey] = gcsMatch;
+          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
+          await storage.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true });
+        } else if (previousAvatarUrl.startsWith('/uploads/avatars/')) {
+          const AVATARS_DIR = path.join(__dirname, '..', 'uploads', 'avatars');
+          const prevName = path.basename(previousAvatarUrl);
+          const prevLocal = path.join(AVATARS_DIR, prevName);
+          try { fs.unlinkSync(prevLocal); } catch (_) {}
+        }
+      }
+    } catch (delErr) {
+      console.error('Failed to delete previous avatar asset after profile update:', delErr);
     }
 
     return res.json({ success: true });

@@ -17,6 +17,16 @@ import { Skeleton } from "../../lightswind/skeleton";
 import "./AdvisorProfilePage.css";
 
 export default function AdvisorProfilePage() {
+  // Normalize asset URLs (absolute, blob, or server-relative)
+  const resolveAssetUrl = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const u = url.trim();
+    if (!u) return null;
+    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
+    if (u.startsWith('/')) return `${base}${u}`;
+    return `${base}/${u.replace(/^\/*/, '')}`;
+  };
   const { advisorId } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -29,8 +39,14 @@ export default function AdvisorProfilePage() {
       try {
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const res = await fetch(`${base}/api/advisors/${advisorId || 1}`);
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
         const data = await res.json();
-        setAdvisorData(data);
+        setAdvisorData({
+          ...data,
+          avatar: resolveAssetUrl(data.avatar)
+        });
 
         // Also load upcoming slots to reflect real availability and next slot
         try {
@@ -45,14 +61,19 @@ export default function AdvisorProfilePage() {
           if (Array.isArray(slots) && slots.length > 0) {
             // Compute next available slot and fallback weekly schedule from slots
             const availableSlots = slots.filter(s => String(s.status).toLowerCase() === 'available');
-            const toTimeStr = (d) => {
-              const hrs = d.getHours();
-              const mins = d.getMinutes();
-              const ampm = hrs >= 12 ? 'PM' : 'AM';
-              const h12 = hrs % 12 || 12;
-              return `${h12}:${String(mins).padStart(2, '0')} ${ampm}`;
-            };
-            const toDateLabel = (d) => d.toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+            const toTimeStr = (d) => new Intl.DateTimeFormat('en-PH', {
+              timeZone: 'Asia/Manila',
+              hour: 'numeric',
+              minute: '2-digit',
+              hour12: true,
+            }).format(d);
+            const toDateLabel = (d) => new Intl.DateTimeFormat('en-PH', {
+              timeZone: 'Asia/Manila',
+              weekday: 'long',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            }).format(d);
 
             let nextSlotStr = null;
             if (availableSlots.length > 0) {
@@ -88,7 +109,8 @@ export default function AdvisorProfilePage() {
             for (const s of availableSlots) {
               const start = new Date(s.start_datetime);
               const end = new Date(s.end_datetime);
-              const key = dayKeys[start.getDay()];
+              const weekdayPH = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'long' }).format(start).toLowerCase();
+              const key = dayKeys.includes(weekdayPH) ? weekdayPH : dayKeys[start.getDay()];
               const curr = ranges[key] || { earliest: start, latest: end };
               if (start < curr.earliest) curr.earliest = start;
               if (end > curr.latest) curr.latest = end;
@@ -305,7 +327,11 @@ export default function AdvisorProfilePage() {
             <section className="profile-header">
               <div className="header-content">
                 <div className="advisor-avatar">
-                  <BsPersonCircle />
+                  {advisorData && advisorData.avatar ? (
+                    <img src={advisorData.avatar} alt={advisorData.name || 'Advisor'} />
+                  ) : (
+                    <BsPersonCircle />
+                  )}
                 </div>
                 
                 <div className="advisor-info">

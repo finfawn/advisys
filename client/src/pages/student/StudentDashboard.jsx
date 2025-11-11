@@ -78,14 +78,31 @@ export default function StudentDashboard() {
   const [selectedDate, setSelectedDate] = useState(today);
   const [availableToday, setAvailableToday] = useState([]);
   const [availabilityData, setAvailabilityData] = useState({});
-  const key = selectedDate
-    ? `${selectedDate.getFullYear()}-${String(selectedDate.getMonth() + 1).padStart(2, '0')}-${String(selectedDate.getDate()).padStart(2, '0')}`
-    : '';
+  const formatKeyPH = (d) => {
+    if (!d) return '';
+    const parts = new Intl.DateTimeFormat('en-PH', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(d);
+    const y = parts.find(p => p.type === 'year')?.value || String(d.getFullYear());
+    const m = parts.find(p => p.type === 'month')?.value || String(d.getMonth() + 1).padStart(2, '0');
+    const da = parts.find(p => p.type === 'day')?.value || String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${da}`;
+  };
+  const key = selectedDate ? formatKeyPH(selectedDate) : '';
   const list = availabilityData[key] || [];
   const formatSelectedDate = (date) => {
     if (!date) return '';
-    const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
-    return date.toLocaleDateString('en-US', options);
+    const fmt = new Intl.DateTimeFormat('en-PH', {
+      timeZone: 'Asia/Manila',
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    });
+    return fmt.format(date);
   };
 
   // Fetch consultations from backend and compute upcoming + top topic
@@ -100,7 +117,7 @@ export default function StudentDashboard() {
         const storedToken = localStorage.getItem('advisys_token');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const studentId = parsed?.id || 1;
-        const res = await fetch(`${base}/api/students/${studentId}/consultations`, {
+        const res = await fetch(`${base}/api/consultations/students/${studentId}/consultations`, {
           headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
         });
         const data = await res.json();
@@ -156,15 +173,38 @@ export default function StudentDashboard() {
 
   const topTopic = useMemo(() => {
     const counts = {};
-    allConsultations.forEach(c => {
-      const t = c.topic;
-      if (!t) return;
-      counts[t] = (counts[t] || 0) + 1;
-    });
+    allConsultations
+      .filter(c => c.status === 'completed')
+      .forEach(c => {
+        const t = c.topic;
+        if (!t) return;
+        counts[t] = (counts[t] || 0) + 1;
+      });
     const entries = Object.entries(counts);
     if (!entries.length) return ['No Topic', 0];
     return entries.reduce((a, b) => counts[a[0]] > counts[b[0]] ? a : b);
   }, [allConsultations]);
+
+  // Stats derived from actual DB consultations
+  const completedCount = useMemo(() => {
+    return allConsultations.filter(c => c.status === 'completed').length;
+  }, [allConsultations]);
+
+  const totalMinutes = useMemo(() => {
+    return allConsultations
+      .filter(c => c.status === 'completed')
+      .reduce((sum, c) => sum + Number(c.duration || c.duration_minutes || 0), 0);
+  }, [allConsultations]);
+
+  const totalHoursLabel = useMemo(() => {
+    const mins = Math.round(Number(totalMinutes || 0));
+    if (mins < 60) {
+      return `${mins}m`;
+    }
+    const hrs = Math.floor(mins / 60);
+    const remMins = mins % 60;
+    return remMins > 0 ? `${hrs}h ${remMins}m` : `${hrs}h`;
+  }, [totalMinutes]);
 
   // Fetch calendar availability for a given year and 0-based month
   const loadCalendarForMonth = async (year, monthIdx) => {
@@ -375,7 +415,7 @@ export default function StudentDashboard() {
                 <div className="stat-icon"><BsCheckCircle /></div>
                 <div className="stat-body">
                   <div className="stat-label">Completed Consultations</div>
-                  <div className="stat-value">12</div>
+                  <div className="stat-value">{completedCount}</div>
                   <div className="stat-sub">Total sessions finished</div>
                 </div>
               </div>
@@ -387,7 +427,7 @@ export default function StudentDashboard() {
                 <div className="stat-icon"><BsClock /></div>
                 <div className="stat-body">
                   <div className="stat-label">Hours Spent in Consultations</div>
-                  <div className="stat-value">15h</div>
+                  <div className="stat-value">{totalHoursLabel}</div>
                   <div className="stat-sub">Cumulative consultation time</div>
                 </div>
               </div>

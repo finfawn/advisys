@@ -13,7 +13,7 @@ export default function AdminManageUserList({
 }) {
   if (loading) {
     return (
-      <Table>
+      <Table containerClassName="h-full" containerStyle={{ height: "100%", maxHeight: "none" }}>
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -64,7 +64,7 @@ export default function AdminManageUserList({
 
   if (!items || items.length === 0) {
     return (
-      <Table>
+      <Table containerClassName="h-full" containerStyle={{ height: "100%", maxHeight: "none" }}>
         <TableHeader>
           <TableRow>
             <TableHead>Name</TableHead>
@@ -86,7 +86,7 @@ export default function AdminManageUserList({
   }
 
   return (
-    <Table>
+    <Table containerClassName="h-full" containerStyle={{ height: "100%", maxHeight: "none" }}>
       <TableHeader>
         <TableRow>
           <TableHead>Name</TableHead>

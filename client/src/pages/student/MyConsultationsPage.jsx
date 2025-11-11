@@ -57,15 +57,34 @@ export default function MyConsultationsPage() {
   const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
   const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
+
+  // Normalize asset URLs (http/https/blob unchanged; relative prefixed with API base)
+  const resolveAssetUrl = (u) => {
+    if (!u) return null;
+    const s = String(u);
+    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+    if (s.startsWith('/')) return `${base}${s}`;
+    return `${base}/${s}`;
+  };
+
+  // Shape server consultation item into UI format with faculty.avatar normalized
+  const shapeConsultation = (c) => {
+    const name = c?.advisor?.name ?? c?.faculty?.name ?? c?.advisor_name ?? null;
+    const title = c?.advisor?.title ?? c?.faculty?.title ?? c?.advisor_title ?? null;
+    const avatarRaw = c?.advisor?.avatar_url ?? c?.faculty?.avatar_url ?? c?.advisor_avatar_url ?? c?.faculty?.avatar ?? null;
+    const avatar = resolveAssetUrl(avatarRaw);
+    const id = c?.advisor?.id ?? c?.faculty?.id ?? c?.advisor_user_id ?? null;
+    return { ...c, faculty: { id, name, title, avatar } };
+  };
   const reloadConsultations = async () => {
     try {
       setIsLoading(true);
       const storedUser = localStorage.getItem('advisys_user');
       const parsed = storedUser ? JSON.parse(storedUser) : null;
       const studentId = parsed?.id || 1;
-      const res = await fetch(`${base}/api/students/${studentId}/consultations`, { headers: { ...authHeader } });
+      const res = await fetch(`${base}/api/consultations/students/${studentId}/consultations`, { headers: { ...authHeader } });
       const data = await res.json();
-      setAllConsultations(Array.isArray(data) ? data : []);
+      setAllConsultations(Array.isArray(data) ? data.map(shapeConsultation) : []);
     } catch (err) {
       console.error('Reload consultations failed', err);
     } finally {
@@ -79,11 +98,11 @@ export default function MyConsultationsPage() {
         const storedUser = localStorage.getItem('advisys_user');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const studentId = parsed?.id || 1;
-        const res = await fetch(`${base}/api/students/${studentId}/consultations`, {
+        const res = await fetch(`${base}/api/consultations/students/${studentId}/consultations`, {
           headers: { ...authHeader },
         });
         const data = await res.json();
-        setAllConsultations(Array.isArray(data) ? data : []);
+        setAllConsultations(Array.isArray(data) ? data.map(shapeConsultation) : []);
       } catch (err) {
         console.error('Failed to load consultations', err);
       } finally {
@@ -370,7 +389,8 @@ export default function MyConsultationsPage() {
 
   const handleRescheduleSuccess = async (updated) => {
     // Optimistically update local state then reload from server
-    setAllConsultations(prev => prev.map(c => c.id === updated.id ? { ...c, ...updated } : c));
+    const shaped = shapeConsultation(updated);
+    setAllConsultations(prev => prev.map(c => c.id === shaped.id ? { ...c, ...shaped } : c));
     await reloadConsultations();
     handleCloseRescheduleModal();
   };
@@ -696,6 +716,7 @@ export default function MyConsultationsPage() {
           onConfirm={handleConfirmCancel}
           consultation={consultationToCancel}
           isCancelling={isCancelling}
+          variant="admin"
         />
       )}
 

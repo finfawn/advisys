@@ -19,6 +19,15 @@ export default function StudentSettingsPage() {
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
 
+  // Normalize avatar URLs coming from backend (relative) or previews (blob:)
+  const resolveAssetUrl = (u) => {
+    if (!u) return null;
+    const s = String(u);
+    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+    if (s.startsWith('/')) return `${apiBase}${s}`;
+    return `${apiBase}/${s}`;
+  };
+
   // Mock student data
   const [studentData, setStudentData] = useState({
     firstName: "John Michael",
@@ -33,7 +42,7 @@ export default function StudentSettingsPage() {
   const [settings, setSettings] = useState({
     // Notification Settings
     emailNotifications: true,
-    consultationReminders: true
+    notificationsMuted: false
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -76,10 +85,28 @@ export default function StudentSettingsPage() {
           program: data.program || '',
           yearLevel: formatYearDisplay(data.year_level || '1'),
           email: data.email || '',
-          profilePicture: data.avatar_url || null,
+          profilePicture: resolveAssetUrl(data.avatar_url) || null,
         };
         setStudentData(mapped);
         setEditData(mapped);
+
+        // Load notification settings (email + master mute)
+        try {
+          const userId = data?.user_id || data?.id;
+          if (userId) {
+            const nRes = await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (nRes.ok) {
+              const ns = await nRes.json();
+              setSettings(prev => ({
+                ...prev,
+                emailNotifications: !!ns.emailNotifications,
+                notificationsMuted: !!ns.notificationsMuted,
+              }));
+            }
+          }
+        } catch (_) {}
       } catch (err) {
         console.error('Profile fetch error', err);
       }
@@ -111,7 +138,11 @@ export default function StudentSettingsPage() {
 
   const handleSave = async () => {
     // Clean up the old profile picture URL if it's being replaced
-    if (studentData.profilePicture && studentData.profilePicture !== editData.profilePicture) {
+    if (
+      studentData.profilePicture &&
+      studentData.profilePicture.startsWith('blob:') &&
+      studentData.profilePicture !== editData.profilePicture
+    ) {
       URL.revokeObjectURL(studentData.profilePicture);
     }
     try {
@@ -142,7 +173,11 @@ export default function StudentSettingsPage() {
 
   const handleCancel = () => {
     // Clean up any new profile picture URL that was created during editing
-    if (editData.profilePicture && editData.profilePicture !== studentData.profilePicture) {
+    if (
+      editData.profilePicture &&
+      editData.profilePicture.startsWith('blob:') &&
+      editData.profilePicture !== studentData.profilePicture
+    ) {
       URL.revokeObjectURL(editData.profilePicture);
     }
     setEditData({ ...studentData });
@@ -156,18 +191,47 @@ export default function StudentSettingsPage() {
     }));
   };
 
-  const handleSettingChange = (field, value) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: value
-    }));
+  const handleSettingChange = async (field, value) => {
+    const next = { ...settings, [field]: value };
+    setSettings(next);
+    try {
+      // Fetch current user id for settings persistence
+      const profRes = await fetch(`${apiBase}/api/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
+      const prof = await profRes.json();
+      const userId = prof?.user_id || prof?.id;
+      if (userId) {
+        const notifPayload = {
+          emailNotifications: next.emailNotifications,
+          notificationsMuted: next.notificationsMuted,
+        };
+        await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(notifPayload),
+        });
+      }
+    } catch (_) {}
   };
 
-  const handleToggleSetting = (field) => {
-    setSettings(prev => ({
-      ...prev,
-      [field]: !prev[field]
-    }));
+  const handleToggleSetting = async (field) => {
+    const next = { ...settings, [field]: !settings[field] };
+    setSettings(next);
+    try {
+      const profRes = await fetch(`${apiBase}/api/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
+      const prof = await profRes.json();
+      const userId = prof?.user_id || prof?.id;
+      if (userId) {
+        const notifPayload = {
+          emailNotifications: next.emailNotifications,
+          notificationsMuted: next.notificationsMuted,
+        };
+        await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify(notifPayload),
+        });
+      }
+    } catch (_) {}
   };
 
   const handleChangePassword = async () => {
@@ -202,26 +266,40 @@ export default function StudentSettingsPage() {
     // Implement account deletion functionality
   };
 
-  // Profile picture handlers
+  // Profile picture handlers: upload to backend and use returned URL
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select an image file');
-        return;
-      }
-      
-      // Validate file size (max 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        alert('File size must be less than 5MB');
-        return;
-      }
-
-      // Create preview URL
-      const previewUrl = URL.createObjectURL(file);
-      setEditData(prev => ({ ...prev, profilePicture: previewUrl }));
+    if (!file) return;
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file');
+      return;
     }
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      alert('File size must be less than 5MB');
+      return;
+    }
+    const headers = token ? { Authorization: `Bearer ${token}` } : {};
+    const form = new FormData();
+    form.append('avatar', file);
+    fetch(`${apiBase}/api/uploads/avatar`, {
+      method: 'POST',
+      headers,
+      body: form,
+    })
+      .then(async (res) => {
+        if (!res.ok) throw new Error('Upload failed');
+        const data = await res.json();
+        const uploadedPath = data?.url || null; // may be relative or absolute
+        const fullUrl = resolveAssetUrl(uploadedPath);
+        setEditData(prev => ({ ...prev, profilePicture: fullUrl }));
+      })
+      .catch((err) => {
+        console.error('Avatar upload failed; using local preview', err);
+        const previewUrl = URL.createObjectURL(file);
+        setEditData(prev => ({ ...prev, profilePicture: previewUrl }));
+      });
   };
 
 
@@ -540,14 +618,14 @@ export default function StudentSettingsPage() {
 
                       <div className="setting-item">
                         <div className="setting-info">
-                          <h4 className="setting-title">Consultation Reminders</h4>
-                          <p className="setting-description">Get reminded about upcoming consultations</p>
+                          <h4 className="setting-title">Mute Notifications</h4>
+                          <p className="setting-description">Turn off in-app notifications</p>
                         </div>
                         <label className="toggle-switch">
                           <input
                             type="checkbox"
-                            checked={settings.consultationReminders}
-                            onChange={() => handleToggleSetting('consultationReminders')}
+                            checked={settings.notificationsMuted}
+                            onChange={() => handleToggleSetting('notificationsMuted')}
                           />
                           <span className="toggle-slider"></span>
                         </label>

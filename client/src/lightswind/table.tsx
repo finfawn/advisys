@@ -3,16 +3,33 @@ import { cn } from "../lib/utils";
 
 export const Table = React.forwardRef<
   HTMLTableElement,
-  React.HTMLAttributes<HTMLTableElement>
->(({ className, ...props }, ref) => (
-  <div className="relative w-full max-h-[400px] overflow-auto rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-black shadow-sm">
-    <table
-      ref={ref}
-      className={cn("w-full text-sm text-left border-collapse", className)}
-      {...props}
-    />
-  </div>
-));
+  React.HTMLAttributes<HTMLTableElement> & {
+    containerClassName?: string;
+    containerStyle?: React.CSSProperties;
+    maxHeight?: string | number; // optional override for wrapper max-height
+  }
+>(({ className, containerClassName, containerStyle, maxHeight, ...props }, ref) => {
+  const style: React.CSSProperties = {
+    maxHeight: typeof maxHeight === "number" ? `${maxHeight}px` : maxHeight || "400px",
+    ...containerStyle,
+  };
+
+  return (
+    <div
+      className={cn(
+        "relative w-full overflow-auto rounded-lg border border-gray-200 dark:border-zinc-800 bg-white dark:bg-black shadow-sm",
+        containerClassName
+      )}
+      style={style}
+    >
+      <table
+        ref={ref}
+        className={cn("w-full text-sm text-left border-collapse", className)}
+        {...props}
+      />
+    </div>
+  );
+});
 Table.displayName = "Table";
 
 export const TableHeader = React.forwardRef<

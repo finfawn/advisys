@@ -37,7 +37,9 @@ function LogoutModal({
           <div className="logout-modal-body">
             <h3 className="logout-modal-title">Confirm Logout</h3>
             <p className="logout-modal-message">
-              Are you sure you want to logout? You will need to sign in again to access your account.
+              Are you sure you want to logout?
+              <br />
+              You'll need to sign in again to access your account.
             </p>
           </div>
 

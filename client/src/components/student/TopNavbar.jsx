@@ -22,6 +22,18 @@ function TopNavbar() {
 
   // Student display name sourced from local storage and profile API
   const [studentName, setStudentName] = useState("");
+  const [studentAvatar, setStudentAvatar] = useState(null);
+
+  // Normalize asset URLs (absolute, blob, or server-relative)
+  const resolveAssetUrl = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const u = url.trim();
+    if (!u) return null;
+    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
+    if (u.startsWith('/')) return `${base}${u}`;
+    return `${base}/${u.replace(/^\/*/, '')}`;
+  };
 
   // Load initial name from localStorage and refresh via /api/profile/me
   useEffect(() => {
@@ -30,6 +42,7 @@ function TopNavbar() {
       if (raw) {
         const u = JSON.parse(raw);
         if (u?.full_name) setStudentName(u.full_name);
+        if (u?.avatar_url) setStudentAvatar(resolveAssetUrl(u.avatar_url));
       }
     } catch (_) {}
 
@@ -44,6 +57,7 @@ function TopNavbar() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.full_name) setStudentName(data.full_name);
+        if (data?.avatar_url) setStudentAvatar(resolveAssetUrl(data.avatar_url));
       })
       .catch(() => {});
     return () => controller.abort();
@@ -327,8 +341,12 @@ function TopNavbar() {
             aria-expanded={isDropdownOpen}
             aria-haspopup="true"
           >
-            <div className="avatar small" aria-hidden>
-              <BsPersonCircle />
+            <div className="avatar small overflow-hidden" aria-hidden>
+              {studentAvatar ? (
+                <img src={studentAvatar} alt="Student avatar" className="w-full h-full object-cover" />
+              ) : (
+                <BsPersonCircle />
+              )}
             </div>
             <span className="user-name d-none d-md-inline">{studentName}</span>
             <BsChevronDown className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
@@ -338,8 +356,12 @@ function TopNavbar() {
             <div className="user-dropdown-menu">
               <div className="dropdown-header">
                 <div className="dropdown-user-info">
-                  <div className="dropdown-avatar">
-                    <BsPersonCircle />
+                  <div className="dropdown-avatar overflow-hidden">
+                    {studentAvatar ? (
+                      <img src={studentAvatar} alt="Student avatar" className="w-full h-full object-cover" />
+                    ) : (
+                      <BsPersonCircle />
+                    )}
                   </div>
                   <div className="dropdown-user-details">
                     <div className="dropdown-user-name">{studentName}</div>
@@ -385,13 +407,15 @@ function TopNavbar() {
       <AlertDialog open={showLogoutModal} onOpenChange={(open) => { if (!open) setShowLogoutModal(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Confirm Logout</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to logout? You'll need to sign in again.
+            <AlertDialogTitle className="leading-none text-center">Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              Are you sure you want to logout?
+              <br />
+              You'll need to sign in again to access your account.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="sm:items-center">
-            <AlertDialogCancel className="min-w-[96px] mt-0">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="sm:items-center sm:justify-between">
+            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={handleLogoutConfirm}>Logout</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

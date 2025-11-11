@@ -93,15 +93,15 @@ export default function DashboardSidebar({ collapsed, onToggle, onNavigate, clas
       >
         <AlertDialogContent className="max-w-md sm:max-w-lg">
           <AlertDialogHeader className="text-left">
-            <AlertDialogTitle className="leading-none">Confirm Logout</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="leading-none text-center">Confirm Logout</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
               {"Are you sure you want to logout?"}
               <br />
               {"You'll need to sign in again to access your account."}
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="sm:items-center">
-            <AlertDialogCancel className="min-w-[96px] mt-0">Cancel</AlertDialogCancel>
+          <AlertDialogFooter className="sm:items-center sm:justify-between">
+            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">Cancel</AlertDialogCancel>
             <AlertDialogAction
               className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={handleLogoutConfirm}

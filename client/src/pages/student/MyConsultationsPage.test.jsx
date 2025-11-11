@@ -61,7 +61,7 @@ describe('MyConsultationsPage', () => {
 
     vi.stubGlobal('fetch', vi.fn(async (input, init) => {
       const url = typeof input === 'string' ? input : input?.url || '';
-      if (url.includes('/api/students/') && url.includes('/consultations')) {
+      if (url.includes('/api/consultations/students/') && url.includes('/consultations')) {
         return {
           ok: true,
           json: async () => consultations,

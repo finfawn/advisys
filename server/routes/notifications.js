@@ -54,6 +54,18 @@ router.post('/', async (req, res) => {
     if (!user_id || !type || !title || !message) {
       return res.status(400).json({ error: 'Missing required fields: user_id, type, title, message' });
     }
+    // Respect master mute setting: if muted, suppress creation
+    try {
+      const [[row]] = await pool.query(
+        'SELECT notifications_muted FROM notification_settings WHERE user_id = ? LIMIT 1',
+        [user_id]
+      );
+      if (row && row.notifications_muted) {
+        return res.status(202).json({ success: true, suppressed: true });
+      }
+    } catch (_) {
+      // Ignore errors (missing table/column) and proceed
+    }
     const dataJson = data ? JSON.stringify(data) : null;
     const [result] = await pool.query(
       `INSERT INTO notifications (user_id, type, title, message, data_json) VALUES (?,?,?,?,?)`,
@@ -108,7 +120,9 @@ router.delete('/:id', authMiddleware, async (req, res) => {
   try {
     const id = req.params.id;
     const authUser = req.user || {};
+    console.log(`Attempting to delete notification with ID: ${id} for user: ${authUser.id}`);
     const [result] = await pool.query(`DELETE FROM notifications WHERE id = ? AND user_id = ?`, [id, authUser.id]);
+    console.log(`Delete notification result: ${JSON.stringify(result)}`);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Notification not found' });
     return res.json({ success: true });
   } catch (err) {
@@ -123,7 +137,9 @@ router.delete('/clear', authMiddleware, async (req, res) => {
   const pool = getPool();
   try {
     const authUser = req.user || {};
+    console.log(`Attempting to clear all notifications for user: ${authUser.id}`);
     const [result] = await pool.query(`DELETE FROM notifications WHERE user_id = ?`, [authUser.id]);
+    console.log(`Clear all notifications result: ${JSON.stringify(result)}`);
     return res.json({ success: true, deleted_count: result.affectedRows || 0 });
   } catch (err) {
     console.error('Clear notifications error', err);

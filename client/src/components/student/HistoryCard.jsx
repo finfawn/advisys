@@ -81,12 +81,21 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
         </div>
         
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0">
-            {consultation.faculty.avatar}
+          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+            {consultation?.faculty?.avatar ? (
+              typeof consultation.faculty.avatar === 'string' && consultation.faculty.avatar.startsWith('http') ? (
+                <img src={consultation.faculty.avatar} alt={consultation?.faculty?.name || 'Advisor'} className="w-full h-full object-cover" />
+              ) : (
+                // If avatar is not a URL (e.g., emoji or initial), render it directly
+                <span className="text-base leading-none">{consultation.faculty.avatar}</span>
+              )
+            ) : (
+              <BsPersonCircle className="w-6 h-6" />
+            )}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-gray-900 text-sm truncate">{consultation.faculty.name}</div>
-            <div className="text-xs text-gray-600 truncate">{consultation.faculty.title}</div>
+            <div className="font-semibold text-gray-900 text-sm truncate">{consultation?.faculty?.name || 'Advisor'}</div>
+            <div className="text-xs text-gray-600 truncate">{consultation?.faculty?.title || ''}</div>
           </div>
         </div>
         

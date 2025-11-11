@@ -122,8 +122,31 @@ function formatTimeRange(start, end) {
   return `${fmt(start)} - ${fmt(end)}`;
 }
 
+async function ensureNotificationsMutedColumn(poolOrConn) {
+  try {
+    const [cols] = await poolOrConn.query('SHOW COLUMNS FROM notification_settings LIKE "notifications_muted"');
+    if (!cols || cols.length === 0) {
+      await poolOrConn.query('ALTER TABLE notification_settings ADD COLUMN notifications_muted TINYINT(1) NOT NULL DEFAULT 0');
+    }
+  } catch (_) {
+    // ignore and continue
+  }
+}
+
+async function isNotificationsMuted(poolOrConn, userId) {
+  try {
+    await ensureNotificationsMutedColumn(poolOrConn);
+    const [[row]] = await poolOrConn.query('SELECT notifications_muted FROM notification_settings WHERE user_id = ? LIMIT 1', [userId]);
+    return !!(row && row.notifications_muted);
+  } catch (_) {
+    return false;
+  }
+}
+
 async function createNotification(poolOrConn, userId, type, title, message, data = null) {
   try {
+    const muted = await isNotificationsMuted(poolOrConn, userId);
+    if (muted) return null;
     const dataJson = data ? JSON.stringify(data) : null;
     await poolOrConn.query(
       `INSERT INTO notifications (user_id, type, title, message, data_json) VALUES (?,?,?,?,?)`,

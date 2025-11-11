@@ -17,6 +17,16 @@ export default function AdvisorSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
 
+  // Normalize avatar URLs coming from backend (relative) or previews (blob:)
+  const resolveAssetUrl = (u) => {
+    if (!u) return null;
+    const s = String(u);
+    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    if (s.startsWith('/')) return `${base}${s}`;
+    return `${base}/${s}`;
+  };
+
   // Mock advisor data
   const [advisorData, setAdvisorData] = useState({
     firstName: "",
@@ -24,7 +34,6 @@ export default function AdvisorSettingsPage() {
     department: "",
     position: "",
     email: "",
-    officeLocation: "",
     profilePicture: null
   });
 
@@ -32,8 +41,7 @@ export default function AdvisorSettingsPage() {
   const [settings, setSettings] = useState({
     // Notification Settings
     emailNotifications: true,
-    consultationReminders: true,
-    newRequestNotifications: true,
+    notificationsMuted: false,
     // Availability Settings
     autoAcceptRequests: false,
     maxDailyConsultations: 5
@@ -129,7 +137,6 @@ export default function AdvisorSettingsPage() {
       department: editData.department || null,
       title: editData.position || null,
       avatar_url: editData.profilePicture || null,
-      office_location: (editData.officeLocation ?? '').trim() || null,
     };
     fetch(`${base}/api/profile/me`, {
       method: 'PATCH',
@@ -151,10 +158,13 @@ export default function AdvisorSettingsPage() {
             department: p.department || editData.department || '',
             position: p.title || editData.position || '',
             email: p.email || editData.email || '',
-            profilePicture: p.avatar_url || editData.profilePicture || null,
-            officeLocation: p.office_location ?? editData.officeLocation ?? '',
+            profilePicture: resolveAssetUrl(p.avatar_url) || editData.profilePicture || null,
           };
-          if (advisorData.profilePicture && advisorData.profilePicture !== editData.profilePicture) {
+          if (
+            advisorData.profilePicture &&
+            advisorData.profilePicture.startsWith('blob:') &&
+            advisorData.profilePicture !== editData.profilePicture
+          ) {
             URL.revokeObjectURL(advisorData.profilePicture);
           }
           setAdvisorData(nextAdvisor);
@@ -173,7 +183,11 @@ export default function AdvisorSettingsPage() {
   };
 
   const handleCancel = () => {
-    if (editData.profilePicture && editData.profilePicture !== advisorData.profilePicture) {
+    if (
+      editData.profilePicture &&
+      editData.profilePicture.startsWith('blob:') &&
+      editData.profilePicture !== advisorData.profilePicture
+    ) {
       URL.revokeObjectURL(editData.profilePicture);
     }
     setEditData({ ...advisorData });
@@ -209,8 +223,7 @@ export default function AdvisorSettingsPage() {
       } else {
         const notifPayload = {
           emailNotifications: next.emailNotifications,
-          consultationReminders: next.consultationReminders,
-          newRequestNotifications: next.newRequestNotifications,
+          notificationsMuted: next.notificationsMuted,
         };
         fetch(`${base}/api/settings/users/${advisorId}/notifications`, {
           method: 'PATCH',
@@ -233,8 +246,7 @@ export default function AdvisorSettingsPage() {
       const next = { ...prev, [field]: !prev[field] };
       const notifPayload = {
         emailNotifications: next.emailNotifications,
-        consultationReminders: next.consultationReminders,
-        newRequestNotifications: next.newRequestNotifications,
+        notificationsMuted: next.notificationsMuted,
       };
       fetch(`${base}/api/settings/users/${advisorId}/notifications`, {
         method: 'PATCH',
@@ -367,8 +379,8 @@ export default function AdvisorSettingsPage() {
         .then(async (res) => {
           if (!res.ok) throw new Error('Upload failed');
           const data = await res.json();
-          const uploadedPath = data?.url || null; // e.g., /uploads/avatars/...
-          const fullUrl = uploadedPath ? `${base}${uploadedPath}` : null;
+          const uploadedPath = data?.url || null; // relative or absolute
+          const fullUrl = resolveAssetUrl(uploadedPath);
           if (fullUrl) {
             handleInputChange('profilePicture', fullUrl);
           } else {
@@ -408,8 +420,7 @@ export default function AdvisorSettingsPage() {
           department: p.department || '',
           position: p.title || '',
           email: p.email || prev.email || '',
-          profilePicture: p.avatar_url || null,
-          officeLocation: p.office_location || '',
+          profilePicture: resolveAssetUrl(p.avatar_url) || null,
         }));
         setEditData(ed => ({
           ...ed,
@@ -418,7 +429,6 @@ export default function AdvisorSettingsPage() {
           department: p.department || '',
           position: p.title || '',
           email: p.email || ed.email || '',
-          officeLocation: p.office_location || '',
         }));
       }
       } catch (_) {}
@@ -439,9 +449,7 @@ export default function AdvisorSettingsPage() {
             guidelines: Array.isArray(a.consultationGuidelines) ? a.consultationGuidelines : [],
             courses: Array.isArray(a.coursesTaught) ? a.coursesTaught : [],
           });
-          setEditTopicsText((Array.isArray(a.topicsCanHelpWith) ? a.topicsCanHelpWith : []).join('\n'));
-          setEditGuidelinesText((Array.isArray(a.consultationGuidelines) ? a.consultationGuidelines : []).join('\n'));
-          setEditCoursesText((Array.isArray(a.coursesTaught) ? a.coursesTaught : []).join('\n'));
+          // Legacy text-area states removed; lists are managed directly
         }
       } catch (_) {}
 
@@ -452,8 +460,7 @@ export default function AdvisorSettingsPage() {
           setSettings(prev => ({
             ...prev,
             emailNotifications: !!n.emailNotifications,
-            consultationReminders: !!n.consultationReminders,
-            newRequestNotifications: !!n.newRequestNotifications,
+            notificationsMuted: !!n.notificationsMuted,
           }));
         }
       } catch (_) {}
@@ -674,8 +681,8 @@ export default function AdvisorSettingsPage() {
                     {/* Profile Picture */}
                     <div className="profile-picture-section">
                       <div className="profile-picture-container">
-                        {editData.profilePicture ? (
-                          <img src={editData.profilePicture} alt="Profile" className="profile-picture" />
+                        {displayData.profilePicture ? (
+                          <img src={displayData.profilePicture} alt="Profile" className="profile-picture" />
                         ) : (
                           <div className="profile-picture-placeholder">
                             <BsPersonCircle />
@@ -769,19 +776,7 @@ export default function AdvisorSettingsPage() {
                             <div className="info-value">{advisorData.department}</div>
                           )}
                         </div>
-                        <div className="info-field">
-                          <label className="info-label">Office Location</label>
-                          {isEditing ? (
-                            <input
-                              type="text"
-                              className="info-input"
-                              value={editData.officeLocation}
-                              onChange={(e) => handleInputChange('officeLocation', e.target.value)}
-                            />
-                          ) : (
-                            <div className="info-value">{advisorData.officeLocation}</div>
-                          )}
-                        </div>
+                        {/* Office Location field removed */}
                       </div>
 
                       <div className="info-field full-width">
@@ -818,29 +813,14 @@ export default function AdvisorSettingsPage() {
 
                       <div className="setting-item">
                         <div className="setting-info">
-                          <h4 className="setting-title">Consultation Reminders</h4>
-                          <p className="setting-description">Get reminded about upcoming consultations</p>
+                          <h4 className="setting-title">Mute Notifications</h4>
+                          <p className="setting-description">Turn off in-app notifications</p>
                         </div>
                         <label className="toggle-switch">
                           <input
                             type="checkbox"
-                            checked={settings.consultationReminders}
-                            onChange={() => handleToggleSetting('consultationReminders')}
-                          />
-                          <span className="toggle-slider"></span>
-                        </label>
-                      </div>
-
-                      <div className="setting-item">
-                        <div className="setting-info">
-                          <h4 className="setting-title">New Request Notifications</h4>
-                          <p className="setting-description">Get notified when students request consultations</p>
-                        </div>
-                        <label className="toggle-switch">
-                          <input
-                            type="checkbox"
-                            checked={settings.newRequestNotifications}
-                            onChange={() => handleToggleSetting('newRequestNotifications')}
+                            checked={settings.notificationsMuted}
+                            onChange={() => handleToggleSetting('notificationsMuted')}
                           />
                           <span className="toggle-slider"></span>
                         </label>
