@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
   const pool = getPool();
   try {
     const [rows] = await pool.query(
-      `SELECT u.id, u.full_name, ap.title, ap.department, ap.status
+      `SELECT u.id, u.full_name, ap.title, ap.department, ap.status, ap.avatar_url, ap.office_location
        FROM users u
        LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE u.role = 'advisor' AND u.status = 'active'`
@@ -73,6 +73,9 @@ router.get('/', async (req, res) => {
         time: timeRange,
         mode: modeStr,
         coursesTaught: courses,
+        // Include avatar so clients can show profile pictures in advisor cards
+        avatar: row.avatar_url || null,
+        officeLocation: row.office_location || null,
       });
     }
     res.json(result);
@@ -344,6 +347,78 @@ router.post('/:id/slots', async (req, res) => {
   }
 });
 
+// PATCH /api/advisors/:id/slots/:slotId
+// Update a single advisor slot's datetime/mode/room
+router.patch('/:id/slots/:slotId', async (req, res) => {
+  const pool = getPool();
+  const advisorId = Number(req.params.id);
+  const slotId = Number(req.params.slotId);
+  try {
+    // Fetch existing slot
+    const [[existing]] = await pool.query(
+      `SELECT id, advisor_user_id, start_datetime, end_datetime, mode, room
+       FROM advisor_slots WHERE id = ? AND advisor_user_id = ?`,
+      [slotId, advisorId]
+    );
+    if (!existing) return res.status(404).json({ error: 'Slot not found' });
+
+    const { start_datetime, end_datetime, mode, room } = req.body || {};
+    // Helper: parse local ISO as Asia/Manila wall time
+    const parseManilaLocal = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      if (typeof val === 'string') {
+        const s = val.trim();
+        if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+          const d = new Date(s);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        const withSeconds = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s) ? `${s}:00` : s;
+        const d = new Date(`${withSeconds}+08:00`);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const d = new Date(val);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const newStart = start_datetime ? parseManilaLocal(start_datetime) : new Date(existing.start_datetime);
+    const newEnd = end_datetime ? parseManilaLocal(end_datetime) : new Date(existing.end_datetime);
+    if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
+      return res.status(400).json({ error: 'Invalid datetime format in payload' });
+    }
+    // Guard: disallow updating slot to a past day
+    const today = new Date();
+    const startDay = new Date(newStart.getFullYear(), newStart.getMonth(), newStart.getDate());
+    const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    if (startDay < todayDay) {
+      return res.status(400).json({ error: 'Cannot move slots to past days' });
+    }
+
+    const newMode = mode ? normalizeMode(mode) : existing.mode;
+    const newRoom = typeof room !== 'undefined' ? (room || null) : existing.room;
+
+    const [result] = await pool.query(
+      `UPDATE advisor_slots SET start_datetime = ?, end_datetime = ?, mode = ?, room = ?
+       WHERE id = ? AND advisor_user_id = ?`,
+      [newStart, newEnd, newMode, newRoom, slotId, advisorId]
+    );
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'Slot not found' });
+
+    res.json({
+      id: slotId,
+      advisor_user_id: advisorId,
+      start_datetime: newStart,
+      end_datetime: newEnd,
+      mode: newMode,
+      room: newRoom,
+      status: 'available',
+    });
+  } catch (err) {
+    console.error('Advisor slot update error', err);
+    res.status(500).json({ error: 'Failed to update slot' });
+  }
+});
+
 // DELETE /api/advisors/:id/slots/:slotId
 router.delete('/:id/slots/:slotId', async (req, res) => {
   const pool = getPool();
@@ -435,6 +510,21 @@ router.patch('/:id/consultation-settings', async (req, res) => {
 
     // Replace courses list; accept multiple input shapes
     try {
+      // Detect if subject_code/subject_name columns exist; fall back if not
+      let hasSubjectColumns = true;
+      try {
+        await conn.query(`SELECT subject_code, subject_name FROM advisor_courses LIMIT 1`);
+      } catch (colErr) {
+        if (colErr && (colErr.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(colErr.message))) {
+          hasSubjectColumns = false;
+        } else if (colErr && (colErr.code === 'ER_NO_SUCH_TABLE' || colErr.errno === 1146)) {
+          console.warn('advisor_courses missing; skipping courses update');
+          hasSubjectColumns = false;
+        } else {
+          throw colErr;
+        }
+      }
+
       await conn.query(`DELETE FROM advisor_courses WHERE advisor_user_id = ?`, [advisorId]);
       for (const crs of cList) {
         if (crs && typeof crs === 'object') {
@@ -442,24 +532,40 @@ router.patch('/:id/consultation-settings', async (req, res) => {
           const name = String(crs.name || crs.subject_name || crs.course_name || '').trim() || null;
           const legacy = name || code; // keep something in course_name for compatibility
           if (name || code) {
-            await conn.query(
-              `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
-              [advisorId, legacy, code, name]
-            );
+            if (hasSubjectColumns) {
+              await conn.query(
+                `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
+                [advisorId, legacy, code, name]
+              );
+            } else {
+              await conn.query(
+                `INSERT INTO advisor_courses (advisor_user_id, course_name) VALUES (?,?)`,
+                [advisorId, legacy]
+              );
+            }
           }
         } else {
           const v = String(crs || '').trim();
           if (v) {
-            await conn.query(
-              `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
-              [advisorId, v, null, v]
-            );
+            if (hasSubjectColumns) {
+              await conn.query(
+                `INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)`,
+                [advisorId, v, null, v]
+              );
+            } else {
+              await conn.query(
+                `INSERT INTO advisor_courses (advisor_user_id, course_name) VALUES (?,?)`,
+                [advisorId, v]
+              );
+            }
           }
         }
       }
     } catch (e) {
       if (e && (e.code === 'ER_NO_SUCH_TABLE' || e.errno === 1146)) {
         console.warn('advisor_courses missing; skipping courses update');
+      } else if (e && (e.code === 'ER_BAD_FIELD_ERROR' || /Unknown column/i.test(e.message))) {
+        console.warn('advisor_courses subject columns not found; saved course_name only');
       } else {
         throw e;
       }

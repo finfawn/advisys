@@ -106,90 +106,56 @@
 }
 
 .modal-content {
-  padding: 24px;
+  padding: 16px 24px;
 }
 
-/* Consultation Summary */
-.cancel-consultation-modal .consultation-summary,
-.admin-modal-body .consultation-summary {
-  margin-bottom: 24px;
-}
-
-.cancel-consultation-modal .summary-title,
-.admin-modal-body .summary-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: #1f2937;
-  margin: 0 0 16px 0;
-}
-
-.cancel-consultation-modal .summary-content,
-.admin-modal-body .summary-content {
+/* Consultation Info - compact form style (aligns with Decline modal) */
+.consultation-info {
   background: #f9fafb;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   padding: 16px;
-  display: block; /* prevent grid overrides from other pages */
+  margin-bottom: 16px;
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-row-gap: 6px;
 }
 
-.cancel-consultation-modal .summary-item,
-.admin-modal-body .summary-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 12px;
+.info-label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  margin: 0;
 }
 
-.cancel-consultation-modal .summary-item:last-child,
-.admin-modal-body .summary-item:last-child {
+.info-value {
+  font-size: 0.95rem;
+  color: #1f2937;
+  margin: 0 0 8px 0;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.info-value:last-child {
   margin-bottom: 0;
 }
 
-.cancel-consultation-modal .summary-icon,
-.admin-modal-body .summary-icon {
-  color: #6b7280;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-  width: auto; /* ensure icon doesn't allocate a wide column */
-}
-
-.cancel-consultation-modal .summary-text,
-.admin-modal-body .summary-text {
+.info-value.with-icon {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
+  align-items: center;
+  gap: 8px;
 }
 
-.cancel-consultation-modal .summary-topic,
-.admin-modal-body .summary-topic {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  margin-top: 8px;
-  padding-top: 12px;
-  border-top: 1px solid #e5e7eb;
-}
-
-.cancel-consultation-modal .summary-label,
-.admin-modal-body .summary-label {
-  font-size: 0.85rem;
-  font-weight: 500;
+.inline-icon {
   color: #6b7280;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.cancel-consultation-modal .summary-value,
-.admin-modal-body .summary-value {
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #1f2937;
 }
 
 /* Cancellation Reason Section */
 .cancel-consultation-modal .cancellation-reason-section,
 .admin-modal-body .cancellation-reason-section {
-  margin-bottom: 24px;
+  margin-bottom: 16px;
 }
 
 .cancel-consultation-modal .reason-title,
@@ -333,7 +299,7 @@
 .modal-footer {
   display: flex;
   gap: 12px;
-  padding: 20px 24px;
+  padding: 16px 24px;
   border-top: 1px solid #e5e7eb;
   justify-content: flex-end;
 }

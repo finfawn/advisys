@@ -16,21 +16,34 @@ function AdvisorCard({
   mode = "In-person/Online",
   coursesTaught = ["CS 101", "CS 301", "CS 401"],
   advisorId = "1",
+  avatar = null,
+  officeLocation = null,
   onBookClick,
   onNavigateToConsultations
 }) {
+  // Normalize asset URLs (absolute, blob, or server-relative)
+  const resolveAssetUrl = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const u = url.trim();
+    if (!u) return null;
+    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
+    if (u.startsWith('/')) return `${base}${u}`;
+    return `${base}/${u.replace(/^\/*/, '')}`;
+  };
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [facultyData, setFacultyData] = useState({
     id: advisorId,
     name,
     title,
-    avatar: null,
+    avatar: resolveAssetUrl(avatar) || null,
     subjects: ["Academic Planning", "Course Selection", "Research Guidance"],
     availability: schedule && time ? `Available ${schedule}, ${time}` : null,
     status,
     schedule,
     time,
     coursesTaught,
+    officeLocation,
   });
   const navigate = useNavigate();
 
@@ -50,6 +63,9 @@ function AdvisorCard({
         schedule,
         time,
         coursesTaught: data.coursesTaught || coursesTaught,
+        topicsCanHelpWith: data.topicsCanHelpWith || [],
+        avatar: resolveAssetUrl(data.avatar) || resolveAssetUrl(avatar) || null,
+        officeLocation: data.officeLocation || officeLocation || null,
       };
       setFacultyData(merged);
     } catch (err) {
@@ -119,7 +135,11 @@ function AdvisorCard({
         <CardHeader spacing="compact" className="pb-3">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl flex-shrink-0">
-              <BsPersonCircle />
+              {facultyData.avatar ? (
+                <img src={facultyData.avatar} alt={`${name}'s avatar`} className="w-full h-full rounded-full object-cover" />
+              ) : (
+                <BsPersonCircle />
+              )}
             </div>
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 text-base truncate">{name}</div>
@@ -136,8 +156,8 @@ function AdvisorCard({
                   // Prefer course code for compact pills; fallback to name
                   const label = (typeof course === 'string')
                     ? course
-                    : (course?.subject_code || course?.code || course?.course_code || course?.name || course?.course_name || '');
-                  if (!label) return null;
+                    : (course?.subject_code || course?.code || course?.course_code || '');
+                  if (!label) return null; // hide when no code available
                   return (
                     <Badge key={index} variant="outline" size="sm" className="text-xs font-semibold">
                       {label}
@@ -176,6 +196,15 @@ function AdvisorCard({
               >
                 {modeInfo.icons}
                 {modeInfo.text}
+              </Badge>
+            </div>
+          )}
+
+          {!!facultyData.officeLocation && (
+            <div className="mt-2">
+              <Badge variant="secondary" size="sm" className="flex items-center gap-1 w-fit">
+                <BsGeoAlt className="w-3 h-3" />
+                {facultyData.officeLocation}
               </Badge>
             </div>
           )}

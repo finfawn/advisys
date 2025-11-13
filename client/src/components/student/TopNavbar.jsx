@@ -63,17 +63,34 @@ function TopNavbar() {
     return () => controller.abort();
   }, []);
 
-  // Mock faculty data for search
-  const facultyData = [
-    { id: 1, name: "Dr. Maria Santos", title: "Professor of Computer Science", department: "Computer Science", courses: ["CS 101", "CS 301", "CS 401"] },
-    { id: 2, name: "Prof. John Cruz", title: "Associate Professor of Mathematics", department: "Mathematics", courses: ["MATH 101", "MATH 201", "MATH 301"] },
-    { id: 3, name: "Ms. Sarah Reyes", title: "Assistant Professor of Physics", department: "Physics", courses: ["PHYS 101", "PHYS 201"] },
-    { id: 4, name: "Dr. Michael Dela Cruz", title: "Professor of Chemistry", department: "Chemistry", courses: ["CHEM 101", "CHEM 201", "CHEM 301"] },
-    { id: 5, name: "Prof. Lisa Garcia", title: "Associate Professor of Biology", department: "Biology", courses: ["BIO 101", "BIO 201"] },
-    { id: 6, name: "Dr. Robert Martinez", title: "Professor of Engineering", department: "Engineering", courses: ["ENG 101", "ENG 201", "ENG 301"] },
-    { id: 7, name: "Dr. Jennifer Lee", title: "Professor of Psychology", department: "Psychology", courses: ["PSY 101", "PSY 201", "PSY 301"] },
-    { id: 8, name: "Prof. David Kim", title: "Associate Professor of Statistics", department: "Statistics", courses: ["STAT 101", "STAT 201"] }
-  ];
+  // Advisors list for real search results
+  const [allAdvisors, setAllAdvisors] = useState([]);
+  const [isLoadingAdvisors, setIsLoadingAdvisors] = useState(false);
+  useEffect(() => {
+    const fetchAdvisors = async () => {
+      try {
+        setIsLoadingAdvisors(true);
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const res = await fetch(`${base}/api/advisors`);
+        const data = await res.json();
+        const shaped = Array.isArray(data) ? data.map(a => ({
+          id: a.id,
+          name: a.name,
+          title: a.title,
+          department: a.department,
+          avatar: resolveAssetUrl(a.avatar),
+          coursesTaught: Array.isArray(a.coursesTaught) ? a.coursesTaught : [],
+        })) : [];
+        setAllAdvisors(shaped);
+      } catch (err) {
+        console.error('Failed to load advisors for search', err);
+        setAllAdvisors([]);
+      } finally {
+        setIsLoadingAdvisors(false);
+      }
+    };
+    fetchAdvisors();
+  }, []);
 
   const handleLogoClick = () => {
     navigate('/');
@@ -149,18 +166,22 @@ function TopNavbar() {
     setIsDropdownOpen(false);
   };
 
-  // Search functionality
+  // Search functionality (client-filter over advisors API)
   const handleSearchChange = (e) => {
     const query = e.target.value;
     setSearchQuery(query);
     
     if (query.trim().length > 0) {
-      const results = facultyData.filter(faculty => 
-        faculty.name.toLowerCase().includes(query.toLowerCase()) ||
-        faculty.title.toLowerCase().includes(query.toLowerCase()) ||
-        faculty.department.toLowerCase().includes(query.toLowerCase()) ||
-        faculty.courses.some(course => course.toLowerCase().includes(query.toLowerCase()))
-      );
+      const q = query.toLowerCase();
+      const results = (allAdvisors || []).filter(a => {
+        const inName = (a.name || '').toLowerCase().includes(q);
+        const inTitle = (a.title || '').toLowerCase().includes(q);
+        const inDept = (a.department || '').toLowerCase().includes(q);
+        const inCourses = Array.isArray(a.coursesTaught) && a.coursesTaught.some(c =>
+          String(c?.name || c?.subject_code || '').toLowerCase().includes(q)
+        );
+        return inName || inTitle || inDept || inCourses;
+      });
       setSearchResults(results.slice(0, 5)); // Limit to 5 results
       setShowSearchResults(true);
     } else {
@@ -300,7 +321,11 @@ function TopNavbar() {
                   onClick={() => handleSearchResultClick(faculty)}
                 >
                   <div className="result-avatar">
-                    <BsPersonCircle />
+                    {faculty.avatar ? (
+                      <img src={faculty.avatar} alt="Advisor avatar" className="w-full h-full object-cover rounded-full" />
+                    ) : (
+                      <BsPersonCircle />
+                    )}
                   </div>
                   <div className="result-info">
                     <div className="result-name">{faculty.name}</div>

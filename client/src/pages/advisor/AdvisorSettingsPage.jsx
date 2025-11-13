@@ -12,6 +12,7 @@ import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectan
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorSettingsPage.css";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 
 export default function AdvisorSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -52,6 +53,7 @@ export default function AdvisorSettingsPage() {
   const [activeSection, setActiveSection] = useState("profile");
   const displayData = isEditing ? editData : advisorData;
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [departmentOptions, setDepartmentOptions] = useState([]);
 
   // Consultation profile state
   const [consultationData, setConsultationData] = useState({
@@ -132,6 +134,10 @@ export default function AdvisorSettingsPage() {
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
     const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
     const fullName = `${(editData.firstName || '').trim()} ${(editData.lastName || '').trim()}`.trim();
+    if (!String(editData.department || '').trim()) {
+      alert('Please select a department');
+      return;
+    }
     const body = {
       full_name: fullName,
       department: editData.department || null,
@@ -292,11 +298,21 @@ export default function AdvisorSettingsPage() {
   const handleSaveConsultation = () => {
     const sanitize = (arr) => (arr || []).map(s => (s || "").trim()).filter(Boolean);
     const sanitizeCourses = (arr) => (arr || [])
-      .map(c => ({
-        code: (c?.code || "").trim() || null,
-        name: (c?.name || "").trim() || null,
-      }))
-      .filter(c => c.name || c.code);
+      .map(c => {
+        const codeRaw = (c?.code || c?.subject_code || "").trim();
+        const nameRaw = (c?.name || c?.subject_name || "").trim();
+        if (!codeRaw || !nameRaw) return null;
+        const code = codeRaw.slice(0, 50);
+        const name = nameRaw.slice(0, 255);
+        return {
+          code,
+          name,
+          subject_code: code,
+          subject_name: name,
+          course_name: name,
+        };
+      })
+      .filter(Boolean);
     const updated = {
       ...editConsultation,
       topics: sanitize(editConsultation.topics),
@@ -313,9 +329,28 @@ export default function AdvisorSettingsPage() {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeader },
       body: JSON.stringify(updated),
-    }).then(() => {
-      setConsultationData(updated);
-      setEditConsultation(updated);
+    }).then(async (res) => {
+      // After save, refetch advisor profile to display persisted data
+      try {
+        const aRes = await fetch(`${base}/api/advisors/${advisorId}`);
+        if (aRes.ok) {
+          const a = await aRes.json();
+          const next = {
+            bio: a.bio || updated.bio || '',
+            topics: Array.isArray(a.topicsCanHelpWith) ? a.topicsCanHelpWith : (updated.topics || []),
+            guidelines: Array.isArray(a.consultationGuidelines) ? a.consultationGuidelines : (updated.guidelines || []),
+            courses: Array.isArray(a.coursesTaught) ? a.coursesTaught : (updated.courses || []),
+          };
+          setConsultationData(next);
+          setEditConsultation(next);
+        } else {
+          setConsultationData(updated);
+          setEditConsultation(updated);
+        }
+      } catch (_) {
+        setConsultationData(updated);
+        setEditConsultation(updated);
+      }
       setIsEditingConsult(false);
     }).catch(() => {
       setConsultationData(updated);
@@ -475,6 +510,12 @@ export default function AdvisorSettingsPage() {
             maxDailyConsultations: Number(s.maxDailyConsultations || prev.maxDailyConsultations || 10),
           }));
         }
+      } catch (_) {}
+
+      try {
+        const dRes = await fetch(`${base}/api/departments`);
+        const list = await dRes.json();
+        setDepartmentOptions(Array.isArray(list) ? list : []);
       } catch (_) {}
     };
     loadAll();
@@ -766,12 +807,20 @@ export default function AdvisorSettingsPage() {
                         <div className="info-field">
                           <label className="info-label">Department</label>
                           {isEditing ? (
-                            <input
-                              type="text"
-                              className="info-input"
-                              value={editData.department}
-                              onChange={(e) => handleInputChange('department', e.target.value)}
-                            />
+                            <Select value={editData.department || ""} onValueChange={(v) => handleInputChange('department', v)}>
+                              <SelectTrigger className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-white">
+                                <SelectValue placeholder="Select department" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                {departmentOptions.length > 0 ? (
+                                  departmentOptions.map((d) => (
+                                    <SelectItem key={d.id} value={d.name}>{d.name}</SelectItem>
+                                  ))
+                                ) : (
+                                  <SelectItem value="College of Information Technology">College of Information Technology</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
                           ) : (
                             <div className="info-value">{advisorData.department}</div>
                           )}
@@ -1019,9 +1068,9 @@ export default function AdvisorSettingsPage() {
                       )}
                     </section>
 
-                    {/* Courses */}
+                    {/* Subjects */}
                     <section className="consult-section">
-                      <h3 className="consult-subtitle">Courses Taught</h3>
+                      <h3 className="consult-subtitle">Subjects Taught</h3>
                       {!isEditingConsult ? (
                         <ul className="courses-list">
                           {(consultationData.courses || []).map((c, i) => {

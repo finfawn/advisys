@@ -40,12 +40,56 @@ const HistoryConsultationDetailsPage = () => {
   const [savingNotes, setSavingNotes] = useState(false);
   const [saveNotesSuccess, setSaveNotesSuccess] = useState(false);
 
+  // Normalize asset URLs (http/https/blob unchanged; relative prefixed with API base)
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const resolveAssetUrl = (u) => {
+    if (!u) return null;
+    const s = String(u);
+    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+    if (s.startsWith('/')) return `${base}${s}`;
+    return `${base}/${s}`;
+  };
+
+  // Shape consultation with normalized faculty and readable date/time
+  const shapeConsultation = (c) => {
+    if (!c) return null;
+    const name = c?.advisor?.name ?? c?.faculty?.name ?? c?.advisor_name ?? c?.faculty?.full_name ?? null;
+    const title = c?.advisor?.title ?? c?.faculty?.title ?? c?.advisor_title ?? null;
+    const department = c?.advisor?.department ?? c?.faculty?.department ?? c?.advisor_department ?? null;
+    const avatarRaw = c?.advisor?.avatar_url ?? c?.faculty?.avatar_url ?? c?.advisor_avatar_url ?? c?.faculty?.avatar ?? null;
+    const facultyId = c?.advisor?.id ?? c?.faculty?.id ?? c?.advisor_user_id ?? null;
+    const faculty = { id: facultyId, name, title, department, avatar: resolveAssetUrl(avatarRaw) };
+
+    const startRaw = c?.start_datetime || c?.start || null;
+    const endRaw = c?.end_datetime || c?.end || null;
+    let date = c?.date || null;
+    let time = c?.time || null;
+    try {
+      if (!date && startRaw) {
+        const d = new Date(startRaw);
+        if (!isNaN(d.getTime())) {
+          date = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+      }
+      if (!time && startRaw && endRaw) {
+        const s = new Date(startRaw);
+        const e = new Date(endRaw);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+          const fmt = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          time = `${fmt(s)} - ${fmt(e)}`;
+        }
+      }
+    } catch (_) {}
+
+    const mode = (c?.mode === 'face_to_face' || c?.mode === 'in_person' || c?.mode === 'in-person') ? 'in-person' : (c?.mode || 'in-person');
+    return { ...c, faculty, date, time, mode };
+  };
+
   useEffect(() => {
     const userStr = localStorage.getItem('advisys_user');
     const token = localStorage.getItem('advisys_token');
     const user = userStr ? JSON.parse(userStr) : null;
     const studentId = user?.id || user?.studentId || null;
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     if (!studentId) {
       setError('Missing student session');
@@ -58,8 +102,29 @@ const HistoryConsultationDetailsPage = () => {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
         if (found) {
-          setConsultation(found);
+          const shaped = shapeConsultation(found);
+          setConsultation(shaped);
           if (found?.studentPrivateNotes) setNotesDraft(found.studentPrivateNotes);
+          const advisorId = shaped?.faculty?.id;
+          const needsEnrich = !shaped?.faculty?.department || !shaped?.faculty?.title || !shaped?.faculty?.avatar;
+          if (advisorId && needsEnrich) {
+            fetch(`${base}/api/advisors/${advisorId}`)
+              .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+              .then(profile => {
+                const enriched = {
+                  ...shaped,
+                  faculty: {
+                    ...shaped.faculty,
+                    name: shaped.faculty.name || profile?.full_name || profile?.name || null,
+                    title: shaped.faculty.title || profile?.title || null,
+                    department: shaped.faculty.department || profile?.department || null,
+                    avatar: shaped.faculty.avatar || resolveAssetUrl(profile?.avatar || profile?.avatar_url || null),
+                  }
+                };
+                setConsultation(enriched);
+              })
+              .catch(err => console.warn('Advisor profile enrich failed', err.message));
+          }
         }
         else setError('Consultation not found');
       })
@@ -243,7 +308,7 @@ const HistoryConsultationDetailsPage = () => {
           <div className="consultation-details-back">
             <button 
               className="back-button"
-              onClick={() => navigate('/student-dashboard/consultations')}
+              onClick={() => navigate('/student-dashboard/consultations?tab=history')}
             >
               <BsChevronLeft />
               Back to My Consultations

@@ -535,7 +535,7 @@ export default function ConsultationSlotModal({
               <div className="time-input-wrapper">
                 <Input
                   type="time"
-                  step="900"
+                  step="60"
                   value={draftStart || ""}
                   onChange={(e) => setDraftStart(e.target.value)}
                   onBlur={() => handleStartChange(normalizeToHHmm(draftStart))}
@@ -551,7 +551,7 @@ export default function ConsultationSlotModal({
               <div className="time-input-wrapper">
                 <Input
                   type="time"
-                  step="900"
+                  step="60"
                   value={draftEnd || ""}
                   onChange={(e) => setDraftEnd(e.target.value)}
                   onBlur={() => handleEndChange(normalizeToHHmm(draftEnd))}

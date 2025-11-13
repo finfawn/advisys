@@ -9,6 +9,14 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
+// Global error handlers to avoid hard crashes on startup
+process.on('uncaughtException', (err) => {
+  console.error('Uncaught exception:', err);
+});
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled rejection:', reason);
+});
+
 // Serve uploaded files statically under /uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
@@ -37,6 +45,11 @@ app.use('/api', transcriptionsRouter);
 // File uploads (avatars, etc.)
 const uploadsRouter = require('./routes/uploads');
 app.use('/api/uploads', uploadsRouter);
+// Departments and Programs
+const departmentsRouter = require('./routes/departments');
+app.use('/api/departments', departmentsRouter);
+const programsRouter = require('./routes/programs');
+app.use('/api/programs', programsRouter);
 // AI Debug routes
 const aiDebugRouter = require('./routes/ai_debug');
 app.use('/api', aiDebugRouter);
@@ -46,8 +59,14 @@ app.use('/api/stream', streamRouter);
 // RS256 JaaS JWT generation and Settings Provisioning: mount only if using JaaS
 
 
+// Auto-migrate database on server start
+const { autoMigrate } = require('./db/auto_migrate');
+autoMigrate().catch((err) => console.error('Auto-migrate startup error:', err));
+
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
+// health check for Cloud Run
+app.get('/healthz', (req, res) => res.status(200).json({ ok: true }));
 
 // Temporary debug: list registered routes (method and path)
 // NOTE: This is for debugging and can be removed later.
@@ -385,6 +404,6 @@ async function runAdvisorSlotsCleanupJob() {
 // Kick off periodic advisor slots cleanup job
 setInterval(runAdvisorSlotsCleanupJob, SLOTS_CLEANUP_POLL_MS);
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`Server started on port ${PORT}`));
+const PORT = process.env.PORT || 8080;
+app.listen(PORT, '0.0.0.0', () => console.log(`Server started on port ${PORT}`));
 

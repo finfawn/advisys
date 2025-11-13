@@ -100,36 +100,18 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
     <div className="modal-content">
       {!showConfirmation ? (
         <>
-          {/* Consultation Details */}
-          <div className="consultation-summary">
-            <h3 className="summary-title">Consultation Details</h3>
-            <div className="summary-content">
-              <div className="summary-item">
-                <BsCalendar className="summary-icon" />
-                <div className="summary-text">
-                  <span className="summary-label">Date</span>
-                  <span className="summary-value">{formatDate(consultation.date)}</span>
-                </div>
-              </div>
-              <div className="summary-item">
-                <BsClock className="summary-icon" />
-                <div className="summary-text">
-                  <span className="summary-label">Time</span>
-                  <span className="summary-value">{consultation.time}</span>
-                </div>
-              </div>
-              <div className="summary-item">
-                <BsPersonCircle className="summary-icon" />
-                <div className="summary-text">
-                  <span className="summary-label">Faculty</span>
-                  <span className="summary-value">{consultation.faculty.name}</span>
-                </div>
-              </div>
-              <div className="summary-topic">
-                <span className="summary-label">Topic</span>
-                <span className="summary-value">{consultation.topic}</span>
-              </div>
-            </div>
+          {/* Consultation Details - compact form style */}
+          <div className="consultation-info">
+            <p className="info-label">Student:</p>
+            <p className="info-value">{consultation?.student?.name || consultation?.student_name || consultation?.studentName || '—'}</p>
+            <p className="info-label">Topic:</p>
+            <p className="info-value">{consultation?.topic}</p>
+            <p className="info-label">Date:</p>
+            <p className="info-value with-icon"><BsCalendar className="inline-icon" /> {formatDate(consultation.date)}</p>
+            <p className="info-label">Time:</p>
+            <p className="info-value with-icon"><BsClock className="inline-icon" /> {consultation.time}</p>
+            <p className="info-label">Faculty:</p>
+            <p className="info-value with-icon"><BsPersonCircle className="inline-icon" /> {consultation.faculty?.name}</p>
           </div>
 
           {/* Cancellation Reason */}
@@ -190,7 +172,7 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
                   checked={reason === "other"}
                   onChange={(e) => setReason(e.target.value)}
                 />
-                <span className="option-text">Other</span>
+                <span className="option-text">Other (please specify)</span>
               </label>
             </div>
 

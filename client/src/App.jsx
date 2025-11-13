@@ -2,6 +2,7 @@ import React from "react";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation } from "react-router-dom";
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
+import { Toaster } from "./lightswind/toaster";
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 
@@ -27,6 +28,7 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminManageUsers from "./pages/admin/AdminManageUsers";
+import AdminDepartmentSettings from "./pages/admin/AdminDepartmentSettings";
 
 // Simple auth guard to protect routes
 function RequireAuth({ allowedRoles = [] }) {
@@ -118,12 +120,14 @@ function App() {
           <Route element={<RequireAuth allowedRoles={["admin"]} />}> 
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/admin-dashboard/manage-users" element={<AdminManageUsers />} />
+            <Route path="/admin-dashboard/department-settings" element={<AdminDepartmentSettings />} />
           </Route>
           
           {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
         </Router>
+        <Toaster />
       </SidebarProvider>
     </NotificationProvider>
   );

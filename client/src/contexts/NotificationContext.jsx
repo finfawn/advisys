@@ -34,6 +34,7 @@ export const NotificationProvider = ({ children }) => {
   const lastUserIdRef = useRef(null);
   const lastClearBackupRef = useRef(null);
   const lastClearTimerRef = useRef(null);
+  const lastClearedNotificationsRef = useRef(null);
   const knownIdsRef = useRef(new Set());
   const firstLoadRef = useRef(true);
   const lastSeenCreatedAtRef = useRef(null);
@@ -360,9 +361,16 @@ export const NotificationProvider = ({ children }) => {
     }
   }, [notifications, apiBase, setDeletedNotificationIds, setNotifications, setUnreadCount]);
 
-  const clearAllNotifications = useCallback(async () => {
+  const clearAllNotifications = useCallback(async ({ commitDelayMs = 0 } = {}) => {
+    // Clear any existing timer to prevent race conditions
+    if (lastClearTimerRef.current) {
+      clearTimeout(lastClearTimerRef.current);
+      lastClearTimerRef.current = null;
+    }
+
     // Backup current notifications for potential revert
     const prev = notifications;
+    lastClearedNotificationsRef.current = prev;
     const ids = prev.map(n => n.id);
 
     // Optimistically add all IDs to deleted set and clear UI
@@ -388,47 +396,76 @@ export const NotificationProvider = ({ children }) => {
         ids.forEach(id => s.delete(id));
         return s;
       });
+      lastClearedNotificationsRef.current = null;
       return;
     }
 
-    try {
-      // Perform individual deletes to mirror single-delete behavior
-      const results = await Promise.allSettled(ids.map(id => (
-        fetch(`${apiBase}/api/notifications/${id}`, {
-          method: 'DELETE',
-          headers: {
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
-          },
-        })
-      )));
+    const commitDeletion = async () => {
+      try {
+        // Perform individual deletes to mirror single-delete behavior
+        const results = await Promise.allSettled(ids.map(id => (
+          fetch(`${apiBase}/api/notifications/${id}`, {
+            method: 'DELETE',
+            headers: {
+              ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            },
+          })
+        )));
 
-      const anyFailed = results.some(r => r.status !== 'fulfilled' || (r.value && !r.value.ok));
-      if (anyFailed) {
-        throw new Error('One or more deletions failed');
-      }
+        const anyFailed = results.some(r => r.status !== 'fulfilled' || (r.value && !r.value.ok));
+        if (anyFailed) {
+          throw new Error('One or more deletions failed');
+        }
 
-      // After a short delay, drop IDs from deleted set since backend is consistent
-      setTimeout(() => {
+        // After successful deletion, drop IDs from deleted set since backend is consistent
         setDeletedNotificationIds(old => {
           const s = new Set(old);
           ids.forEach(id => s.delete(id));
           return s;
         });
-      }, 1000);
-    } catch (err) {
-      console.error('Clear all notifications error', err);
-      // Revert optimistic clear on error
-      setNotifications(prev);
-      setUnreadCount(prev.filter(n => !n.isRead).length);
-      setDeletedNotificationIds(old => {
-        const s = new Set(old);
-        ids.forEach(id => s.delete(id));
-        return s;
-      });
+        lastClearedNotificationsRef.current = null;
+
+      } catch (err) {
+        console.error('Clear all notifications error', err);
+        // Revert optimistic clear on error
+        setNotifications(prev);
+        setUnreadCount(prev.filter(n => !n.isRead).length);
+        setDeletedNotificationIds(old => {
+          const s = new Set(old);
+          ids.forEach(id => s.delete(id));
+          return s;
+        });
+        lastClearedNotificationsRef.current = null;
+      }
+      lastClearTimerRef.current = null;
+    };
+
+    if (commitDelayMs > 0) {
+      lastClearTimerRef.current = setTimeout(commitDeletion, commitDelayMs);
+    } else {
+      await commitDeletion();
     }
   }, [notifications, apiBase]);
 
-  const undoClearAllNotifications = useCallback(() => {}, []);
+  const undoClearAllNotifications = useCallback(() => {
+    if (lastClearTimerRef.current) {
+      clearTimeout(lastClearTimerRef.current);
+      lastClearTimerRef.current = null;
+    }
+
+    if (lastClearedNotificationsRef.current) {
+      setNotifications(lastClearedNotificationsRef.current);
+      setUnreadCount(lastClearedNotificationsRef.current.filter(n => !n.isRead).length);
+      // Remove the undone notifications from the deletedNotificationIds set
+      const undoneIds = lastClearedNotificationsRef.current.map(n => n.id);
+      setDeletedNotificationIds(old => {
+        const s = new Set(old);
+        undoneIds.forEach(id => s.delete(id));
+        return s;
+      });
+      lastClearedNotificationsRef.current = null;
+    }
+  }, []);
 
   const memoizedValue = useMemo(() => ({
     notifications,

@@ -17,6 +17,16 @@ import {
 } from "../../lightswind/select";
 
 export default function AdvisorListPage() {
+  // Normalize asset URLs (absolute, blob, or server-relative)
+  const resolveAssetUrl = (url) => {
+    if (!url || typeof url !== 'string') return null;
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const u = url.trim();
+    if (!u) return null;
+    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
+    if (u.startsWith('/')) return `${base}${u}`;
+    return `${base}/${u.replace(/^\/*/, '')}`;
+  };
   const { collapsed, toggleSidebar } = useSidebar();
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,7 +51,11 @@ export default function AdvisorListPage() {
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const res = await fetch(`${base}/api/advisors`);
         const data = await res.json();
-        setAllAdvisors(Array.isArray(data) ? data : []);
+        // Shape avatars to full URLs for card rendering
+        const shaped = Array.isArray(data)
+          ? data.map(a => ({ ...a, avatar: resolveAssetUrl(a.avatar) }))
+          : [];
+        setAllAdvisors(shaped);
       } catch (err) {
         console.error('Failed to load advisors', err);
       } finally {
@@ -177,21 +191,31 @@ export default function AdvisorListPage() {
       byAdvisor.set(advisorId, current);
     });
     // Merge with advisors list for schedule/time/mode when available
-    const merged = Array.from(byAdvisor.values()).map(item => {
-      const match = (allAdvisors || []).find(a => String(a.id) === String(item.id));
-      return {
-        id: item.id,
-        name: item.name || (match ? match.name : undefined),
-        title: item.title || (match ? match.title : undefined),
-        status: 'Available',
-        schedule: match?.schedule,
-        time: match?.time,
-        mode: match?.mode,
-        coursesTaught: match?.coursesTaught,
-        lastConsultation: formatRelativeTime(item.lastDate),
-        consultationCount: item.consultationCount
-      };
-    });
+      const merged = Array.from(byAdvisor.values()).map(item => {
+        const match = (allAdvisors || []).find(a => String(a.id) === String(item.id));
+        // Try to derive avatar from latest consultation row or advisors list match
+        const matchedConsultation = (Array.isArray(studentConsultations) ? studentConsultations : []).find(
+          c => String(c?.advisor_user_id ?? c?.faculty?.id ?? c?.advisor_id) === String(item.id)
+        );
+        const avatarRaw = matchedConsultation?.advisor_avatar_url 
+          ?? matchedConsultation?.faculty?.avatar 
+          ?? match?.avatar 
+          ?? null;
+        return {
+          id: item.id,
+          name: item.name || (match ? match.name : undefined),
+          title: item.title || (match ? match.title : undefined),
+          status: 'Available',
+          schedule: match?.schedule,
+          time: match?.time,
+          mode: match?.mode,
+          coursesTaught: match?.coursesTaught,
+          avatar: resolveAssetUrl(avatarRaw),
+          officeLocation: match?.officeLocation || null,
+          lastConsultation: formatRelativeTime(item.lastDate),
+          consultationCount: item.consultationCount
+        };
+      });
     // Sort by most recent lastDate
     merged.sort((a, b) => new Date(b.lastConsultationDate || b.lastDate || 0) - new Date(a.lastConsultationDate || a.lastDate || 0));
     return merged;
@@ -238,7 +262,9 @@ export default function AdvisorListPage() {
                       schedule={advisor.schedule}
                       time={advisor.time}
                       mode={advisor.mode}
+                      avatar={advisor.avatar}
                       coursesTaught={advisor.coursesTaught}
+                      officeLocation={advisor.officeLocation}
                       onBookClick={() => handleBookClick(advisor.name)}
                     />
                   ))}
@@ -289,7 +315,9 @@ export default function AdvisorListPage() {
                         schedule={advisor.schedule}
                         time={advisor.time}
                         mode={advisor.mode}
+                        avatar={advisor.avatar}
                         coursesTaught={advisor.coursesTaught}
+                        officeLocation={advisor.officeLocation}
                         onBookClick={() => handleBookClick(advisor.name)}
                       />
                     ))}

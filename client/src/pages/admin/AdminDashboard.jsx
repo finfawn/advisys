@@ -127,6 +127,8 @@ export default function AdminDashboard() {
       navigate('/admin-dashboard');
     } else if (page === 'manage-users') {
       navigate('/admin-dashboard/manage-users');
+    } else if (page === 'department-settings') {
+      navigate('/admin-dashboard/department-settings');
     } else if (page === 'logout') {
       navigate('/logout');
     }

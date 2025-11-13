@@ -30,6 +30,8 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         return { text: 'Awaiting Approval', icon: <BsClockHistory />, class: 'status-pending' };
       case 'declined':
         return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
+      case 'expired':
+        return { text: 'Expired', icon: <BsClockHistory />, class: 'status-expired' };
       case 'completed':
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
@@ -126,15 +128,18 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
           <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
-            {consultation?.faculty?.avatar ? (
-              <img src={consultation.faculty.avatar} alt="Advisor" className="w-full h-full object-cover" />
-            ) : (
-              <BsPersonCircle className="w-6 h-6" />
-            )}
+            {(() => {
+              const avatar = consultation?.advisor?.avatar_url || consultation?.faculty?.avatar;
+              if (avatar) {
+                return <img src={avatar} alt={consultation?.advisor?.name || consultation?.faculty?.name || 'Advisor'} className="w-full h-full object-cover" />;
+              }
+              return <BsPersonCircle className="w-6 h-6" />;
+            })()}
           </div>
           <div className="flex-1 min-w-0">
-            <div className="font-semibold text-gray-900 text-sm truncate">{consultation?.faculty?.name || 'Advisor'}</div>
-            <div className="text-xs text-gray-600 truncate">{consultation?.faculty?.title || ''}</div>
+            <div className="font-semibold text-gray-900 text-sm truncate">{consultation?.advisor?.name || consultation?.faculty?.name || 'Advisor'}</div>
+            <div className="text-xs text-gray-600 truncate">{consultation?.advisor?.title || consultation?.faculty?.title || ''}</div>
+            <div className="text-xs text-gray-500 truncate">{consultation?.advisor?.department || consultation?.faculty?.department || ''}</div>
           </div>
         </div>
         
@@ -181,7 +186,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         </CardFooter>
       )}
       
-      {consultation.status === 'declined' && (
+      {(consultation.status === 'declined' || consultation.status === 'expired') && (
         <CardFooter className="pt-3 gap-2" align="between">
           <Button size="sm" variant="outline" className="flex-1 text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
             <BsTrash className="w-4 h-4" />

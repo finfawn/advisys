@@ -299,21 +299,57 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     return notification.action || 'View';
   };
 
-  const resolveActionRoute = (notification) => {
-    let base = '/student-dashboard/consultations';
-    let tab = null;
-    if (userType === 'advisor') {
-      base = '/advisor-dashboard/consultations';
-      tab = notification.type === 'consultation_request' ? 'requests'
-        : notification.type === 'consultation_cancelled' ? 'history'
-        : notification.type === 'consultation_missed' ? 'history'
-        : notification.type === 'consultation_room_ready' ? 'upcoming'
-        : notification.type === 'consultation_rescheduled' ? 'upcoming'
-        : notification.type === 'consultation_reminder' ? 'upcoming'
-        : 'upcoming';
-    } else if (userType === 'student') {
-      base = '/student-dashboard/consultations';
-      tab = notification.type === 'consultation_declined' ? 'requests'
+  // Async resolver to navigate to the specific consultation detail if possible
+  const resolveActionRouteAsync = async (notification) => {
+    // Prefer direct consultation detail when we can resolve the ID
+    const tryResolveForStudent = async () => {
+      const cid = Number(notification?.data?.consultation_id);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const userRaw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      const studentId = user?.id || user?.studentId || null;
+      if (Number.isFinite(cid) && cid > 0) {
+        // Try to detect mode for accurate route. Fall back to generic page.
+        try {
+          if (studentId) {
+            const res = await fetch(`${apiBase}/api/consultations/students/${studentId}/consultations`, {
+              headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            });
+            if (res.ok) {
+              const list = await res.json();
+              const item = Array.isArray(list) ? list.find(c => Number(c.id) === Number(cid)) : null;
+              if (item) {
+                const mode = String(item.mode || '').toLowerCase();
+                if (mode === 'online') return `/student-dashboard/consultations/online/${cid}`;
+                return `/student-dashboard/consultations/${cid}`;
+              }
+            }
+          }
+        } catch (_) {}
+        // Fallback without mode info
+        return `/student-dashboard/consultations/${cid}`;
+      }
+      // Legacy notifications: attempt topic-based resolution for the student
+      try {
+        const msg = String(notification?.message || '');
+        const m = msg.match(/'(.*?)'/) || msg.match(/"(.*?)"/);
+        const topic = m?.[1]?.trim();
+        if (!studentId || !topic) throw new Error('no topic');
+        const res = await fetch(`${apiBase}/api/consultations/students/${studentId}/consultations`, {
+          headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+        });
+        if (!res.ok) throw new Error('list failed');
+        const list = await res.json();
+        const match = Array.isArray(list) ? list.find(c => String(c?.topic || '').trim() === topic) : null;
+        if (match?.id) {
+          const mode = String(match.mode || '').toLowerCase();
+          if (mode === 'online') return `/student-dashboard/consultations/online/${match.id}`;
+          return `/student-dashboard/consultations/${match.id}`;
+        }
+      } catch (_) {}
+
+      // Fall back to My Consultations with an appropriate tab
+      const tab = notification.type === 'consultation_declined' ? 'requests'
         : notification.type === 'consultation_request_submitted' ? 'requests'
         : notification.type === 'consultation_approved' ? 'upcoming'
         : notification.type === 'consultation_cancelled' ? 'history'
@@ -322,17 +358,53 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         : notification.type === 'consultation_rescheduled' ? 'upcoming'
         : notification.type === 'consultation_reminder' ? 'upcoming'
         : 'upcoming';
-    } else {
-      base = '/admin-dashboard';
-      tab = null;
-    }
-    return tab ? `${base}?tab=${tab}` : base;
+      return `/student-dashboard/consultations?tab=${tab}`;
+    };
+
+    const tryResolveForAdvisor = async () => {
+      const cid = Number(notification?.data?.consultation_id);
+      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const userRaw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+      const user = userRaw ? JSON.parse(userRaw) : null;
+      const advisorId = user?.id || null;
+      if (Number.isFinite(cid) && cid > 0) {
+        try {
+          if (advisorId) {
+            const res = await fetch(`${apiBase}/api/consultations/advisors/${advisorId}/consultations`, {
+              headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+            });
+            if (res.ok) {
+              const list = await res.json();
+              const item = Array.isArray(list) ? list.find(c => Number(c.id) === Number(cid)) : null;
+              if (item) {
+                const mode = String(item.mode || '').toLowerCase();
+                if (mode === 'online') return `/advisor-dashboard/consultations/online/${cid}`;
+                return `/advisor-dashboard/consultations/${cid}`;
+              }
+            }
+          }
+        } catch (_) {}
+        return `/advisor-dashboard/consultations/${cid}`;
+      }
+
+      // Fall back to tab-based navigation for advisors
+      const tab = notification.type === 'consultation_request' ? 'requests'
+        : notification.type === 'consultation_cancelled' ? 'history'
+        : notification.type === 'consultation_missed' ? 'history'
+        : notification.type === 'consultation_room_ready' ? 'upcoming'
+        : notification.type === 'consultation_rescheduled' ? 'upcoming'
+        : notification.type === 'consultation_reminder' ? 'upcoming'
+        : 'upcoming';
+      return `/advisor-dashboard/consultations?tab=${tab}`;
+    };
+
+    return userType === 'advisor' ? await tryResolveForAdvisor() : await tryResolveForStudent();
   };
 
-  const handleActionClick = (e, notification) => {
+  const handleActionClick = async (e, notification) => {
     e.stopPropagation();
     markAsRead(notification.id);
-    const route = resolveActionRoute(notification);
+    const route = await resolveActionRouteAsync(notification);
     navigate(route);
   };
 
@@ -362,14 +434,18 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       return;
     }
     const count = notifications.length;
-    clearAllNotifications({ commitDelayMs: 5000 });
-    showUndoToast(`${count} notification${count !== 1 ? "s" : ""} deleted`);
+    if (count > 0) {
+      clearAllNotifications({ commitDelayMs: 5000 });
+      showUndoToast(`${count} notification${count !== 1 ? "s" : ""} deleted`, undoClearAllNotifications);
+    }
   };
 
   const proceedDeleteAll = () => {
     const count = notifications.length;
-    clearAllNotifications({ commitDelayMs: 5000 });
-    showUndoToast(`${count} notification${count !== 1 ? "s" : ""} deleted`);
+    if (count > 0) {
+      clearAllNotifications({ commitDelayMs: 5000 });
+      showUndoToast(`${count} notification${count !== 1 ? "s" : ""} deleted`, undoClearAllNotifications);
+    }
     setConfirmDelete({ open: false });
   };
 

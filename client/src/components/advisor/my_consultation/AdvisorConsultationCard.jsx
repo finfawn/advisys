@@ -40,6 +40,8 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         return { text: 'Awaiting Approval', icon: <BsClockHistory />, class: 'status-pending' };
       case 'declined':
         return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
+      case 'expired':
+        return { text: 'Expired', icon: <BsClockHistory />, class: 'status-expired' };
       case 'completed':
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
       case 'cancelled':
@@ -74,8 +76,9 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   };
 
   const shouldShowSingleAction = () => {
-    // For pending, we'll show dual actions (Approve/Decline). Others single.
-    return consultation.status !== 'pending' && consultation.status !== 'declined';
+    // For pending and declined, show dual or custom actions. Others single.
+    // Exclude expired from single action; it has delete-only.
+    return consultation.status !== 'pending' && consultation.status !== 'declined' && consultation.status !== 'expired';
   };
 
   const statusInfo = getStatusInfo();
@@ -227,6 +230,14 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
           </Button>
           <Button size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={() => onActionClick?.(consultation)}>
             Review
+          </Button>
+        </CardFooter>
+      )}
+
+      {consultation.status === 'expired' && (
+        <CardFooter className="pt-3 gap-2" align="between">
+          <Button size="sm" variant="outline" className="flex-1 text-red-600 border-red-300 hover:bg-red-50" onClick={handleDelete}>
+            <BsTrash className="w-4 h-4" />
           </Button>
         </CardFooter>
       )}

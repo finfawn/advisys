@@ -84,7 +84,7 @@ router.get('/advisors/:userId', async (req, res) => {
   try {
     const advisorId = Number(req.params.userId);
     const [[row]] = await pool.query(
-      `SELECT advisor_user_id, auto_accept_requests, max_daily_consultations
+      `SELECT advisor_user_id, auto_accept_requests, max_daily_consultations, default_consultation_duration
        FROM advisor_settings WHERE advisor_user_id = ?`,
       [advisorId]
     );
@@ -99,6 +99,7 @@ router.get('/advisors/:userId', async (req, res) => {
       advisorUserId: row.advisor_user_id,
       autoAcceptRequests: !!row.auto_accept_requests,
       maxDailyConsultations: Number(row.max_daily_consultations || 10),
+      defaultConsultationDuration: row.default_consultation_duration != null ? Number(row.default_consultation_duration) : null,
     });
   } catch (err) {
     console.error('Failed to get advisor settings:', err);
@@ -111,20 +112,20 @@ router.patch('/advisors/:userId', async (req, res) => {
   const pool = getPool();
   try {
     const advisorId = Number(req.params.userId);
-    const { autoAcceptRequests, maxDailyConsultations } = req.body || {};
+    const { autoAcceptRequests, maxDailyConsultations, defaultConsultationDuration } = req.body || {};
     const [[exists]] = await pool.query('SELECT advisor_user_id FROM advisor_settings WHERE advisor_user_id = ?', [advisorId]);
     if (exists) {
       await pool.query(
         `UPDATE advisor_settings
-         SET auto_accept_requests = ?, max_daily_consultations = ?
+         SET auto_accept_requests = ?, max_daily_consultations = ?, default_consultation_duration = ?
          WHERE advisor_user_id = ?`,
-        [autoAcceptRequests ? 1 : 0, Number(maxDailyConsultations || 10), advisorId]
+        [autoAcceptRequests ? 1 : 0, Number(maxDailyConsultations || 10), (defaultConsultationDuration != null ? Number(defaultConsultationDuration) : null), advisorId]
       );
     } else {
       await pool.query(
-        `INSERT INTO advisor_settings (advisor_user_id, auto_accept_requests, max_daily_consultations)
-         VALUES (?,?,?)`,
-        [advisorId, autoAcceptRequests ? 1 : 0, Number(maxDailyConsultations || 10)]
+        `INSERT INTO advisor_settings (advisor_user_id, auto_accept_requests, max_daily_consultations, default_consultation_duration)
+         VALUES (?,?,?,?)`,
+        [advisorId, autoAcceptRequests ? 1 : 0, Number(maxDailyConsultations || 10), (defaultConsultationDuration != null ? Number(defaultConsultationDuration) : null)]
       );
     }
     res.json({ success: true });
@@ -135,3 +136,59 @@ router.patch('/advisors/:userId', async (req, res) => {
 });
 
 module.exports = router;
+
+// Consultation modes (online/in-person)
+router.patch('/advisors/:userId/modes', async (req, res) => {
+  const pool = getPool();
+  try {
+    const advisorId = Number(req.params.userId);
+    const { onlineEnabled, inPersonEnabled } = req.body || {};
+    const [[exists]] = await pool.query('SELECT advisor_user_id FROM advisor_modes WHERE advisor_user_id = ?', [advisorId]);
+    if (exists) {
+      await pool.query(
+        `UPDATE advisor_modes SET online_enabled = ?, in_person_enabled = ? WHERE advisor_user_id = ?`,
+        [onlineEnabled ? 1 : 0, inPersonEnabled ? 1 : 0, advisorId]
+      );
+    } else {
+      await pool.query(
+        `INSERT INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)`,
+        [advisorId, onlineEnabled ? 1 : 0, inPersonEnabled ? 1 : 0]
+      );
+    }
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Failed to update advisor modes:', err);
+    res.status(500).json({ error: 'Failed to update advisor modes' });
+  }
+});
+
+// Weekly availability settings (overwrite per-day ranges)
+router.patch('/advisors/:userId/availability', async (req, res) => {
+  const pool = getPool();
+  const conn = await pool.getConnection();
+  try {
+    const advisorId = Number(req.params.userId);
+    const { days } = req.body || {};
+    if (!days || typeof days !== 'object') return res.status(400).json({ error: 'Body must include days object' });
+    await conn.beginTransaction();
+    await conn.query('DELETE FROM advisor_availability WHERE advisor_user_id = ?', [advisorId]);
+    const validDays = ['monday','tuesday','wednesday','thursday','friday','saturday','sunday'];
+    for (const d of validDays) {
+      const v = days[d];
+      if (v && v.start && v.end) {
+        await conn.query(
+          `INSERT INTO advisor_availability (advisor_user_id, day_of_week, start_time, end_time) VALUES (?,?,?,?)`,
+          [advisorId, d, v.start, v.end]
+        );
+      }
+    }
+    await conn.commit();
+    res.json({ success: true });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Failed to update weekly availability:', err);
+    res.status(500).json({ error: 'Failed to update weekly availability' });
+  } finally {
+    conn.release();
+  }
+});

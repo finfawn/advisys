@@ -1,155 +1,36 @@
-/* Decline Modal Styles */
-.decline-modal {
-  max-width: 600px;
-  width: 90vw;
-}
+/* Decline Modal Styles aligned to CancelConsultationModal */
+.modal-content { padding: 16px 24px; }
+.consultation-info { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; margin-bottom: 16px; }
+.info-label { font-size: 0.85rem; font-weight: 600; color: #6b7280; margin: 0; }
+.info-value { font-size: 0.95rem; color: #1f2937; margin: 0 0 8px 0; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 12px; }
+.info-value:last-child { margin-bottom: 0; }
 
-.decline-modal-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: #1f2937;
-}
+.cancellation-reason-section { margin-bottom: 16px; }
+.reason-title { font-size: 1.1rem; font-weight: 600; color: #1f2937; margin: 0 0 8px 0; }
+.reason-subtitle { font-size: 0.9rem; color: #6b7280; margin: 0 0 20px 0; line-height: 1.5; }
+.reason-options { display: flex; flex-direction: column; gap: 12px; }
+.reason-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: white; }
+.reason-option:hover { border-color: #d1d5db; background: #f9fafb; }
+.reason-option input[type="radio"] { margin: 0; accent-color: #3b82f6; }
+.option-text { font-size: 0.95rem; font-weight: 500; color: #374151; }
+.custom-reason { margin-top: 16px; }
+.custom-reason-input { width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem; font-family: inherit; resize: vertical; min-height: 80px; transition: border-color 0.2s ease; }
+.custom-reason-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+.custom-reason-input::placeholder { color: #9ca3af; }
 
-.decline-icon {
-  color: #dc2626;
-  font-size: 1.75rem;
-}
+.confirmation-step { text-align: center; padding: 20px 0; }
+.confirmation-icon { display: flex; align-items: center; justify-content: center; width: 64px; height: 64px; background: #fef3c7; border-radius: 50%; margin: 0 auto 20px; color: #f59e0b; font-size: 2rem; }
+.confirmation-title { font-size: 1.25rem; font-weight: 600; color: #1f2937; margin: 0 0 12px 0; }
+.confirmation-message { font-size: 0.95rem; color: #6b7280; margin: 0 0 20px 0; line-height: 1.5; }
+.confirmation-details { background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; text-align: left; margin-bottom: 20px; }
+.confirmation-details p { margin: 0 0 8px 0; font-size: 0.9rem; color: #374151; }
+.confirmation-details p:last-child { margin-bottom: 0; }
 
-.decline-modal-body {
-  padding: 1rem 0;
-}
+/* Loading spinner scope for admin modal */
+.admin-modal-body .loading-spinner { width: 10px !important; height: 10px !important; border: 1px solid transparent !important; border-top: 1px solid currentColor !important; border-radius: 50% !important; animation: spin 1s linear infinite !important; flex-shrink: 0 !important; margin: 0 !important; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
-.consultation-info {
-  background: #f9fafb;
-  border: 1px solid #e5e7eb;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.info-label {
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: #6b7280;
-  margin: 0 0 0.25rem 0;
-}
-
-.info-value {
-  font-size: 1rem;
-  color: #1f2937;
-  margin: 0 0 0.75rem 0;
-}
-
-.info-value:last-child {
-  margin-bottom: 0;
-}
-
-.reason-section {
-  margin-top: 1.5rem;
-}
-
-.reason-label {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: #374151;
-  margin-bottom: 1rem;
-}
-
-.reason-options {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-}
-
-.reason-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 0.75rem;
-  padding: 0.875rem;
-  border: 2px solid #e5e7eb;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.reason-option:hover {
-  border-color: #3b82f6;
-  background: #eff6ff;
-}
-
-.reason-option:has(.reason-radio:checked) {
-  border-color: #3b82f6;
-  background: #eff6ff;
-}
-
-.reason-radio {
-  margin-top: 0.125rem;
-  width: 1.125rem;
-  height: 1.125rem;
-  cursor: pointer;
-  accent-color: #3b82f6;
-  flex-shrink: 0;
-}
-
-.reason-text {
-  font-size: 0.9rem;
-  color: #374151;
-  line-height: 1.5;
-  flex: 1;
-}
-
-.custom-reason-input {
-  width: 100%;
-  margin-top: 0.75rem;
-  padding: 0.75rem;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
-  font-size: 0.9rem;
-  font-family: inherit;
-  resize: vertical;
-  transition: all 0.2s ease;
-}
-
-.custom-reason-input:focus {
-  outline: none;
-  border-color: #3b82f6;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-}
-
-.custom-reason-input::placeholder {
-  color: #9ca3af;
-}
-
-.decline-modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.75rem;
-  padding-top: 1rem;
-  border-top: 1px solid #e5e7eb;
-}
-
-/* Responsive */
 @media (max-width: 640px) {
-  .decline-modal {
-    max-width: 95vw;
-  }
-
-  .decline-modal-title {
-    font-size: 1.25rem;
-  }
-
-  .decline-icon {
-    font-size: 1.5rem;
-  }
-
-  .reason-option {
-    padding: 0.75rem;
-  }
-
-  .reason-text {
-    font-size: 0.85rem;
-  }
+  .modal-content { padding: 20px; }
+  .reason-option { padding: 10px 12px; }
 }

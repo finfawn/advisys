@@ -34,6 +34,7 @@ export default function MyConsultationsPage() {
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [consultationToCancel, setConsultationToCancel] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
+  const [cancelUndoToast, setCancelUndoToast] = useState({ open: false, item: null, timeoutId: null, message: '' });
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [consultationToReschedule, setConsultationToReschedule] = useState(null);
   const navigate = useNavigate();
@@ -67,14 +68,42 @@ export default function MyConsultationsPage() {
     return `${base}/${s}`;
   };
 
-  // Shape server consultation item into UI format with faculty.avatar normalized
+  // Shape server consultation item into UI format with faculty details normalized
   const shapeConsultation = (c) => {
     const name = c?.advisor?.name ?? c?.faculty?.name ?? c?.advisor_name ?? null;
     const title = c?.advisor?.title ?? c?.faculty?.title ?? c?.advisor_title ?? null;
+    const department = c?.advisor?.department ?? c?.faculty?.department ?? c?.advisor_department ?? null;
     const avatarRaw = c?.advisor?.avatar_url ?? c?.faculty?.avatar_url ?? c?.advisor_avatar_url ?? c?.faculty?.avatar ?? null;
     const avatar = resolveAssetUrl(avatarRaw);
     const id = c?.advisor?.id ?? c?.faculty?.id ?? c?.advisor_user_id ?? null;
-    return { ...c, faculty: { id, name, title, avatar } };
+    return { ...c, faculty: { id, name, title, department, avatar } };
+  };
+
+  // Enrich items missing advisor details by fetching advisor profile
+  const enrichFacultyDetails = async (items) => {
+    const tasks = (items || []).map(async (item) => {
+      const fid = item?.faculty?.id;
+      const needs = !item?.faculty?.department || !item?.faculty?.title || !item?.faculty?.avatar;
+      if (!fid || !needs) return item;
+      try {
+        const res = await fetch(`${base}/api/advisors/${fid}`, { headers: { ...authHeader } });
+        if (!res.ok) return item;
+        const adv = await res.json();
+        return {
+          ...item,
+          faculty: {
+            ...item.faculty,
+            name: item.faculty.name || adv?.full_name || adv?.name || null,
+            title: item.faculty.title || adv?.title || null,
+            department: item.faculty.department || adv?.department || null,
+            avatar: item.faculty.avatar || resolveAssetUrl(adv?.avatar || adv?.avatar_url || null),
+          },
+        };
+      } catch (_) {
+        return item;
+      }
+    });
+    return Promise.all(tasks);
   };
   const reloadConsultations = async () => {
     try {
@@ -84,7 +113,9 @@ export default function MyConsultationsPage() {
       const studentId = parsed?.id || 1;
       const res = await fetch(`${base}/api/consultations/students/${studentId}/consultations`, { headers: { ...authHeader } });
       const data = await res.json();
-      setAllConsultations(Array.isArray(data) ? data.map(shapeConsultation) : []);
+      const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
+      const enriched = await enrichFacultyDetails(shaped);
+      setAllConsultations(enriched);
     } catch (err) {
       console.error('Reload consultations failed', err);
     } finally {
@@ -102,7 +133,9 @@ export default function MyConsultationsPage() {
           headers: { ...authHeader },
         });
         const data = await res.json();
-        setAllConsultations(Array.isArray(data) ? data.map(shapeConsultation) : []);
+        const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
+        const enriched = await enrichFacultyDetails(shaped);
+        setAllConsultations(enriched);
       } catch (err) {
         console.error('Failed to load consultations', err);
       } finally {
@@ -148,6 +181,10 @@ export default function MyConsultationsPage() {
       if (status === 'approved' && start && now >= (start.getTime() + graceMs)) {
         status = 'missed';
       }
+      // After grace window, still "pending" implies expired
+      if (status === 'pending' && start && now >= (start.getTime() + graceMs)) {
+        status = 'expired';
+      }
       return { ...c, status, _isFuture: isFuture, _inGrace: inGrace };
     });
 
@@ -155,7 +192,7 @@ export default function MyConsultationsPage() {
       .filter(c => c.status === 'approved' && (c._isFuture || c._inGrace))
       .sort((a, b) => new Date(a.start_datetime || a.date) - new Date(b.start_datetime || b.date));
 
-    const requests = normalized.filter(c => c.status === 'pending' || c.status === 'declined');
+    const requests = normalized.filter(c => c.status === 'pending' || c.status === 'declined' || c.status === 'expired');
 
     const history = normalized.filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'missed');
 
@@ -347,9 +384,9 @@ export default function MyConsultationsPage() {
   const handleJoinConsultation = (consultation) => {
     // Navigate to appropriate details page based on consultation mode
     if (consultation.mode === 'online') {
-      navigate(`/student-dashboard/consultations/online/${consultation.id}`);
+      navigate(`/student-dashboard/consultations/online/${consultation.id}`, { state: { fromTab: 'upcoming' } });
     } else {
-      navigate(`/student-dashboard/consultations/${consultation.id}`);
+      navigate(`/student-dashboard/consultations/${consultation.id}`, { state: { fromTab: 'upcoming' } });
     }
   };
 
@@ -369,7 +406,7 @@ export default function MyConsultationsPage() {
 
   const handleViewHistoryDetails = (consultation) => {
     console.log('Viewing details for consultation:', consultation);
-    navigate(`/student-dashboard/consultations/history/${consultation.id}`);
+    navigate(`/student-dashboard/consultations/history/${consultation.id}`, { state: { fromTab: 'history' } });
   };
 
   const handleCancelConsultation = (consultation) => {
@@ -378,8 +415,39 @@ export default function MyConsultationsPage() {
   };
 
   const handleOpenReschedule = (consultation) => {
-    setConsultationToReschedule(consultation);
-    setShowRescheduleModal(true);
+    // Enrich faculty data with advisor profile (topics/categories, office, etc.)
+    (async () => {
+      try {
+        const advisorId = consultation?.faculty?.id;
+        let enriched = { ...consultation };
+        if (advisorId) {
+          const res = await fetch(`${base}/api/advisors/${advisorId}`, { headers: { ...authHeader } });
+          if (res.ok) {
+            const adv = await res.json();
+            const avatar = resolveAssetUrl(adv?.avatar);
+            enriched = {
+              ...consultation,
+              faculty: {
+                id: advisorId,
+                name: adv?.name ?? consultation?.faculty?.name,
+                title: adv?.title ?? consultation?.faculty?.title,
+                avatar: avatar ?? consultation?.faculty?.avatar,
+                department: adv?.department ?? consultation?.faculty?.department,
+                officeLocation: adv?.officeLocation ?? consultation?.faculty?.officeLocation,
+                topicsCanHelpWith: Array.isArray(adv?.topicsCanHelpWith) ? adv.topicsCanHelpWith : consultation?.faculty?.topicsCanHelpWith,
+                consultationMode: adv?.consultationMode ?? consultation?.faculty?.consultationMode,
+              },
+            };
+          }
+        }
+        setConsultationToReschedule(enriched);
+      } catch (e) {
+        console.error('Failed to load advisor details for reschedule', e);
+        setConsultationToReschedule(consultation);
+      } finally {
+        setShowRescheduleModal(true);
+      }
+    })();
   };
 
   const handleCloseRescheduleModal = () => {
@@ -396,24 +464,51 @@ export default function MyConsultationsPage() {
   };
 
   const handleConfirmCancel = (reason) => {
-    (async () => {
-      try {
-        setIsCancelling(true);
-        const res = await fetch(`${base}/api/consultations/${consultationToCancel.id}/status`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', ...authHeader },
-          body: JSON.stringify({ status: 'cancelled', cancelReason: reason })
-        });
-        if (!res.ok) throw new Error('Cancel failed');
-        await reloadConsultations();
-        setShowCancelModal(false);
-        setConsultationToCancel(null);
-      } catch (err) {
-        console.error('Cancel error', err);
-      } finally {
-        setIsCancelling(false);
+    // Optimistic cancel with undo toast
+    try {
+      setIsCancelling(true);
+      const item = consultationToCancel;
+      if (!item) return;
+      // Optimistically mark as cancelled locally
+      setAllConsultations(prev => prev.map(c => c.id === item.id ? { ...c, status: 'cancelled', cancelReason: reason } : c));
+      // Close modal immediately for lightweight feel
+      setShowCancelModal(false);
+      setConsultationToCancel(null);
+      setIsCancelling(false);
+
+      // Start undo countdown; persist after 5s
+      if (cancelUndoToast.timeoutId) {
+        clearTimeout(cancelUndoToast.timeoutId);
       }
-    })();
+      const timeoutId = setTimeout(async () => {
+        try {
+          const res = await fetch(`${base}/api/consultations/${item.id}/status`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', ...authHeader },
+            body: JSON.stringify({ status: 'cancelled', cancelReason: reason })
+          });
+          if (!res.ok) throw new Error('Cancel failed');
+        } catch (err) {
+          console.error('Cancel persist error', err);
+          // If persistence fails, revert local state
+          setAllConsultations(prev => prev.map(c => c.id === item.id ? { ...c, status: item.status } : c));
+        } finally {
+          setCancelUndoToast({ open: false, item: null, timeoutId: null, message: '' });
+          // Reload from server to ensure consistency
+          await reloadConsultations();
+        }
+      }, 5000);
+
+      setCancelUndoToast({
+        open: true,
+        item: { ...item },
+        timeoutId,
+        message: `Consultation "${item.topic}" cancelled`
+      });
+    } catch (err) {
+      console.error('Cancel error', err);
+      setIsCancelling(false);
+    }
   };
 
   const handleCloseCancelModal = () => {
@@ -421,6 +516,18 @@ export default function MyConsultationsPage() {
       setShowCancelModal(false);
       setConsultationToCancel(null);
     }
+  };
+
+  const handleUndoCancel = () => {
+    if (cancelUndoToast.timeoutId) {
+      clearTimeout(cancelUndoToast.timeoutId);
+    }
+    const item = cancelUndoToast.item;
+    if (item) {
+      // Revert local status
+      setAllConsultations(prev => prev.map(c => c.id === item.id ? { ...c, status: item.status, cancelReason: undefined } : c));
+    }
+    setCancelUndoToast({ open: false, item: null, timeoutId: null, message: '' });
   };
 
   return (
@@ -732,6 +839,19 @@ export default function MyConsultationsPage() {
           onSubmitSuccess={handleRescheduleSuccess}
           onNavigateToConsultations={() => navigate('/student-dashboard/consultations')}
         />
+      )}
+
+      {/* Undo Toast for cancellation */}
+      {cancelUndoToast.open && (
+        <div className="undo-notification">
+          <div className="undo-content">
+            <span className="undo-message">{cancelUndoToast.message}</span>
+            <button className="undo-btn" onClick={handleUndoCancel}>Undo</button>
+          </div>
+          <div className="undo-timer">
+            <div className="undo-timer-bar"></div>
+          </div>
+        </div>
       )}
     </div>
   );

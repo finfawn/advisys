@@ -63,6 +63,21 @@ export default function AdminManageUsers() {
     program: "",
     department: "",
     active: true,
+    // advisor settings
+    autoAcceptRequests: false,
+    maxDailyConsultations: 10,
+    defaultConsultationDuration: 30,
+    onlineEnabled: true,
+    inPersonEnabled: true,
+    availability: {
+      monday: { start: "09:00", end: "17:00" },
+      tuesday: { start: "09:00", end: "17:00" },
+      wednesday: { start: "09:00", end: "17:00" },
+      thursday: { start: "09:00", end: "17:00" },
+      friday: { start: "09:00", end: "17:00" },
+      saturday: null,
+      sunday: null,
+    },
   });
   const [showPassword, setShowPassword] = useState(false);
 
@@ -127,8 +142,9 @@ export default function AdminManageUsers() {
 
   const handleNavigation = (page) => {
     if (page === "dashboard") navigate("/admin-dashboard");
-    if (page === "manage-users") navigate("/admin-dashboard/manage-users");
-    if (page === "logout") navigate("/logout");
+    else if (page === "manage-users") navigate("/admin-dashboard/manage-users");
+    else if (page === "department-settings") navigate("/admin-dashboard/department-settings");
+    else if (page === "logout") navigate("/logout");
   };
 
   // CSV export for current filtered list
@@ -411,14 +427,14 @@ export default function AdminManageUsers() {
   const getTemplateHeaders = () => {
     return uploadRole === "students"
       ? ["First Name","Last Name","Email","Year","Program"]
-      : ["First Name","Last Name","Email","Department"];
+      : ["First Name","Last Name","Email","Department","Max Daily","Default Duration","Online","InPerson","Subjects"];
   };
 
   const downloadCSVTemplate = () => {
     const headers = getTemplateHeaders();
     const example = uploadRole === "students"
       ? ["Juan","Dela Cruz","juan@example.com","1st Year","BSIT"]
-      : ["Jane","Doe","jane@example.com","CIT"];
+      : ["Jane","Doe","jane@example.com","CIT","10","30","true","true","CS101|Intro to CS;IT201|Networking Basics"];
     const csv = [headers.join(","), example.join(",")].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -436,7 +452,7 @@ export default function AdminManageUsers() {
     if (lines.length === 0) return { headers: [], rows: [] };
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
     const expectedStudents = ["first name","last name","email","year","program"];
-    const expectedAdvisors = ["first name","last name","email","department"];
+    const expectedAdvisors = ["first name","last name","email","department","max daily","default duration","online","inperson","subjects"];
     const expected = uploadRole === "students" ? expectedStudents : expectedAdvisors;
     const ok = expected.every((h) => headers.includes(h));
     if (!ok) {
@@ -504,14 +520,30 @@ export default function AdminManageUsers() {
     } else {
       let id = idStart;
       const toAdd = uploadRows.map((cols) => {
-        // Expect: First Name, Last Name, Email, Department
-        const [first = "", last = "", email = "", department = ""] = cols;
+        // Expect: First Name, Last Name, Email, Department, Max Daily, Default Duration, Online, InPerson, Subjects
+        const [first = "", last = "", email = "", department = "", maxDaily = "10", defDur = "30", online = "true", inperson = "true", subjects = ""] = cols;
+        const parsedSubjects = String(subjects || "")
+          .split(";")
+          .map(s => s.trim())
+          .filter(Boolean)
+          .map(pair => {
+            const [code = "", name = ""] = pair.split("|");
+            return { code: code.trim(), name: name.trim() };
+          })
+          .filter(s => s.code && s.name);
         return {
           id: id++,
           name: `${first} ${last}`.trim(),
           email,
           department: department || "CIT",
           active: true,
+          _settings: {
+            maxDailyConsultations: Number(maxDaily || 10),
+            defaultConsultationDuration: Number(defDur || 30),
+            onlineEnabled: /^true$/i.test(String(online)),
+            inPersonEnabled: /^true$/i.test(String(inperson)),
+            subjects: parsedSubjects,
+          }
         };
       });
       setAdvisorData((prev) => [...prev, ...toAdd]);
@@ -609,9 +641,65 @@ export default function AdminManageUsers() {
       program: item.program || "BSIT",
       department: item.department || "CIT",
       active: item.active,
+      autoAcceptRequests: false,
+      maxDailyConsultations: 10,
+      defaultConsultationDuration: 30,
+      onlineEnabled: true,
+      inPersonEnabled: true,
+      availability: {
+        monday: { start: "09:00", end: "17:00" },
+        tuesday: { start: "09:00", end: "17:00" },
+        wednesday: { start: "09:00", end: "17:00" },
+        thursday: { start: "09:00", end: "17:00" },
+        friday: { start: "09:00", end: "17:00" },
+        saturday: null,
+        sunday: null,
+      },
     });
     setShowPassword(false);
     setViewOpen(true);
+    // Load advisor settings/modes/availability if advisor tab
+    (async () => {
+      try {
+        const isAdvisor = activeTab === 'advisors';
+        if (!isAdvisor) return;
+        const base = apiBase;
+        const [sRes, aRes] = await Promise.all([
+          fetch(`${base}/api/settings/advisors/${item.id}`),
+          fetch(`${base}/api/advisors/${item.id}`)
+        ]);
+        const s = await sRes.json();
+        const a = await aRes.json();
+        const modesGuess = Array.isArray(a.consultationMode) ? a.consultationMode : [];
+        const onlineEnabled = modesGuess.includes('Online') || modesGuess.includes('In-person/Online');
+        const inPersonEnabled = modesGuess.includes('In-person') || modesGuess.includes('In-person/Online');
+        setEditForm(prev => ({
+          ...prev,
+          autoAcceptRequests: !!s.autoAcceptRequests,
+          maxDailyConsultations: Number(s.maxDailyConsultations || 10),
+          defaultConsultationDuration: s.defaultConsultationDuration != null ? Number(s.defaultConsultationDuration) : prev.defaultConsultationDuration,
+          onlineEnabled,
+          inPersonEnabled,
+          availability: a.weeklySchedule ? Object.fromEntries(Object.entries(a.weeklySchedule).map(([day,val]) => {
+            if (!val || /Unavailable/i.test(val)) return [day, null];
+            const m = String(val).match(/(\d{1,2}:\d{2} [AP]M)\s*-\s*(\d{1,2}:\d{2} [AP]M)/);
+            if (m) {
+              function to24(t) {
+                const [time, ap] = t.split(' ');
+                let [h,mn] = time.split(':').map(Number);
+                if (ap === 'PM' && h !== 12) h += 12;
+                if (ap === 'AM' && h === 12) h = 0;
+                return `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;
+              }
+              return [day, { start: to24(m[1]), end: to24(m[2]) }];
+            }
+            return [day, null];
+          })) : prev.availability,
+        }));
+      } catch (err) {
+        console.error('Load advisor settings failed', err);
+      }
+    })();
   };
 
   const handleSaveProfile = async () => {
@@ -682,6 +770,27 @@ export default function AdminManageUsers() {
       if (!res.ok) {
         const text = await res.text();
         throw new Error(text || 'Failed to save changes');
+      }
+      if (activeTab === 'advisors') {
+        // Save advisor-specific settings
+        await fetch(`${apiBase}/api/settings/advisors/${viewUser.id}`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            autoAcceptRequests: !!editForm.autoAcceptRequests,
+            maxDailyConsultations: Number(editForm.maxDailyConsultations || 10),
+            defaultConsultationDuration: Number(editForm.defaultConsultationDuration || 30)
+          })
+        }).catch((e)=>console.error('Save advisor settings failed', e));
+
+        await fetch(`${apiBase}/api/settings/advisors/${viewUser.id}/modes`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ onlineEnabled: !!editForm.onlineEnabled, inPersonEnabled: !!editForm.inPersonEnabled })
+        }).catch((e)=>console.error('Save advisor modes failed', e));
+
+        await fetch(`${apiBase}/api/settings/advisors/${viewUser.id}/availability`, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ days: editForm.availability })
+        }).catch((e)=>console.error('Save advisor availability failed', e));
       }
       // Ensure the list reflects persisted changes
       await reloadActiveTab();
@@ -1286,25 +1395,54 @@ export default function AdminManageUsers() {
 
             {/* Advisor-Specific Fields */}
             {activeTab === "advisors" && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Department
-                </label>
-                <Select
-                  value={editForm.department}
-                  onValueChange={(v) =>
-                    setEditForm({ ...editForm, department: v })
-                  }
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="CIT">
-                      CIT - College of Information Technology
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                  <Select value={editForm.department} onValueChange={(v) => setEditForm({ ...editForm, department: v })}>
+                    <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="CIT">CIT - College of Information Technology</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Max daily slots</label>
+                    <Input type="number" min="1" max="50" value={editForm.maxDailyConsultations} onChange={(e)=>setEditForm({ ...editForm, maxDailyConsultations: Number(e.target.value || 10) })} />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Default duration (minutes)</label>
+                    <Input type="number" min="5" max="240" value={editForm.defaultConsultationDuration} onChange={(e)=>setEditForm({ ...editForm, defaultConsultationDuration: Number(e.target.value || 30) })} />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={editForm.onlineEnabled} onChange={(e)=>setEditForm({ ...editForm, onlineEnabled: e.target.checked })} />
+                    <span className="text-sm">Online consultations enabled</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <input type="checkbox" checked={editForm.inPersonEnabled} onChange={(e)=>setEditForm({ ...editForm, inPersonEnabled: e.target.checked })} />
+                    <span className="text-sm">In-person consultations enabled</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Weekly availability</label>
+                  {Object.entries(editForm.availability).map(([day,val]) => (
+                    <div key={day} className="flex items-center gap-3 mb-2">
+                      <span className="w-24 capitalize text-sm text-gray-600">{day}</span>
+                      <Input type="time" value={val?.start || ''} onChange={(e)=>{
+                        const v = e.target.value;
+                        setEditForm(prev => ({ ...prev, availability: { ...prev.availability, [day]: v ? { start: v, end: prev.availability[day]?.end || '' } : null } }));
+                      }} />
+                      <Input type="time" value={val?.end || ''} onChange={(e)=>{
+                        const v = e.target.value;
+                        setEditForm(prev => ({ ...prev, availability: { ...prev.availability, [day]: v ? { start: prev.availability[day]?.start || '', end: v } : null } }));
+                      }} />
+                      <Button variant="outline" onClick={()=>setEditForm(prev => ({ ...prev, availability: { ...prev.availability, [day]: null } }))}>Clear</Button>
+                    </div>
+                  ))}
+                  <p className="text-xs text-gray-500">Leave a day blank (Clear) if unavailable.</p>
+                </div>
               </div>
             )}
 

@@ -265,14 +265,46 @@ export default function AvailabilityCalendar({
             } else {
               if (editDefaults?.event) {
                 const updated = arr[0];
-                setEvents((prev) => prev.map((ev) => ev.id === editDefaults.event.id ? {
-                  ...ev,
-                  title: updated.title,
-                  start: updated.start,
-                  end: updated.end,
-                  mode: updated.mode,
-                  room: updated.room || "",
-                } : ev));
+                // Persist edit to backend, then update local state
+                try {
+                  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                  const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+                  const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+                  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+                  const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots/${editDefaults.event.id}`, {
+                    method: 'PATCH',
+                    headers: {
+                      'Content-Type': 'application/json',
+                      ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+                    },
+                    body: JSON.stringify({
+                      start_datetime: toLocalIso(updated.start),
+                      end_datetime: toLocalIso(updated.end),
+                      mode: updated.mode,
+                      room: updated.room || null,
+                    }),
+                  });
+                  if (!resp.ok) throw new Error('Failed to update slot');
+                  const s = await resp.json();
+                  setEvents((prev) => prev.map((ev) => ev.id === editDefaults.event.id ? {
+                    ...ev,
+                    title: 'Available',
+                    start: new Date(String(s.start_datetime).replace(' ', 'T')),
+                    end: new Date(String(s.end_datetime).replace(' ', 'T')),
+                    mode: s.mode,
+                    room: s.room || "",
+                  } : ev));
+                } catch (err) {
+                  console.error('Slot update (fallback local)', err);
+                  setEvents((prev) => prev.map((ev) => ev.id === editDefaults.event.id ? {
+                    ...ev,
+                    title: updated.title,
+                    start: updated.start,
+                    end: updated.end,
+                    mode: updated.mode,
+                    room: updated.room || "",
+                  } : ev));
+                }
               } else {
                 // Persist created slots to backend
                 try {

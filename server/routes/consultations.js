@@ -332,6 +332,8 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
         end_datetime: r.end_datetime,
         actual_start_datetime: r.actual_start_datetime || null,
         actual_end_datetime: r.actual_end_datetime || null,
+        // Summary edit approval flag exposed for student UI gating
+        summaryEditApprovedAt: r.summary_edit_approved_at || undefined,
         topic: r.topic,
         category: r.category,
         mode: r.mode,

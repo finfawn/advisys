@@ -551,7 +551,7 @@
   border: 1px solid #e5e7eb;
   background: #ffffff;
   color: #374151;
-  resize: vertical;
+  resize: none;
 }
 .edit-request-textarea:focus { outline: 2px solid #93c5fd; outline-offset: 2px; }
 .edit-request-actions { display:flex; align-items:center; gap:10px; margin-top:10px; }
@@ -1020,4 +1020,8 @@
   .action-btn {
     display: none;
   }
+}
+.mobile-inline-only { display: none; margin-left: 8px; }
+@media (max-width: 768px) {
+  .mobile-inline-only { display: inline-flex; }
 }

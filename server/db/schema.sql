@@ -43,6 +43,7 @@ CREATE TABLE IF NOT EXISTS `advisor_profiles` (
   `user_id` INT UNSIGNED NOT NULL,
   `title` VARCHAR(255) NULL,
   `department` VARCHAR(255) NULL,
+  `department_id` INT UNSIGNED NULL,
   `avatar_url` TEXT NULL,
   `bio` TEXT NULL,
   `office_location` VARCHAR(255) NULL,
@@ -57,6 +58,7 @@ CREATE TABLE IF NOT EXISTS `student_profiles` (
   `user_id` INT UNSIGNED NOT NULL,
   `avatar_url` TEXT NULL,
   `program` VARCHAR(255) NULL,
+  `program_id` INT UNSIGNED NULL,
   `year_level` VARCHAR(50) NULL,
   PRIMARY KEY (`user_id`),
   CONSTRAINT `fk_student_profile_user`
@@ -68,10 +70,12 @@ CREATE TABLE IF NOT EXISTS `advisor_courses` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
   `advisor_user_id` INT UNSIGNED NOT NULL,
   `course_name` VARCHAR(255) NOT NULL,
-  `subject_code` VARCHAR(64) NULL,
-  `subject_name` VARCHAR(255) NULL,
+  `subject_code` VARCHAR(50) NOT NULL,
+  `subject_name` VARCHAR(255) NOT NULL,
   PRIMARY KEY (`id`),
   KEY `idx_courses_advisor` (`advisor_user_id`),
+  KEY `idx_courses_subject_code` (`subject_code`),
+  KEY `idx_courses_subject_name` (`subject_name`),
   CONSTRAINT `fk_courses_advisor`
     FOREIGN KEY (`advisor_user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -220,6 +224,7 @@ CREATE TABLE IF NOT EXISTS `advisor_settings` (
   `advisor_user_id` INT UNSIGNED NOT NULL,
   `auto_accept_requests` TINYINT(1) NOT NULL DEFAULT 0,
   `max_daily_consultations` INT UNSIGNED NOT NULL DEFAULT 10,
+  `default_consultation_duration` INT UNSIGNED NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`advisor_user_id`),
@@ -229,3 +234,32 @@ CREATE TABLE IF NOT EXISTS `advisor_settings` (
 
 -- Re-enable foreign key checks after all tables are created
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- Lookup tables for departments and programs
+CREATE TABLE IF NOT EXISTS `departments` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL UNIQUE,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE IF NOT EXISTS `programs` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL UNIQUE,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE `advisor_profiles`
+  ADD KEY `idx_advisor_department_id` (`department_id`);
+ALTER TABLE `student_profiles`
+  ADD KEY `idx_student_program_id` (`program_id`);
+
+ALTER TABLE `advisor_profiles`
+  ADD CONSTRAINT `fk_advisor_department`
+    FOREIGN KEY (`department_id`) REFERENCES `departments`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+ALTER TABLE `student_profiles`
+  ADD CONSTRAINT `fk_student_program`
+    FOREIGN KEY (`program_id`) REFERENCES `programs`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;

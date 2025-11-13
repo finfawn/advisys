@@ -11,5 +11,7 @@ RUN npm ci --omit=dev
 # Copy application source
 COPY . .
 
+EXPOSE 8080
+
 # Cloud Run will inject PORT; Express reads process.env.PORT
 CMD ["node", "server.js"]

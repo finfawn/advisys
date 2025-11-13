@@ -43,9 +43,29 @@ export default function AdvisorProfilePage() {
           throw new Error(`HTTP ${res.status}`);
         }
         const data = await res.json();
+        // Shape incoming data to ensure About section reliably shows Courses Taught
+        const topics = Array.isArray(data.topicsCanHelpWith)
+          ? data.topicsCanHelpWith.map(t => (typeof t === 'string' ? t : (t?.topic || ''))).filter(Boolean)
+          : [];
+        const guidelines = Array.isArray(data.consultationGuidelines)
+          ? data.consultationGuidelines.map(g => (typeof g === 'string' ? g : (g?.guideline_text || ''))).filter(Boolean)
+          : [];
+        // Accept multiple shapes: coursesTaught (preferred) or courses
+        const coursesRaw = Array.isArray(data.coursesTaught) ? data.coursesTaught
+          : Array.isArray(data.courses) ? data.courses : [];
+        const coursesTaught = coursesRaw.map(c => {
+          if (typeof c === 'string') return { code: '', name: c };
+          return {
+            code: c.code || c.subject_code || c.course_code || '',
+            name: c.name || c.subject_name || c.course_name || '',
+          };
+        }).filter(crs => crs.code || crs.name);
         setAdvisorData({
           ...data,
-          avatar: resolveAssetUrl(data.avatar)
+          avatar: resolveAssetUrl(data.avatar),
+          topicsCanHelpWith: topics,
+          consultationGuidelines: guidelines,
+          coursesTaught,
         });
 
         // Also load upcoming slots to reflect real availability and next slot
@@ -248,7 +268,7 @@ export default function AdvisorProfilePage() {
                         </div>
                       </div>
                       <div className="courses-taught">
-                        <h3>Courses Taught</h3>
+                        <h3>Subjects Taught</h3>
                         <div className="space-y-2">
                           {Array.from({ length: 3 }).map((_, i) => (
                             <Skeleton key={`course-${i}`} className="h-4 w-1/2" shimmer />
@@ -383,7 +403,7 @@ export default function AdvisorProfilePage() {
                     
                     {advisorData.coursesTaught && advisorData.coursesTaught.length > 0 && (
                       <div className="courses-taught">
-                        <h3>Courses Taught</h3>
+                        <h3>Subjects Taught</h3>
                         <ul className="courses-list">
                           {advisorData.coursesTaught?.map((course, index) => {
                             const name = (typeof course === 'string') ? course : (course?.name || course?.course_name || '');

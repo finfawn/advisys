@@ -1,5 +1,6 @@
 const express = require('express');
 const { getPool } = require('../db/pool');
+const moment = require('moment-timezone');
 
 const router = express.Router();
 
@@ -34,55 +35,66 @@ function formatTimeFromDate(dt) {
 }
 
 // GET /api/availability/today
-// Returns advisors available today with per-day time range and mode
+// Returns advisors who have at least one AVAILABLE slot today (PH timezone)
 router.get('/today', async (req, res) => {
   const pool = getPool();
   try {
-    const today = new Date();
-    const dow = getDowKey(today);
+    // Determine PH dow label for UI
+    const nowPH = moment.tz(Date.now(), 'Asia/Manila').toDate();
+    const dow = getDowKey(nowPH);
+
     const [rows] = await pool.query(
-      `SELECT u.id, u.full_name, ap.title, ap.department,
-              av.start_time, av.end_time,
-              m.online_enabled, m.in_person_enabled
-       FROM users u
+      `SELECT s.advisor_user_id AS id, u.full_name, ap.title, ap.department,
+              s.start_datetime, s.end_datetime, s.mode
+       FROM advisor_slots s
+       JOIN users u ON u.id = s.advisor_user_id
        JOIN advisor_profiles ap ON ap.user_id = u.id
-       JOIN advisor_availability av ON av.advisor_user_id = u.id AND av.day_of_week = ?
-       LEFT JOIN advisor_modes m ON m.advisor_user_id = u.id
        WHERE u.role = 'advisor' AND u.status = 'active'
-       ORDER BY u.id ASC`, [dow]
+         AND s.status = 'available'
+         AND DATE(s.start_datetime) = CURDATE()
+       ORDER BY s.advisor_user_id ASC, s.start_datetime ASC`
     );
 
-    // Aggregate by advisor (in case of multiple blocks per day)
+    // Aggregate earliest/latest slot per advisor and combined mode flags
     const byAdvisor = new Map();
     for (const r of rows) {
+      const start = moment.tz(r.start_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
+      const end = moment.tz(r.end_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
       const curr = byAdvisor.get(r.id) || {
         id: r.id,
         name: r.full_name,
         title: r.title,
         department: r.department,
-        earliest: r.start_time,
-        latest: r.end_time,
-        online_enabled: r.online_enabled ? 1 : 0,
-        in_person_enabled: r.in_person_enabled ? 1 : 0,
+        earliest: start,
+        latest: end,
+        hasOnline: false,
+        hasInPerson: false,
       };
-      // Update earliest/latest
-      curr.earliest = curr.earliest < r.start_time ? curr.earliest : r.start_time;
-      curr.latest = curr.latest > r.end_time ? curr.latest : r.end_time;
+      if (start < curr.earliest) curr.earliest = start;
+      if (end > curr.latest) curr.latest = end;
+      const modeVal = (r.mode || '').toLowerCase();
+      if (modeVal === 'face_to_face' || modeVal === 'in_person') curr.hasInPerson = true;
+      else if (modeVal === 'hybrid') { curr.hasOnline = true; curr.hasInPerson = true; }
+      else curr.hasOnline = true;
       byAdvisor.set(r.id, curr);
     }
 
-    const result = Array.from(byAdvisor.values()).map(a => {
-      let modeStr = 'Online';
-      if (a.online_enabled && a.in_person_enabled) modeStr = 'In-person/Online';
-      else if (a.in_person_enabled) modeStr = 'In-person';
-      else modeStr = 'Online';
+    // Sort by earliest start and cap to 4 advisors
+    const capped = Array.from(byAdvisor.values())
+      .sort((a, b) => (a.earliest?.getTime?.() || 0) - (b.earliest?.getTime?.() || 0))
+      .slice(0, 4);
+
+    const result = capped.map(a => {
+      const modeStr = a.hasOnline && a.hasInPerson
+        ? 'In-person/Online'
+        : (a.hasInPerson ? 'In-person' : 'Online');
       return {
         id: a.id,
         name: a.name,
         title: a.title,
         department: a.department,
         schedule: dow.charAt(0).toUpperCase() + dow.slice(1),
-        time: fmtRange(a.earliest, a.latest),
+        time: `${formatTimeFromDate(a.earliest)} – ${formatTimeFromDate(a.latest)}`,
         mode: modeStr,
       };
     });

@@ -69,7 +69,73 @@ export default function ConsultationDetailsPage() {
     ]
   };
 
-  const [consultationData, setConsultationData] = useState(location.state?.consultation || fallback);
+  // Normalize asset URLs (http/https/blob unchanged; relative prefixed with API base)
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const resolveAssetUrl = (u) => {
+    if (!u) return null;
+    const s = String(u);
+    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+    if (s.startsWith('/')) return `${base}${s}`;
+    return `${base}/${s}`;
+  };
+
+  // Shape any consultation into a consistent object containing faculty details
+  const shapeConsultation = (c) => {
+    if (!c) return fallback;
+    const name = c?.advisor?.name ?? c?.faculty?.name ?? c?.advisor_name ?? c?.faculty?.full_name ?? null;
+    const title = c?.advisor?.title ?? c?.faculty?.title ?? c?.advisor_title ?? null;
+    const department = c?.advisor?.department ?? c?.faculty?.department ?? c?.advisor_department ?? null;
+    const avatarRaw = c?.advisor?.avatar_url ?? c?.faculty?.avatar_url ?? c?.advisor_avatar_url ?? c?.faculty?.avatar ?? null;
+    const facultyId = c?.advisor?.id ?? c?.faculty?.id ?? c?.advisor_user_id ?? null;
+    const faculty = { id: facultyId, name, title, department, avatar: resolveAssetUrl(avatarRaw) };
+
+    // Derive readable date/time if server provided datetimes
+    const startRaw = c?.start_datetime || c?.start || null;
+    const endRaw = c?.end_datetime || c?.end || null;
+    let date = c?.date || null;
+    let time = c?.time || null;
+    try {
+      if (!date && startRaw) {
+        const d = new Date(startRaw);
+        if (!isNaN(d.getTime())) {
+          date = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        }
+      }
+      if (!time && startRaw && endRaw) {
+        const s = new Date(startRaw);
+        const e = new Date(endRaw);
+        if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
+          const fmt = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+          time = `${fmt(s)} - ${fmt(e)}`;
+        }
+      }
+    } catch (_) {}
+
+    // Normalize mode where possible
+    const mode = (c?.mode === 'face_to_face' || c?.mode === 'in_person' || c?.mode === 'in-person') ? 'in-person' : (c?.mode || 'in-person');
+
+    return { ...c, faculty, date, time, mode };
+  };
+
+  const [consultationData, setConsultationData] = useState(shapeConsultation(location.state?.consultation) || fallback);
+
+  // Determine which My Consultations tab to return to
+  const deriveBackTab = (c) => {
+    if (!c) return null;
+    const status = String(c.status || '').toLowerCase();
+    const startRaw = c.start_datetime || c.date;
+    const start = startRaw ? new Date(startRaw) : null;
+    const durationMin = c.duration || c.duration_minutes || 30;
+    const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+    const now = Date.now();
+    const inUpcomingWindow = start ? (now < (start.getTime() + graceMs)) : false;
+    if (status === 'pending' || status === 'declined' || status === 'expired') return 'requests';
+    if (status === 'completed' || status === 'cancelled' || status === 'missed') return 'history';
+    if (status === 'approved') return inUpcomingWindow ? 'upcoming' : 'history';
+    return 'upcoming';
+  };
+  const backTab = location.state?.fromTab || deriveBackTab(consultationData) || 'upcoming';
+  const backUrl = `/student-dashboard/consultations?tab=${backTab}`;
 
   useEffect(() => {
     const userRaw = localStorage.getItem('advisys_user');
@@ -86,20 +152,30 @@ export default function ConsultationDetailsPage() {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
         if (found) {
-          // Normalize faculty avatar
-          const resolveAssetUrl = (u) => {
-            if (!u) return null;
-            const s = String(u);
-            if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
-            if (s.startsWith('/')) return `${base}${s}`;
-            return `${base}/${s}`;
-          };
-          const name = found?.advisor?.name ?? found?.faculty?.name ?? found?.advisor_name ?? null;
-          const title = found?.advisor?.title ?? found?.faculty?.title ?? found?.advisor_title ?? null;
-          const avatarRaw = found?.advisor?.avatar_url ?? found?.faculty?.avatar_url ?? found?.advisor_avatar_url ?? found?.faculty?.avatar ?? null;
-          const shaped = { ...found, faculty: { id: found?.advisor?.id ?? found?.advisor_user_id ?? found?.faculty?.id ?? null, name, title, avatar: resolveAssetUrl(avatarRaw) } };
+          const shaped = shapeConsultation(found);
           setConsultationData(shaped);
           if (found?.studentPrivateNotes) setNotesDraft(found.studentPrivateNotes);
+          // Enrich with advisor profile (department/title/avatar) if missing
+          const advisorId = shaped?.faculty?.id;
+          const needsEnrich = !shaped?.faculty?.department || !shaped?.faculty?.title || !shaped?.faculty?.avatar;
+          if (advisorId && needsEnrich) {
+            fetch(`${base}/api/advisors/${advisorId}`)
+              .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
+              .then(profile => {
+                const enriched = {
+                  ...shaped,
+                  faculty: {
+                    ...shaped.faculty,
+                    name: shaped.faculty.name || profile?.full_name || profile?.name || null,
+                    title: shaped.faculty.title || profile?.title || null,
+                    department: shaped.faculty.department || profile?.department || null,
+                    avatar: shaped.faculty.avatar || resolveAssetUrl(profile?.avatar || profile?.avatar_url || null),
+                  }
+                };
+                setConsultationData(enriched);
+              })
+              .catch(err => console.warn('Advisor profile enrich failed', err.message));
+          }
         }
         else setError('Consultation not found');
       })
@@ -116,7 +192,7 @@ export default function ConsultationDetailsPage() {
     } else if (page === 'advisors') {
       navigate('/student-dashboard/advisors');
     } else if (page === 'consultations') {
-      navigate('/student-dashboard/consultations');
+      navigate(backUrl);
     } else if (page === 'logout') {
       navigate('/logout');
     }
@@ -133,7 +209,7 @@ export default function ConsultationDetailsPage() {
       console.log('Consultation cancelled:', consultationData.id, 'Reason:', reason);
       setShowCancelModal(false);
       setIsCancelling(false);
-      navigate('/student-dashboard/consultations');
+      navigate(backUrl);
     }, 1000);
   };
 
@@ -273,7 +349,7 @@ export default function ConsultationDetailsPage() {
           <div className="consultation-details-back">
             <button 
               className="back-button"
-              onClick={() => navigate('/student-dashboard/consultations')}
+              onClick={() => navigate(backUrl)}
             >
               <BsChevronLeft />
               Back to My Consultations
@@ -289,24 +365,46 @@ export default function ConsultationDetailsPage() {
                     <h1 className="consultation-title">{consultationData.topic}</h1>
                     <div className="consultation-badges">
                       {(() => {
-                        const inSession = String(consultationData?.status) === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
+                        const status = String(consultationData?.status || '').toLowerCase();
+                        const inSession = status === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
+                        const labelMap = {
+                          approved: 'Approved',
+                          pending: 'Pending',
+                          declined: 'Declined',
+                          cancelled: 'Cancelled',
+                          completed: 'Completed',
+                          missed: 'Missed',
+                          expired: 'Expired',
+                        };
+                        const label = inSession ? 'In Session' : (labelMap[status] || 'Approved');
+                        const icon = inSession ? <BsClock /> : <BsCheckCircle />;
+                        const statusClass = status === 'missed' ? 'status-missed' : (inSession ? 'insession' : 'approved');
                         return (
-                          <span className={`status-badge ${inSession ? 'insession' : 'approved'}`}>
-                            {inSession ? <BsClock /> : <BsCheckCircle />}
-                            <span>{inSession ? 'In Session' : 'Approved'}</span>
+                          <span className={`status-badge ${statusClass}`}>
+                            {icon}
+                            <span>{label}</span>
                           </span>
                         );
                       })()}
-                      <span className="mode-badge in-person">
-                        <BsGeoAlt />
-                        <span>In-Person</span>
-                      </span>
+                      {(() => {
+                        const mode = String(consultationData?.mode || '').toLowerCase();
+                        const isOnline = mode === 'online';
+                        const isInPerson = mode === 'in-person' || mode === 'face_to_face' || mode === 'in_person';
+                        const cls = isOnline ? 'online' : 'in-person';
+                        const label = isOnline ? 'Online' : 'In-Person';
+                        const Ico = isOnline ? BsCalendar : BsGeoAlt;
+                        return (
+                          <span className={`mode-badge ${cls}`}>
+                            <Ico />
+                            <span>{label}</span>
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                   
                   <div className="consultation-datetime">
                     <div className="date-info">
-                      <BsCalendar className="date-icon" />
                       <span className="date-text">{formatDate(consultationData.date)}</span>
                     </div>
                     <div className="time-info">
@@ -376,6 +474,14 @@ export default function ConsultationDetailsPage() {
                       title={editApproved ? 'You have approval to edit this summary' : 'Approval required before editing'}>
                       {editApproved ? 'Edit Approved' : 'Approval Required'}
                     </span>
+                    {!editApproved && (
+                      <ShineButton
+                        label={requestingEdit ? 'Requesting...' : 'Request Edit'}
+                        onClick={handleRequestSummaryEdit}
+                        className="mobile-inline-only"
+                        size="sm"
+                      />
+                    )}
                   </h2>
                   <div className="section-content">
                     {!isEditingSummary ? (

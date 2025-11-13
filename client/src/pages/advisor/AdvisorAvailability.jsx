@@ -485,12 +485,6 @@ export default function AdvisorAvailability() {
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="items-center">
-                <AlertDialogCancel 
-                  className="min-w-[110px] h-10 px-4"
-                  onClick={() => { setDeleteOpen(false); setPendingDeleteEvent(null); }}
-                >
-                  Cancel
-                </AlertDialogCancel>
                 <AlertDialogAction 
                   className="min-w-[110px] h-10 px-4"
                   onClick={async () => {
@@ -520,6 +514,12 @@ export default function AdvisorAvailability() {
                 >
                   Delete
                 </AlertDialogAction>
+                <AlertDialogCancel 
+                  className="min-w-[110px] h-10 px-4"
+                  onClick={() => { setDeleteOpen(false); setPendingDeleteEvent(null); }}
+                >
+                  Cancel
+                </AlertDialogCancel>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>

@@ -9,6 +9,7 @@ import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectan
 import AdvisorConsultationCard from "../../components/advisor/my_consultation/AdvisorConsultationCard";
 import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
 import DeclineConsultationModal from "../../components/advisor/DeclineConsultationModal";
+import { toast } from "../../components/hooks/use-toast";
 import { Button } from "../../lightswind/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import "./AdvisorDashboard.css";
@@ -80,6 +81,7 @@ export default function AdvisorConsultations() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDeclineModal, setShowDeclineModal] = useState(false);
   const [consultationToDecline, setConsultationToDecline] = useState(null);
+  const [isDeclining, setIsDeclining] = useState(false);
   const [deletedItems, setDeletedItems] = useState([]);
   const [undoTimeout, setUndoTimeout] = useState(null);
   const [deletedDeclinedItems, setDeletedDeclinedItems] = useState([]);
@@ -182,9 +184,21 @@ export default function AdvisorConsultations() {
       .sort((a, b) => new Date(a._start || a.date) - new Date(b._start || b.date));
   }, [allConsultations]);
 
-  const requestData = useMemo(() => (
-    allConsultations.filter(c => c.status === 'pending' || c.status === 'declined')
-  ), [allConsultations]);
+  const requestData = useMemo(() => {
+    const now = new Date();
+    return allConsultations
+      .map(c => {
+        const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
+        const durationMin = c.duration || c.duration_minutes || 30;
+        const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+        let status = c.status;
+        if (status === 'pending' && start && now >= (start.getTime() + graceMs)) {
+          status = 'expired';
+        }
+        return { ...c, status };
+      })
+      .filter(c => c.status === 'pending' || c.status === 'declined' || c.status === 'expired');
+  }, [allConsultations]);
 
   const historyDataInitial = useMemo(() => (
     allConsultations.map(c => {
@@ -272,17 +286,22 @@ export default function AdvisorConsultations() {
 
   const handleConfirmDecline = async (consultation, reason) => {
     try {
+      setIsDeclining(true);
       const res = await fetch(`${base}/api/consultations/${consultation.id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify({ status: 'declined', declineReason: reason })
       });
       if (!res.ok) throw new Error('Decline failed');
+      toast.success({ title: 'Request declined', description: 'The consultation request has been declined.' });
       setShowDeclineModal(false);
       setConsultationToDecline(null);
       await reloadConsultations();
     } catch (err) {
       console.error('Decline error', err);
+      toast.destructive({ title: 'Decline failed', description: 'Unable to decline the request. Please try again.' });
+    } finally {
+      setIsDeclining(false);
     }
   };
 
@@ -733,6 +752,8 @@ export default function AdvisorConsultations() {
         onClose={handleCloseDeclineModal}
         onConfirm={handleConfirmDecline}
         consultation={consultationToDecline}
+        isDeclining={isDeclining}
+        variant="admin"
       />
     </div>
   );

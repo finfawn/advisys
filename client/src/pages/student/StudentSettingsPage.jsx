@@ -12,6 +12,7 @@ import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../light
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./StudentSettingsPage.css";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 
 export default function StudentSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -49,6 +50,7 @@ export default function StudentSettingsPage() {
   const [editData, setEditData] = useState({ ...studentData });
   const [activeSection, setActiveSection] = useState("profile");
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
+  const [programOptions, setProgramOptions] = useState([]);
 
   const ordinal = (n) => {
     const s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -112,6 +114,14 @@ export default function StudentSettingsPage() {
       }
     };
     fetchProfile();
+    // Load program options
+    (async () => {
+      try {
+        const res = await fetch(`${apiBase}/api/programs`);
+        const list = await res.json();
+        setProgramOptions(Array.isArray(list) ? list : []);
+      } catch (_) {}
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -144,6 +154,11 @@ export default function StudentSettingsPage() {
       studentData.profilePicture !== editData.profilePicture
     ) {
       URL.revokeObjectURL(studentData.profilePicture);
+    }
+    // Simple validation for required dropdowns
+    if (!String(editData.program || '').trim()) {
+      alert('Please select a program');
+      return;
     }
     try {
       const body = {
@@ -574,7 +589,24 @@ export default function StudentSettingsPage() {
 
                       <div className="info-field full-width">
                         <label className="info-label">Program</label>
-                        <div className="info-value">{studentData.program}</div>
+                        {isEditing ? (
+                          <Select value={editData.program || ""} onValueChange={(v) => handleInputChange('program', v)}>
+                            <SelectTrigger className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-white">
+                              <SelectValue placeholder="Select program" />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {programOptions.length > 0 ? (
+                                programOptions.map((p) => (
+                                  <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                                ))
+                              ) : (
+                                <SelectItem value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        ) : (
+                          <div className="info-value">{studentData.program}</div>
+                        )}
                       </div>
 
                       <div className="info-field full-width">

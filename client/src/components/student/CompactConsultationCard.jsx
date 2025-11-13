@@ -101,8 +101,8 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
       
       <div className="compact-content">
         <div className="compact-faculty-info">
-          <div className="compact-faculty-name">{consultation?.faculty?.name || 'Advisor'}</div>
-          <div className="compact-faculty-title">{consultation?.faculty?.title || consultation.category || consultation.topic || 'No Topic'}</div>
+          <div className="compact-faculty-name">{consultation?.advisor?.name || consultation?.faculty?.name || 'Advisor'}</div>
+          <div className="compact-faculty-title">{consultation?.advisor?.title || consultation?.faculty?.title || consultation.category || consultation.topic || 'No Topic'}</div>
         </div>
         
         <div className="compact-time-info">
