@@ -228,51 +228,7 @@
   }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .modern-calendar {
-    background: rgba(31, 41, 55, 0.95);
-    border-color: rgba(75, 85, 99, 0.3);
-  }
-  
-  .month-title {
-    color: #f9fafb;
-  }
-  
-  .weekday {
-    color: #d1d5db;
-  }
-  
-  .calendar-day.current-month {
-    background: rgba(55, 65, 81, 0.8);
-    border-color: rgba(75, 85, 99, 0.3);
-    color: #f9fafb;
-  }
-  
-  .calendar-day.prev-month,
-  .calendar-day.next-month {
-    color: #6b7280;
-  }
-  
-  .calendar-day.disabled {
-    color: #4b5563;
-  }
-  
-  .footer-button {
-    background: rgba(55, 65, 81, 0.8);
-    border-color: rgba(75, 85, 99, 0.5);
-    color: #d1d5db;
-  }
-  
-  .footer-button:hover {
-    background: rgba(75, 85, 99, 0.8);
-    color: #f9fafb;
-  }
-  
-  .calendar-footer {
-    border-top-color: rgba(75, 85, 99, 0.3);
-  }
-}
+/* Dark mode removed to hardwire light theme */
 
 /* Animation for month transitions */
 @keyframes slideIn {

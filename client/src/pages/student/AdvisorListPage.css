@@ -401,42 +401,4 @@
     }
 }
 
-/* Dark mode support (optional) */
-@media (prefers-color-scheme: dark) {
-    .page-title {
-        color: #f9fafb;
-    }
-
-    .page-subtitle {
-        color: #d1d5db;
-    }
-
-    .section-title {
-        color: #f9fafb;
-    }
-
-    .filter-dropdown {
-        background: #374151;
-        color: #f9fafb;
-        border-color: #4b5563;
-    }
-
-    .filter-dropdown:focus {
-        border-color: #60a5fa;
-        box-shadow: 0 0 0 3px rgba(96, 165, 250, 0.1);
-    }
-
-    .section-count {
-        background: #374151;
-        color: #d1d5db;
-    }
-
-    .no-results {
-        background: #374151;
-        border-color: #4b5563;
-    }
-
-    .no-results p {
-        color: #d1d5db;
-    }
-}
+/* Dark mode removed to hardwire light theme */

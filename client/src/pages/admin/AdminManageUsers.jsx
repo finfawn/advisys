@@ -658,46 +658,23 @@ export default function AdminManageUsers() {
     });
     setShowPassword(false);
     setViewOpen(true);
-    // Load advisor settings/modes/availability if advisor tab
+    // Load advisor consultation info only
     (async () => {
       try {
-        const isAdvisor = activeTab === 'advisors';
-        if (!isAdvisor) return;
+        if (activeTab !== 'advisors') return;
         const base = apiBase;
-        const [sRes, aRes] = await Promise.all([
-          fetch(`${base}/api/settings/advisors/${item.id}`),
-          fetch(`${base}/api/advisors/${item.id}`)
-        ]);
-        const s = await sRes.json();
-        const a = await aRes.json();
-        const modesGuess = Array.isArray(a.consultationMode) ? a.consultationMode : [];
-        const onlineEnabled = modesGuess.includes('Online') || modesGuess.includes('In-person/Online');
-        const inPersonEnabled = modesGuess.includes('In-person') || modesGuess.includes('In-person/Online');
+        const res = await fetch(`${base}/api/advisors/${item.id}`);
+        if (!res.ok) return;
+        const a = await res.json();
         setEditForm(prev => ({
           ...prev,
-          autoAcceptRequests: !!s.autoAcceptRequests,
-          maxDailyConsultations: Number(s.maxDailyConsultations || 10),
-          defaultConsultationDuration: s.defaultConsultationDuration != null ? Number(s.defaultConsultationDuration) : prev.defaultConsultationDuration,
-          onlineEnabled,
-          inPersonEnabled,
-          availability: a.weeklySchedule ? Object.fromEntries(Object.entries(a.weeklySchedule).map(([day,val]) => {
-            if (!val || /Unavailable/i.test(val)) return [day, null];
-            const m = String(val).match(/(\d{1,2}:\d{2} [AP]M)\s*-\s*(\d{1,2}:\d{2} [AP]M)/);
-            if (m) {
-              function to24(t) {
-                const [time, ap] = t.split(' ');
-                let [h,mn] = time.split(':').map(Number);
-                if (ap === 'PM' && h !== 12) h += 12;
-                if (ap === 'AM' && h === 12) h = 0;
-                return `${String(h).padStart(2,'0')}:${String(mn).padStart(2,'0')}`;
-              }
-              return [day, { start: to24(m[1]), end: to24(m[2]) }];
-            }
-            return [day, null];
-          })) : prev.availability,
+          consultBio: a?.bio || '',
+          consultTopics: Array.isArray(a?.topicsCanHelpWith) ? a.topicsCanHelpWith : [],
+          consultGuidelines: Array.isArray(a?.consultationGuidelines) ? a.consultationGuidelines : [],
+          consultSubjects: Array.isArray(a?.coursesTaught) ? a.coursesTaught.map(c => ({ code: c.code || '', name: c.name || '' })) : [],
         }));
       } catch (err) {
-        console.error('Load advisor settings failed', err);
+        console.error('Load advisor consultation info failed', err);
       }
     })();
   };
@@ -772,29 +749,22 @@ export default function AdminManageUsers() {
         throw new Error(text || 'Failed to save changes');
       }
       if (activeTab === 'advisors') {
-        // Save advisor-specific settings
-        await fetch(`${apiBase}/api/settings/advisors/${viewUser.id}`, {
+        // Save consultation info (bio, topics, guidelines, subjects)
+        const topics = Array.isArray(editForm.consultTopics) ? editForm.consultTopics : [];
+        const guidelines = Array.isArray(editForm.consultGuidelines) ? editForm.consultGuidelines : [];
+        const courses = Array.isArray(editForm.consultSubjects) ? editForm.consultSubjects.map(s => ({ code: String(s.code||'').trim(), name: String(s.name||'').trim() })).filter(s => s.code || s.name) : [];
+        await fetch(`${apiBase}/api/advisors/${viewUser.id}/consultation-settings`, {
           method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            autoAcceptRequests: !!editForm.autoAcceptRequests,
-            maxDailyConsultations: Number(editForm.maxDailyConsultations || 10),
-            defaultConsultationDuration: Number(editForm.defaultConsultationDuration || 30)
-          })
-        }).catch((e)=>console.error('Save advisor settings failed', e));
-
-        await fetch(`${apiBase}/api/settings/advisors/${viewUser.id}/modes`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ onlineEnabled: !!editForm.onlineEnabled, inPersonEnabled: !!editForm.inPersonEnabled })
-        }).catch((e)=>console.error('Save advisor modes failed', e));
-
-        await fetch(`${apiBase}/api/settings/advisors/${viewUser.id}/availability`, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ days: editForm.availability })
-        }).catch((e)=>console.error('Save advisor availability failed', e));
+          body: JSON.stringify({ bio: editForm.consultBio || null, topics, guidelines, courses })
+        }).catch((e)=>console.error('Save consultation settings failed', e));
       }
       // Ensure the list reflects persisted changes
       await reloadActiveTab();
       setViewOpen(false);
+      try {
+        const { toast } = await import('../../components/hooks/use-toast');
+        toast.success({ title: 'Profile saved', description: activeTab === 'advisors' ? 'Consultation info updated' : 'User details updated' });
+      } catch {}
     } catch (err) {
       console.error('Failed to persist user changes', err);
       alert('Saving failed on the server. The drawer remains open so you can retry.');
@@ -1182,14 +1152,14 @@ export default function AdminManageUsers() {
 
       {/* View/Edit User Profile Drawer */}
       <Drawer open={viewOpen} onOpenChange={setViewOpen}>
-        <DrawerContent className="max-w-2xl p-0">
+        <DrawerContent className="max-w-2xl p-0 max-h-[90vh]">
           <DrawerHeader>
             <DrawerTitle>{viewUser?.name || "User"} Profile</DrawerTitle>
             <DrawerDescription>
               View and edit user information
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-6 space-y-5">
+          <div className="p-6 space-y-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 160px)' }}>
             {/* Profile Header */}
             <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
               <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl text-blue-700 font-bold">
@@ -1393,7 +1363,7 @@ export default function AdminManageUsers() {
               </>
             )}
 
-            {/* Advisor-Specific Fields */}
+            {/* Advisor Consultation Info Only */}
             {activeTab === "advisors" && (
               <div className="space-y-4">
                 <div>
@@ -1405,43 +1375,30 @@ export default function AdminManageUsers() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Max daily slots</label>
-                    <Input type="number" min="1" max="50" value={editForm.maxDailyConsultations} onChange={(e)=>setEditForm({ ...editForm, maxDailyConsultations: Number(e.target.value || 10) })} />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Default duration (minutes)</label>
-                    <Input type="number" min="5" max="240" value={editForm.defaultConsultationDuration} onChange={(e)=>setEditForm({ ...editForm, defaultConsultationDuration: Number(e.target.value || 30) })} />
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={editForm.onlineEnabled} onChange={(e)=>setEditForm({ ...editForm, onlineEnabled: e.target.checked })} />
-                    <span className="text-sm">Online consultations enabled</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <input type="checkbox" checked={editForm.inPersonEnabled} onChange={(e)=>setEditForm({ ...editForm, inPersonEnabled: e.target.checked })} />
-                    <span className="text-sm">In-person consultations enabled</span>
-                  </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Bio</label>
+                  <textarea className="w-full border border-gray-300 rounded-md p-2 text-sm" rows="3" value={editForm.consultBio || ''} onChange={(e)=>setEditForm({ ...editForm, consultBio: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Weekly availability</label>
-                  {Object.entries(editForm.availability).map(([day,val]) => (
-                    <div key={day} className="flex items-center gap-3 mb-2">
-                      <span className="w-24 capitalize text-sm text-gray-600">{day}</span>
-                      <Input type="time" value={val?.start || ''} onChange={(e)=>{
-                        const v = e.target.value;
-                        setEditForm(prev => ({ ...prev, availability: { ...prev.availability, [day]: v ? { start: v, end: prev.availability[day]?.end || '' } : null } }));
-                      }} />
-                      <Input type="time" value={val?.end || ''} onChange={(e)=>{
-                        const v = e.target.value;
-                        setEditForm(prev => ({ ...prev, availability: { ...prev.availability, [day]: v ? { start: prev.availability[day]?.start || '', end: v } : null } }));
-                      }} />
-                      <Button variant="outline" onClick={()=>setEditForm(prev => ({ ...prev, availability: { ...prev.availability, [day]: null } }))}>Clear</Button>
-                    </div>
-                  ))}
-                  <p className="text-xs text-gray-500">Leave a day blank (Clear) if unavailable.</p>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Categories (topics)</label>
+                  <Input type="text" placeholder="Comma-separated, e.g., Java, Networking, CSS" value={(editForm.consultTopics || []).join(', ')} onChange={(e)=>setEditForm({ ...editForm, consultTopics: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Guidelines</label>
+                  <textarea className="w-full border border-gray-300 rounded-md p-2 text-sm" rows="3" placeholder="One guideline per line" value={(editForm.consultGuidelines || []).join('\n')} onChange={(e)=>setEditForm({ ...editForm, consultGuidelines: e.target.value.split('\n').map(s=>s.trim()).filter(Boolean) })} />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Subjects Taught</label>
+                  <div className="space-y-2">
+                    {(editForm.consultSubjects || []).map((subj, idx) => (
+                      <div key={idx} className="grid grid-cols-5 gap-2">
+                        <Input className="col-span-2" placeholder="Code (e.g., CS101)" value={subj.code || ''} onChange={(e)=>{ const v = e.target.value; const next = [...(editForm.consultSubjects||[])]; next[idx] = { ...next[idx], code: v }; setEditForm({ ...editForm, consultSubjects: next }); }} />
+                        <Input className="col-span-3" placeholder="Name (e.g., Intro to CS)" value={subj.name || ''} onChange={(e)=>{ const v = e.target.value; const next = [...(editForm.consultSubjects||[])]; next[idx] = { ...next[idx], name: v }; setEditForm({ ...editForm, consultSubjects: next }); }} />
+                        <Button variant="outline" onClick={()=>{ const next = [...(editForm.consultSubjects||[])]; next.splice(idx,1); setEditForm({ ...editForm, consultSubjects: next }); }}>Remove</Button>
+                      </div>
+                    ))}
+                    <Button variant="outline" onClick={()=>setEditForm({ ...editForm, consultSubjects: [ ...(editForm.consultSubjects || []), { code: '', name: '' } ] })}>Add Subject</Button>
+                  </div>
                 </div>
               </div>
             )}

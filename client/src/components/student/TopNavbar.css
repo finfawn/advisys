@@ -720,49 +720,7 @@
     }
 }
 
-/* Dark mode support */
-@media (prefers-color-scheme: dark) {
-    .user-dropdown-menu {
-        background: #1f2937;
-        border-color: #374151;
-    }
-
-    .dropdown-header {
-        background: #111827;
-        border-color: #374151;
-    }
-
-    .dropdown-user-name {
-        color: #f9fafb;
-    }
-
-    .dropdown-user-role {
-        color: #9ca3af;
-    }
-
-    .dropdown-item {
-        color: #d1d5db;
-    }
-
-    .dropdown-item:hover,
-    .dropdown-item:focus {
-        background: #374151;
-        color: #f9fafb;
-    }
-
-    .dropdown-item-icon {
-        color: #9ca3af;
-    }
-
-    .dropdown-item:hover .dropdown-item-icon,
-    .dropdown-item:focus .dropdown-item-icon {
-        color: #60a5fa;
-    }
-
-    .dropdown-divider {
-        background: #374151;
-    }
-}
+/* Dark mode removed to hardwire light theme */
 /* Tablet: mirror mobile navbar behavior (hide brand/greeting/dropdown) */
 @media (max-width: 1024px) {
     .dash-topbar {

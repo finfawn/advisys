@@ -8,6 +8,7 @@ import { BsChevronLeft, BsChevronRight } from "react-icons/bs";
 import CustomCalendar from "../../student/CustomCalendar";
 // Temporary: existing modal; will be replaced by Lightswind modal in next step
 import ConsultationSlotModal from "./ConsultationSlotModal";
+import { toast } from "../../../components/hooks/use-toast";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../../lightswind/alert-dialog";
 
 const localizer = momentLocalizer(moment);
@@ -294,6 +295,7 @@ export default function AvailabilityCalendar({
                     mode: s.mode,
                     room: s.room || "",
                   } : ev));
+                  toast.success({ title: 'Slot updated', description: `${moment(s.start_datetime).format('MMM D, YYYY h:mm a')} – ${moment(s.end_datetime).format('h:mm a')}` });
                 } catch (err) {
                   console.error('Slot update (fallback local)', err);
                   setEvents((prev) => prev.map((ev) => ev.id === editDefaults.event.id ? {
@@ -341,6 +343,10 @@ export default function AvailabilityCalendar({
                       room: s.room || "",
                     }))
                   ]));
+                  if (created && created.length) {
+                    const first = created[0];
+                    toast.success({ title: 'Slot created', description: `${moment(first.start_datetime).format('MMM D, YYYY h:mm a')} – ${moment(first.end_datetime).format('h:mm a')}` });
+                  }
                 } catch (err) {
                   console.error('Slot create (fallback local)', err);
                   setEvents((prev) => ([
@@ -403,8 +409,8 @@ export default function AvailabilityCalendar({
                       }),
                     });
                     if (!resp.ok) throw new Error('Failed to persist slots');
-                    const created = await resp.json();
-                    setEvents((prev) => ([
+                  const created = await resp.json();
+                  setEvents((prev) => ([
                       ...prev,
                       ...created.map((s) => ({
                         id: s.id,
@@ -415,7 +421,11 @@ export default function AvailabilityCalendar({
                         mode: s.mode,
                         room: s.room || "",
                       }))
-                    ]));
+                  ]));
+                  if (created && created.length) {
+                    const first = created[0];
+                    toast.success({ title: 'Slot created', description: `${moment(first.start_datetime).format('MMM D, YYYY h:mm a')} – ${moment(first.end_datetime).format('h:mm a')}` });
+                  }
                   } catch (err) {
                     console.error('Slot create (fallback local)', err);
                     setEvents((prev) => ([

@@ -5,6 +5,7 @@ import { FaMapMarkerAlt, FaLaptop } from "react-icons/fa";
 import { Modal, Button, Form, Row, Col, Card, Badge } from "react-bootstrap";
 import { DayPicker } from "react-day-picker";
 import "react-day-picker/dist/style.css";
+import { toast } from "../hooks/use-toast";
 import "./ConsultationModal.css";
 
 function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations, modeType = 'create', initialData = null, consultationId = null, onSubmitSuccess }) {
@@ -363,12 +364,14 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
         throw new Error(data?.error || 'Failed to book consultation');
       }
 
-      // Success: move to confirmation step
+      // Success: move to confirmation step and show toast
       setCurrentStep(3);
+      const when = selectedSlot ? `${toRangeStr(new Date(selectedSlot.start_datetime), new Date(selectedSlot.end_datetime))}` : '';
+      toast.success({ title: 'Consultation requested', description: `${new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric' }).format(selectedDate)} • ${when}` });
       if (onSubmitSuccess) onSubmitSuccess(data);
     } catch (err) {
       console.error('Booking failed:', err);
-      alert(err.message || 'Failed to book consultation');
+      toast.destructive({ title: 'Booking failed', description: err?.message || 'Failed to book consultation' });
     } finally {
       setIsSubmitting(false);
     }

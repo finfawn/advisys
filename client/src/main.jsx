@@ -2,7 +2,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import './index.css'
-import './theme.css'
+// Removed theme.css to disable dark theme overrides
 import App from './App.jsx'
 
 // Fix for mobile viewport height with browser UI
@@ -18,12 +18,10 @@ setViewportHeight();
 window.addEventListener('resize', setViewportHeight);
 window.addEventListener('orientationchange', setViewportHeight);
 
-import { ThemeProvider } from './contexts/ThemeContext.jsx'
+// Removed ThemeProvider to hard-wire light mode
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
-    <ThemeProvider>
-      <App />
-    </ThemeProvider>
+    <App />
   </StrictMode>,
 )

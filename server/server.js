@@ -1,4 +1,4 @@
-require('dotenv').config();
+try { require('dotenv').config(); } catch (_) {}
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
@@ -20,48 +20,40 @@ process.on('unhandledRejection', (reason, promise) => {
 // Serve uploaded files statically under /uploads
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// routes
-const authRouter = require('./routes/auth');
-app.use('/api/auth', authRouter);
-const usersRouter = require('./routes/users');
-app.use('/api/users', usersRouter);
-
-const advisorsRouter = require('./routes/advisors');
-app.use('/api/advisors', advisorsRouter);
-const consultationsRouter = require('./routes/consultations');
-app.use('/api', consultationsRouter);
-const profileRouter = require('./routes/profile');
-app.use('/api/profile', profileRouter);
-const availabilityRouter = require('./routes/availability');
-app.use('/api/availability', availabilityRouter);
-const dashboardRouter = require('./routes/dashboard');
-app.use('/api/dashboard', dashboardRouter);
-const notificationsRouter = require('./routes/notifications');
-app.use('/api/notifications', notificationsRouter);
-const settingsRouter = require('./routes/settings');
-app.use('/api/settings', settingsRouter);
-const transcriptionsRouter = require('./routes/transcriptions');
-app.use('/api', transcriptionsRouter);
-// File uploads (avatars, etc.)
-const uploadsRouter = require('./routes/uploads');
-app.use('/api/uploads', uploadsRouter);
-// Departments and Programs
-const departmentsRouter = require('./routes/departments');
-app.use('/api/departments', departmentsRouter);
-const programsRouter = require('./routes/programs');
-app.use('/api/programs', programsRouter);
-// AI Debug routes
-const aiDebugRouter = require('./routes/ai_debug');
-app.use('/api', aiDebugRouter);
-// Stream Video token minting
-const streamRouter = require('./routes/stream');
-app.use('/api/stream', streamRouter);
-// RS256 JaaS JWT generation and Settings Provisioning: mount only if using JaaS
+// routes (mount defensively so startup never crashes on missing modules)
+function mount(prefix, modPath) {
+  try {
+    const router = require(modPath);
+    app.use(prefix, router);
+    console.log(`[Routes] Mounted ${modPath} at ${prefix}`);
+  } catch (err) {
+    console.error(`[Routes] Failed to mount ${modPath} at ${prefix}:`, err?.message || err);
+  }
+}
+mount('/api/auth', './routes/auth');
+mount('/api/users', './routes/users');
+mount('/api/advisors', './routes/advisors');
+mount('/api', './routes/consultations');
+mount('/api/profile', './routes/profile');
+mount('/api/availability', './routes/availability');
+mount('/api/dashboard', './routes/dashboard');
+mount('/api/notifications', './routes/notifications');
+mount('/api/settings', './routes/settings');
+mount('/api', './routes/transcriptions');
+mount('/api/uploads', './routes/uploads');
+mount('/api/departments', './routes/departments');
+mount('/api/programs', './routes/programs');
+mount('/api', './routes/ai_debug');
+mount('/api/stream', './routes/stream');
 
 
-// Auto-migrate database on server start
-const { autoMigrate } = require('./db/auto_migrate');
-autoMigrate().catch((err) => console.error('Auto-migrate startup error:', err));
+// Auto-migrate database on server start (optional)
+let autoMigrate = null;
+try {
+  ({ autoMigrate } = require('./db/auto_migrate'));
+} catch (e) {
+  console.warn('[AutoMigrate] Module not found, skipping:', e?.message || e);
+}
 
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
@@ -405,5 +397,12 @@ async function runAdvisorSlotsCleanupJob() {
 setInterval(runAdvisorSlotsCleanupJob, SLOTS_CLEANUP_POLL_MS);
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => console.log(`Server started on port ${PORT}`));
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Server started on port ${PORT}`);
+  setImmediate(() => {
+    if (autoMigrate) {
+      autoMigrate().catch((err) => console.error('Auto-migrate startup error:', err));
+    }
+  });
+});
 
