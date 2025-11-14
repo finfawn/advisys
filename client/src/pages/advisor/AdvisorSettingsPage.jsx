@@ -40,12 +40,8 @@ export default function AdvisorSettingsPage() {
 
   // Settings state
   const [settings, setSettings] = useState({
-    // Notification Settings
     emailNotifications: true,
     notificationsMuted: false,
-    // Availability Settings
-    autoAcceptRequests: false,
-    maxDailyConsultations: 5
   });
 
   const [isEditing, setIsEditing] = useState(false);
@@ -259,15 +255,7 @@ export default function AdvisorSettingsPage() {
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify(notifPayload),
       }).catch(() => {});
-      const advisorPayload = {
-        autoAcceptRequests: next.autoAcceptRequests,
-        maxDailyConsultations: Number(next.maxDailyConsultations || 10),
-      };
-      fetch(`${base}/api/settings/advisors/${advisorId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeader },
-        body: JSON.stringify(advisorPayload),
-      }).catch(() => {});
+      // Removed advisor auto-accept/max-daily settings per requirement
       return next;
     });
   };
@@ -875,35 +863,7 @@ export default function AdvisorSettingsPage() {
                         </label>
                       </div>
 
-                      <div className="setting-item">
-                        <div className="setting-info">
-                          <h4 className="setting-title">Auto-Accept Requests</h4>
-                          <p className="setting-description">Automatically accept consultation requests within your availability</p>
-                        </div>
-                        <label className="toggle-switch">
-                          <input
-                            type="checkbox"
-                            checked={settings.autoAcceptRequests}
-                            onChange={() => handleToggleSetting('autoAcceptRequests')}
-                          />
-                          <span className="toggle-slider"></span>
-                        </label>
-                      </div>
-
-                      <div className="setting-item">
-                        <div className="setting-info">
-                          <h4 className="setting-title">Maximum Daily Consultations</h4>
-                          <p className="setting-description">Set the maximum number of consultations per day</p>
-                        </div>
-                        <input
-                          type="number"
-                          min="1"
-                          max="20"
-                          className="number-input"
-                          value={settings.maxDailyConsultations}
-                          onChange={(e) => handleSettingChange('maxDailyConsultations', parseInt(e.target.value))}
-                        />
-                      </div>
+                      {/* Auto-accept and max-daily settings removed */}
                     </div>
                   </div>
                 )}

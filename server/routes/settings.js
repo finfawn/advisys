@@ -84,21 +84,18 @@ router.get('/advisors/:userId', async (req, res) => {
   try {
     const advisorId = Number(req.params.userId);
     const [[row]] = await pool.query(
-      `SELECT advisor_user_id, auto_accept_requests, max_daily_consultations, default_consultation_duration
+      `SELECT advisor_user_id, default_consultation_duration
        FROM advisor_settings WHERE advisor_user_id = ?`,
       [advisorId]
     );
     if (!row) {
       return res.json({
         advisorUserId: advisorId,
-        autoAcceptRequests: false,
-        maxDailyConsultations: 10,
+        defaultConsultationDuration: null,
       });
     }
     return res.json({
       advisorUserId: row.advisor_user_id,
-      autoAcceptRequests: !!row.auto_accept_requests,
-      maxDailyConsultations: Number(row.max_daily_consultations || 10),
       defaultConsultationDuration: row.default_consultation_duration != null ? Number(row.default_consultation_duration) : null,
     });
   } catch (err) {
@@ -112,20 +109,20 @@ router.patch('/advisors/:userId', async (req, res) => {
   const pool = getPool();
   try {
     const advisorId = Number(req.params.userId);
-    const { autoAcceptRequests, maxDailyConsultations, defaultConsultationDuration } = req.body || {};
+    const { defaultConsultationDuration } = req.body || {};
     const [[exists]] = await pool.query('SELECT advisor_user_id FROM advisor_settings WHERE advisor_user_id = ?', [advisorId]);
     if (exists) {
       await pool.query(
         `UPDATE advisor_settings
-         SET auto_accept_requests = ?, max_daily_consultations = ?, default_consultation_duration = ?
+         SET default_consultation_duration = ?
          WHERE advisor_user_id = ?`,
-        [autoAcceptRequests ? 1 : 0, Number(maxDailyConsultations || 10), (defaultConsultationDuration != null ? Number(defaultConsultationDuration) : null), advisorId]
+        [(defaultConsultationDuration != null ? Number(defaultConsultationDuration) : null), advisorId]
       );
     } else {
       await pool.query(
-        `INSERT INTO advisor_settings (advisor_user_id, auto_accept_requests, max_daily_consultations, default_consultation_duration)
-         VALUES (?,?,?,?)`,
-        [advisorId, autoAcceptRequests ? 1 : 0, Number(maxDailyConsultations || 10), (defaultConsultationDuration != null ? Number(defaultConsultationDuration) : null)]
+        `INSERT INTO advisor_settings (advisor_user_id, default_consultation_duration)
+         VALUES (?,?)`,
+        [advisorId, (defaultConsultationDuration != null ? Number(defaultConsultationDuration) : null)]
       );
     }
     res.json({ success: true });

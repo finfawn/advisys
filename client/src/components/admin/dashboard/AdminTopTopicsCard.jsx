@@ -10,7 +10,9 @@ export default function AdminTopTopicsCard({ loading = false, topics = null }) {
     { name: "Course Selection", count: 82 },
     { name: "Study Strategies", count: 62 }
   ];
-  const chartData = Array.isArray(topics) && topics.length ? topics : fallbackTopics;
+  const chartData = Array.isArray(topics) && topics.length
+    ? topics.map((t) => ({ name: t.name ?? t.label, count: Number(t.count ?? t.value ?? 0) }))
+    : fallbackTopics;
 
   return (
     <div className="dashboard-card admin-topics-card">
@@ -23,7 +25,7 @@ export default function AdminTopTopicsCard({ loading = false, topics = null }) {
             <Skeleton className="w-11/12 h-40 rounded-lg" shimmer />
           </div>
         ) : (
-          <AdminAreaChart data={chartData} height={240} />
+          <AdminAreaChart data={chartData} height={180} />
         )}
       </div>
     </div>

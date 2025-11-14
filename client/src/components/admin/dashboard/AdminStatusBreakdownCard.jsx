@@ -1,66 +1,36 @@
 import React from "react";
-import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { Skeleton } from "../../../lightswind/skeleton";
 
-export default function AdminStatusBreakdownCard({ loading = false, data = null }) {
-  const fallback = [
-    { label: "Completed", value: 62, color: "#10b981" },
-    { label: "Pending", value: 22, color: "#3b82f6" },
-    { label: "Canceled", value: 10, color: "#ef4444" },
-    { label: "Rescheduled", value: 6, color: "#f59e0b" },
-  ];
-  const chartData = (Array.isArray(data) && data.length ? data : fallback).map(item => ({
-    name: item.label,
-    value: Number(item.value) || 0,
-    color: item.color || "#3b82f6",
-  }));
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      return (
-        <div style={{
-          backgroundColor: '#fff',
-          border: '1px solid #e5e7eb',
-          borderRadius: 8,
-          padding: 8,
-          fontSize: 12
-        }}>
-          <div style={{ fontWeight: 700 }}>{payload[0].name}</div>
-          <div style={{ color: '#374151' }}>{payload[0].value}%</div>
-        </div>
-      );
-    }
-    return null;
-  };
+export default function AdminStatusBreakdownCard({ loading = false, data = null, height = 360 }) {
+  const chartData = Array.isArray(data)
+    ? data.map((d) => ({ name: String(d.label || d.status || ''), value: Number(d.value || d.count || 0) }))
+    : [];
 
   return (
-    <div className="dashboard-card" style={{ height: 240 }}>
-      <div className="card-header" style={{ marginBottom: 8 }}>
+    <div className="dashboard-card" style={{ height }}>
+      <div className="card-header">
         <h3 className="card-title">Consultation Status Breakdown</h3>
       </div>
-      <div style={{ width: '100%', height: 'calc(100% - 40px)' }} data-export="chart" data-export-title="Consultation Status Breakdown">
+      <div style={{ width: 'calc(100% + 16px)', flex: 1, display: 'block', marginLeft: '-16px' }} data-export="chart" data-export-title="Consultation Status Breakdown">
         {loading ? (
           <div className="w-full h-full flex items-center justify-center">
-            <Skeleton className="w-40 h-40 rounded-full" shimmer />
+            <Skeleton className="w-11/12 h-40 rounded-lg" shimmer />
           </div>
-        ) : (
+        ) : chartData.length ? (
           <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie
-                data={chartData}
-                cx="50%"
-                cy="50%"
-                innerRadius={"60%"}
-                outerRadius={"90%"}
-                dataKey="value"
-              >
-                {chartData.map((entry, i) => (
-                  <Cell key={`cell-${i}`} fill={entry.color} />
-                ))}
-              </Pie>
-              <Tooltip content={<CustomTooltip />} />
-            </PieChart>
+            <BarChart data={chartData} layout="vertical" margin={{ top: 10, right: 6, left: 0, bottom: 10 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" />
+              <XAxis type="number" domain={[0, 'dataMax']} tick={{ fontSize: 12, fill: '#6b7280' }} />
+              <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: '#6b7280' }} width={80} tickMargin={4} />
+              <Tooltip cursor={{ fill: '#f9fafb' }} />
+              <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 4, 4]} />
+            </BarChart>
           </ResponsiveContainer>
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="text-sm text-gray-500">No data</div>
+          </div>
         )}
       </div>
     </div>

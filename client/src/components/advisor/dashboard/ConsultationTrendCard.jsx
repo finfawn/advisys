@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardContent } from "../../../lightswind/ca
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../lightswind/dropdown-menu";
 import { Skeleton } from "../../../lightswind/skeleton";
 
-export default function ConsultationTrendCard() {
+export default function ConsultationTrendCard({ data = null }) {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [weeklyData, setWeeklyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
@@ -18,8 +18,30 @@ export default function ConsultationTrendCard() {
   const previousMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() - 1).toLocaleString('default', { month: 'long' });
 
   useEffect(() => {
-    const fetchSummary = async () => {
+    const mergeByDay = (cur, prev) => {
+      const map = new Map();
+      (cur || []).forEach(r => {
+        map.set(String(r.day), { day: String(r.day), current: r.count, previous: 0 });
+      });
+      (prev || []).forEach(r => {
+        const key = String(r.day);
+        const existing = map.get(key) || { day: key, current: 0, previous: 0 };
+        existing.previous = r.count;
+        map.set(key, existing);
+      });
+      return Array.from(map.values());
+    };
+
+    const hydrateFrom = async () => {
       try {
+        if (data && data.week && data.month) {
+          const week = data.week || { current: [], previous: [] };
+          const month = data.month || { current: [], previous: [] };
+          setWeeklyData(mergeByDay(week.current, week.previous));
+          setMonthlyData(mergeByDay(month.current, month.previous));
+          setLoaded(true);
+          return;
+        }
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const storedUser = localStorage.getItem('advisys_user');
         const storedToken = localStorage.getItem('advisys_token');
@@ -31,31 +53,15 @@ export default function ConsultationTrendCard() {
         const json = await res.json();
         const week = json?.trend?.week || { current: [], previous: [] };
         const month = json?.trend?.month || { current: [], previous: [] };
-        const mergeByDay = (cur, prev) => {
-          const map = new Map();
-          (cur || []).forEach(r => {
-            map.set(String(r.day), { day: String(r.day), current: r.count, previous: 0 });
-          });
-          (prev || []).forEach(r => {
-            const key = String(r.day);
-            const existing = map.get(key) || { day: key, current: 0, previous: 0 };
-            existing.previous = r.count;
-            map.set(key, existing);
-          });
-          return Array.from(map.values());
-        };
         setWeeklyData(mergeByDay(week.current, week.previous));
         setMonthlyData(mergeByDay(month.current, month.previous));
       } catch (err) {
         console.error('Failed to load dashboard summary (trend)', err);
-        // Ensure empty state renders even if request fails
-        setLoaded(true);
-        return;
       }
       setLoaded(true);
     };
-    fetchSummary();
-  }, []);
+    hydrateFrom();
+  }, [data]);
 
   const currentData = selectedPeriod === "week" ? weeklyData : monthlyData;
   const xAxisKey = "day";
@@ -104,7 +110,7 @@ export default function ConsultationTrendCard() {
               fontSize={12}
               tickLine={false}
               axisLine={false}
-              interval={selectedPeriod === "week" ? 0 : "preserveStartEnd"}
+              interval={0}
             />
             <YAxis 
               stroke="#6b7280"

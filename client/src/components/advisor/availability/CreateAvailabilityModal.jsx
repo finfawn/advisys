@@ -428,7 +428,7 @@ export default function CreateAvailabilityModal({
           <button className="avail-close" onClick={onClose} aria-label="Close">×</button>
         </div>
 
-        <form className="avail-form" onSubmit={handleSubmit}>
+        <form className="avail-form" onSubmit={handleSubmit} autoComplete="off">
           <div className="form-grid-2">
             <div className="col-left">
               <div className="form-row tight">
@@ -548,6 +548,10 @@ export default function CreateAvailabilityModal({
                   disabled={mode !== "face_to_face"}
                   aria-disabled={mode !== "face_to_face"}
                   title={mode !== "face_to_face" ? "Select Face to face to enable" : undefined}
+                  autoComplete="off"
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  spellCheck={false}
                 />
               </div>
             </div>

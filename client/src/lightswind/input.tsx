@@ -10,7 +10,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
   ({ className, type, ...props }, ref) => {
     const [isFocused, setIsFocused] = React.useState(false);
 
-    return (
+  return (
       <motion.input
         type={type}
         className={cn(
@@ -24,6 +24,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           className
         )}
         ref={ref}
+        autoComplete={props.autoComplete ?? "off"}
+        autoCapitalize={(props as any).autoCapitalize ?? "none"}
+        autoCorrect={(props as any).autoCorrect ?? "off"}
+        spellCheck={props.spellCheck ?? false}
         onFocus={(e) => {
           setIsFocused(true);
           props.onFocus?.(e); // Call original onFocus if it exists

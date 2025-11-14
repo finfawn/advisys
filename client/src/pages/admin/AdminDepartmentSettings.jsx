@@ -22,8 +22,8 @@ export default function AdminDepartmentSettings() {
   const loadAll = async () => {
     try {
       const [dRes, pRes] = await Promise.all([
-        fetch(`${base}/api/departments`),
-        fetch(`${base}/api/programs`),
+        fetch(`${base}/api/departments`, { headers: { ...authHeader } }),
+        fetch(`${base}/api/programs`, { headers: { ...authHeader } }),
       ]);
       const d = await dRes.json();
       const p = await pRes.json();
@@ -144,13 +144,14 @@ export default function AdminDepartmentSettings() {
         <main className="admin-dash-main">
           <div className="consultations-container">
             <div className="consultations-header">
-              <h1 className="consultations-title">Department Settings</h1>
-              <p className="consultations-subtitle">Manage departments and programs used by user profiles and forms</p>
+              <h1 className="consultations-title">Settings</h1>
+              <p className="consultations-subtitle">Manage departments and programs used by student and advisor profiles and forms</p>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <section className="p-4 bg-white rounded-xl border border-gray-200">
                 <h2 className="text-lg font-semibold mb-3">Departments</h2>
+                <p className="text-sm text-gray-500 mb-2">Used by advisors to select their department affiliation</p>
                 <div className="flex gap-2 mb-4">
                   <Input value={newDepartment} onChange={(e)=>setNewDepartment(e.target.value)} placeholder="Add department" />
                   <Button onClick={createDepartment} disabled={saving}>Add</Button>
@@ -168,6 +169,7 @@ export default function AdminDepartmentSettings() {
 
               <section className="p-4 bg-white rounded-xl border border-gray-200">
                 <h2 className="text-lg font-semibold mb-3">Programs</h2>
+                <p className="text-sm text-gray-500 mb-2">Used by students to select their program of study</p>
                 <div className="flex gap-2 mb-4">
                   <Input value={newProgram} onChange={(e)=>setNewProgram(e.target.value)} placeholder="Add program" />
                   <Button onClick={createProgram} disabled={saving}>Add</Button>

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const bcrypt = require('bcrypt');
 const { getPool } = require('../db/pool');
 
 function formatYear(yearLevel) {
@@ -19,7 +20,7 @@ router.get('/', async (req, res) => {
     if (role === 'student') {
       const [rows] = await pool.query(
         `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
-                sp.program, sp.year_level
+                sp.program, sp.year_level, sp.avatar_url
          FROM users u
          JOIN student_profiles sp ON sp.user_id = u.id
          WHERE u.role = 'student'
@@ -33,6 +34,7 @@ router.get('/', async (req, res) => {
         active: r.status === 'active',
         program: r.program || null,
         year: formatYear(r.year_level || 1),
+        avatar_url: r.avatar_url || null,
       }));
       return res.json(data);
     }
@@ -40,7 +42,7 @@ router.get('/', async (req, res) => {
     if (role === 'advisor') {
       const [rows] = await pool.query(
         `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
-                ap.department, ap.title
+                ap.department, ap.title, ap.avatar_url
          FROM users u
          JOIN advisor_profiles ap ON ap.user_id = u.id
          WHERE u.role = 'advisor'
@@ -54,6 +56,7 @@ router.get('/', async (req, res) => {
         active: r.status === 'active',
         department: r.department || null,
         title: r.title || null,
+        avatar_url: r.avatar_url || null,
       }));
       return res.json(data);
     }
@@ -61,7 +64,7 @@ router.get('/', async (req, res) => {
     // Return both students and advisors if no role filter
     const [studentRows] = await pool.query(
       `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
-              sp.program, sp.year_level
+              sp.program, sp.year_level, sp.avatar_url
        FROM users u
        LEFT JOIN student_profiles sp ON sp.user_id = u.id
        WHERE u.role = 'student'
@@ -69,7 +72,7 @@ router.get('/', async (req, res) => {
     );
     const [advisorRows] = await pool.query(
       `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
-              ap.department, ap.title
+              ap.department, ap.title, ap.avatar_url
        FROM users u
        LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE u.role = 'advisor'
@@ -84,6 +87,7 @@ router.get('/', async (req, res) => {
       active: r.status === 'active',
       program: r.program || null,
       year: formatYear(r.year_level || 1),
+      avatar_url: r.avatar_url || null,
     }));
     const advisors = advisorRows.map(r => ({
       id: r.id,
@@ -93,6 +97,7 @@ router.get('/', async (req, res) => {
       active: r.status === 'active',
       department: r.department || null,
       title: r.title || null,
+      avatar_url: r.avatar_url || null,
     }));
 
     res.json({ students, advisors });
@@ -118,6 +123,7 @@ router.patch('/:id', async (req, res) => {
     year_level,
     department,
     title,
+    avatar_url,
   } = req.body || {};
 
   try {
@@ -133,7 +139,11 @@ router.patch('/:id', async (req, res) => {
     if (typeof full_name === 'string') { fields.push('full_name = ?'); values.push(full_name); }
     if (typeof email === 'string') { fields.push('email = ?'); values.push(email); }
     if (typeof status === 'string') { fields.push('status = ?'); values.push(status === 'active' ? 'active' : 'inactive'); }
-    if (typeof password === 'string' && password.length > 0) { fields.push('password_hash = ?'); values.push(password); }
+    if (typeof password === 'string' && password.length > 0) {
+      const hashed = await bcrypt.hash(password, 10);
+      fields.push('password_hash = ?');
+      values.push(hashed);
+    }
     if (fields.length) {
       values.push(userId);
       await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values);
@@ -145,6 +155,7 @@ router.patch('/:id', async (req, res) => {
       const sValues = [];
       if (typeof program === 'string') { sFields.push('program = ?'); sValues.push(program); }
       if (typeof year_level !== 'undefined') { sFields.push('year_level = ?'); sValues.push(Number(year_level) || 1); }
+      if (typeof avatar_url !== 'undefined') { sFields.push('avatar_url = ?'); sValues.push(avatar_url || null); }
       if (sFields.length) {
         sValues.push(userId);
         await pool.query(`UPDATE student_profiles SET ${sFields.join(', ')} WHERE user_id = ?`, sValues);
@@ -155,6 +166,7 @@ router.patch('/:id', async (req, res) => {
       const aValues = [];
       if (typeof department === 'string') { aFields.push('department = ?'); aValues.push(department); }
       if (typeof title === 'string') { aFields.push('title = ?'); aValues.push(title); }
+      if (typeof avatar_url !== 'undefined') { aFields.push('avatar_url = ?'); aValues.push(avatar_url || null); }
       if (aFields.length) {
         aValues.push(userId);
         await pool.query(`UPDATE advisor_profiles SET ${aFields.join(', ')} WHERE user_id = ?`, aValues);

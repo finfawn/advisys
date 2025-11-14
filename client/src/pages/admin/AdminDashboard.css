@@ -40,42 +40,40 @@
   padding: 24px;
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
   /* Account for sticky topbar height */
   height: calc(100vh - 64px);
   overflow-y: auto;
   box-sizing: border-box;
 }
 
-/* Grid for the three cards */
-.admin-dashboard-grid {
+/* Bento Container */
+.admin-bento-grid {
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
   align-items: stretch;
 }
 
-/* Bento placement */
-.bento-students { grid-column: 1 / span 8; }
-.bento-topics { grid-column: 9 / span 4; }
-.bento-trend { grid-column: 1 / span 8; }
-.bento-mode { grid-column: 9 / span 4; }
-.bento-average { grid-column: 1 / span 4; }
-.bento-status { grid-column: 5 / span 8; }
+.admin-bento-grid > div {
+  min-height: 0;
+  min-width: 0;
+}
+
+.admin-bento-grid > div > * {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Items will be positioned inline via JSX styles for easy customization */
 
 /* Card Base Styles - Scoped to admin dashboard */
 .admin-dash-wrap .dashboard-card {
-  background: #ffffff;
-  border: 1px solid rgba(0, 0, 0, 0.08);
-  border-radius: 16px;
-  padding: 20px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-  transition: box-shadow 0.2s ease, border-color 0.2s ease;
-}
-
-.admin-dash-wrap .dashboard-card:hover {
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: rgba(0, 0, 0, 0.12);
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px;
 }
 
 .admin-dash-wrap .card-header {
@@ -90,6 +88,14 @@
   font-weight: 700;
   color: #1f2937;
   margin: 0;
+}
+
+/* Normalize styles for lightswind Card-based components used on admin */
+.admin-dash-wrap .average-session-card,
+.admin-dash-wrap .consultation-trend-card {
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
 }
 
 /* Responsive Design */
@@ -111,15 +117,11 @@
     height: calc(100vh - 56px); /* account for mobile topbar height */
   }
 
-  .admin-dashboard-grid {
+  .admin-bento-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
   }
-  .bento-students,
-  .bento-topics,
-  .bento-trend,
-  .bento-mode,
-  .bento-average,
-  .bento-status { grid-column: 1; }
+  /* Items stack automatically in single column */
 }
 
 /* Tablet (iPad portrait widths): collapse layout for seamless transition */
@@ -139,16 +141,12 @@
     overflow-y: visible;
   }
 
-  .admin-dashboard-grid {
+  .admin-bento-grid {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
     gap: 16px;
   }
-  .bento-students,
-  .bento-topics,
-  .bento-trend,
-  .bento-mode,
-  .bento-average,
-  .bento-status { grid-column: 1; grid-row: auto; }
+  /* Items stack automatically in single column */
 }
 
 /* Tablet-plus (1181px–1366px): keep single column to avoid right gap */
@@ -156,13 +154,7 @@
   .admin-dash-body { grid-template-columns: 1fr; }
   .admin-dash-body.collapsed { grid-template-columns: 1fr; }
   .admin-dash-main { padding: 20px; gap: 18px; height: auto; overflow-y: visible; }
-  .admin-dashboard-grid { grid-template-columns: 1fr; gap: 18px; }
-  .bento-students,
-  .bento-topics,
-  .bento-trend,
-  .bento-mode,
-  .bento-average,
-  .bento-status { grid-column: 1; grid-row: auto; }
+  .admin-bento-grid { grid-template-columns: 1fr; grid-template-rows: none; gap: 18px; }
 }
 
 @media (max-width: 480px) {

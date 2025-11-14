@@ -24,9 +24,13 @@ export default function AdminManageUserRow({
     <TableRow>
       <TableCell>
         <div className="flex items-center gap-2 min-w-0">
-          <span className="grid place-items-center w-7 h-7 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700">
-            <BsPersonCircle />
-          </span>
+          {item.avatar_url ? (
+            <img src={item.avatar_url} alt="Avatar" className="w-7 h-7 rounded-full object-cover border" />
+          ) : (
+            <span className="grid place-items-center w-7 h-7 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 text-blue-700">
+              <BsPersonCircle />
+            </span>
+          )}
           <span className="font-semibold text-primary truncate">{item.name}</span>
         </div>
       </TableCell>

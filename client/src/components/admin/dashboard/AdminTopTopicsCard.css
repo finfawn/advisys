@@ -6,9 +6,19 @@
 }
 
 /* Chart container like advisor */
+.admin-topics-card {
+  height: 220px;
+  display: flex;
+  flex-direction: column;
+}
+
 .admin-topics-card .admin-topics-chart-container {
-  height: 240px;
   width: 100%;
+  height: calc(100% - 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
 }
 
 /* legacy list styles removed in favor of chart */

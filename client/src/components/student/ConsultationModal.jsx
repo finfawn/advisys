@@ -486,6 +486,9 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 placeholder="Describe your consultation needs..."
                 className={`form-control ${formData.description.length > MAX_DESCRIPTION_LENGTH * 0.9 ? 'near-limit' : ''}`}
                 maxLength={MAX_DESCRIPTION_LENGTH}
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
               />
               {formData.description.length > MAX_DESCRIPTION_LENGTH * 0.9 && (
                 <div className="character-warning">

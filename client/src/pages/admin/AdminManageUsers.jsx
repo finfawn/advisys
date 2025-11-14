@@ -79,6 +79,7 @@ export default function AdminManageUsers() {
       sunday: null,
     },
   });
+  const [initialEditForm, setInitialEditForm] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
 
   const [studentsData, setStudentsData] = useState([]);
@@ -632,7 +633,7 @@ export default function AdminManageUsers() {
   const handleView = (item) => {
     setViewUser(item);
     const nameParts = item.name.split(" ");
-    setEditForm({
+    const baseForm = {
       firstName: nameParts[0] || "",
       lastName: nameParts.slice(1).join(" ") || "",
       email: item.email || "",
@@ -655,7 +656,13 @@ export default function AdminManageUsers() {
         saturday: null,
         sunday: null,
       },
-    });
+      consultBio: "",
+      consultTopics: [],
+      consultGuidelines: [],
+      consultSubjects: [],
+    };
+    setEditForm(baseForm);
+    setInitialEditForm(baseForm);
     setShowPassword(false);
     setViewOpen(true);
     // Load advisor consultation info only
@@ -666,17 +673,23 @@ export default function AdminManageUsers() {
         const res = await fetch(`${base}/api/advisors/${item.id}`);
         if (!res.ok) return;
         const a = await res.json();
-        setEditForm(prev => ({
-          ...prev,
+        const extra = {
           consultBio: a?.bio || '',
           consultTopics: Array.isArray(a?.topicsCanHelpWith) ? a.topicsCanHelpWith : [],
           consultGuidelines: Array.isArray(a?.consultationGuidelines) ? a.consultationGuidelines : [],
           consultSubjects: Array.isArray(a?.coursesTaught) ? a.coursesTaught.map(c => ({ code: c.code || '', name: c.name || '' })) : [],
-        }));
+        };
+        setEditForm(prev => ({ ...prev, ...extra }));
+        setInitialEditForm(prev => ({ ...(prev || baseForm), ...extra }));
       } catch (err) {
         console.error('Load advisor consultation info failed', err);
       }
     })();
+  };
+
+  const handleCancelEdit = () => {
+    if (initialEditForm) setEditForm(initialEditForm);
+    setViewOpen(false);
   };
 
   const handleSaveProfile = async () => {
@@ -1076,7 +1089,7 @@ export default function AdminManageUsers() {
               </p>
             </div>
           </div>
-          <DrawerFooter>
+          <DrawerFooter style={{ position: 'sticky', bottom: 0, background: '#fff', borderTop: '1px solid #e5e7eb', zIndex: 10 }}>
             <Button
               variant="outline"
               onClick={() => {
@@ -1159,26 +1172,35 @@ export default function AdminManageUsers() {
               View and edit user information
             </DrawerDescription>
           </DrawerHeader>
-          <div className="p-6 space-y-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 160px)' }}>
+          <div className="p-6 space-y-5 overflow-y-auto" style={{ maxHeight: 'calc(90vh - 160px)', paddingBottom: '96px' }}>
             {/* Profile Header */}
-            <div className="flex items-center gap-4 pb-4 border-b border-gray-200">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl text-blue-700 font-bold">
-                {viewUser?.name
-                  ?.split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase() || "U"}
+            <div className="flex items-center justify-between pb-4 border-b border-gray-200">
+              <div className="flex items-center gap-4">
+                {viewUser?.avatar_url ? (
+                  <img src={viewUser.avatar_url} alt="Profile" className="w-16 h-16 rounded-full object-cover border" />
+                ) : (
+                  <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center text-2xl text-blue-700 font-bold">
+                    {(viewUser?.name || 'U').split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div>
+                  <h3 className="text-lg font-semibold text-gray-900">{viewUser?.name}</h3>
+                  <p className="text-sm text-gray-500">{activeTab === "students" ? "Student" : "Advisor"} • ID: {viewUser?.id}</p>
+                </div>
               </div>
-              <div>
-                <h3 className="text-lg font-semibold text-gray-900">
-                  {viewUser?.name}
-                </h3>
-                <p className="text-sm text-gray-500">
-                  {activeTab === "students" ? "Student" : "Advisor"} • ID:{" "}
-                  {viewUser?.id}
-                </p>
-              </div>
+              {viewUser?.avatar_url && (
+                <Button variant="outline" className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white" onClick={async ()=>{
+                  try {
+                    const res = await fetch(`${apiBase}/api/users/${viewUser.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ avatar_url: null, role: activeTab === 'students' ? 'student' : 'advisor' }) });
+                    if (!res.ok) throw new Error('Failed to remove profile picture');
+                    setViewUser({ ...viewUser, avatar_url: null });
+                    try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Profile picture removed' }); } catch {}
+                  } catch (err) {
+                    console.error(err);
+                    try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Failed to remove picture', description: err?.message || 'Error' }); } catch {}
+                  }
+                }}>Remove Picture</Button>
+              )}
             </div>
 
             {/* Name Fields */}
@@ -1436,8 +1458,8 @@ export default function AdminManageUsers() {
               </div>
             </div>
           </div>
-          <DrawerFooter>
-            <Button variant="outline" onClick={() => setViewOpen(false)}>
+          <DrawerFooter style={{ position: 'sticky', bottom: 0, background: '#fff', borderTop: '1px solid #e5e7eb', zIndex: 10 }}>
+            <Button variant="outline" onClick={handleCancelEdit}>
               Cancel
             </Button>
             <Button onClick={handleSaveProfile}>Save Changes</Button>

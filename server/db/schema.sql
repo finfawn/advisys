@@ -222,8 +222,6 @@ CREATE TABLE IF NOT EXISTS `notification_settings` (
 -- Advisor operational settings
 CREATE TABLE IF NOT EXISTS `advisor_settings` (
   `advisor_user_id` INT UNSIGNED NOT NULL,
-  `auto_accept_requests` TINYINT(1) NOT NULL DEFAULT 0,
-  `max_daily_consultations` INT UNSIGNED NOT NULL DEFAULT 10,
   `default_consultation_duration` INT UNSIGNED NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

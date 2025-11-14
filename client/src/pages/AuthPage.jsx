@@ -122,7 +122,7 @@ function AuthPage({ embedded = false }) {
           </p>
         </div>
 
-        <form onSubmit={onSubmit} className={embedded ? "space-y-4" : "space-y-6"}>
+        <form onSubmit={onSubmit} className={embedded ? "space-y-4" : "space-y-6"} autoComplete="off">
           {mode === "register" && (
             <>
               <div>
@@ -144,6 +144,10 @@ function AuthPage({ embedded = false }) {
                     placeholder="First Name"
                     value={form.firstName}
                     onChange={(e) => onChange("firstName", e.target.value)}
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.firstName ? "border-red-400" : "border-gray-300 bg-white"}`}
                   />
                   {errors.firstName && <p className="mt-1 text-xs text-red-500">{errors.firstName}</p>}
@@ -154,6 +158,10 @@ function AuthPage({ embedded = false }) {
                     placeholder="Last Name"
                     value={form.lastName}
                     onChange={(e) => onChange("lastName", e.target.value)}
+                    autoComplete="off"
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck={false}
                     className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.lastName ? "border-red-400" : "border-gray-300 bg-white"}`}
                   />
                   {errors.lastName && <p className="mt-1 text-xs text-red-500">{errors.lastName}</p>}
@@ -168,6 +176,10 @@ function AuthPage({ embedded = false }) {
               placeholder="Email"
               value={form.email}
               onChange={(e) => onChange("email", e.target.value)}
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.email ? "border-red-400" : "border-gray-300 bg-white"}`}
             />
             {errors.email && <p className="mt-1 text-xs text-red-500">{errors.email}</p>}
@@ -178,6 +190,10 @@ function AuthPage({ embedded = false }) {
               placeholder="Password"
               value={form.password}
               onChange={(e) => onChange("password", e.target.value)}
+              autoComplete={mode === "login" ? "current-password" : "new-password"}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
               className={`w-full rounded-md border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 ${errors.password ? "border-red-400" : "border-gray-300 bg-white"}`}
             />
             {errors.password && <p className="mt-1 text-xs text-red-500">{errors.password}</p>}

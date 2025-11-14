@@ -1,6 +1,6 @@
 /* Admin Consultation Mode Card */
 .admin-consultation-mode-card {
-  height: 260px;
+  height: 180px;
 }
 
 .admin-consultation-mode-card .card-header {
@@ -13,4 +13,13 @@
 .admin-consultation-mode-card .mode-chart-container {
   width: 100%;
   height: calc(100% - 40px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.admin-consultation-mode-card .mode-chart-container > * {
+  max-width: 95%;
+  max-height: 95%;
 }

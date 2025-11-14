@@ -108,6 +108,26 @@ button:focus-visible {
 
 /* Removed prefers-color-scheme media queries to hardwire light theme */
 
+/* Prevent text selection and I-beam cursor on non-editable surfaces */
+.admin-dash-wrap, .advisor-dash-wrap, .student-dash-wrap {
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+.admin-dash-wrap input, .admin-dash-wrap textarea,
+.advisor-dash-wrap input, .advisor-dash-wrap textarea,
+.student-dash-wrap input, .student-dash-wrap textarea {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+  cursor: text;
+}
+.admin-dash-wrap a, .admin-dash-wrap button,
+.advisor-dash-wrap a, .advisor-dash-wrap button,
+.student-dash-wrap a, .student-dash-wrap button { cursor: pointer; }
+
 /* Global improved dropdown styling for all select elements */
 select:not(.line-form .form-select):not(.info-input) {
     padding-right: 32px !important;

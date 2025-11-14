@@ -16,7 +16,7 @@ export function Toaster() {
 
   return (
     <ToastProvider>
-      <div className="fixed md:top-4 right-0 md:right-4 z-[100] flex flex-col gap-2 w-auto max-w-sm">
+      <div className="fixed top-20 right-4 z-[9999] flex flex-col gap-2 w-auto max-w-sm">
         {toasts.map(({ id, title, description, action, type, variant, duration, ...props }) => {
           // Map toast type to variant if variant is not provided
           const toastVariant = variant || (

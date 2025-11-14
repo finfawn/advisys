@@ -1,5 +1,6 @@
 const express = require('express');
 const { getPool } = require('../db/pool');
+const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
@@ -76,48 +77,63 @@ router.get('/advisors/:advisorId/summary', async (req, res) => {
     const [[monthPrev]] = await pool.query(`SELECT YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AS y, MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AS m`);
 
     const [monthCurrRows] = await pool.query(
-      `SELECT DAY(start_datetime) AS d, COUNT(*) AS count
+      `SELECT DAY(COALESCE(end_datetime, start_datetime)) AS d, COUNT(*) AS count
        FROM consultations
        WHERE advisor_user_id = ? AND status = 'completed'
-         AND YEAR(start_datetime) = ? AND MONTH(start_datetime) = ?
-       GROUP BY DAY(start_datetime)
+         AND YEAR(COALESCE(end_datetime, start_datetime)) = ? AND MONTH(COALESCE(end_datetime, start_datetime)) = ?
+       GROUP BY DAY(COALESCE(end_datetime, start_datetime))
        ORDER BY d ASC`,
       [advisorId, monthNow.y, monthNow.m]
     );
     const [monthPrevRows] = await pool.query(
-      `SELECT DAY(start_datetime) AS d, COUNT(*) AS count
+      `SELECT DAY(COALESCE(end_datetime, start_datetime)) AS d, COUNT(*) AS count
        FROM consultations
        WHERE advisor_user_id = ? AND status = 'completed'
-         AND YEAR(start_datetime) = ? AND MONTH(start_datetime) = ?
-       GROUP BY DAY(start_datetime)
+         AND YEAR(COALESCE(end_datetime, start_datetime)) = ? AND MONTH(COALESCE(end_datetime, start_datetime)) = ?
+       GROUP BY DAY(COALESCE(end_datetime, start_datetime))
        ORDER BY d ASC`,
       [advisorId, monthPrev.y, monthPrev.m]
     );
-    const monthCurrent = monthCurrRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
-    const monthPrevious = monthPrevRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
+    const monthCurrentRaw = monthCurrRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
+    const monthPreviousRaw = monthPrevRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
+    const lastDayCurr = new Date(monthNow.y, monthNow.m, 0).getDate();
+    const lastDayPrev = new Date(monthPrev.y, monthPrev.m, 0).getDate();
+    const fillMonth = (lastDay, rows) => {
+      const map = new Map(rows.map(r => [Number(r.day), Number(r.count || 0)]));
+      return Array.from({ length: lastDay }, (_, i) => ({ day: i + 1, count: map.get(i + 1) || 0 }));
+    };
+    const monthCurrent = fillMonth(lastDayCurr, monthCurrentRaw);
+    const monthPrevious = fillMonth(lastDayPrev, monthPreviousRaw);
 
     // Trend: weekly (current & previous) - counts per day-of-week (Mon..Sun)
     const [weekCurrRows] = await pool.query(
-      `SELECT DAYOFWEEK(start_datetime) AS dow, COUNT(*) AS count
+      `SELECT DAYOFWEEK(COALESCE(end_datetime, start_datetime)) AS dow, COUNT(*) AS count
        FROM consultations
        WHERE advisor_user_id = ? AND status = 'completed'
-         AND YEARWEEK(start_datetime, 1) = YEARWEEK(CURDATE(), 1)
-       GROUP BY DAYOFWEEK(start_datetime)
+         AND YEARWEEK(COALESCE(end_datetime, start_datetime), 1) = YEARWEEK(CURDATE(), 1)
+       GROUP BY DAYOFWEEK(COALESCE(end_datetime, start_datetime))
        ORDER BY dow ASC`,
       [advisorId]
     );
     const [weekPrevRows] = await pool.query(
-      `SELECT DAYOFWEEK(start_datetime) AS dow, COUNT(*) AS count
+      `SELECT DAYOFWEEK(COALESCE(end_datetime, start_datetime)) AS dow, COUNT(*) AS count
        FROM consultations
        WHERE advisor_user_id = ? AND status = 'completed'
-         AND YEARWEEK(start_datetime, 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1)
-       GROUP BY DAYOFWEEK(start_datetime)
+         AND YEARWEEK(COALESCE(end_datetime, start_datetime), 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1)
+       GROUP BY DAYOFWEEK(COALESCE(end_datetime, start_datetime))
        ORDER BY dow ASC`,
       [advisorId]
     );
     const dowMap = { 1: 'Sun', 2: 'Mon', 3: 'Tue', 4: 'Wed', 5: 'Thu', 6: 'Fri', 7: 'Sat' };
-    const weekCurrent = weekCurrRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
-    const weekPrevious = weekPrevRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
+    const weekCurrentRaw = weekCurrRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
+    const weekPreviousRaw = weekPrevRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
+    const orderedDOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const fillWeek = (rows) => {
+      const map = new Map(rows.map(r => [String(r.day), Number(r.count || 0)]));
+      return orderedDOW.map(label => ({ day: label, count: map.get(label) || 0 }));
+    };
+    const weekCurrent = fillWeek(weekCurrentRaw);
+    const weekPrevious = fillWeek(weekPreviousRaw);
 
     // Top topics
     const [topicRows] = await pool.query(
@@ -153,14 +169,15 @@ module.exports = router;
 // Admin-wide summary endpoints
 // GET /api/dashboard/admin/summary
 // Returns organization-wide aggregated metrics for admin dashboard cards
-router.get('/admin/summary', async (req, res) => {
+router.get('/admin/summary', authMiddleware, ensureAdmin, async (req, res) => {
   const pool = getPool();
   try {
+    const STATUS_ACTIVE = ["requested", "approved", "completed"]; // considered system-wide activity
     // Total completed consultations (all advisors)
-    const [[totalRow]] = await pool.query(
+    const [[completedRow]] = await pool.query(
       `SELECT COUNT(*) AS total FROM consultations WHERE status = 'completed'`
     );
-    const totalCompleted = Number(totalRow?.total || 0);
+    const totalCompleted = Number(completedRow?.total || 0);
 
     // Year distribution across all completed consultations
     const [yearRows] = await pool.query(
@@ -180,7 +197,7 @@ router.get('/admin/summary', async (req, res) => {
     const [modeRows] = await pool.query(
       `SELECT mode, COUNT(*) AS count
        FROM consultations
-       WHERE status = 'completed'
+       WHERE status IN ('requested','approved','completed')
        GROUP BY mode`
     );
     let onlineCount = 0, inPersonCount = 0;
@@ -203,68 +220,103 @@ router.get('/admin/summary', async (req, res) => {
     const [[monthPrev]] = await pool.query(`SELECT YEAR(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AS y, MONTH(DATE_SUB(CURDATE(), INTERVAL 1 MONTH)) AS m`);
 
     const [monthCurrRows] = await pool.query(
-      `SELECT DAY(start_datetime) AS d, COUNT(*) AS count
+      `SELECT DAY(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) AS d, COUNT(*) AS count
        FROM consultations
        WHERE status = 'completed'
-         AND YEAR(start_datetime) = ? AND MONTH(start_datetime) = ?
-       GROUP BY DAY(start_datetime)
+         AND YEAR(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) = ?
+         AND MONTH(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) = ?
+       GROUP BY DAY(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00')))
        ORDER BY d ASC`,
       [monthNow.y, monthNow.m]
     );
     const [monthPrevRows] = await pool.query(
-      `SELECT DAY(start_datetime) AS d, COUNT(*) AS count
+      `SELECT DAY(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) AS d, COUNT(*) AS count
        FROM consultations
        WHERE status = 'completed'
-         AND YEAR(start_datetime) = ? AND MONTH(start_datetime) = ?
-       GROUP BY DAY(start_datetime)
+         AND YEAR(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) = ?
+         AND MONTH(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) = ?
+       GROUP BY DAY(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00')))
        ORDER BY d ASC`,
       [monthPrev.y, monthPrev.m]
     );
-    const monthCurrent = monthCurrRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
-    const monthPrevious = monthPrevRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
+    const monthCurrentRaw = monthCurrRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
+    const monthPreviousRaw = monthPrevRows.map(r => ({ day: Number(r.d), count: Number(r.count || 0) }));
+    const lastDayCurr = new Date(monthNow.y, monthNow.m, 0).getDate();
+    const lastDayPrev = new Date(monthPrev.y, monthPrev.m, 0).getDate();
+    const fillMonth = (lastDay, rows) => {
+      const map = new Map(rows.map(r => [Number(r.day), Number(r.count || 0)]));
+      return Array.from({ length: lastDay }, (_, i) => ({ day: i + 1, count: map.get(i + 1) || 0 }));
+    };
+    const monthCurrent = fillMonth(lastDayCurr, monthCurrentRaw);
+    const monthPrevious = fillMonth(lastDayPrev, monthPreviousRaw);
 
     // Trend: weekly (current & previous) - counts per day-of-week (Sun..Sat)
     const [weekCurrRows] = await pool.query(
-      `SELECT DAYOFWEEK(start_datetime) AS dow, COUNT(*) AS count
+      `SELECT DAYOFWEEK(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) AS dow, COUNT(*) AS count
        FROM consultations
        WHERE status = 'completed'
-         AND YEARWEEK(start_datetime, 1) = YEARWEEK(CURDATE(), 1)
-       GROUP BY DAYOFWEEK(start_datetime)
+         AND YEARWEEK(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00')), 1) = YEARWEEK(DATE(CONVERT_TZ(NOW(), '+00:00', '+08:00')), 1)
+       GROUP BY DAYOFWEEK(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00')))
        ORDER BY dow ASC`
     );
     const [weekPrevRows] = await pool.query(
-      `SELECT DAYOFWEEK(start_datetime) AS dow, COUNT(*) AS count
+      `SELECT DAYOFWEEK(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00'))) AS dow, COUNT(*) AS count
        FROM consultations
        WHERE status = 'completed'
-         AND YEARWEEK(start_datetime, 1) = YEARWEEK(DATE_SUB(CURDATE(), INTERVAL 1 WEEK), 1)
-       GROUP BY DAYOFWEEK(start_datetime)
+         AND YEARWEEK(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00')), 1) = YEARWEEK(DATE(CONVERT_TZ(DATE_SUB(NOW(), INTERVAL 1 WEEK), '+00:00', '+08:00')), 1)
+       GROUP BY DAYOFWEEK(DATE(CONVERT_TZ(COALESCE(end_datetime, start_datetime), '+00:00', '+08:00')))
        ORDER BY dow ASC`
     );
     const dowMap = { 1: 'Sun', 2: 'Mon', 3: 'Tue', 4: 'Wed', 5: 'Thu', 6: 'Fri', 7: 'Sat' };
-    const weekCurrent = weekCurrRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
-    const weekPrevious = weekPrevRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
+    const weekCurrentRaw = weekCurrRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
+    const weekPreviousRaw = weekPrevRows.map(r => ({ day: dowMap[r.dow] || String(r.dow), count: Number(r.count || 0) }));
+    const orderedDOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const fillWeek = (rows) => {
+      const map = new Map(rows.map(r => [String(r.day), Number(r.count || 0)]));
+      return orderedDOW.map(label => ({ day: label, count: map.get(label) || 0 }));
+    };
+    const weekCurrent = fillWeek(weekCurrentRaw);
+    const weekPrevious = fillWeek(weekPreviousRaw);
 
     // Top topics overall
     const [topicRows] = await pool.query(
       `SELECT topic AS name, COUNT(*) AS count
        FROM consultations
-       WHERE status = 'completed'
+       WHERE status IN ('requested','approved','completed')
        GROUP BY topic
        ORDER BY count DESC
        LIMIT 10`
     );
     const topTopics = topicRows.map(r => ({ name: r.name, count: Number(r.count || 0) }));
 
+    // Status breakdown
+    const [statusRows] = await pool.query(
+      `SELECT status, COUNT(*) AS count FROM consultations GROUP BY status`
+    );
+    const statusBreakdown = statusRows.map(r => ({ label: String(r.status), value: Number(r.count || 0) }));
+
+    const studentsByYear = [
+      { label: 'First Year', value: Number(yearDistribution[1] || 0) },
+      { label: 'Second Year', value: Number(yearDistribution[2] || 0) },
+      { label: 'Third Year', value: Number(yearDistribution[3] || 0) },
+      { label: 'Fourth Year', value: Number(yearDistribution[4] || 0) },
+    ];
+    const modeBreakdownArr = [
+      { label: 'Online', value: onlineCount },
+      { label: 'In Person', value: inPersonCount },
+    ];
+    const topTopicsArr = topTopics.map(t => ({ label: t.name, value: t.count }));
     return res.json({
       totalCompleted,
-      yearDistribution,
-      modeBreakdown: { online: onlineCount, in_person: inPersonCount },
+      studentsByYear,
+      modeBreakdown: modeBreakdownArr,
       averageSessionMinutes,
       trend: {
         month: { current: monthCurrent, previous: monthPrevious },
         week: { current: weekCurrent, previous: weekPrevious },
       },
-      topTopics,
+      topTopics: topTopicsArr,
+      statusBreakdown,
     });
   } catch (err) {
     console.error('Admin dashboard summary error', err);
@@ -274,7 +326,7 @@ router.get('/admin/summary', async (req, res) => {
 
 // GET /api/dashboard/admin/monthly-mode
 // Returns monthly totals per mode for charting (Jan..Dec)
-router.get('/admin/monthly-mode', async (req, res) => {
+router.get('/admin/monthly-mode', authMiddleware, ensureAdmin, async (req, res) => {
   const pool = getPool();
   try {
     const [[currYearRow]] = await pool.query(`SELECT YEAR(CURDATE()) AS y`);
@@ -282,7 +334,7 @@ router.get('/admin/monthly-mode', async (req, res) => {
     const [rows] = await pool.query(
       `SELECT MONTH(start_datetime) AS m, mode, COUNT(*) AS count
        FROM consultations
-       WHERE status = 'completed' AND YEAR(start_datetime) = ?
+       WHERE status IN ('requested','approved','completed') AND YEAR(start_datetime) = ?
        GROUP BY MONTH(start_datetime), mode
        ORDER BY m ASC`,
       [year]
@@ -300,3 +352,13 @@ router.get('/admin/monthly-mode', async (req, res) => {
     return res.status(500).json({ error: 'Failed to load monthly mode totals' });
   }
 });
+function ensureAdmin(req, res, next) {
+  try {
+    if (!req.user || req.user.role !== 'admin') {
+      return res.status(403).json({ error: 'Forbidden: admin access required' });
+    }
+    next();
+  } catch (err) {
+    return res.status(500).json({ error: 'Authorization check failed' });
+  }
+}

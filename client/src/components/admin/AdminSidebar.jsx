@@ -7,7 +7,7 @@ function AdminSidebar({ collapsed, onToggle, onNavigate }) {
   const items = [
     { key: "admin-dashboard", label: "Dashboard", Icon: HomeIcon },
     { key: "admin-manage-users", label: "Manage Users", Icon: UsersIcon },
-    { key: "admin-department-settings", label: "Department Settings", Icon: Cog6ToothIcon },
+    { key: "admin-department-settings", label: "Settings", Icon: Cog6ToothIcon },
     { key: "admin-logout", label: "Logout", Icon: ArrowRightOnRectangleIcon, isLogout: true },
   ];
 
