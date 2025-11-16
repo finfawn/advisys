@@ -38,6 +38,7 @@ export const NotificationProvider = ({ children }) => {
   const knownIdsRef = useRef(new Set());
   const firstLoadRef = useRef(true);
   const lastSeenCreatedAtRef = useRef(null);
+  const notificationsMutedRef = useRef(false);
   const [deletedNotificationIds, setDeletedNotificationIds] = useState(new Set());
 
   // Load notifications from backend and keep them in sync (per-user)
@@ -83,6 +84,13 @@ export const NotificationProvider = ({ children }) => {
           } catch (_) {
             lastSeenCreatedAtRef.current = null;
           }
+          try {
+            const mutedKey = `advisys_notifications_muted_${currentUserId}`;
+            const persisted = localStorage.getItem(mutedKey);
+            if (persisted != null) {
+              notificationsMutedRef.current = String(persisted) === 'true';
+            }
+          } catch (_) {}
         }
 
         const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -135,6 +143,10 @@ export const NotificationProvider = ({ children }) => {
 
           // Fire native notifications when the tab is hidden or unfocused
           try {
+            if (notificationsMutedRef.current) {
+              // Suppressed when user has muted notifications
+              throw new Error('__muted__');
+            }
             const shouldNativeNotify = () => {
               if (typeof document === 'undefined') return false;
               return document.hidden || !document.hasFocus();
@@ -199,6 +211,32 @@ export const NotificationProvider = ({ children }) => {
       abort = true;
       if (pollRef.current) clearInterval(pollRef.current);
     };
+  }, [apiBase]);
+
+  // Load notification settings once per user to hydrate muted state if not present in localStorage
+  useEffect(() => {
+    const rawUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const storedUser = rawUser ? JSON.parse(rawUser) : null;
+    const currentUserId = storedUser?.id || null;
+    if (!currentUserId) return;
+    const mutedKey = `advisys_notifications_muted_${currentUserId}`;
+    const persisted = typeof window !== 'undefined' ? localStorage.getItem(mutedKey) : null;
+    if (persisted != null) {
+      notificationsMutedRef.current = String(persisted) === 'true';
+      return;
+    }
+    const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    fetch(`${apiBase}/api/settings/users/${currentUserId}/notifications`, {
+      headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+    })
+      .then(res => res.ok ? res.json() : null)
+      .then(ns => {
+        if (ns && typeof ns.notificationsMuted !== 'undefined') {
+          notificationsMutedRef.current = !!ns.notificationsMuted;
+          try { localStorage.setItem(mutedKey, String(!!ns.notificationsMuted)); } catch (_) {}
+        }
+      })
+      .catch(() => {});
   }, [apiBase]);
 
   // Cache notifications locally (per-user) and update unread counter

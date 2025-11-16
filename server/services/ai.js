@@ -18,6 +18,37 @@ async function getModel(apiKey, modelName) {
   return genAI.getGenerativeModel({ model });
 }
 
+async function bedrockInvoke({ prompt, model, region }) {
+  const { BedrockRuntimeClient, ConverseCommand, InvokeModelCommand } = require('@aws-sdk/client-bedrock-runtime');
+  const client = new BedrockRuntimeClient({ region });
+  try {
+    const convo = new ConverseCommand({
+      modelId: model,
+      messages: [
+        { role: 'user', content: [{ text: prompt }] }
+      ],
+      inferenceConfig: { maxTokens: 1024, temperature: 0.2 }
+    });
+    const out = await client.send(convo);
+    const parts = out?.output?.message?.content || [];
+    const text = parts.map(p => p?.text || '').filter(Boolean).join('\n').trim();
+    if (text) return text;
+  } catch (_) {}
+  try {
+    const body = {
+      anthropic_version: 'bedrock-2023-05-31',
+      max_tokens: 1024,
+      messages: [{ role: 'user', content: [{ type: 'text', text: prompt }] }]
+    };
+    const res = await client.send(new InvokeModelCommand({ modelId: model, contentType: 'application/json', accept: 'application/json', body: Buffer.from(JSON.stringify(body)) }));
+    const parsed = JSON.parse(Buffer.from(res.body).toString());
+    const text = parsed?.content?.[0]?.text || null;
+    return text;
+  } catch (_) {
+    return null;
+  }
+}
+
 function buildPrompt(transcript, topic, advisorName, studentName) {
   const advisor = advisorName || 'Advisor';
   const student = studentName || 'Student';
@@ -33,52 +64,51 @@ function buildPrompt(transcript, topic, advisorName, studentName) {
 }
 
 async function summarizeConsultation(transcript, topic, advisorName, studentName) {
-  const { AI_SUMMARY_ENABLED, AI_SUMMARY_API_KEY, AI_SUMMARY_MODEL } = process.env;
-
+  const { AI_SUMMARY_ENABLED, AI_SUMMARY_API_KEY, AI_SUMMARY_MODEL, AI_PROVIDER, AWS_REGION, BEDROCK_MODEL, DEEPSEEK_API_KEY, DEEPSEEK_MODEL } = process.env;
   if (String(AI_SUMMARY_ENABLED).toLowerCase() !== 'true') return null;
-  if (!AI_SUMMARY_API_KEY) {
-    console.warn('AI_SUMMARY_API_KEY is not set; skipping summarization');
-    return null;
-  }
-
-  const primaryName = normalizeModelName(AI_SUMMARY_MODEL || 'gemini-2.5-flash');
-  const fallbacks = [
-    'gemini-2.5-flash',
-    'gemini-2.5-pro',
-    'gemini-2.5-flash-lite',
-    'gemini-2.0-flash',
-    'gemini-2.0-flash-lite-001'
-  ]
-    .map(normalizeModelName)
-    .filter((m, idx, arr) => arr.indexOf(m) === idx)
-    .filter((m) => m !== primaryName);
+  const provider = (AI_PROVIDER || 'bedrock').toLowerCase();
   const prompt = buildPrompt(transcript, topic, advisorName, studentName);
-
-  // Try primary model first
-  try {
-    const model = await getModel(AI_SUMMARY_API_KEY, primaryName);
-    const result = await model.generateContent(prompt);
-    return result?.response?.text?.() || null;
-  } catch (error) {
-    const msg = String(error?.message || error).toLowerCase();
-    const status = String(error?.status || '').trim();
-    const isNotFound = status === '404' || msg.includes('not found') || msg.includes('404');
-    if (!isNotFound) {
-      console.error('AI Summary Error:', error);
+  if (provider === 'bedrock') {
+    const model = BEDROCK_MODEL || 'anthropic.claude-3-5-sonnet-20241022';
+    const region = AWS_REGION || 'us-east-1';
+    try {
+      const text = await bedrockInvoke({ prompt, model, region });
+      return text || null;
+    } catch (e) {
+      console.error('AI Summary Error:', e);
       return null;
     }
-    // Retry with fallbacks on 404/model not found
-    for (const fb of fallbacks) {
-      try {
-        const fbModel = await getModel(AI_SUMMARY_API_KEY, fb);
-        const result = await fbModel.generateContent(prompt);
-        return result?.response?.text?.() || null;
-      } catch (e) {
-        // continue to next fallback
-      }
+  } else if (provider === 'deepseek') {
+    if (!DEEPSEEK_API_KEY) return null;
+    const model = DEEPSEEK_MODEL || 'deepseek-chat';
+    try {
+      const res = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ model, messages: [{ role: 'user', content: prompt }], temperature: 0.2, max_tokens: 800 })
+      });
+      if (!res.ok) return null;
+      const data = await res.json();
+      const text = data?.choices?.[0]?.message?.content || null;
+      return text;
+    } catch (e) {
+      console.error('AI Summary Error:', e);
+      return null;
     }
-    console.error('AI Summary Error: all model fallbacks failed', error);
-    return null;
+  } else {
+    if (!AI_SUMMARY_API_KEY) return null;
+    const genAI = new (await import('@google/generative-ai')).GoogleGenerativeAI(AI_SUMMARY_API_KEY);
+    const model = genAI.getGenerativeModel({ model: normalizeModelName(AI_SUMMARY_MODEL || 'gemini-2.5-flash') });
+    try {
+      const result = await model.generateContent(prompt);
+      return result?.response?.text?.() || null;
+    } catch (e) {
+      console.error('AI Summary Error:', e);
+      return null;
+    }
   }
 }
 

@@ -3,21 +3,10 @@ const multer = require('multer');
 const { getPool } = require('../db/pool');
 const { summarizeConsultation } = require('../services/ai');
 
-// Google Cloud Speech-to-Text v1 client
-let SpeechClient;
-try {
-  SpeechClient = require('@google-cloud/speech').SpeechClient;
-} catch (_) {
-  SpeechClient = null;
-}
-
-// Google Cloud Storage client (optional, for gs:// URIs)
-let Storage;
-try {
-  Storage = require('@google-cloud/storage').Storage;
-} catch (_) {
-  Storage = null;
-}
+let S3Client, PutObjectCommand, DeleteObjectCommand;
+let TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand;
+try { ({ S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')); } catch (_) {}
+try { ({ TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand } = require('@aws-sdk/client-transcribe')); } catch (_) {}
 
 const router = express.Router();
 // Speech and Storage config from environment
@@ -25,9 +14,8 @@ const {
   SPEECH_LANGUAGE_CODE,
   SPEECH_ALTERNATIVE_LANGUAGE_CODES,
   SPEECH_MODEL,
-  GCP_STT_KEY_PATH,
-  GCP_STORAGE_KEY_PATH,
-  GCS_BUCKET_NAME,
+  S3_UPLOADS_BUCKET,
+  AWS_REGION,
 } = process.env;
 // Allow disabling STT upload for local/dev environments
 const DISABLE_STT_UPLOAD = String(process.env.DISABLE_STT_UPLOAD || '').toLowerCase() === 'true';
@@ -103,7 +91,6 @@ router.post('/transcriptions', async (req, res) => {
 });
 
 // POST /api/transcriptions/upload
-// Accepts an audio file blob, runs Google STT, stores final transcript and AI summary
 router.post('/transcriptions/upload', upload.single('file'), async (req, res) => {
   const pool = getPool();
   try {
@@ -114,7 +101,6 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
     const consultationId = Number(consultationIdRaw);
     if (!consultationId) return res.status(400).json({ error: 'Missing or invalid consultationId' });
 
-    // Dev-friendly bypass: skip STT and succeed to avoid blocking UX
     if (DISABLE_STT_UPLOAD) {
       try {
         await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]);
@@ -122,9 +108,8 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
       return res.json({ success: true, transcriptLength: 0, summarized: false, bypassed: true });
     }
 
-    // Guard: ensure Google client is available
-    if (!SpeechClient) {
-      return res.status(500).json({ error: 'Speech-to-Text client not available on server' });
+    if (!S3Client || !TranscribeClient || !S3_UPLOADS_BUCKET) {
+      return res.status(500).json({ error: 'Transcribe not available on server' });
     }
 
     // Read consultation metadata for better summarization context
@@ -137,90 +122,40 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
     );
     if (!cRow) return res.status(404).json({ error: 'Consultation not found' });
 
-    const client = GCP_STT_KEY_PATH && SpeechClient
-      ? new SpeechClient({ keyFilename: GCP_STT_KEY_PATH })
-      : new SpeechClient();
-    // Try to infer encoding based on filename/mimetype; default to WEBM_OPUS since MediaRecorder commonly produces it
     const filename = req.file?.originalname || '';
     const lower = filename.toLowerCase();
     const mime = req.file?.mimetype || '';
-    let encoding = 'WEBM_OPUS';
-    if (lower.endsWith('.ogg') || mime.includes('ogg')) encoding = 'OGG_OPUS';
-    if (lower.endsWith('.mp3') || mime.includes('mp3')) encoding = 'MP3';
-
-    let audio = { content: file.buffer.toString('base64') };
-    let uploadedGsUri = null;
-
-    // If a bucket is configured and Storage client is available, upload to GCS and use gs:// URI
-    if (Storage && GCS_BUCKET_NAME) {
-      try {
-        const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-        const bucket = storage.bucket(GCS_BUCKET_NAME);
-        const ext = (lower.endsWith('.ogg') ? 'ogg' : lower.endsWith('.mp3') ? 'mp3' : 'webm');
-        const objectName = `consultations/${consultationId}/${Date.now()}_${Math.random().toString(36).slice(2)}.${ext}`;
-        const fileRef = bucket.file(objectName);
-        await fileRef.save(file.buffer, { contentType: mime || 'audio/webm', resumable: false, validation: false });
-        uploadedGsUri = `gs://${GCS_BUCKET_NAME}/${objectName}`;
-        audio = { uri: uploadedGsUri };
-      } catch (gcsErr) {
-        console.warn('GCS upload failed; falling back to inline content:', gcsErr);
+    const ext = lower.endsWith('.ogg') ? 'ogg' : lower.endsWith('.mp3') ? 'mp3' : lower.endsWith('.wav') ? 'wav' : lower.endsWith('.mp4') ? 'mp4' : lower.endsWith('.webm') ? 'webm' : 'webm';
+    const mediaFormat = ext.replace('.', '');
+    const region = AWS_REGION || 'us-east-1';
+    const s3 = new S3Client({ region });
+    const transcribe = new TranscribeClient({ region });
+    const key = `consultations/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    await s3.send(new PutObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key, Body: file.buffer, ContentType: mime || 'audio/webm' }));
+    const jobName = `advisys-${consultationId}-${Date.now()}`.replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 200);
+    await transcribe.send(new StartTranscriptionJobCommand({ TranscriptionJobName: jobName, LanguageCode: languageCode, Media: { MediaFileUri: `s3://${S3_UPLOADS_BUCKET}/${key}` }, MediaFormat: mediaFormat }));
+    let status = 'IN_PROGRESS';
+    let transcriptUri = null;
+    const start = Date.now();
+    while (status === 'IN_PROGRESS' || status === 'QUEUED') {
+      const out = await transcribe.send(new GetTranscriptionJobCommand({ TranscriptionJobName: jobName }));
+      status = out?.TranscriptionJob?.TranscriptionJobStatus || 'FAILED';
+      if (status === 'COMPLETED') {
+        transcriptUri = out.TranscriptionJob.Transcript?.TranscriptFileUri || null;
+        break;
       }
+      if (status === 'FAILED') break;
+      if (Date.now() - start > 5 * 60 * 1000) break;
+      await new Promise(r => setTimeout(r, 5000));
     }
-    // Parse alternative languages from env if provided (comma-separated)
-    const altRaw = SPEECH_ALTERNATIVE_LANGUAGE_CODES || '';
-    const alternativeLanguageCodes = altRaw
-      ? altRaw.split(',').map(s => s.trim()).filter(Boolean)
-      : undefined;
-
-    const config = {
-      encoding,
-      languageCode,
-      enableAutomaticPunctuation: true,
-      model: SPEECH_MODEL || 'default',
-      audioChannelCount: undefined,
-      alternativeLanguageCodes,
-    };
-
-    // Use longrunningRecognize to handle longer audio clips reliably
-    console.log('[STT] Starting longrunningRecognize', {
-      usingGCS: Boolean(uploadedGsUri),
-      uri: uploadedGsUri || null,
-      encoding,
-      languageCode,
-      model: config.model,
-    });
-    let response;
-    try {
-      // Correct Google STT method name: longRunningRecognize
-      const [operation] = await client.longRunningRecognize({ config, audio });
-      [response] = await operation.promise();
-      const resultsCount = Array.isArray(response?.results) ? response.results.length : 0;
-      console.log('[STT] Completed longrunningRecognize', { resultsCount });
-    } catch (sttErr) {
-      console.error('Google STT error:', sttErr?.message || sttErr);
-      // Graceful fallback: store empty transcript and return non-blocking success
-      try {
-        await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]);
-      } catch (_) {}
-      // If audio was uploaded to GCS, delete it to avoid unintended retention when KEEP_RECORDINGS_AT_REST is false
-      try {
-        if (uploadedGsUri && !KEEP_RECORDINGS_AT_REST && Storage && GCS_BUCKET_NAME) {
-          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-          const bucket = storage.bucket(GCS_BUCKET_NAME);
-          const path = uploadedGsUri.replace(`gs://${GCS_BUCKET_NAME}/`, '');
-          await bucket.file(path).delete({ ignoreNotFound: true });
-        }
-      } catch (delErr) {
-        console.warn('Failed to delete GCS object after STT error:', delErr);
-      }
-      return res.json({ success: true, transcriptLength: 0, summarized: false, sttError: sttErr?.message || String(sttErr) });
+    if (status !== 'COMPLETED' || !transcriptUri) {
+      try { await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]); } catch (_) {}
+      try { if (!KEEP_RECORDINGS_AT_REST) await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
+      return res.json({ success: true, transcriptLength: 0, summarized: false, sttError: 'Transcribe failed' });
     }
-    const parts = [];
-    for (const result of response.results || []) {
-      const alt = result.alternatives && result.alternatives[0];
-      if (alt && alt.transcript) parts.push(alt.transcript.trim());
-    }
-    const merged = parts.join('\n');
+    const resp = await fetch(transcriptUri);
+    const j = await resp.json();
+    const merged = Array.isArray(j?.results?.transcripts) && j.results.transcripts[0]?.transcript ? j.results.transcripts.map(t => t.transcript).join('\n') : (j?.results?.transcripts?.[0]?.transcript || j?.results?.items?.map(i => i.alternatives?.[0]?.content || '').join('') || '');
 
     // Persist transcript (no audio retained at rest)
     await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [merged || null, consultationId]);
@@ -249,32 +184,16 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
       }
     }
 
-    // If we uploaded to GCS, delete the object to avoid retention
-    if (uploadedGsUri) {
+    if (S3Client && S3_UPLOADS_BUCKET) {
       if (KEEP_RECORDINGS_AT_REST) {
-        // Best-effort: store URI if a column exists; ignore if schema lacks recording_uri
-        try {
-          await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [uploadedGsUri, consultationId]);
-        } catch (dbErr) {
-          const code = String(dbErr?.code || '');
-          if (code !== 'ER_BAD_FIELD_ERROR') {
-            console.warn('Failed to store recording_uri:', dbErr);
-          }
-        }
+        try { await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [`s3://${S3_UPLOADS_BUCKET}/${key}`, consultationId]); } catch (_) {}
       } else {
-        try {
-          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-          const bucket = storage.bucket(GCS_BUCKET_NAME);
-          const path = uploadedGsUri.replace(`gs://${GCS_BUCKET_NAME}/`, '');
-          await bucket.file(path).delete({ ignoreNotFound: true });
-        } catch (delErr) {
-          console.warn('Failed to delete GCS object after STT:', delErr);
-        }
+        try { await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
       }
     }
 
     // Return status.
-    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), usedGCS: Boolean(uploadedGsUri), recordingUri: KEEP_RECORDINGS_AT_REST ? uploadedGsUri : null });
+    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), usedS3: true, recordingUri: KEEP_RECORDINGS_AT_REST ? `s3://${S3_UPLOADS_BUCKET}/${key}` : null });
   } catch (err) {
     console.error('Transcriptions upload error:', err?.message || err);
     return res.status(500).json({ error: 'Failed to process uploaded audio', details: err?.message || String(err) });

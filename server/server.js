@@ -154,40 +154,7 @@ function formatTimeRange(start, end) {
   return `${fmt(start)} - ${fmt(end)}`;
 }
 
-async function ensureNotificationsMutedColumn(poolOrConn) {
-  try {
-    const [cols] = await poolOrConn.query('SHOW COLUMNS FROM notification_settings LIKE "notifications_muted"');
-    if (!cols || cols.length === 0) {
-      await poolOrConn.query('ALTER TABLE notification_settings ADD COLUMN notifications_muted TINYINT(1) NOT NULL DEFAULT 0');
-    }
-  } catch (_) {
-    // ignore and continue
-  }
-}
-
-async function isNotificationsMuted(poolOrConn, userId) {
-  try {
-    await ensureNotificationsMutedColumn(poolOrConn);
-    const [[row]] = await poolOrConn.query('SELECT notifications_muted FROM notification_settings WHERE user_id = ? LIMIT 1', [userId]);
-    return !!(row && row.notifications_muted);
-  } catch (_) {
-    return false;
-  }
-}
-
-async function createNotification(poolOrConn, userId, type, title, message, data = null) {
-  try {
-    const muted = await isNotificationsMuted(poolOrConn, userId);
-    if (muted) return null;
-    const dataJson = data ? JSON.stringify(data) : null;
-    await poolOrConn.query(
-      `INSERT INTO notifications (user_id, type, title, message, data_json) VALUES (?,?,?,?,?)`,
-      [userId, type, title, message, dataJson]
-    );
-  } catch (err) {
-    console.error('Failed to create notification:', err?.message || err);
-  }
-}
+const { notify, getNotificationSettings } = require('./services/notifications');
 
 async function runConsultationReminderJob() {
   if (reminderJobRunning) return; // prevent overlap
@@ -281,7 +248,7 @@ async function runConsultationReminderJob() {
                 : 'If access errors occur, refresh or wait a moment — the room opens when your advisor starts the call.')
             : (c.location ? 'Arrive a few minutes early and bring any required materials.' : '');
           const message = `Your consultation '${c.topic}' is scheduled for ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
-          await createNotification(pool, c.student_user_id, 'consultation_reminder', title, message, data);
+          await notify(pool, c.student_user_id, 'consultation_reminder', title, message, data);
         }
 
         // Advisor reminder for this threshold
@@ -294,7 +261,7 @@ async function runConsultationReminderJob() {
                 : 'If students report access errors, ensure you are signed in and the Stream video room is started.')
             : (c.location ? 'Please be on-site a few minutes early.' : '');
           const message = `You have a consultation for '${c.topic}' on ${date} at ${time}. Starts in ${minsUntil} minutes. ${baseWhere} ${guidance}`.trim();
-          await createNotification(pool, c.advisor_user_id, 'consultation_reminder', title, message, data);
+          await notify(pool, c.advisor_user_id, 'consultation_reminder', title, message, data);
         }
       }
     }
@@ -369,8 +336,8 @@ async function runMissedConsultationJob() {
         : '';
       const message = `The consultation '${c.topic}' scheduled for ${date} at ${time} was missed.${detail}`.trim();
 
-      await createNotification(pool, c.student_user_id, 'consultation_missed', title, message, data);
-      await createNotification(pool, c.advisor_user_id, 'consultation_missed', title, message, data);
+      await notify(pool, c.student_user_id, 'consultation_missed', title, message, data);
+      await notify(pool, c.advisor_user_id, 'consultation_missed', title, message, data);
     }
   } catch (err) {
     console.error('Missed consultation job error', err);

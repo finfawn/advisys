@@ -100,19 +100,23 @@ export default function StudentSettingsPage() {
         // Load notification settings (email + master mute)
         try {
           const userId = data?.user_id || data?.id;
-          if (userId) {
-            const nRes = await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
-              headers: { Authorization: `Bearer ${token}` }
-            });
-            if (nRes.ok) {
-              const ns = await nRes.json();
-              setSettings(prev => ({
-                ...prev,
-                emailNotifications: !!ns.emailNotifications,
-                notificationsMuted: !!ns.notificationsMuted,
-              }));
-            }
+        if (userId) {
+          const nRes = await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (nRes.ok) {
+            const ns = await nRes.json();
+            setSettings(prev => ({
+              ...prev,
+              emailNotifications: !!ns.emailNotifications,
+              notificationsMuted: !!ns.notificationsMuted,
+            }));
+            try {
+              localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!ns.emailNotifications));
+              localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!ns.notificationsMuted));
+            } catch (_) {}
           }
+        }
         } catch (_) {}
       } catch (err) {
         console.error('Profile fetch error', err);
@@ -229,6 +233,10 @@ export default function StudentSettingsPage() {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(notifPayload),
         });
+        try {
+          localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!next.emailNotifications));
+          localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!next.notificationsMuted));
+        } catch (_) {}
       }
     } catch (_) {}
   };
@@ -250,6 +258,10 @@ export default function StudentSettingsPage() {
           headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
           body: JSON.stringify(notifPayload),
         });
+        try {
+          localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!next.emailNotifications));
+          localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!next.notificationsMuted));
+        } catch (_) {}
       }
     } catch (_) {}
   };

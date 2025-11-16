@@ -6,6 +6,7 @@ import { Toaster } from "./lightswind/toaster";
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import VerifyEmail from "./pages/VerifyEmail";
+import ResetPassword from "./pages/ResetPassword";
 
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
@@ -90,6 +91,7 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/verify-email" element={<VerifyEmail />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
           {/* Alias for existing navigations using /login */}
           <Route path="/login" element={<AuthPage />} />
           {/* Logout convenience route */}

@@ -8,6 +8,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 // role selection now uses Lightswind Select
 
 function AuthPage({ embedded = false }) {
+  const enableGoogle = String(
+    (import.meta.env.VITE_ENABLE_GOOGLE_SIGNIN ?? (import.meta.env.MODE === 'development' ? 'true' : 'false'))
+  ).toLowerCase() === 'true';
   const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
@@ -29,6 +32,11 @@ function AuthPage({ embedded = false }) {
   const [googleYearLevel, setGoogleYearLevel] = useState('');
   const [googleDepartment, setGoogleDepartment] = useState('');
   const [googleErr, setGoogleErr] = useState('');
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState('');
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotDone, setForgotDone] = useState(false);
+  const [forgotErr, setForgotErr] = useState('');
 
   const onChange = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
 
@@ -120,6 +128,7 @@ function AuthPage({ embedded = false }) {
   };
 
   const onGoogle = async () => {
+    if (!enableGoogle) return;
     setSubmitting(true);
     setServerError("");
     const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -150,7 +159,33 @@ function AuthPage({ embedded = false }) {
     }
   };
 
+  const onForgot = async () => {
+    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    setForgotSubmitting(true);
+    setForgotErr('');
+    try {
+      const email = String(forgotEmail || form.email || '').trim();
+      if (!email) { setForgotErr('Please enter your email'); setForgotSubmitting(false); return; }
+      const res = await fetch(`${base}/api/auth/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email })
+      });
+      // Always show success (server avoids enumeration)
+      if (!res.ok) {
+        // Still present success message to avoid enumeration
+      }
+      setForgotDone(true);
+    } catch (e) {
+      // Still show success to avoid revealing account existence
+      setForgotDone(true);
+    } finally {
+      setForgotSubmitting(false);
+    }
+  };
+
   const onGoogleLogin = async () => {
+    if (!enableGoogle) return;
     setSubmitting(true);
     setServerError("");
     const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -184,6 +219,7 @@ function AuthPage({ embedded = false }) {
   };
 
   React.useEffect(() => {
+    if (!enableGoogle) return;
     const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
     getRedirectResult(auth).then(async (result) => {
       if (!result || !result.user) return;
@@ -206,7 +242,7 @@ function AuthPage({ embedded = false }) {
         setServerError(err.message || String(err));
       }
     }).catch(() => {});
-  }, [navigate]);
+  }, [navigate, enableGoogle]);
 
   return (
     <div className={embedded ? "w-full min-h-[80vh] flex items-center justify-center px-4 py-8" : "min-h-screen auth-bg flex items-center justify-center px-4 py-10"}>
@@ -224,12 +260,19 @@ function AuthPage({ embedded = false }) {
       )}
       <div className={embedded ? "w-full max-w-xl p-0 mx-auto" : "w-full max-w-lg rounded-2xl bg-white/85 border border-gray-200 shadow-md p-8"}>
         <div className={embedded ? "text-center mb-6" : "text-center mb-8"}>
+          <div className="flex items-center justify-center gap-3 mb-2">
+            <img src="/logo_s.png" alt="AdviSys" className="h-8 w-8 rounded-sm" />
+            <span className="text-lg font-semibold text-gray-900">AdviSys</span>
+          </div>
           <h1 className={embedded ? "mt-3 text-2xl font-extrabold tracking-tight text-gray-900" : "mt-3 text-3xl font-extrabold tracking-tight text-gray-900"}>
             {mode === "login" ? "Welcome back" : "Create your account"}
           </h1>
           <p className="mt-1 text-sm text-gray-500">
             {mode === "login" ? "Sign in to continue" : "Join us in minutes"}
           </p>
+          {enableGoogle && (
+            <p className="mt-1 text-xs text-gray-500">Use Google only to authenticate your AdviSys account.</p>
+          )}
         </div>
 
         <form onSubmit={onSubmit} className={embedded ? "space-y-4" : "space-y-6"} autoComplete="off">
@@ -370,23 +413,36 @@ function AuthPage({ embedded = false }) {
               <RippleButton text={submitting ? "Please wait" : (mode === "login" ? "Sign In" : "Register")} width="120px" height="40px" bgColor="#3a6bb8" circleColor="#60a5fa" />
             </div>
           </div>
-          <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <button
-              type="button"
-              onClick={onGoogleLogin}
-              className="w-full h-10 md:h-11 px-3 md:px-4 rounded-xl border border-gray-300 text-sm bg-white hover:bg-gray-50"
-            >
-              Log in with Google
-            </button>
-            <button
-              type="button"
-              onClick={() => { setGoogleErr(''); setGoogleOpen(true); }}
-              className="w-full h-10 md:h-11 px-3 md:px-4 rounded-xl border border-blue-400/70 text-sm bg-white hover:bg-blue-50"
-            >
-              Sign up with Google
-            </button>
-          </div>
-          <Dialog open={googleOpen} onOpenChange={setGoogleOpen}>
+          {mode === 'login' && (
+            <div className="mt-2 flex items-center justify-between">
+              <button
+                type="button"
+                className="text-xs text-blue-700 hover:underline"
+                onClick={()=> { setForgotDone(false); setForgotErr(''); setForgotEmail(form.email || ''); setForgotOpen(true); }}
+              >
+                Forgot password?
+              </button>
+            </div>
+          )}
+          {enableGoogle && (
+            <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={onGoogleLogin}
+                className="w-full h-10 md:h-11 px-3 md:px-4 rounded-xl border border-gray-300 text-sm bg-white hover:bg-gray-50"
+              >
+                Log in with Google
+              </button>
+              <button
+                type="button"
+                onClick={() => { setGoogleErr(''); setGoogleOpen(true); }}
+                className="w-full h-10 md:h-11 px-3 md:px-4 rounded-xl border border-blue-400/70 text-sm bg-white hover:bg-blue-50"
+              >
+                Sign up with Google
+              </button>
+            </div>
+          )}
+          <Dialog open={enableGoogle && googleOpen} onOpenChange={setGoogleOpen}>
             <DialogContent>
               <DialogHeader>
                 <DialogTitle>Continue with Google</DialogTitle>
@@ -475,6 +531,59 @@ function AuthPage({ embedded = false }) {
                 </div>
               </div>
               <DialogFooter className="mt-2"></DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {/* Forgot Password Dialog */}
+          <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Reset your password</DialogTitle>
+                <DialogDescription>Enter your email to receive a password reset link.</DialogDescription>
+              </DialogHeader>
+              {!forgotDone ? (
+                <div className="mt-3 space-y-3">
+                  <input
+                    type="email"
+                    placeholder="Email"
+                    value={forgotEmail}
+                    onChange={(e)=> setForgotEmail(e.target.value)}
+                    className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-white"
+                  />
+                  {forgotErr && <p className="text-xs text-red-600">{forgotErr}</p>}
+                  <div className="flex items-center justify-end gap-3 pt-2">
+                    <button
+                      type="button"
+                      className="h-10 px-4 rounded-xl border border-gray-300 text-sm bg-white hover:bg-gray-50"
+                      onClick={()=> setForgotOpen(false)}
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      disabled={forgotSubmitting}
+                      className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-70"
+                      onClick={onForgot}
+                    >
+                      {forgotSubmitting ? 'Sending…' : 'Send link'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="mt-3 space-y-3">
+                  <p className="text-sm text-gray-700">If an account exists for this email, we’ve sent a reset link. Please check your inbox.</p>
+                  <div className="flex items-center justify-end">
+                    <button
+                      type="button"
+                      className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700"
+                      onClick={()=> setForgotOpen(false)}
+                    >
+                      Close
+                    </button>
+                  </div>
+                </div>
+              )}
+              <DialogFooter />
             </DialogContent>
           </Dialog>
         </form>

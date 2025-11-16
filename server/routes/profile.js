@@ -4,6 +4,8 @@ const fs = require('fs');
 const path = require('path');
 let Storage;
 try { Storage = require('@google-cloud/storage').Storage; } catch (_) { Storage = null; }
+let S3Client, DeleteObjectCommand;
+try { ({ S3Client, DeleteObjectCommand } = require('@aws-sdk/client-s3')); } catch (_) {}
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -113,9 +115,21 @@ router.patch('/me', authMiddleware, async (req, res) => {
     // After saving, if avatar_url changed, delete the previous asset
     try {
       if (willChangeAvatar && previousAvatarUrl && previousAvatarUrl !== (body.avatar_url || null)) {
-        const { GCP_STORAGE_KEY_PATH } = process.env;
+        const { GCP_STORAGE_KEY_PATH, S3_UPLOADS_BUCKET, AWS_REGION, CDN_BASE_URL } = process.env;
         const gcsMatch = previousAvatarUrl.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
-        if (gcsMatch && Storage) {
+        const s3Match = previousAvatarUrl.match(/^https?:\/\/([^.]+)\.s3[.-][^/]+\.amazonaws\.com\/(.+)$/);
+        const cdnMatch = CDN_BASE_URL ? previousAvatarUrl.replace(CDN_BASE_URL.replace(/\/$/, ''), '').match(/^\/(.+)$/) : null;
+        if (s3Match && S3Client && S3_UPLOADS_BUCKET) {
+          try {
+            const s3 = new S3Client({ region: AWS_REGION || 'us-east-1' });
+            await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: s3Match[2] }));
+          } catch (_) {}
+        } else if (cdnMatch && S3Client && S3_UPLOADS_BUCKET) {
+          try {
+            const s3 = new S3Client({ region: AWS_REGION || 'us-east-1' });
+            await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: cdnMatch[1] }));
+          } catch (_) {}
+        } else if (gcsMatch && Storage) {
           const [_, prevBucket, prevKey] = gcsMatch;
           const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
           await storage.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true });

@@ -239,6 +239,10 @@ export default function AdvisorSettingsPage() {
           headers: { 'Content-Type': 'application/json', ...authHeader },
           body: JSON.stringify(notifPayload),
         }).catch(() => {});
+        try {
+          localStorage.setItem(`advisys_email_notifications_${advisorId}`, String(!!next.emailNotifications));
+          localStorage.setItem(`advisys_notifications_muted_${advisorId}`, String(!!next.notificationsMuted));
+        } catch (_) {}
       }
       return next;
     });
@@ -262,6 +266,10 @@ export default function AdvisorSettingsPage() {
         headers: { 'Content-Type': 'application/json', ...authHeader },
         body: JSON.stringify(notifPayload),
       }).catch(() => {});
+      try {
+        localStorage.setItem(`advisys_email_notifications_${advisorId}`, String(!!next.emailNotifications));
+        localStorage.setItem(`advisys_notifications_muted_${advisorId}`, String(!!next.notificationsMuted));
+      } catch (_) {}
       // Removed advisor auto-accept/max-daily settings per requirement
       return next;
     });
@@ -479,6 +487,10 @@ export default function AdvisorSettingsPage() {
             emailNotifications: !!n.emailNotifications,
             notificationsMuted: !!n.notificationsMuted,
           }));
+          try {
+            localStorage.setItem(`advisys_email_notifications_${advisorId}`, String(!!n.emailNotifications));
+            localStorage.setItem(`advisys_notifications_muted_${advisorId}`, String(!!n.notificationsMuted));
+          } catch (_) {}
         }
       } catch (_) {}
 

@@ -3,6 +3,7 @@ const { getPool } = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
+const { notify } = require('../services/notifications');
 
 function toClientRow(r) {
   let data = null;
@@ -54,27 +55,13 @@ router.post('/', async (req, res) => {
     if (!user_id || !type || !title || !message) {
       return res.status(400).json({ error: 'Missing required fields: user_id, type, title, message' });
     }
-    // Respect master mute setting: if muted, suppress creation
-    try {
-      const [[row]] = await pool.query(
-        'SELECT notifications_muted FROM notification_settings WHERE user_id = ? LIMIT 1',
-        [user_id]
-      );
-      if (row && row.notifications_muted) {
-        return res.status(202).json({ success: true, suppressed: true });
-      }
-    } catch (_) {
-      // Ignore errors (missing table/column) and proceed
+    const result = await notify(pool, user_id, type, title, message, data || null);
+    if (result === null) {
+      return res.status(202).json({ success: true, suppressed: true });
     }
-    const dataJson = data ? JSON.stringify(data) : null;
-    const [result] = await pool.query(
-      `INSERT INTO notifications (user_id, type, title, message, data_json) VALUES (?,?,?,?,?)`,
-      [user_id, type, title, message, dataJson]
-    );
-    const id = result.insertId;
     const [[row]] = await pool.query(
-      `SELECT id, user_id, type, title, message, data_json, is_read, created_at FROM notifications WHERE id = ?`,
-      [id]
+      `SELECT id, user_id, type, title, message, data_json, is_read, created_at FROM notifications WHERE user_id = ? ORDER BY id DESC LIMIT 1`,
+      [user_id]
     );
     return res.status(201).json(toClientRow(row));
   } catch (err) {

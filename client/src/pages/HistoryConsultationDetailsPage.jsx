@@ -459,7 +459,7 @@ const HistoryConsultationDetailsPage = () => {
                           onChange={(e) => setNotesDraft(e.target.value)}
                           onBlur={()=>{ setIsEditingNotes(false); handleSaveNotes(); }}
                           onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
-                          placeholder="Your private notes for this consultation (not shared)"
+                          placeholder="Your notes for this consultation (visible only to you)"
                           rows={8}
                           autoFocus
                         />
@@ -470,16 +470,7 @@ const HistoryConsultationDetailsPage = () => {
                   </div>
                 </section>
 
-                {/* Advisor Notes (read-only) */}
-                <section className="consultation-details-section">
-                  <h2 className="section-title">
-                    <BsFileText className="section-icon" />
-                    Advisor Notes
-                  </h2>
-                  <div className="section-content">
-                    <p className="notes-text">{consultation?.advisorPrivateNotes || 'No advisor notes provided.'}</p>
-                  </div>
-                </section>
+                {/* Advisor notes are not visible to students */}
 
 
 

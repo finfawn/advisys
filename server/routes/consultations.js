@@ -3,41 +3,7 @@ const { getPool } = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
-
-async function ensureNotificationsMutedColumn(poolOrConn) {
-  try {
-    const [cols] = await poolOrConn.query('SHOW COLUMNS FROM notification_settings LIKE "notifications_muted"');
-    if (!cols || cols.length === 0) {
-      await poolOrConn.query('ALTER TABLE notification_settings ADD COLUMN notifications_muted TINYINT(1) NOT NULL DEFAULT 0');
-    }
-  } catch (_) {
-    // ignore
-  }
-}
-
-async function isNotificationsMuted(poolOrConn, userId) {
-  try {
-    await ensureNotificationsMutedColumn(poolOrConn);
-    const [[row]] = await poolOrConn.query('SELECT notifications_muted FROM notification_settings WHERE user_id = ? LIMIT 1', [userId]);
-    return !!(row && row.notifications_muted);
-  } catch (_) {
-    return false;
-  }
-}
-
-async function createNotification(poolOrConn, userId, type, title, message, data = null) {
-  try {
-    const muted = await isNotificationsMuted(poolOrConn, userId);
-    if (muted) return null;
-    const dataJson = data ? JSON.stringify(data) : null;
-    await poolOrConn.query(
-      `INSERT INTO notifications (user_id, type, title, message, data_json) VALUES (?,?,?,?,?)`,
-      [userId, type, title, message, dataJson]
-    );
-  } catch (err) {
-    console.error('Failed to create notification:', err?.message || err);
-  }
-}
+const { notify, getNotificationSettings } = require('../services/notifications');
 
 function formatDate(d) {
   // Always format date in Asia/Manila to avoid server-local timezone drift
@@ -65,41 +31,7 @@ function formatTimeRange(start, end) {
 }
 
 // Load notification settings for a user, with safe defaults
-async function getNotificationSettings(userId) {
-  const pool = getPool();
-  try {
-  const [rows] = await pool.query(
-      `SELECT email_notifications, consultation_reminders, new_request_notifications, notifications_muted
-       FROM notification_settings
-       WHERE user_id = ?
-       LIMIT 1`,
-      [userId]
-    );
-    if (!rows || rows.length === 0) {
-      return {
-        email_notifications: false,
-        consultation_reminders: true,
-        new_request_notifications: true,
-        notifications_muted: false,
-      };
-    }
-    const row = rows[0];
-    return {
-      email_notifications: !!row.email_notifications,
-      consultation_reminders: !!row.consultation_reminders,
-      new_request_notifications: !!row.new_request_notifications,
-      notifications_muted: !!row.notifications_muted,
-    };
-  } catch (err) {
-    // On error, default to enabling in-app notifications (email skipped later)
-    return {
-      email_notifications: false,
-      consultation_reminders: true,
-      new_request_notifications: true,
-      notifications_muted: false,
-    };
-  }
-}
+// getNotificationSettings imported from service
 
 // Create a new consultation (student books a slot)
 // POST /api/consultations
@@ -255,7 +187,7 @@ router.post('/consultations', async (req, res) => {
       const message = `${studentName} requested a consultation for '${topic}' on ${date} at ${time}.`;
       const settings = await getNotificationSettings(advisorId);
       if (settings?.new_request_notifications) {
-        await createNotification(pool, advisorId, 'consultation_request', title, message, {
+        await notify(pool, advisorId, 'consultation_request', title, message, {
           consultation_id: newId,
           date,
           time,
@@ -274,7 +206,7 @@ router.post('/consultations', async (req, res) => {
         ? `Await advisor approval. A meeting link will be provided once approved.`
         : `Await advisor approval. Location details will be confirmed upon approval.`;
       const messageStu = `Your request for '${topic}' on ${date} at ${time} has been submitted. ${guidance}`;
-      await createNotification(pool, studentId, 'consultation_request_submitted', titleStu, messageStu, {
+      await notify(pool, studentId, 'consultation_request_submitted', titleStu, messageStu, {
         consultation_id: newId,
         date,
         time,
@@ -395,9 +327,9 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
           avatar_url: r.advisor_avatar_url || null,
         },
         // Notes and summary
-        studentNotes: r.student_notes || undefined,
-        studentPrivateNotes: r.student_private_notes || undefined,
-        advisorPrivateNotes: r.advisor_private_notes || undefined,
+        studentNotes: (r.student_notes != null ? r.student_notes : r.student_private_notes) || undefined,
+        studentPrivateNotes: (r.student_notes != null ? r.student_notes : r.student_private_notes) || undefined,
+        // Do not expose advisor notes to students
         summaryNotes: r.summary_notes || undefined,
         finalTranscript: r.final_transcript || undefined,
         aiSummary: r.ai_summary || undefined,
@@ -486,8 +418,8 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
       topic: r.topic,
       // Include student-selected category and notes to render accurate details
       category: r.category || undefined,
-      studentNotes: r.student_notes || undefined,
-      advisorPrivateNotes: r.advisor_private_notes || undefined,
+      // Do not expose student notes to advisors
+      advisorPrivateNotes: (r.advisor_notes != null ? r.advisor_notes : r.advisor_private_notes) || undefined,
       summaryNotes: r.summary_notes || undefined,
       finalTranscript: r.final_transcript || undefined,
       aiSummary: r.ai_summary || undefined,
@@ -595,21 +527,21 @@ router.patch('/consultations/:id/status', async (req, res) => {
         if (status === 'approved') {
           const title = `${c.advisor_name} approved your consultation`;
           const message = `Your consultation request for '${c.topic}' has been approved for ${date} at ${time}.`;
-          await createNotification(pool, c.student_user_id, 'consultation_approved', title, message, { consultation_id: c.id });
+          await notify(pool, c.student_user_id, 'consultation_approved', title, message, { consultation_id: c.id });
         } else if (status === 'declined') {
           const title = `${c.advisor_name} declined your consultation`;
           const reasonText = declineReason || c.decline_reason || null;
           const message = `Your consultation request for '${c.topic}' has been declined.${reasonText ? ` Reason: ${reasonText}` : ''}`;
           const data = { consultation_id: c.id, decline_reason: reasonText };
-          await createNotification(pool, c.student_user_id, 'consultation_declined', title, message, data);
+          await notify(pool, c.student_user_id, 'consultation_declined', title, message, data);
         } else if (status === 'cancelled') {
           const title = `Consultation cancelled`;
           const reasonText = cancelReason || c.cancel_reason || null;
           const message = `The consultation for '${c.topic}' on ${date} at ${time} was cancelled.${reasonText ? ` Reason: ${reasonText}` : ''}`;
           const data = { consultation_id: c.id, cancel_reason: reasonText, cancellation_reason: reasonText };
           // Notify both parties to ensure visibility regardless of who initiated
-          await createNotification(pool, c.advisor_user_id, 'consultation_cancelled', title, message, data);
-          await createNotification(pool, c.student_user_id, 'consultation_cancelled', title, message, data);
+          await notify(pool, c.advisor_user_id, 'consultation_cancelled', title, message, data);
+          await notify(pool, c.student_user_id, 'consultation_cancelled', title, message, data);
         } else if (status === 'missed') {
           // Neutral "missed" state replaces "no-show" without blaming either party
           const title = `Consultation missed`;
@@ -622,8 +554,8 @@ router.patch('/consultations/:id/status', async (req, res) => {
             : '';
           const message = `The consultation '${c.topic}' scheduled for ${date} at ${time} was missed.${detail}`.trim();
           const data = { consultation_id: c.id, summary: summaryNotes || null, minutes_no_show: minutesNoShow, start_datetime: c.start_datetime, end_datetime: c.end_datetime };
-          await createNotification(pool, c.student_user_id, 'consultation_missed', title, message, data);
-          await createNotification(pool, c.advisor_user_id, 'consultation_missed', title, message, data);
+          await notify(pool, c.student_user_id, 'consultation_missed', title, message, data);
+          await notify(pool, c.advisor_user_id, 'consultation_missed', title, message, data);
         }
       }
     } catch (err) {
@@ -706,7 +638,7 @@ router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) =
       const who = isAdvisor ? 'advisor' : 'student';
       const title = 'Consultation summary updated';
       const message = `Your consultation summary for '${c.topic}' was updated by the ${who}.`;
-      await createNotification(pool, notifyTarget, 'consultation_summary_updated', title, message, { consultation_id: Number(id) });
+      await notify(pool, notifyTarget, 'consultation_summary_updated', title, message, { consultation_id: Number(id) });
     } catch (_) {}
     return res.json({ success: true });
   } catch (err) {
@@ -738,7 +670,7 @@ router.patch('/consultations/:id/summary-notes', authMiddleware, async (req, res
     // Notify the other party that notes were updated
     try {
       const notifyTarget = isAdvisor ? c.student_user_id : c.advisor_user_id;
-      await createNotification(pool, notifyTarget, 'consultation_notes_updated', 'Consultation notes updated', `Notes for '${c.topic}' were updated.`, { consultation_id: Number(id) });
+      await notify(pool, notifyTarget, 'consultation_notes_updated', 'Consultation notes updated', `Notes for '${c.topic}' were updated.`, { consultation_id: Number(id) });
     } catch (_) {}
     return res.json({ success: true });
   } catch (err) {
@@ -747,18 +679,31 @@ router.patch('/consultations/:id/summary-notes', authMiddleware, async (req, res
   }
 });
 
-// Private notes: ensure columns exist for advisor and student private notes
-async function ensurePrivateNotesColumns(pool) {
+// Notes columns: ensure new columns exist and migrate from legacy private columns
+async function ensureNotesColumns(pool) {
   try {
-    const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "advisor_private_notes"');
-    if (!cols || cols.length === 0) {
-      try { await pool.query('ALTER TABLE consultations ADD COLUMN advisor_private_notes TEXT NULL'); } catch (_) {}
+    const [advisorNew] = await pool.query('SHOW COLUMNS FROM consultations LIKE "advisor_notes"');
+    if (!advisorNew || advisorNew.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN advisor_notes TEXT NULL'); } catch (_) {}
     }
   } catch (_) {}
   try {
-    const [cols2] = await pool.query('SHOW COLUMNS FROM consultations LIKE "student_private_notes"');
-    if (!cols2 || cols2.length === 0) {
-      try { await pool.query('ALTER TABLE consultations ADD COLUMN student_private_notes TEXT NULL'); } catch (_) {}
+    const [studentNew] = await pool.query('SHOW COLUMNS FROM consultations LIKE "student_notes"');
+    if (!studentNew || studentNew.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN student_notes TEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+  // Best-effort migrate from legacy columns if present
+  try {
+    const [advisorLegacy] = await pool.query('SHOW COLUMNS FROM consultations LIKE "advisor_private_notes"');
+    if (advisorLegacy && advisorLegacy.length) {
+      try { await pool.query('UPDATE consultations SET advisor_notes = COALESCE(advisor_notes, advisor_private_notes) WHERE advisor_private_notes IS NOT NULL AND (advisor_notes IS NULL OR advisor_notes = "")'); } catch (_) {}
+    }
+  } catch (_) {}
+  try {
+    const [studentLegacy] = await pool.query('SHOW COLUMNS FROM consultations LIKE "student_private_notes"');
+    if (studentLegacy && studentLegacy.length) {
+      try { await pool.query('UPDATE consultations SET student_notes = COALESCE(student_notes, student_private_notes) WHERE student_private_notes IS NOT NULL AND (student_notes IS NULL OR student_notes = "")'); } catch (_) {}
     }
   } catch (_) {}
 }
@@ -790,8 +735,8 @@ router.patch('/consultations/:id/advisor-notes', authMiddleware, async (req, res
     if (!isAdvisor) {
       return res.status(403).json({ error: 'Only the assigned advisor can edit advisor notes' });
     }
-    await ensurePrivateNotesColumns(pool);
-    await pool.query('UPDATE consultations SET advisor_private_notes = ? WHERE id = ?', [advisorNotes, id]);
+    await ensureNotesColumns(pool);
+    await pool.query('UPDATE consultations SET advisor_notes = ? WHERE id = ?', [advisorNotes, id]);
     return res.json({ success: true });
   } catch (err) {
     console.error('Update advisor notes error:', err);
@@ -816,8 +761,8 @@ router.patch('/consultations/:id/student-notes', authMiddleware, async (req, res
     if (!isStudent) {
       return res.status(403).json({ error: 'Only the assigned student can edit student notes' });
     }
-    await ensurePrivateNotesColumns(pool);
-    await pool.query('UPDATE consultations SET student_private_notes = ? WHERE id = ?', [studentNotes, id]);
+    await ensureNotesColumns(pool);
+    await pool.query('UPDATE consultations SET student_notes = ? WHERE id = ?', [studentNotes, id]);
     return res.json({ success: true });
   } catch (err) {
     console.error('Update student notes error:', err);
@@ -841,7 +786,7 @@ router.post('/consultations/:id/summary-edit-request', authMiddleware, async (re
     const title = 'Student requested summary edit';
     const message = `Student requested an edit to the summary for '${c.topic}'.`;
     const data = { consultation_id: Number(id), reason: reason || null };
-    await createNotification(pool, c.advisor_user_id, 'consultation_summary_edit_requested', title, message, data);
+    await notify(pool, c.advisor_user_id, 'consultation_summary_edit_requested', title, message, data);
     return res.json({ success: true });
   } catch (err) {
     console.error('Summary edit request error:', err);
@@ -865,7 +810,7 @@ router.post('/consultations/:id/summary-edit-approve', authMiddleware, async (re
     const title = 'Your summary edit was approved';
     const message = `Advisor approved your summary edit request for '${c.topic}'.`;
     const data = { consultation_id: Number(id), note: note || null };
-    await createNotification(pool, c.student_user_id, 'consultation_summary_edit_approved', title, message, data);
+    await notify(pool, c.student_user_id, 'consultation_summary_edit_approved', title, message, data);
     // Persist per-consultation approval flag
     try {
       await ensureSummaryApprovalColumn(pool);
@@ -894,7 +839,7 @@ router.post('/consultations/:id/summary-edit-decline', authMiddleware, async (re
     const title = 'Your summary edit was declined';
     const message = `Advisor declined your summary edit request for '${c.topic}'.`;
     const data = { consultation_id: Number(id), reason: reason || null };
-    await createNotification(pool, c.student_user_id, 'consultation_summary_edit_declined', title, message, data);
+    await notify(pool, c.student_user_id, 'consultation_summary_edit_declined', title, message, data);
     // Clear per-consultation approval flag on decline
     try {
       await ensureSummaryApprovalColumn(pool);
@@ -1018,9 +963,9 @@ router.patch('/consultations/:id', async (req, res) => {
         if (body.location !== undefined) changes.push('location');
         if (body.mode !== undefined) changes.push('mode');
         const data = { consultation_id: c.id, changed: changes, date, time, location: c.location || null, mode: c.mode || null };
-        await createNotification(pool, c.advisor_user_id, 'consultation_rescheduled', title, message, data);
+        await notify(pool, c.advisor_user_id, 'consultation_rescheduled', title, message, data);
         // Also notify student for visibility of confirmed changes
-        await createNotification(pool, c.student_user_id, 'consultation_rescheduled', 'Consultation updated', `Your consultation '${c.topic}' was updated to ${date} at ${time}.`, data);
+        await notify(pool, c.student_user_id, 'consultation_rescheduled', 'Consultation updated', `Your consultation '${c.topic}' was updated to ${date} at ${time}.`, data);
       }
     } catch (err) {
       console.error('Reschedule notification error', err);
@@ -1106,7 +1051,7 @@ router.post('/consultations/:id/room-ready', async (req, res) => {
     const title = `Online meeting room is ready`;
     const msg = `Your consultation '${c.topic}' on ${date} at ${time} has an active meeting room. You can join when ready.`;
     const data = { consultation_id: c.id, room_name: c.room_name };
-    await createNotification(pool, c.student_user_id, 'consultation_room_ready', title, msg, data);
+    await notify(pool, c.student_user_id, 'consultation_room_ready', title, msg, data);
     res.json({ success: true });
   } catch (err) {
     console.error('Room-ready endpoint error', err);
@@ -1227,7 +1172,24 @@ router.get('/consultations/thread', authMiddleware, async (req, res) => {
        ORDER BY c.start_datetime ASC`,
       params
     );
-    res.json(rows || []);
+    const role = String(req.user?.role || '').toLowerCase();
+    const sanitized = (rows || []).map(r => {
+      const o = { ...r };
+      if (role === 'student') {
+        delete o.advisor_private_notes;
+        // Keep only student notes (support legacy/new columns)
+        o.student_notes = (o.student_notes != null ? o.student_notes : o.student_private_notes) || null;
+      } else if (role === 'advisor') {
+        delete o.student_private_notes;
+        // Keep only advisor notes (support legacy/new columns)
+        o.advisor_notes = (o.advisor_notes != null ? o.advisor_notes : o.advisor_private_notes) || null;
+      } else {
+        delete o.student_private_notes;
+        delete o.advisor_private_notes;
+      }
+      return o;
+    });
+    res.json(sanitized);
   } catch (err) {
     console.error('Failed to fetch thread:', err);
     res.status(500).json({ error: 'Failed to fetch thread' });

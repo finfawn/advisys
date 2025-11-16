@@ -74,13 +74,13 @@ export default function AdvisorProfilePage() {
           const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
           const today = new Date();
           const future = new Date();
-          future.setDate(today.getDate() + 30);
+          future.setDate(today.getDate() + 60);
           const slotsRes = await fetch(`${base}/api/advisors/${advisorId || 1}/slots?start=${fmtDate(today)}&end=${fmtDate(future)}`);
           const slots = await slotsRes.json();
 
           if (Array.isArray(slots) && slots.length > 0) {
             // Compute next available slot and fallback weekly schedule from slots
-            const availableSlots = slots.filter(s => String(s.status).toLowerCase() === 'available');
+            const availableSlots = Array.isArray(slots) ? slots : [];
             const toTimeStr = (d) => new Intl.DateTimeFormat('en-PH', {
               timeZone: 'Asia/Manila',
               hour: 'numeric',
@@ -122,13 +122,29 @@ export default function AdvisorProfilePage() {
             if (hasOnlineMode) slotsModes.push('Online');
 
             const dayKeys = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
-            const weeklyFromSlots = {
+            // Build base schedule from DB or Unavailable
+            const baseSchedule = {
               sunday: 'Unavailable', monday: 'Unavailable', tuesday: 'Unavailable', wednesday: 'Unavailable', thursday: 'Unavailable', friday: 'Unavailable', saturday: 'Unavailable'
             };
+            if (data.weeklySchedule && typeof data.weeklySchedule === 'object') {
+              for (const k of Object.keys(baseSchedule)) {
+                if (data.weeklySchedule[k]) baseSchedule[k] = data.weeklySchedule[k];
+              }
+            }
+            // Compute this week's boundaries (local)
+            const startOfWeek = new Date();
+            startOfWeek.setHours(0,0,0,0);
+            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
+            const endOfWeek = new Date(startOfWeek);
+            endOfWeek.setDate(startOfWeek.getDate() + 6);
+            endOfWeek.setHours(23,59,59,999);
+
+            // Overlay slot-derived ranges for this week only
             const ranges = {};
             for (const s of availableSlots) {
               const start = new Date(s.start_datetime);
               const end = new Date(s.end_datetime);
+              if (start < startOfWeek || start > endOfWeek) continue;
               const weekdayPH = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'long' }).format(start).toLowerCase();
               const key = dayKeys.includes(weekdayPH) ? weekdayPH : dayKeys[start.getDay()];
               const curr = ranges[key] || { earliest: start, latest: end };
@@ -137,12 +153,10 @@ export default function AdvisorProfilePage() {
               ranges[key] = curr;
             }
             for (const [k, r] of Object.entries(ranges)) {
-              weeklyFromSlots[k] = `${toTimeStr(r.earliest)} - ${toTimeStr(r.latest)}`;
+              baseSchedule[k] = `${toTimeStr(r.earliest)} - ${toTimeStr(r.latest)}`;
             }
 
-            // Merge: use DB weeklySchedule if present, otherwise fallback to slots-derived
-            const hasDbSchedule = Object.values(data.weeklySchedule || {}).some(v => v && v !== 'Unavailable');
-            const mergedSchedule = hasDbSchedule ? data.weeklySchedule : weeklyFromSlots;
+            const mergedSchedule = baseSchedule;
 
             setAdvisorData(prev => ({
               ...prev,
@@ -430,13 +444,13 @@ export default function AdvisorProfilePage() {
               <div className="profile-right">
                 {/* Availability Section */}
                 <section className="profile-section availability-section">
-                  <h2 className="section-title">
-                    <BsClock className="section-icon" />
-                    Availability
-                  </h2>
-                  <div className="section-content">
+                    <h2 className="section-title">
+                      <BsClock className="section-icon" />
+                      Availability
+                    </h2>
+                    <div className="section-content">
                     <div className="weekly-schedule">
-                      <h3>Weekly Schedule</h3>
+                      <h3>This Week's Schedule</h3>
                       <div className="schedule-grid">
                         {Object.entries(advisorData.weeklySchedule || {}).map(([day, time]) => (
                           <div key={day} className="schedule-item">

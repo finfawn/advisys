@@ -145,6 +145,21 @@ type ToastOptions = Omit<ToastItem, "id">;
 function toast(props: ToastOptions) {
   const id = genId();
 
+  try {
+    const raw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const u = raw ? JSON.parse(raw) : null;
+    const uid = u?.id;
+    const mutedKey = uid ? `advisys_notifications_muted_${uid}` : null;
+    const isMuted = mutedKey ? String(localStorage.getItem(mutedKey) || 'false') === 'true' : false;
+    if (isMuted) {
+      return {
+        id,
+        dismiss: () => {},
+        update: () => id,
+      };
+    }
+  } catch (_) {}
+
   // Auto-dismiss after duration
   if (props.duration !== Infinity) {
     const timeout = setTimeout(() => {
