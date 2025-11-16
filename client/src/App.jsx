@@ -5,12 +5,14 @@ import { NotificationProvider } from "./contexts/NotificationContext";
 import { Toaster } from "./lightswind/toaster";
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
+import VerifyEmail from "./pages/VerifyEmail";
 
 // Student pages
 import StudentDashboard from "./pages/student/StudentDashboard";
 import AdvisorListPage from "./pages/student/AdvisorListPage";
 import AdvisorProfilePage from "./pages/student/AdvisorProfilePage";
 import MyConsultationsPage from "./pages/student/MyConsultationsPage";
+import StudentThreadPage from "./pages/student/StudentThreadPage";
 import ConsultationDetailsPage from "./pages/student/ConsultationDetailsPage";
 import OnlineConsultationDetailsPage from "./pages/student/OnlineConsultationDetailsPage";
 import HistoryConsultationDetailsPage from "./pages/HistoryConsultationDetailsPage";
@@ -19,6 +21,7 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
   // Advisor pages
   import AdvisorDashboard from "./pages/advisor/AdvisorDashboard";
   import AdvisorConsultations from "./pages/advisor/AdvisorConsultations";
+  import AdvisorThreadPage from "./pages/advisor/AdvisorThreadPage";
   import AdvisorAvailability from "./pages/advisor/AdvisorAvailability";
   import AdvisorSettingsPage from "./pages/advisor/AdvisorSettingsPage";
   import AdvisorConsultationDetailsPage from "./pages/advisor/ConsultationDetailsPage";
@@ -27,7 +30,10 @@ import StudentSettingsPage from "./pages/student/StudentSettingsPage";
 
 // Admin pages
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminSettings from "./pages/admin/AdminSettings";
 import AdminManageUsers from "./pages/admin/AdminManageUsers";
+import AdminManageStudents from "./pages/admin/AdminManageStudents";
+import AdminManageAdvisors from "./pages/admin/AdminManageAdvisors";
 import AdminDepartmentSettings from "./pages/admin/AdminDepartmentSettings";
 
 // Simple auth guard to protect routes
@@ -83,6 +89,7 @@ function App() {
           {/* Home */}
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<AuthPage />} />
+          <Route path="/verify-email" element={<VerifyEmail />} />
           {/* Alias for existing navigations using /login */}
           <Route path="/login" element={<AuthPage />} />
           {/* Logout convenience route */}
@@ -94,6 +101,7 @@ function App() {
             <Route path="/student-dashboard/advisors" element={<AdvisorListPage />} />
             <Route path="/student-dashboard/advisors/:advisorId" element={<AdvisorProfilePage />} />
             <Route path="/student-dashboard/consultations" element={<MyConsultationsPage />} />
+            <Route path="/student-dashboard/history/thread/:advisorId" element={<StudentThreadPage />} />
             <Route path="/student-dashboard/consultations/:consultationId" element={<ConsultationDetailsPage />} />
             <Route path="/student-dashboard/consultations/online/:consultationId" element={<OnlineConsultationDetailsPage />} />
             <Route path="/student-dashboard/consultations/history/:consultationId" element={<HistoryConsultationDetailsPage />} />
@@ -105,6 +113,7 @@ function App() {
           <Route element={<RequireAuth allowedRoles={["advisor"]} />}> 
             <Route path="/advisor-dashboard" element={<AdvisorDashboard />} />
             <Route path="/advisor-dashboard/consultations" element={<AdvisorConsultations />} />
+            <Route path="/advisor-dashboard/history/thread/:studentId" element={<AdvisorThreadPage />} />
             <Route path="/advisor-dashboard/consultations/:consultationId" element={<AdvisorConsultationDetailsPage />} />
             <Route path="/advisor-dashboard/consultations/online/:consultationId" element={<AdvisorOnlineConsultationDetailsPage />} />
             <Route path="/advisor-dashboard/availability" element={<AdvisorAvailability />} />
@@ -119,7 +128,10 @@ function App() {
           {/* Admin routes */}
           <Route element={<RequireAuth allowedRoles={["admin"]} />}> 
             <Route path="/admin-dashboard" element={<AdminDashboard />} />
-            <Route path="/admin-dashboard/manage-users" element={<AdminManageUsers />} />
+            <Route path="/admin-dashboard/settings" element={<AdminSettings />} />
+            <Route path="/admin-dashboard/manage-students" element={<AdminManageStudents />} />
+            <Route path="/admin-dashboard/manage-advisors" element={<AdminManageAdvisors />} />
+            <Route path="/admin-dashboard/manage-users" element={<Navigate to="/admin-dashboard/manage-students" replace />} />
             <Route path="/admin-dashboard/department-settings" element={<AdminDepartmentSettings />} />
           </Route>
           

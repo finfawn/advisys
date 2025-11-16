@@ -30,8 +30,8 @@
 }
 
 /* Settings Content Layout */
-.settings-content {
-  display: grid;
+.advisor-dash-main .settings-content {
+  display: grid !important;
   grid-template-columns: 280px 1fr;
   gap: 32px;
   min-height: 600px;
@@ -210,6 +210,17 @@
   width: 50px;
   height: 50px;
   color: #9ca3af;
+}
+
+/* Prevent stretching while editing: lock avatar size and shape */
+.profile-picture-section .profile-picture,
+.profile-picture-section .profile-picture-placeholder {
+  width: 100px !important;
+  height: 100px !important;
+  min-width: 100px !important;
+  min-height: 100px !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1;
 }
 
 .profile-info {

@@ -95,6 +95,22 @@
 .section-count { font-size: 0.9rem; color: #6b7280; }
 
 .consultations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+/* Ensure cards in grid align heights similar to student page */
+.consultations-grid > * { height: 100%; }
+
+/* Match student grid behavior */
+@media (min-width: 1201px) {
+  .consultations-grid { grid-template-columns: repeat(4, 1fr); gap: 0.875rem; }
+}
+@media (max-width: 1200px) and (min-width: 901px) {
+  .consultations-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+}
+@media (max-width: 900px) and (min-width: 640px) {
+  .consultations-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+}
+@media (max-width: 639px) {
+  .consultations-grid { grid-template-columns: 1fr; gap: 1rem; }
+}
 
 /* Undo Notification */
 .undo-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; border-radius: 8px; padding: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 300px; max-width: 500px; }

@@ -1,0 +1,24 @@
+.settings-container { padding: 0; max-width: 100%; }
+.settings-header { margin-bottom: 32px; padding: 0 4px; }
+.settings-title { font-size: 2rem; font-weight: 700; color: #1f2937; margin: 0 0 8px 0; line-height: 1.2; }
+.settings-subtitle { color: #6b7280; font-size: 1rem; margin: 0; line-height: 1.5; }
+
+.settings-content { display: block; }
+.settings-panel { background: #ffffff; border: 1px solid rgba(0,0,0,0.08); border-radius: 16px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); width: 100%; }
+.settings-section { display: flex; flex-direction: column; gap: 16px; }
+.section-title { font-size: 1.5rem; font-weight: 700; color: #1f2937; margin: 0; }
+.section-description { color: #6b7280; font-size: 0.95rem; margin: 0; }
+
+.security-settings { display: flex; flex-direction: column; gap: 16px; }
+.security-item { display: flex; justify-content: space-between; align-items: center; padding: 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; }
+.security-info { flex: 1; margin-right: 16px; }
+.security-title { font-size: 1rem; font-weight: 600; color: #1f2937; margin: 0 0 4px 0; }
+.security-description { font-size: 0.875rem; color: #6b7280; margin: 0; }
+
+.danger-card { border-color: #fecaca; background: #fef2f2; }
+.danger-btn { border-color: #dc2626; color: #dc2626; }
+.danger-btn:hover { background: #dc2626; color: #fff; }
+
+@media (min-width: 1024px) {
+  .settings-panel { padding: 28px; }
+}

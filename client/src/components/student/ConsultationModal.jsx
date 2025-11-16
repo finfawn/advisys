@@ -12,6 +12,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
+    title: "",
     description: "",
     category: "",
     mode: "in-person",
@@ -163,19 +164,21 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
         const startISO = initialData.start_datetime || null;
         const prefillDate = startISO ? parseDbDatetime(startISO) || new Date() : new Date();
         setFormData({
+          title: initialData.topic || initialData.title || "",
           description: initialData.student_notes || initialData.studentNotes || "",
-          category: initialData.category || initialData.topic || "",
+          category: initialData.category || "",
           mode: initialData.mode || "in-person",
           location: initialData.location || ""
         });
         setSelectedDate(new Date(prefillDate.getFullYear(), prefillDate.getMonth(), prefillDate.getDate()));
       } else {
         setFormData({
+          title: "",
           description: "",
           category: "",
           mode: "in-person",
-          // Prefill location with advisor office location for in-person fallback
-          location: safeText(facultyData?.officeLocation, "")
+          // Do not prefill with office; location comes from slot.room
+          location: ""
         });
         setSelectedDate(new Date());
       }
@@ -280,8 +283,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     setFormData(prev => ({ 
       ...prev, 
       mode,
-      // For in-person, use existing location or advisor office location as fallback
-      location: mode === 'online' ? '' : (prev.location || safeText(facultyData?.officeLocation, ''))
+      // Keep any previously selected slot room; no office fallback
+      location: mode === 'online' ? '' : prev.location
     }));
   };
 
@@ -297,7 +300,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     setFormData(prev => ({
       ...prev,
       mode: mappedMode,
-      location: mappedMode === 'in-person' ? (slot?.room || prev.location || safeText(facultyData?.officeLocation, '')) : ''
+      // Use only the slot-provided room for in-person
+      location: mappedMode === 'in-person' ? (slot?.room || '') : ''
     }));
   };
 
@@ -323,7 +327,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
       const advisorId = faculty?.id || facultyData?.id || 1;
 
       const payload = {
-        topic: formData.category || "General Consultation",
+        topic: formData.title || "General Consultation",
         category: formData.category || null,
         mode: formData.mode,
         location: formData.mode === 'in-person' ? (selectedSlot?.room || null) : null,
@@ -394,9 +398,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   };
 
 
-  // Step 1 no longer requires selecting a location; location is determined by slot
-  // If advisor has no categories, allow proceeding with description only
-  const isStep1Valid = !!formData.description.trim() && (categories.length === 0 || !!formData.category);
+  // Step 1 validation - require title and description, category is optional
+  const isStep1Valid = !!formData.title.trim() && !!formData.description.trim();
   const isStep2Valid = selectedSlot;
 
   // Make progress fill align with step numbers (0%, 50%, 100%)
@@ -468,6 +471,25 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
             </div>
 
             {/* Form Fields */}
+            <div className="form-section">
+              <label htmlFor="title" className="form-label">
+                Consultation Title
+              </label>
+              <Form.Control
+                type="text"
+                id="title"
+                name="title"
+                value={formData.title}
+                onChange={handleInputChange}
+                placeholder="Give your consultation a clear title..."
+                className="form-control"
+                autoComplete="off"
+                autoCorrect="off"
+                spellCheck={false}
+                required
+              />
+            </div>
+
             <div className="form-section">
               <div className="form-label-container">
                 <label htmlFor="description" className="form-label">
@@ -546,19 +568,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
             </div>
           </div>
 
-            {/* Location is display-only; for in-person, show room from selected slot or guidance */}
-            {formData.mode === 'in-person' && (
-              <div className="form-section">
-                <label className="form-label">Location</label>
-                <div className="form-static-text">
-                  {selectedSlot?.room ? (
-                    selectedSlot.room
-                  ) : (
-                    rooms.length === 1 ? rooms[0] : ''
-                  )}
-                </div>
-              </div>
-            )}
+            {/* Location is display-only; for in-person, show room from selected slot only */}
+            {null}
           </div>
 
           {/* Step 2 */}
@@ -648,11 +659,11 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                       <div className="summary-value">{formData.mode === 'in-person' ? 'In-Person' : 'Online'}</div>
                     </div>
 
-                    {formData.mode === 'in-person' && (selectedSlot?.room || formData.location) && (
+                    {formData.mode === 'in-person' && selectedSlot?.room && (
                       <div className="summary-card-item">
                         <div className="summary-icon location-icon"><FaMapMarkerAlt /></div>
                         <div className="summary-label">Location</div>
-                        <div className="summary-value">{selectedSlot?.room || formData.location}</div>
+                        <div className="summary-value">{selectedSlot?.room}</div>
                       </div>
                     )}
 
@@ -662,6 +673,13 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                       <div className="summary-value">{formData.category || 'Not selected'}</div>
                     </div>
                   </div>
+                
+                {formData.title && (
+                  <div className="summary-description">
+                    <div className="summary-label">Title</div>
+                    <div className="summary-description-text">{formData.title}</div>
+                  </div>
+                )}
                 
                 {formData.description && (
                   <div className="summary-description">

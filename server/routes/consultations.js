@@ -68,7 +68,7 @@ function formatTimeRange(start, end) {
 async function getNotificationSettings(userId) {
   const pool = getPool();
   try {
-    const [rows] = await pool.query(
+  const [rows] = await pool.query(
       `SELECT email_notifications, consultation_reminders, new_request_notifications, notifications_muted
        FROM notification_settings
        WHERE user_id = ?
@@ -138,6 +138,30 @@ router.post('/consultations', async (req, res) => {
     // Normalize mode to match consultations schema
     const modeNorm = String(mode).toLowerCase() === 'in-person' ? 'in-person' : 'online';
 
+    // Resolve current academic term
+    const [[currTerm]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+    const currentTermId = currTerm?.id || null;
+
+    // If a current term exists, ensure membership exists; block only if explicitly non-eligible
+    if (currentTermId) {
+      const [[m]] = await pool.query(
+        `SELECT status_in_term FROM academic_term_memberships WHERE term_id = ? AND user_id = ? AND role = 'student'`,
+        [currentTermId, studentId]
+      );
+      if (!m) {
+        const [[sp]] = await pool.query('SELECT program, year_level FROM student_profiles WHERE user_id = ? LIMIT 1', [studentId]);
+        const prog = sp?.program || null;
+        const yr = sp?.year_level != null ? String(sp.year_level) : null;
+        await pool.query(
+          `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
+           VALUES (?,?,?,?,?,?)`,
+          [currentTermId, studentId, 'student', 'enrolled', prog, yr]
+        );
+      } else if (String(m.status_in_term) !== 'enrolled') {
+        return res.status(400).json({ error: 'Student is not eligible to book in the current academic term' });
+      }
+    }
+
     await conn.beginTransaction();
 
     // If a slot_id is provided, ensure it is available and then mark booked
@@ -164,8 +188,8 @@ router.post('/consultations', async (req, res) => {
     // Insert consultation
     const [insertRes] = await conn.query(
       `INSERT INTO consultations
-       (student_user_id, advisor_user_id, topic, category, mode, location, student_notes, start_datetime, end_datetime, duration_minutes, status)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?)`,
+       (student_user_id, advisor_user_id, topic, category, mode, location, student_notes, start_datetime, end_datetime, duration_minutes, status, academic_term_id)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         studentId,
         advisorId,
@@ -178,6 +202,7 @@ router.post('/consultations', async (req, res) => {
         end,
         durationMin || null,
         'pending',
+        currentTermId
       ]
     );
 
@@ -298,19 +323,30 @@ router.post('/consultations', async (req, res) => {
 router.get('/consultations/students/:studentId/consultations', authMiddleware, async (req, res) => {
   const pool = getPool();
   const studentId = req.params.studentId;
+  const { termId, term } = req.query || {};
 
   try {
+    let where = 'WHERE c.student_user_id = ?';
+    const params = [studentId];
+    if (String(term).toLowerCase() !== 'all') {
+      let termToUse = Number(termId) || null;
+      if (!termToUse) {
+        const [[curr]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+        termToUse = curr?.id || null;
+      }
+      if (termToUse) { where += ' AND c.academic_term_id = ?'; params.push(termToUse); }
+    }
     const [rows] = await pool.query(
       `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.advisor_user_id
        JOIN advisor_profiles ap ON ap.user_id = u.id
-       WHERE c.student_user_id = ?
+       ${where}
        ORDER BY c.start_datetime DESC`,
-      [studentId]
+      params
     );
 
-    const consultations = rows.map(r => {
+  const consultations = rows.map(r => {
       const startDt = new Date(r.start_datetime);
       const endDt = new Date(r.end_datetime);
       const date = formatDate(startDt);
@@ -322,6 +358,16 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
       const computedDuration = (actualStart && actualEnd)
         ? Math.max(0, Math.round((actualEnd.getTime() - actualStart.getTime()) / 60000))
         : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((endDt.getTime() - startDt.getTime()) / 60000)));
+
+      const requestStatus = (() => {
+        const s = String(r.status || '').toLowerCase();
+        const isOnline = String(r.mode || '').toLowerCase() === 'online';
+        const value = s === 'approved' ? (isOnline ? (r.meeting_link || null) : (r.location || r.room_name || null)) : null;
+        const reason = s === 'declined' ? (r.decline_reason || null)
+          : s === 'cancelled' || s === 'canceled' ? (r.cancel_reason || null)
+          : null;
+        return { status: s, value, reason };
+      })();
 
       return {
         id: r.id,
@@ -355,6 +401,12 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
         summaryNotes: r.summary_notes || undefined,
         finalTranscript: r.final_transcript || undefined,
         aiSummary: r.ai_summary || undefined,
+        // Standardized reasons for student consumption
+        decline_reason: r.decline_reason || null,
+        cancel_reason: r.cancel_reason || null,
+        cancellation_reason: r.cancel_reason || null,
+        // Unified conditional field
+        request_status: requestStatus,
       };
     });
 
@@ -378,13 +430,24 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
   const pool = getPool();
   try {
     const advisorId = req.params.advisorId;
+    const { termId, term } = req.query || {};
+    let where = 'WHERE c.advisor_user_id = ?';
+    const params = [advisorId];
+    if (String(term).toLowerCase() !== 'all') {
+      let termToUse = Number(termId) || null;
+      if (!termToUse) {
+        const [[curr]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+        termToUse = curr?.id || null;
+      }
+      if (termToUse) { where += ' AND c.academic_term_id = ?'; params.push(termToUse); }
+    }
     const [rows] = await pool.query(
       `SELECT c.*, u.full_name AS student_name, sp.program AS student_program, sp.year_level AS student_year, sp.avatar_url AS student_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.student_user_id
        LEFT JOIN student_profiles sp ON sp.user_id = u.id
-       WHERE c.advisor_user_id = ?
-       ORDER BY c.start_datetime ASC`, [advisorId]
+       ${where}
+       ORDER BY c.start_datetime ASC`, params
     );
 
   const result = [];
@@ -400,6 +463,16 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
     const computedDuration = (actualStart && actualEnd)
       ? Math.max(0, Math.round((actualEnd.getTime() - actualStart.getTime()) / 60000))
       : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000)));
+
+    const requestStatus = (() => {
+      const s = String(r.status || '').toLowerCase();
+      const isOnline = String(r.mode || '').toLowerCase() === 'online';
+      const value = s === 'approved' ? (isOnline ? (r.meeting_link || null) : (r.location || r.room_name || null)) : null;
+      const reason = s === 'declined' ? (r.decline_reason || null)
+        : s === 'cancelled' || s === 'canceled' ? (r.cancel_reason || null)
+        : null;
+      return { status: s, value, reason };
+    })();
 
     result.push({
       id: r.id,
@@ -426,9 +499,15 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
       },
       mode: r.mode,
       status: r.status,
-      roomName: r.room_name || undefined,
-      location: r.location || undefined,
-      declineReason: r.decline_reason || undefined,
+        roomName: r.room_name || undefined,
+        location: r.location || undefined,
+        declineReason: r.decline_reason || undefined,
+        cancelReason: r.cancel_reason || undefined,
+        // Also expose standardized snake_case for clients expecting these names
+        decline_reason: r.decline_reason || null,
+        cancel_reason: r.cancel_reason || null,
+      cancellation_reason: r.cancel_reason || null,
+      request_status: requestStatus,
       duration: computedDuration,
       bookingDate: r.booking_date,
       guidelines: guidelines.map(g => g.guideline_text),
@@ -519,15 +598,18 @@ router.patch('/consultations/:id/status', async (req, res) => {
           await createNotification(pool, c.student_user_id, 'consultation_approved', title, message, { consultation_id: c.id });
         } else if (status === 'declined') {
           const title = `${c.advisor_name} declined your consultation`;
-          const reason = declineReason ? ` Reason: ${declineReason}` : '';
-          const message = `Your consultation request for '${c.topic}' has been declined.${reason}`;
-          await createNotification(pool, c.student_user_id, 'consultation_declined', title, message, { consultation_id: c.id });
+          const reasonText = declineReason || c.decline_reason || null;
+          const message = `Your consultation request for '${c.topic}' has been declined.${reasonText ? ` Reason: ${reasonText}` : ''}`;
+          const data = { consultation_id: c.id, decline_reason: reasonText };
+          await createNotification(pool, c.student_user_id, 'consultation_declined', title, message, data);
         } else if (status === 'cancelled') {
           const title = `Consultation cancelled`;
-          const message = `The consultation for '${c.topic}' on ${date} at ${time} was cancelled.`;
+          const reasonText = cancelReason || c.cancel_reason || null;
+          const message = `The consultation for '${c.topic}' on ${date} at ${time} was cancelled.${reasonText ? ` Reason: ${reasonText}` : ''}`;
+          const data = { consultation_id: c.id, cancel_reason: reasonText, cancellation_reason: reasonText };
           // Notify both parties to ensure visibility regardless of who initiated
-          await createNotification(pool, c.advisor_user_id, 'consultation_cancelled', title, message, { consultation_id: c.id });
-          await createNotification(pool, c.student_user_id, 'consultation_cancelled', title, message, { consultation_id: c.id });
+          await createNotification(pool, c.advisor_user_id, 'consultation_cancelled', title, message, data);
+          await createNotification(pool, c.student_user_id, 'consultation_cancelled', title, message, data);
         } else if (status === 'missed') {
           // Neutral "missed" state replaces "no-show" without blaming either party
           const title = `Consultation missed`;
@@ -1032,20 +1114,123 @@ router.post('/consultations/:id/room-ready', async (req, res) => {
   }
 });
 
-// Delete a consultation (use sparingly; consider soft-delete in future)
+// Delete disabled: consultations are records and cannot be deleted
 router.delete('/consultations/:id', async (req, res) => {
+  return res.status(405).json({ error: 'Consultation deletion is disabled. Use cancel or archive policies instead.' });
+});
+
+// List advisors a student has consulted with (counterparts)
+router.get('/consultations/students/:studentId/counterparts', authMiddleware, async (req, res) => {
   const pool = getPool();
-  const id = req.params.id;
   try {
-    const [result] = await pool.query('DELETE FROM consultations WHERE id = ?', [id]);
-    if (result.affectedRows === 0) {
-      return res.status(404).json({ error: 'Consultation not found' });
+    const studentId = Number(req.params.studentId);
+    const { termId, term } = req.query || {};
+    let where = 'WHERE c.student_user_id = ?';
+    const params = [studentId];
+    if (String(term).toLowerCase() !== 'all') {
+      let t = Number(termId) || null;
+      if (!t) {
+        const [[curr]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+        t = curr?.id || null;
+      }
+      if (t) { where += ' AND c.academic_term_id = ?'; params.push(t); }
     }
-    res.json({ success: true });
+    const [rows] = await pool.query(
+      `SELECT c.advisor_user_id AS id,
+              u.full_name AS name,
+              ap.title,
+              ap.avatar_url,
+              COUNT(*) AS count,
+              MAX(c.start_datetime) AS last_date
+       FROM consultations c
+       JOIN users u ON u.id = c.advisor_user_id
+       JOIN advisor_profiles ap ON ap.user_id = u.id
+       ${where}
+       GROUP BY c.advisor_user_id, u.full_name, ap.title, ap.avatar_url
+       ORDER BY last_date DESC`,
+      params
+    );
+    res.json(rows || []);
   } catch (err) {
-    console.error('Delete consultation error', err);
-    res.status(500).json({ error: 'Failed to delete consultation' });
+    console.error('Failed to fetch student counterparts:', err);
+    res.status(500).json({ error: 'Failed to fetch counterparts' });
   }
 });
 
+// List students an advisor has consulted with (counterparts)
+router.get('/consultations/advisors/:advisorId/counterparts', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  try {
+    const advisorId = Number(req.params.advisorId);
+    const { termId, term } = req.query || {};
+    let where = 'WHERE c.advisor_user_id = ?';
+    const params = [advisorId];
+    if (String(term).toLowerCase() !== 'all') {
+      let t = Number(termId) || null;
+      if (!t) {
+        const [[curr]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+        t = curr?.id || null;
+      }
+      if (t) { where += ' AND c.academic_term_id = ?'; params.push(t); }
+    }
+    const [rows] = await pool.query(
+      `SELECT c.student_user_id AS id,
+              u.full_name AS name,
+              sp.program,
+              sp.year_level,
+              sp.avatar_url,
+              COUNT(*) AS count,
+              MAX(c.start_datetime) AS last_date
+       FROM consultations c
+       JOIN users u ON u.id = c.student_user_id
+       LEFT JOIN student_profiles sp ON sp.user_id = u.id
+       ${where}
+       GROUP BY c.student_user_id, u.full_name, sp.program, sp.year_level, sp.avatar_url
+       ORDER BY last_date DESC`,
+      params
+    );
+    res.json(rows || []);
+  } catch (err) {
+    console.error('Failed to fetch advisor counterparts:', err);
+    res.status(500).json({ error: 'Failed to fetch counterparts' });
+  }
+});
+
+// Thread list between a student and advisor
+router.get('/consultations/thread', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  try {
+    const { studentId, advisorId, termId, term } = req.query || {};
+    const sid = Number(studentId);
+    const aid = Number(advisorId);
+    if (!sid || !aid) return res.status(400).json({ error: 'studentId and advisorId are required' });
+    let where = 'WHERE c.student_user_id = ? AND c.advisor_user_id = ?';
+    const params = [sid, aid];
+    if (String(term).toLowerCase() !== 'all') {
+      let t = Number(termId) || null;
+      if (!t) {
+        const [[curr]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+        t = curr?.id || null;
+      }
+      if (t) { where += ' AND c.academic_term_id = ?'; params.push(t); }
+    }
+    const [rows] = await pool.query(
+      `SELECT c.*,
+              su.full_name AS student_name, sp.program AS student_program, sp.year_level AS student_year, sp.avatar_url AS student_avatar_url,
+              au.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
+       FROM consultations c
+       JOIN users su ON su.id = c.student_user_id
+       LEFT JOIN student_profiles sp ON sp.user_id = su.id
+       JOIN users au ON au.id = c.advisor_user_id
+       LEFT JOIN advisor_profiles ap ON ap.user_id = au.id
+       ${where}
+       ORDER BY c.start_datetime ASC`,
+      params
+    );
+    res.json(rows || []);
+  } catch (err) {
+    console.error('Failed to fetch thread:', err);
+    res.status(500).json({ error: 'Failed to fetch thread' });
+  }
+});
 module.exports = router;

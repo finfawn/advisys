@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { authMiddleware } = require('../middleware/auth');
 const bcrypt = require('bcrypt');
 const { getPool } = require('../db/pool');
 
@@ -10,6 +11,43 @@ function formatYear(yearLevel) {
   return `${n}${suffix} Year`;
 }
 
+let ensureDeactivateTableLock = null;
+async function ensureUserDeactivationEvents(pool) {
+  if (ensureDeactivateTableLock) return ensureDeactivateTableLock;
+  ensureDeactivateTableLock = (async () => {
+    try {
+      await pool.query(`CREATE TABLE IF NOT EXISTS user_deactivation_events (
+        id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+        user_id INT UNSIGNED NOT NULL,
+        term_id INT UNSIGNED NULL,
+        reason ENUM('graduated','dropped','other') NOT NULL,
+        other_reason VARCHAR(255) NULL,
+        created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (id),
+        KEY idx_user (user_id),
+        KEY idx_term (term_id),
+        CONSTRAINT fk_deact_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE,
+        CONSTRAINT fk_deact_term FOREIGN KEY (term_id) REFERENCES academic_terms(id) ON DELETE SET NULL ON UPDATE CASCADE
+      ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    } catch (e) {
+      try {
+        await pool.query(`CREATE TABLE IF NOT EXISTS user_deactivation_events (
+          id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+          user_id INT UNSIGNED NOT NULL,
+          term_id INT UNSIGNED NULL,
+          reason ENUM('graduated','dropped','other') NOT NULL,
+          other_reason VARCHAR(255) NULL,
+          created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          PRIMARY KEY (id),
+          KEY idx_user (user_id),
+          KEY idx_term (term_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+      } catch (_) {}
+    }
+  })().finally(()=>{ ensureDeactivateTableLock = null; });
+  return ensureDeactivateTableLock;
+}
+
 // GET /api/users
 // Optional query params:
 // - role=student|advisor (filter by role)
@@ -17,10 +55,42 @@ router.get('/', async (req, res) => {
   const pool = getPool();
   const { role } = req.query;
   try {
+    // Ensure audit table exists before queries that reference it
+    await ensureUserDeactivationEvents(pool);
+    if (role === 'admin') {
+      const [rows] = await pool.query(
+        `SELECT u.id, u.full_name AS name, u.email, u.role, u.status
+         FROM users u
+         WHERE LOWER(u.role) IN ('admin','administrator','superadmin')
+         ORDER BY u.id ASC`
+      );
+      const data = rows.map(r => ({
+        id: r.id,
+        name: r.name,
+        email: r.email,
+        role: 'admin',
+        active: r.status === 'active',
+      }));
+      return res.json(data);
+    }
     if (role === 'student') {
       const [rows] = await pool.query(
         `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
-                sp.program, sp.year_level, sp.avatar_url
+                sp.program, sp.year_level, sp.avatar_url,
+                (
+                  SELECT e.reason
+                  FROM user_deactivation_events e
+                  WHERE e.user_id = u.id
+                  ORDER BY e.created_at DESC, e.id DESC
+                  LIMIT 1
+                ) AS last_reason,
+                (
+                  SELECT e.other_reason
+                  FROM user_deactivation_events e
+                  WHERE e.user_id = u.id
+                  ORDER BY e.created_at DESC, e.id DESC
+                  LIMIT 1
+                ) AS last_other
          FROM users u
          JOIN student_profiles sp ON sp.user_id = u.id
          WHERE u.role = 'student'
@@ -35,6 +105,8 @@ router.get('/', async (req, res) => {
         program: r.program || null,
         year: formatYear(r.year_level || 1),
         avatar_url: r.avatar_url || null,
+        deactivationReason: r.last_reason || null,
+        deactivationOther: r.last_other || null,
       }));
       return res.json(data);
     }
@@ -42,7 +114,21 @@ router.get('/', async (req, res) => {
     if (role === 'advisor') {
       const [rows] = await pool.query(
         `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
-                ap.department, ap.title, ap.avatar_url
+                ap.department, ap.title, ap.avatar_url,
+                (
+                  SELECT e.reason
+                  FROM user_deactivation_events e
+                  WHERE e.user_id = u.id
+                  ORDER BY e.created_at DESC, e.id DESC
+                  LIMIT 1
+                ) AS last_reason,
+                (
+                  SELECT e.other_reason
+                  FROM user_deactivation_events e
+                  WHERE e.user_id = u.id
+                  ORDER BY e.created_at DESC, e.id DESC
+                  LIMIT 1
+                ) AS last_other
          FROM users u
          JOIN advisor_profiles ap ON ap.user_id = u.id
          WHERE u.role = 'advisor'
@@ -57,6 +143,8 @@ router.get('/', async (req, res) => {
         department: r.department || null,
         title: r.title || null,
         avatar_url: r.avatar_url || null,
+        deactivationReason: r.last_reason || null,
+        deactivationOther: r.last_other || null,
       }));
       return res.json(data);
     }
@@ -208,6 +296,37 @@ router.delete('/:id', async (req, res) => {
   }
 });
 
+// Create an admin user
+// POST /api/users/admin
+// Body: { firstName, lastName, email, password }
+router.post('/admin', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const actor = req.user || {};
+  if (String(actor.role) !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const { firstName, lastName, email, password } = req.body || {};
+  if (!firstName || !lastName || !email || !password) {
+    return res.status(400).json({ error: 'firstName, lastName, email, password required' });
+  }
+  try {
+    const emailNorm = String(email).trim().toLowerCase();
+    const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [emailNorm]);
+    if (existing.length) return res.status(409).json({ error: 'Email already registered' });
+    const password_hash = await bcrypt.hash(String(password), 10);
+    const full_name = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
+    const [resUser] = await pool.query(
+      'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
+      ['admin', emailNorm, password_hash, full_name, 'active']
+    );
+    const userId = resUser.insertId;
+    return res.json({ id: userId, role: 'admin', email: emailNorm, full_name });
+  } catch (err) {
+    console.error('Create admin failed:', err);
+    return res.status(500).json({ error: 'Create admin failed' });
+  }
+});
+
 module.exports = router;
 
 // Update user status (activate/deactivate)
@@ -216,7 +335,8 @@ router.patch('/:id/status', async (req, res) => {
   const pool = getPool();
   const userId = req.params.id;
   try {
-    const { active, status } = req.body || {};
+    await ensureUserDeactivationEvents(pool);
+    const { active, status, reason, otherReason, termId } = req.body || {};
     let newStatus = status;
     if (!newStatus) {
       if (typeof active === 'boolean') newStatus = active ? 'active' : 'inactive';
@@ -234,9 +354,91 @@ router.patch('/:id/status', async (req, res) => {
     // Also update advisor_profiles status if present (no-op for non-advisors)
     await pool.query('UPDATE advisor_profiles SET status = ? WHERE user_id = ?', [newStatus === 'active' ? 'available' : 'inactive', userId]);
 
+    // Record deactivation event with optional term context
+    if (newStatus === 'inactive' && reason) {
+      await pool.query(
+        `INSERT INTO user_deactivation_events (user_id, term_id, reason, other_reason)
+         VALUES (?,?,?,?)`,
+        [userId, termId || null, ['graduated','dropped'].includes(String(reason)) ? String(reason) : 'other', otherReason || null]
+      );
+      // If student dropped/graduated in a term, reflect in membership and archive open consultations for that term
+      if (termId && (reason === 'graduated' || reason === 'dropped')) {
+        await pool.query(
+          `UPDATE academic_term_memberships
+           SET status_in_term = ?
+           WHERE term_id = ? AND user_id = ? AND role = 'student'`,
+          [String(reason), Number(termId), userId]
+        );
+        // Archive pending/approved requests for that student in the term
+        await pool.query(
+          `UPDATE consultations
+           SET archived_at = IFNULL(archived_at, NOW()), archive_reason = ?
+           WHERE student_user_id = ? AND academic_term_id = ? AND status IN ('pending','approved')`,
+          [String(reason), userId, Number(termId)]
+        );
+      }
+    }
+
     res.json({ id: Number(userId), status: newStatus });
   } catch (err) {
     console.error('Failed to update user status:', err);
     res.status(500).json({ error: 'Failed to update user status' });
+  }
+});
+
+// Bulk deactivate users
+// POST /api/users/bulk-deactivate
+// { userIds: number[], reason: 'graduated'|'dropped'|'other', otherReason?, termId?, archiveOpenConsultations?: boolean, cancelAdvisorSlots?: boolean }
+router.post('/bulk-deactivate', async (req, res) => {
+  const pool = getPool();
+  const { userIds, reason, otherReason, termId, archiveOpenConsultations, cancelAdvisorSlots } = req.body || {};
+  if (!Array.isArray(userIds) || userIds.length === 0) {
+    return res.status(400).json({ error: 'userIds is required' });
+  }
+  try {
+    await ensureUserDeactivationEvents(pool);
+    const term = termId ? Number(termId) : null;
+    const reasonNorm = ['graduated','dropped'].includes(String(reason)) ? String(reason) : 'other';
+    const ids = userIds.map(Number).filter(n => Number.isFinite(n));
+
+    // Update statuses
+    await pool.query(`UPDATE users SET status = 'inactive' WHERE id IN (${ids.map(()=>'?').join(',')})`, ids);
+    await pool.query(`UPDATE advisor_profiles SET status = 'inactive' WHERE user_id IN (${ids.map(()=>'?').join(',')})`, ids);
+
+    // Audit rows
+    const auditValues = ids.map(id => [id, term || null, reasonNorm, reasonNorm==='other' ? (otherReason || null) : null]);
+    if (auditValues.length) {
+      await pool.query(
+        `INSERT INTO user_deactivation_events (user_id, term_id, reason, other_reason) VALUES ${auditValues.map(()=>'(?,?,?,?)').join(',')}`,
+        auditValues.flat()
+      );
+    }
+
+    // Membership and consultations for students when term + graduated/dropped
+    if (term && (reasonNorm === 'graduated' || reasonNorm === 'dropped')) {
+      await pool.query(
+        `UPDATE academic_term_memberships SET status_in_term = ? WHERE term_id = ? AND role = 'student' AND user_id IN (${ids.map(()=>'?').join(',')})`,
+        [reasonNorm, term, ...ids]
+      );
+      if (archiveOpenConsultations) {
+        await pool.query(
+          `UPDATE consultations SET archived_at = IFNULL(archived_at, NOW()), archive_reason = ? WHERE academic_term_id = ? AND status IN ('pending','approved') AND student_user_id IN (${ids.map(()=>'?').join(',')})`,
+          [reasonNorm, term, ...ids]
+        );
+      }
+    }
+
+    // Optional: cancel advisor slots in term
+    if (term && cancelAdvisorSlots) {
+      await pool.query(
+        `UPDATE advisor_slots SET status = 'cancelled' WHERE status = 'available' AND advisor_user_id IN (${ids.map(()=>'?').join(',')}) AND DATE(start_datetime) BETWEEN (SELECT start_date FROM academic_terms WHERE id = ?) AND (SELECT end_date FROM academic_terms WHERE id = ?)`,
+        [...ids, term, term]
+      );
+    }
+
+    res.json({ success: true, count: ids.length });
+  } catch (err) {
+    console.error('Bulk deactivate error:', err);
+    res.status(500).json({ error: 'Bulk deactivate failed' });
   }
 });

@@ -123,17 +123,12 @@ export default function AdminDashboard() {
   }, []);
 
   const handleNavigation = (page) => {
-    console.log('Navigating to:', page);
-    
-    if (page === 'dashboard') {
-      navigate('/admin-dashboard');
-    } else if (page === 'manage-users') {
-      navigate('/admin-dashboard/manage-users');
-    } else if (page === 'department-settings') {
-      navigate('/admin-dashboard/department-settings');
-    } else if (page === 'logout') {
-      navigate('/logout');
-    }
+    if (page === 'dashboard') navigate('/admin-dashboard');
+    else if (page === 'manage-users') navigate('/admin-dashboard/manage-students');
+    else if (page === 'manage-students') navigate('/admin-dashboard/manage-students');
+    else if (page === 'manage-advisors') navigate('/admin-dashboard/manage-advisors');
+    else if (page === 'department-settings') navigate('/admin-dashboard/department-settings');
+    else if (page === 'logout') navigate('/logout');
   };
 
   return (

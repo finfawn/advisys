@@ -1,5 +1,5 @@
 import React from "react";
-import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
+import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle } from "react-icons/bs";
 import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
 import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
@@ -73,12 +73,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
     return consultation.status !== 'declined';
   };
 
-  const handleDeleteConsultation = (e) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(consultation);
-    }
-  };
+  
 
   const handleRescheduleConsultation = (e) => {
     e.stopPropagation();
@@ -97,10 +92,32 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
   };
 
   const statusInfo = getStatusInfo();
+  const rs = consultation.request_status || {};
+  const rsStatus = String(rs.status || consultation.status || '').toLowerCase();
+  const prettyReason = (x) => {
+    if (x == null) return '';
+    const s = String(x).trim();
+    if (!s) return '';
+    if (s.length <= 60 && /^[A-Za-z0-9 _-]+$/.test(s)) {
+      const normalized = s.replace(/[_-]+/g, ' ').replace(/\s+/g, ' ').trim();
+      const key = normalized.toLowerCase();
+      const map = {
+        'schedule conflict': 'Schedule conflict',
+        'no longer needed': 'No longer needed',
+        'found alternative': 'Found alternative solution',
+        'emergency': 'Emergency/Personal issue',
+        'emergency personal issue': 'Emergency/Personal issue',
+      };
+      if (map[key]) return map[key];
+      return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+    }
+    return s;
+  };
+  const statusLc = String(consultation.status || '').toLowerCase();
 
   return (
     <Card hoverable className="consultation-card-new flex flex-col">
-      <CardHeader spacing="compact" className="flex-row justify-between items-start pb-3">
+      <CardHeader spacing="compact" className="flex-row justify-between items-start pb-2">
         <Badge 
           variant={
             consultation.status === 'approved' ? 'default' : 
@@ -108,32 +125,39 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
             consultation.status === 'completed' ? 'success' :
             'destructive'
           } 
-          className="flex items-center gap-1.5"
+          className="flex items-center gap-1 text-xs"
         >
           {statusInfo.icon}
           {statusInfo.text}
         </Badge>
-        <Badge variant="outline" className="flex items-center gap-1.5">
-          {consultation.mode === 'online' ? <BsCameraVideo className="w-3.5 h-3.5" /> : <BsGeoAlt className="w-3.5 h-3.5" />}
+        <Badge variant="outline" className="flex items-center gap-1 text-xs">
+          {consultation.mode === 'online' ? <BsCameraVideo className="w-3 h-3" /> : <BsGeoAlt className="w-3 h-3" />}
           {consultation.mode === 'online' ? 'Online' : 'In-Person'}
         </Badge>
       </CardHeader>
       
-      <CardContent className="space-y-3 flex-1">
-        <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.category || consultation.topic || 'No Topic'}</h3>
+      <CardContent className="space-y-2 flex-1">
+        <div className="flex items-start justify-between gap-2">
+          <h3 className="text-base font-semibold text-gray-900 leading-tight">{consultation.topic || consultation.title || 'No Title'}</h3>
+          {consultation.category && (
+            <Badge variant="secondary" className="text-xs flex-shrink-0">
+              {consultation.category}
+            </Badge>
+          )}
+        </div>
         
         <div className="flex items-center gap-2 text-sm text-gray-600">
           <span>{formatDate(consultation.date)} • {consultation.time}</span>
         </div>
         
-        <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <div className="w-10 h-10 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+        <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-100">
+          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
             {(() => {
               const avatar = consultation?.advisor?.avatar_url || consultation?.faculty?.avatar;
               if (avatar) {
                 return <img src={avatar} alt={consultation?.advisor?.name || consultation?.faculty?.name || 'Advisor'} className="w-full h-full object-cover" />;
               }
-              return <BsPersonCircle className="w-6 h-6" />;
+              return <BsPersonCircle className="w-5 h-5" />;
             })()}
           </div>
           <div className="flex-1 min-w-0">
@@ -145,23 +169,76 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         
         {/* Location badge for in-person */}
         {consultation.mode === 'in-person' && consultation.location && (
-          <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-amber-50 border border-amber-200 rounded-md">
-            <BsGeoAlt className="w-4 h-4 text-amber-600 flex-shrink-0" />
+          <div className="flex items-center gap-2 text-xs text-gray-700 p-1.5 bg-amber-50 border border-amber-200 rounded-md">
+            <BsGeoAlt className="w-3 h-3 text-amber-600 flex-shrink-0" />
             <span className="truncate">{consultation.location}</span>
           </div>
         )}
         
         {/* Decline reason section */}
-        {consultation.status === 'declined' && consultation.declineReason && (
-          <div className="p-3 bg-red-50 border-l-4 border-red-500 rounded">
-            <div className="text-xs font-semibold text-red-700 mb-1">Reason:</div>
-            <div className="text-xs text-red-600">{consultation.declineReason}</div>
-          </div>
-        )}
+        {(() => {
+          const declineText = rs.reason 
+            || consultation.declineReason 
+            || consultation.decline_reason 
+            || consultation.advisor_decline_reason 
+            || consultation.declined_reason 
+            || consultation.decline_reason_text 
+            || consultation.decline_note 
+            || consultation.decline_notes 
+            || consultation.decline_message 
+            || consultation.declineRemarks 
+            || consultation.remarks 
+            || consultation.reason;
+          return (statusLc === 'declined' || rsStatus === 'declined') && declineText ? (
+            <div className="p-2 bg-red-50 border-l-4 border-red-500 rounded">
+              <div className="text-xs font-semibold text-red-700 mb-0.5">Reason:</div>
+              <div className="text-xs text-red-600">{prettyReason(declineText)}</div>
+            </div>
+          ) : null;
+        })()}
+
+        {/* Cancellation reason section */}
+        {(() => {
+          const cancelText = rs.reason 
+            || consultation.cancelReason 
+            || consultation.cancel_reason 
+            || consultation.cancellation_reason 
+            || consultation.advisor_cancel_reason 
+            || consultation.student_cancel_reason 
+            || consultation.canceled_reason 
+            || consultation.cancel_notes 
+            || consultation.cancel_message 
+            || consultation.cancellation_reason_text 
+            || consultation.cancellationReason 
+            || consultation.cancellationNotes 
+            || consultation.remarks 
+            || consultation.reason;
+          return (statusLc === 'cancelled' || statusLc === 'canceled' || rsStatus === 'cancelled' || rsStatus === 'canceled') && cancelText ? (
+            <div className="p-2 bg-amber-50 border-l-4 border-amber-400 rounded">
+              <div className="text-xs font-semibold text-amber-800 mb-0.5">Cancelled:</div>
+              <div className="text-xs text-amber-700">{prettyReason(cancelText)}</div>
+            </div>
+          ) : null;
+        })()}
+
+        {(() => {
+          const isApproved = String(rs.status || '').toLowerCase() === 'approved';
+          const val = isApproved ? rs.value : null;
+          if (!val) return null;
+          const modeLc = String(consultation.mode || '').toLowerCase();
+          const loc = consultation.location || consultation.roomName || consultation.room_name || '';
+          if (modeLc === 'in-person' && String(loc).trim() && String(loc).trim() === String(val).trim()) return null;
+          return (
+            <div className="p-2 bg-gray-50 border rounded">
+              <div className="text-xs font-semibold text-gray-700 mb-0.5">Value:</div>
+              <div className="text-xs text-gray-700 truncate break-all">{val}</div>
+            </div>
+          );
+        })()}
       </CardContent>
       
       {consultation.status === 'approved' && (
-        <CardFooter className="pt-3 gap-2" align="between">
+        <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={onActionClick}>
             {consultation.mode === 'online' ? 'Join' : 'Details'}
             <BsChevronRight className="w-4 h-4 ml-1" />
@@ -178,7 +255,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
       )}
       
       {consultation.status === 'pending' && (
-        <CardFooter className="pt-3 gap-2 justify-center" align="center">
+        <CardFooter className="pt-2 gap-2 justify-center" align="center">
           <Button size="sm" variant="outline" className="w-full text-red-600 border-red-600 hover:bg-red-600 hover:text-white" onClick={handleCancelConsultation}>
             Cancel
             <BsXCircle className="w-4 h-4 ml-1" />
@@ -187,10 +264,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
       )}
       
       {(consultation.status === 'declined' || consultation.status === 'expired') && (
-        <CardFooter className="pt-3 gap-2" align="between">
-          <Button size="sm" variant="outline" className="flex-1 text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
-            <BsTrash className="w-4 h-4" />
-          </Button>
+        <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={handleRescheduleConsultation}>
             Reschedule
           </Button>
@@ -198,37 +272,28 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
       )}
       
       {consultation.status === 'completed' && (
-        <CardFooter className="pt-3 gap-2" align="between">
+        <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={onActionClick}>
             View Details
             <BsChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
-            <BsTrash className="w-4 h-4" />
           </Button>
         </CardFooter>
       )}
       
       {consultation.status === 'cancelled' && (
-        <CardFooter className="pt-3 gap-2" align="between">
+        <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={onActionClick}>
             View Details
             <BsChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
-            <BsTrash className="w-4 h-4" />
           </Button>
         </CardFooter>
       )}
-
+      
       {consultation.status === 'missed' && (
-        <CardFooter className="pt-3 gap-2" align="between">
+        <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={onActionClick}>
             View Details
             <BsChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-          <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDeleteConsultation}>
-            <BsTrash className="w-4 h-4" />
           </Button>
         </CardFooter>
       )}

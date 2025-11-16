@@ -138,3 +138,21 @@ router.patch('/me', authMiddleware, async (req, res) => {
 });
 
 module.exports = router;
+// DELETE /api/profile/me
+router.delete('/me', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const userId = req.user?.id;
+  try {
+    await pool.query('UPDATE users SET status = ? WHERE id = ?', ['inactive', userId]);
+    try { await pool.query('DELETE FROM student_profiles WHERE user_id = ?', [userId]); } catch (_) {}
+    try { await pool.query('DELETE FROM advisor_profiles WHERE user_id = ?', [userId]); } catch (_) {}
+    try { await pool.query('DELETE FROM notifications WHERE user_id = ?', [userId]); } catch (_) {}
+    try { await pool.query('DELETE FROM consultations WHERE student_id = ? OR advisor_id = ?', [userId, userId]); } catch (_) {}
+    const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId]);
+    if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Delete account failed:', err);
+    return res.status(500).json({ error: 'Delete account failed' });
+  }
+});

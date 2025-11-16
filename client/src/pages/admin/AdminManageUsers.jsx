@@ -31,15 +31,17 @@ import {
 import { Input } from "../../lightswind/input";
 import { Button } from "../../lightswind/button";
 
-export default function AdminManageUsers() {
+export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-  const [activeTab, setActiveTab] = useState("students");
+  const [activeTab, setActiveTab] = useState(__forceTab || "students");
   const [search, setSearch] = useState("");
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyUser, setHistoryUser] = useState(null);
   const [historyItems, setHistoryItems] = useState([]);
+  const [historyTerms, setHistoryTerms] = useState([]);
+  const [historyTermId, setHistoryTermId] = useState('');
   const [yearFilter, setYearFilter] = useState("all");
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("name-asc");
@@ -50,6 +52,7 @@ export default function AdminManageUsers() {
   const [uploadRole, setUploadRole] = useState("students"); // students | advisors
   const [confirmDeactivate, setConfirmDeactivate] = useState(null);
   const [confirmClosing, setConfirmClosing] = useState(false);
+  const [singleDeactivate, setSingleDeactivate] = useState({ reason: 'graduated', otherReason: '' });
   const [pendingAction, setPendingAction] = useState(null);
   const [undoTimeout, setUndoTimeout] = useState(null);
   const [viewOpen, setViewOpen] = useState(false);
@@ -81,11 +84,29 @@ export default function AdminManageUsers() {
   });
   const [initialEditForm, setInitialEditForm] = useState(null);
   const [showPassword, setShowPassword] = useState(false);
+  const [drawerDeactivate, setDrawerDeactivate] = useState({ reason: 'graduated', otherReason: '', termId: 'current' });
 
   const [studentsData, setStudentsData] = useState([]);
   const [advisorData, setAdvisorData] = useState([]);
   const [loadingStudents, setLoadingStudents] = useState(true);
   const [loadingAdvisors, setLoadingAdvisors] = useState(true);
+  const [terms, setTerms] = useState([]);
+  const [termFilter, setTermFilter] = useState(__forceTab ? 'all' : 'current');
+  const [selectedIds, setSelectedIds] = useState([]);
+  const [bulkModal, setBulkModal] = useState({ open: false, reason: 'graduated', otherReason: '', termId: 'current', archiveOpen: true, cancelSlots: true });
+  const [memberSet, setMemberSet] = useState(new Set());
+  const [memberStatusMap, setMemberStatusMap] = useState(new Map());
+  const [promoteModal, setPromoteModal] = useState({ open: false, toTermId: '' });
+  const [promoteSearch, setPromoteSearch] = useState({ program: '', year: '' });
+  const [termStatusFilter, setTermStatusFilter] = useState('all');
+  const [memberList, setMemberList] = useState([]);
+  const [programFilter, setProgramFilter] = useState("");
+  const [yearSnapshotFilter, setYearSnapshotFilter] = useState("");
+  const [memberMetaMap, setMemberMetaMap] = useState(new Map());
+  const [programOptions, setProgramOptions] = useState([]);
+  const [yearOptions, setYearOptions] = useState([]);
+  const [adminProgramOptions, setAdminProgramOptions] = useState([]);
+  const [adminYearLevelOptions, setAdminYearLevelOptions] = useState([]);
 
   useEffect(() => {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -111,8 +132,31 @@ export default function AdminManageUsers() {
         setLoadingAdvisors(false);
       }
     };
+    const fetchTerms = async () => {
+      try {
+        const res = await fetch(`${base}/api/settings/academic/terms`);
+        const data = await res.json();
+        if (Array.isArray(data)) setTerms(data);
+      } catch (err) {
+        console.error('Failed to fetch terms', err);
+      }
+    };
+    const fetchProgramYearOptions = async () => {
+      try {
+        const [pRes, yRes] = await Promise.all([
+          fetch(`${base}/api/programs`),
+          fetch(`${base}/api/settings/year-levels`),
+        ]);
+        const p = await pRes.json();
+        const y = await yRes.json();
+        if (Array.isArray(p)) { setProgramOptions(p); setAdminProgramOptions(p); }
+        if (Array.isArray(y)) { setYearOptions(y); setAdminYearLevelOptions(y); }
+      } catch (_) {}
+    };
     fetchStudents();
     fetchAdvisors();
+    fetchTerms();
+    fetchProgramYearOptions();
   }, []);
 
   const list = activeTab === "students" ? studentsData : advisorData;
@@ -143,30 +187,200 @@ export default function AdminManageUsers() {
 
   const handleNavigation = (page) => {
     if (page === "dashboard") navigate("/admin-dashboard");
-    else if (page === "manage-users") navigate("/admin-dashboard/manage-users");
+    else if (page === "manage-users") navigate("/admin-dashboard/manage-students");
+    else if (page === "manage-students") navigate("/admin-dashboard/manage-students");
+    else if (page === "manage-advisors") navigate("/admin-dashboard/manage-advisors");
     else if (page === "department-settings") navigate("/admin-dashboard/department-settings");
     else if (page === "logout") navigate("/logout");
   };
 
-  // CSV export for current filtered list
+  const toggleSelect = (id, checked) => {
+    setSelectedIds((prev) => {
+      const set = new Set(prev);
+      if (checked) set.add(id); else set.delete(id);
+      return Array.from(set);
+    });
+  };
+  const toggleSelectAll = (checked) => {
+    if (checked) {
+      setSelectedIds(renderedList.map(i => i.id));
+    } else {
+      setSelectedIds([]);
+    }
+  };
+
+  const openBulkDeactivate = () => {
+    if (selectedIds.length === 0) return;
+    setBulkModal((m) => ({ ...m, open: true }));
+  };
+
+  const submitBulkDeactivate = async () => {
+    try {
+      const body = {
+        userIds: selectedIds,
+        reason: bulkModal.reason,
+        otherReason: bulkModal.otherReason || undefined,
+        termId: bulkModal.termId === 'current' ? undefined : Number(bulkModal.termId),
+        archiveOpenConsultations: !!bulkModal.archiveOpen,
+        cancelAdvisorSlots: !!bulkModal.cancelSlots,
+      };
+      const res = await fetch(`${apiBase}/api/users/bulk-deactivate`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Bulk deactivate failed');
+      setBulkModal((m)=>({ ...m, open: false }));
+      setSelectedIds([]);
+      // Optimistically reflect status
+      if (activeTab === 'students') {
+        setStudentsData(prev => prev.map(u => selectedIds.includes(u.id) ? { ...u, active: false } : u));
+      } else {
+        setAdvisorData(prev => prev.map(u => selectedIds.includes(u.id) ? { ...u, active: false } : u));
+      }
+    } catch (err) {
+      alert(err.message || String(err));
+    }
+  };
+
+  const loadTermMembers = async () => {
+    try {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      let termId = termFilter;
+      if (termId === 'current' || termId === 'all') {
+        const res = await fetch(`${base}/api/settings/academic/terms`);
+        const data = await res.json();
+        const current = Array.isArray(data) ? data.find(t=>t.is_current) : null;
+        termId = current?.id;
+      }
+      if (!termId) { setMemberSet(new Set()); return; }
+      const role = activeTab === 'students' ? 'student' : 'advisor';
+      const res = await fetch(`${base}/api/settings/academic/terms/${termId}/members?role=${role}`);
+      const data = await res.json();
+      const set = new Set(Array.isArray(data) ? data.map(x=>x.id) : []);
+      const map = new Map(Array.isArray(data) ? data.map(x => [x.id, x.status_in_term]) : []);
+      setMemberSet(set);
+      setMemberStatusMap(map);
+      setMemberList(Array.isArray(data) ? data : []);
+      // Build snapshot metadata and options for filters
+      if (role === 'student') {
+        const meta = new Map(Array.isArray(data) ? data.map(x => [x.id, { program: x.program_snapshot || x.program || '', year: String(x.year_level_snapshot || x.year_level || '') }]) : []);
+        setMemberMetaMap(meta);
+        const pset = new Set(); const yset = new Set();
+        if (Array.isArray(data)) {
+          for (const m of data) {
+            const p = String(m.program_snapshot || m.program || '').trim(); if (p) pset.add(p);
+            const y = String(m.year_level_snapshot || m.year_level || '').trim(); if (y) yset.add(y);
+          }
+        }
+        setProgramOptions(Array.from(pset).sort());
+        setYearOptions(Array.from(yset).sort());
+      } else {
+        setMemberMetaMap(new Map());
+        setProgramOptions([]);
+        setYearOptions([]);
+      }
+    } catch (_) {
+      setMemberSet(new Set());
+      setMemberStatusMap(new Map());
+      setMemberList([]);
+      setMemberMetaMap(new Map());
+      setProgramOptions([]);
+      setYearOptions([]);
+    }
+  };
+
+  useEffect(() => { loadTermMembers(); }, [termFilter, activeTab]);
+
+  const addToTerm = async () => {
+    try {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      let termId = termFilter;
+      if (termId === 'current' || termId === 'all') {
+        const res = await fetch(`${base}/api/settings/academic/terms`);
+        const data = await res.json();
+        const current = Array.isArray(data) ? data.find(t=>t.is_current) : null;
+        termId = current?.id;
+      }
+      if (!termId) {
+        try { const { toast } = await import('../../components/hooks/use-toast'); toast.warning({ title: 'Select a term', description: 'Choose a specific term (or Current Term) first.' }); } catch {}
+        return;
+      }
+      const res = await fetch(`${base}/api/settings/academic/terms/${termId}/members`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userIds: selectedIds, role: activeTab === 'students' ? 'student' : 'advisor' })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data?.error || 'Add failed');
+      await loadTermMembers();
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Added to term', description: `${selectedIds.length} user(s) added` }); } catch {}
+    } catch (e) {
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Error', description: e?.message || 'Failed to add to term' }); } catch { alert('Failed to add to term'); }
+    }
+  };
+
+  const removeFromTerm = async () => {
+    try {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      let termId = termFilter;
+      if (termId === 'current' || termId === 'all') {
+        const res = await fetch(`${base}/api/settings/academic/terms`);
+        const data = await res.json();
+        const current = Array.isArray(data) ? data.find(t=>t.is_current) : null;
+        termId = current?.id;
+      }
+      if (!termId) {
+        try { const { toast } = await import('../../components/hooks/use-toast'); toast.warning({ title: 'Select a term', description: 'Choose a specific term (or Current Term) first.' }); } catch {}
+        return;
+      }
+      const res = await fetch(`${base}/api/settings/academic/terms/${termId}/members`, {
+        method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userIds: selectedIds })
+      });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data?.error || 'Remove failed');
+      await loadTermMembers();
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Removed from term', description: `${selectedIds.length} user(s) removed` }); } catch {}
+    } catch (e) {
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Error', description: e?.message || 'Failed to remove from term' }); } catch { alert('Failed to remove from term'); }
+    }
+  };
+
+  // CSV export for current visible rows (respects all filters and term context)
   const exportCSV = () => {
-    const headersStudents = ["First Name","Last Name","Email","Year","Program","Active"];
-    const headersAdvisors = ["First Name","Last Name","Email","Department","Active"];
-    const headers = activeTab === "students" ? headersStudents : headersAdvisors;
-    const rows = filteredList.map((item) => {
+    const rows = renderedList.map((item) => {
       const [first = "", ...rest] = (item.name || "").split(" ");
       const last = rest.join(" ");
       if (activeTab === "students") {
-        return [first,last,item.email || "", item.year || "", item.program || "", item.active ? "true" : "false"]; 
+        const termStatus = (memberStatusMap.get(item.id) || '').toString();
+        const meta = memberMetaMap.get(item.id) || {};
+        return [first,last,item.email || "", item.program || "", item.year || "", item.active ? "true" : "false", termStatus, meta.program || '', meta.year || ''];
       }
-      return [first,last,item.email || "", item.department || "", item.active ? "true" : "false"]; 
+      const termStatus = (memberStatusMap.get(item.id) || '').toString();
+      return [first,last,item.email || "", item.department || "", item.active ? "true" : "false", termStatus];
     });
-    const csv = [headers.join(","), ...rows.map(r => r.map(v => String(v).replace(/\r|\n/g, " ")).join(","))].join("\n");
+    const headers = activeTab === "students"
+      ? ["First Name","Last Name","Email","Program","Year","Active","Term Status","Program (term)","Year (term)"]
+      : ["First Name","Last Name","Email","Department","Active","Term Status"];
+    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""').replace(/\r|\n/g, ' ')}"`).join(","))].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = activeTab === "students" ? "students.csv" : "advisors.csv";
+    a.download = activeTab === "students" ? "students_visible.csv" : "advisors_visible.csv";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  // CSV export of raw term members (from current term selection)
+  const exportMembersCSV = () => {
+    const headers = ["User ID","Name","Email","Role","Status in Term","Program (term)","Year (term)"];
+    const rows = (memberList || []).map(m => [m.id, m.name, m.email, m.role, m.status_in_term, m.program_snapshot || '', m.year_level_snapshot || '']);
+    const csv = [headers.join(","), ...rows.map(r => r.map(v => `"${String(v||'').replace(/"/g,'""').replace(/\r|\n/g,' ')}"`).join(","))].join("\n");
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "term_members.csv";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -174,6 +388,7 @@ export default function AdminManageUsers() {
   };
 
   const handleToggleActive = (item) => {
+    setSingleDeactivate({ reason: 'graduated', otherReason: '' });
     setConfirmDeactivate(item);
   };
 
@@ -212,12 +427,12 @@ export default function AdminManageUsers() {
     ];
   };
 
-  const persistStatus = async (userId, active) => {
+  const persistStatus = async (userId, active, extras) => {
     try {
       const res = await fetch(`${apiBase}/api/users/${userId}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ active })
+        body: JSON.stringify({ active, ...(extras || {}) })
       });
       if (!res.ok) {
         const text = await res.text();
@@ -245,7 +460,16 @@ export default function AdminManageUsers() {
     // Update the user status immediately (optimistic)
     if (activeTab === "students") {
       setStudentsData((prev) =>
-        prev.map((u) => (u.id === item.id ? { ...u, active: !u.active } : u)),
+        prev.map((u) => {
+          if (u.id !== item.id) return u;
+          const goingInactive = item.active === true;
+          return {
+            ...u,
+            active: !u.active,
+            deactivationReason: goingInactive ? singleDeactivate.reason : null,
+            deactivationOther: goingInactive && singleDeactivate.reason === 'other' ? (singleDeactivate.otherReason || '') : null,
+          };
+        }),
       );
     } else {
       setAdvisorData((prev) =>
@@ -275,12 +499,31 @@ export default function AdminManageUsers() {
 
     // Persist to backend
     try {
-      await persistStatus(item.id, !previousState);
+      let extras = undefined;
+      if (previousState === true && activeTab === 'students') {
+        let termId = null;
+        if (termFilter && termFilter !== 'all') {
+          if (termFilter === 'current') {
+            const current = (terms || []).find(t => Number(t.is_current) === 1);
+            termId = current?.id || null;
+          } else {
+            const n = Number(termFilter);
+            termId = Number.isFinite(n) ? n : null;
+          }
+        }
+        extras = { reason: singleDeactivate.reason, otherReason: singleDeactivate.reason === 'other' ? (singleDeactivate.otherReason || '') : undefined, termId: termId || undefined };
+      }
+      await persistStatus(item.id, !previousState, extras);
+      try {
+        if (extras && extras.termId && extras.reason && (extras.reason === 'graduated' || extras.reason === 'dropped') && activeTab === 'students') {
+          setMemberStatusMap(prev => new Map(prev.set(item.id, String(extras.reason))));
+        }
+      } catch {}
     } catch {
       // Revert optimistic update on error
       if (activeTab === "students") {
         setStudentsData((prev) =>
-          prev.map((u) => (u.id === item.id ? { ...u, active: previousState } : u)),
+          prev.map((u) => (u.id === item.id ? { ...u, active: previousState, deactivationReason: previousState ? u.deactivationReason : null, deactivationOther: previousState ? u.deactivationOther : null } : u)),
         );
       } else {
         setAdvisorData((prev) =>
@@ -562,21 +805,66 @@ export default function AdminManageUsers() {
     (async () => {
       try {
         const isStudent = activeTab === "students" || item.role === "student";
-        const base = apiBase;
-        const url = isStudent
-          ? `${base}/api/consultations/students/${item.id}/consultations`
-          : `${base}/api/consultations/advisors/${item.id}/consultations`;
+        const termsRes = await fetch(`${apiBase}/api/settings/academic/terms`);
+        let termsJson = await termsRes.json();
+        const terms = Array.isArray(termsJson) ? termsJson : [];
+        const sorted = terms.sort((a,b)=>{
+          // put current first, then start_date desc
+          if (b.is_current - a.is_current !== 0) return b.is_current - a.is_current;
+          return String(b.start_date).localeCompare(String(a.start_date));
+        });
+        // Prepare friendly labels: Previous/Current/Next around the current
+        const ci = sorted.findIndex(t=>Number(t.is_current)===1);
+        const withFriendly = sorted.map((t, idx)=>{
+          let prefix = '';
+          if (idx === ci - 1) prefix = 'Previous Semester - ';
+          if (idx === ci) prefix = 'Current Semester - ';
+          if (idx === ci + 1) prefix = 'Next Semester - ';
+          return { ...t, _friendly: `${prefix}${t.semester_label} Semester S.Y. ${t.year_label}` };
+        });
+        setHistoryTerms(withFriendly);
+        const currentId = withFriendly.find(t=>Number(t.is_current)===1)?.id;
+        setHistoryTermId(String(currentId || ''));
         const token = localStorage.getItem('advisys_token');
-        const res = await fetch(url, {
+        const u = new URL(isStudent
+          ? `${apiBase}/api/consultations/students/${item.id}/consultations`
+          : `${apiBase}/api/consultations/advisors/${item.id}/consultations`);
+        if (currentId) u.searchParams.set('termId', String(currentId));
+        const r = await fetch(u.toString(), {
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
         });
-        if (!res.ok) throw new Error(`Failed to fetch consultations: ${res.status}`);
-        let data = await res.json();
-        if (!Array.isArray(data)) data = [];
+        if (!r.ok) throw new Error(`Failed to fetch consultations: ${r.status}`);
+        const raw = await r.json();
+        const toArray = (x) => {
+          if (Array.isArray(x)) return x;
+          if (!x || typeof x !== 'object') return [];
+          const direct = x.consultations || x.items || x.data || x.results || x.rows || x.list;
+          if (Array.isArray(direct)) return direct;
+          const nestedCandidates = [x.data?.items, x.data?.consultations, x.result?.items, x.result?.data, x.payload?.items, x.payload?.data];
+          for (const c of nestedCandidates) { if (Array.isArray(c)) return c; }
+          for (const v of Object.values(x)) { if (Array.isArray(v)) return v; }
+          return [];
+        };
+        let data = toArray(raw);
         // Adapt response shapes to HistoryCard expectations (uses consultation.faculty)
+        const normalizeDateFields = (c) => {
+          const dt = c?.date || c?.scheduled_at || c?.scheduledAt || c?.start_time || c?.startTime || c?.datetime || c?.date_time || c?.starts_at || c?.startsAt || c?.start || c?.timestamp || c?.created_at || c?.createdAt;
+          if (dt) {
+            const d = new Date(dt);
+            if (!isNaN(d)) {
+              const yyyy = d.getFullYear();
+              const mm = String(d.getMonth() + 1).padStart(2, '0');
+              const dd = String(d.getDate()).padStart(2, '0');
+              const hh = String(d.getHours()).padStart(2, '0');
+              const mi = String(d.getMinutes()).padStart(2, '0');
+              return { ...c, date: `${yyyy}-${mm}-${dd}`, time: `${hh}:${mi}` };
+            }
+          }
+          return c;
+        };
         if (isStudent) {
           // Student endpoint returns advisor{}; map to faculty{}
           data = data.map((c) => {
@@ -587,15 +875,16 @@ export default function AdminManageUsers() {
               .map((p) => p[0])
               .slice(0, 2)
               .join('');
-            return {
+            return normalizeDateFields({
               ...c,
               faculty: {
                 id: c?.advisor?.id,
                 name,
                 title: c?.advisor?.title || 'Advisor',
-                avatar: initials || '👤',
+                avatarUrl: c?.advisor?.avatar_url || c?.advisor?.avatar || null,
+                avatarText: initials || '👤',
               },
-            };
+            });
           });
         } else {
           // Advisor endpoint returns student{}; map to faculty{} with student info
@@ -607,14 +896,15 @@ export default function AdminManageUsers() {
               .map((p) => p[0])
               .slice(0, 2)
               .join('');
-            return {
+            return normalizeDateFields({
               ...c,
               faculty: {
                 name,
                 title: c?.student?.course || 'Student',
-                avatar: initials || '👤',
+                avatarUrl: c?.student?.avatar_url || c?.student?.avatar || null,
+                avatarText: initials || '👤',
               },
-            };
+            });
           });
         }
         setHistoryItems(data);
@@ -628,6 +918,29 @@ export default function AdminManageUsers() {
         }
       }
     })();
+  };
+
+  const handleHistoryTermChange = async (termId) => {
+    setHistoryTermId(termId);
+    try {
+      if (!historyUser) return;
+      const isStudent = activeTab === "students" || historyUser.role === "student";
+      const u = new URL(isStudent
+        ? `${apiBase}/api/consultations/students/${historyUser.id}/consultations`
+        : `${apiBase}/api/consultations/advisors/${historyUser.id}/consultations`);
+      if (termId) u.searchParams.set('termId', String(termId));
+      const token = localStorage.getItem('advisys_token');
+      const res = await fetch(u.toString(), {
+        headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      });
+      if (!res.ok) throw new Error(`Failed to fetch consultations: ${res.status}`);
+      let data = await res.json();
+      const toArray = (x) => Array.isArray(x) ? x : (Array.isArray(x?.consultations) ? x.consultations : (Array.isArray(x?.data) ? x.data : (Array.isArray(x?.items) ? x.items : (Array.isArray(x?.results) ? x.results : []))));
+      data = toArray(data);
+      setHistoryItems(data);
+    } catch (e) {
+      console.error('Term change fetch error', e);
+    }
   };
 
   const handleView = (item) => {
@@ -664,6 +977,7 @@ export default function AdminManageUsers() {
     setEditForm(baseForm);
     setInitialEditForm(baseForm);
     setShowPassword(false);
+    setDrawerDeactivate({ reason: 'graduated', otherReason: '', termId: 'current' });
     setViewOpen(true);
     // Load advisor consultation info only
     (async () => {
@@ -740,6 +1054,30 @@ export default function AdminManageUsers() {
 
     // Persist to backend
     try {
+      const statusChanged = viewUser && typeof viewUser.active === 'boolean' && (editForm.active !== viewUser.active);
+      if (statusChanged) {
+        if (!editForm.active) {
+          let termId = null;
+          if (drawerDeactivate.termId === 'current') {
+            const current = (terms || []).find(t => Number(t.is_current) === 1);
+            termId = current?.id || null;
+          } else if (drawerDeactivate.termId) {
+            const n = Number(drawerDeactivate.termId); termId = Number.isFinite(n) ? n : null;
+          }
+          await persistStatus(viewUser.id, false, {
+            reason: drawerDeactivate.reason,
+            otherReason: drawerDeactivate.reason === 'other' ? (drawerDeactivate.otherReason || '') : undefined,
+            termId: termId || undefined,
+          });
+          try {
+            if (termId && drawerDeactivate.reason && (drawerDeactivate.reason === 'graduated' || drawerDeactivate.reason === 'dropped') && activeTab === 'students') {
+              setMemberStatusMap(prev => new Map(prev.set(viewUser.id, String(drawerDeactivate.reason))));
+            }
+          } catch {}
+        } else {
+          await persistStatus(viewUser.id, true);
+        }
+      }
       const payload = {
         full_name: fullName,
         email: editForm.email.trim(),
@@ -834,26 +1172,116 @@ export default function AdminManageUsers() {
       alert('User must be inactive before permanent deletion.');
       return;
     }
-    if (!confirm('This will permanently delete the user. Continue?')) return;
-    try {
-      const res = await fetch(`${apiBase}/api/users/${viewUser.id}`, {
-        method: 'DELETE',
-      });
-      if (!res.ok) {
-        const text = await res.text();
-        throw new Error(text || 'Delete failed');
-      }
-      if (activeTab === 'students') {
-        setStudentsData((prev) => prev.filter((u) => u.id !== viewUser.id));
-      } else {
-        setAdvisorData((prev) => prev.filter((u) => u.id !== viewUser.id));
-      }
-      setViewOpen(false);
-    } catch (err) {
-      console.error('Permanent delete failed', err);
-      alert('Failed to delete user permanently.');
+    const user = viewUser;
+    if (activeTab === 'students') {
+      setStudentsData(prev => prev.filter(u => u.id !== user.id));
+    } else {
+      setAdvisorData(prev => prev.filter(u => u.id !== user.id));
     }
+    setViewOpen(false);
+    try {
+      const timeout = setTimeout(async()=>{
+        try {
+          const res = await fetch(`${apiBase}/api/users/${user.id}`, { method: 'DELETE' });
+          if (!res.ok) {
+            const text = await res.text();
+            throw new Error(text || 'Delete failed');
+          }
+          setPendingAction(null);
+          setUndoTimeout(null);
+        } catch (err) {
+          if (activeTab === 'students') {
+            setStudentsData(prev => [user, ...prev]);
+          } else {
+            setAdvisorData(prev => [user, ...prev]);
+          }
+          try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Delete failed', description: err?.message || 'Error' }); } catch {}
+        } finally {
+          setPendingAction(null);
+          setUndoTimeout(null);
+        }
+      }, 5000);
+      setPendingAction({ user, previousState: null, actionType: 'deleted', tab: activeTab, _deleteTimer: timeout });
+      setUndoTimeout(timeout);
+    } catch {}
   };
+
+  // Determine which list to render (respect term member filter)
+  const renderedList = React.useMemo(() => {
+    const useTermFiltering = !__forceTab;
+    if (termFilter === 'all') return filteredList;
+    if (!useTermFiltering) return filteredList;
+    if (!memberSet || memberSet.size === 0) return [];
+    let arr = filteredList.filter(i => memberSet.has(i.id));
+    if (termStatusFilter !== 'all') {
+      arr = arr.filter(i => (memberStatusMap.get(i.id) || '').toLowerCase() === termStatusFilter);
+    }
+    // Program/Year snapshot filters (students only) - CSV multi and partial
+    const pTokens = String(programFilter || '')
+      .split(',')
+      .map(s=>s.trim().toLowerCase())
+      .filter(Boolean);
+    const yTokens = String(yearSnapshotFilter || '')
+      .split(',')
+      .map(s=>s.trim())
+      .filter(Boolean);
+    if (pTokens.length || yTokens.length) {
+      arr = arr.filter(i => {
+        const meta = memberMetaMap.get(i.id) || {};
+        const prog = String(meta.program || '').toLowerCase();
+        const yr = String(meta.year || '');
+        const okProg = pTokens.length ? pTokens.some(tok => prog.includes(tok)) : true;
+        const okYear = yTokens.length ? yTokens.includes(yr) : true;
+        return okProg && okYear;
+      });
+    }
+    return arr;
+  }, [filteredList, termFilter, memberSet, termStatusFilter, memberStatusMap, programFilter, yearSnapshotFilter, memberMetaMap]);
+
+  const programsForAdvance = React.useMemo(() => {
+    if (Array.isArray(adminProgramOptions) && adminProgramOptions.length) return adminProgramOptions;
+    const names = new Set();
+    (memberList || []).forEach(m => { const v = String(m.program_snapshot || m.program || '').trim(); if (v) names.add(v); });
+    if (!names.size) {
+      (studentsData || []).forEach(s => { const v = String(s.program || '').trim(); if (v) names.add(v); });
+    }
+    const uniq = Array.from(names);
+    return uniq.map((name, idx) => ({ id: idx + 1, name }));
+  }, [adminProgramOptions, memberList, studentsData]);
+
+  const yearsForAdvance = React.useMemo(() => {
+    if (Array.isArray(adminYearLevelOptions) && adminYearLevelOptions.length) return adminYearLevelOptions;
+    return [ { id: 1, name: '1' }, { id: 2, name: '2' }, { id: 3, name: '3' }, { id: 4, name: '4' } ];
+  }, [adminYearLevelOptions]);
+
+  const programsForProfile = React.useMemo(() => {
+    if (Array.isArray(adminProgramOptions) && adminProgramOptions.length) return adminProgramOptions;
+    const names = new Set();
+    (studentsData || []).forEach(s => { const v = String(s.program || '').trim(); if (v) names.add(v); });
+    return Array.from(names).map((name, idx) => ({ id: idx + 1, name }));
+  }, [adminProgramOptions, studentsData]);
+
+  const yearsForProfile = React.useMemo(() => {
+    if (Array.isArray(adminYearLevelOptions) && adminYearLevelOptions.length) return adminYearLevelOptions;
+    return [ { id: 1, name: '1' }, { id: 2, name: '2' }, { id: 3, name: '3' }, { id: 4, name: '4' } ];
+  }, [adminYearLevelOptions]);
+
+  useEffect(() => {
+    if (!promoteModal.open) return;
+    (async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const [pRes, yRes] = await Promise.all([
+          fetch(`${base}/api/programs`),
+          fetch(`${base}/api/settings/year-levels`),
+        ]);
+        const p = await pRes.json();
+        const y = await yRes.json();
+        if (Array.isArray(p) && p.length) setAdminProgramOptions(p);
+        if (Array.isArray(y) && y.length) setAdminYearLevelOptions(y);
+      } catch (_) {}
+    })();
+  }, [promoteModal.open]);
 
   return (
     <div className="admin-dash-wrap">
@@ -872,41 +1300,93 @@ export default function AdminManageUsers() {
         <main className="admin-dash-main">
           {/* Page header outside the table/card */}
           <div className="page-header">
-            <h1 className="page-title">Manage Users</h1>
-            <p className="page-subtitle">
-              {activeTab === "students"
-                ? "Manage student accounts and records"
-                : "Manage advisor accounts and records"}
-            </p>
+            <h1 className="page-title">{__title || "Manage Users"}</h1>
+            <p className="page-subtitle">{__subtitle || (activeTab === "students" ? "Manage student accounts and records" : "Manage advisor accounts and records")}</p>
           </div>
 
-          <AdminContentLayout
-            tabs={<AdminManageTabs activeTab={activeTab} onChange={setActiveTab} />}
-            filters={
-              <AdminManageFilters
-                search={search}
-                onSearchChange={setSearch}
-                onClearSearch={() => setSearch("")}
-                isStudent={activeTab === "students"}
-                yearFilter={yearFilter}
-                onYearChange={setYearFilter}
-                statusFilter={statusFilter}
-                onStatusChange={setStatusFilter}
-                sortBy={sortBy}
-                onSortChange={setSortBy}
-                onAddUserOpen={() => setAddOpen(true)}
-                onUploadUsersOpen={() => setUploadOpen(true)}
-                onExport={exportCSV}
-              />
-            }
-          >
+          {!__forceTab && (
+            <div className="mb-3">
+              <AdminManageTabs activeTab={activeTab} onChange={setActiveTab} />
+            </div>
+          )}
+
+          {/* Filters and actions outside of the table/card */}
+          <div className="manage-filters-bar">
+            <AdminManageFilters
+              search={search}
+              onSearchChange={setSearch}
+              onClearSearch={() => setSearch("")}
+              isStudent={activeTab === "students"}
+              yearFilter={yearFilter}
+              onYearChange={setYearFilter}
+              statusFilter={statusFilter}
+              onStatusChange={setStatusFilter}
+              sortBy={sortBy}
+              onSortChange={setSortBy}
+              onAddUserOpen={() => setAddOpen(true)}
+              onUploadUsersOpen={() => setUploadOpen(true)}
+              onExport={exportCSV}
+              onExportMembers={termFilter !== 'all' ? exportMembersCSV : undefined}
+              terms={terms}
+              termId={termFilter}
+              onTermChange={setTermFilter}
+              termStatus={termStatusFilter}
+              onTermStatusChange={setTermStatusFilter}
+              programFilter={programFilter}
+              onProgramFilterChange={setProgramFilter}
+              yearSnapshotFilter={yearSnapshotFilter}
+              onYearSnapshotFilterChange={setYearSnapshotFilter}
+              programOptions={programOptions}
+              yearOptions={yearOptions}
+              showTermSelector={!__forceTab}
+            />
+            {selectedIds.length > 0 && (
+              <div className="bulk-actions-top flex items-center justify-between mt-2">
+                <div className="text-sm text-gray-500">{selectedIds.length} selected</div>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" onClick={openBulkDeactivate}>Bulk Deactivate</Button>
+                  {activeTab === 'students' && (
+                    <>
+                      <Button variant="outline" size="sm" onClick={addToTerm}>Add to Term</Button>
+                      <Button variant="outline" size="sm" onClick={removeFromTerm}>Remove from Term</Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <AdminContentLayout>
             <AdminManageUserList
-              items={filteredList}
+              items={renderedList}
               isStudent={activeTab === "students"}
               onView={handleView}
               onToggleActive={handleToggleActive}
               onHistory={handleHistory}
               loading={activeTab === "students" ? loadingStudents : loadingAdvisors}
+              selectedIds={selectedIds}
+              onToggleSelect={toggleSelect}
+              onToggleSelectAll={toggleSelectAll}
+              memberSet={memberSet}
+              memberStatusMap={memberStatusMap}
+              canEditTermStatus={termFilter !== 'all'}
+              onChangeTermStatus={async (item, newStatus) => {
+                try {
+                  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                  let tId = termFilter;
+                  if (tId === 'current' || tId === 'all') {
+                    const r = await fetch(`${base}/api/settings/academic/terms`);
+                    const d = await r.json();
+                    const curr = Array.isArray(d) ? d.find(x=>x.is_current) : null;
+                    tId = curr?.id;
+                  }
+                  if (!tId) return alert('Select a specific term to edit status');
+                  const res = await fetch(`${base}/api/settings/academic/terms/${tId}/members/status`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: item.id, status_in_term: newStatus }) });
+                  if (!res.ok) throw new Error('Failed to update');
+                  setMemberStatusMap(prev => new Map(prev.set(item.id, newStatus)));
+                } catch (_) { alert('Failed to update term status'); }
+              }}
+              showTermStatus={activeTab === 'students'}
             />
 
             <AdminUserHistoryDrawer
@@ -914,7 +1394,9 @@ export default function AdminManageUsers() {
               user={historyUser}
               consultations={historyItems}
               onClose={() => setHistoryOpen(false)}
-              onDelete={handleDeleteConsultation}
+              terms={historyTerms}
+              selectedTermId={historyTermId}
+              onTermChange={handleHistoryTermChange}
             />
           </AdminContentLayout>
         </main>
@@ -938,10 +1420,37 @@ export default function AdminManageUsers() {
                 ×
               </button>
             </div>
-            <div className="admin-modal-body">
-              Are you sure you want to{" "}
-              {confirmDeactivate.active ? "deactivate" : "activate"}{" "}
-              {confirmDeactivate.name}?
+            <div className="admin-modal-body space-y-3">
+              <div>
+                Are you sure you want to {confirmDeactivate.active ? 'deactivate' : 'activate'} {confirmDeactivate.name}?
+              </div>
+              {confirmDeactivate.active && activeTab === 'students' && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Reason</label>
+                    <select
+                      className="w-full border rounded px-2 py-2"
+                      value={singleDeactivate.reason}
+                      onChange={(e)=> setSingleDeactivate(prev => ({ ...prev, reason: e.target.value }))}
+                    >
+                      <option value="graduated">Graduated</option>
+                      <option value="dropped">Dropped</option>
+                      <option value="other">Other (specify)</option>
+                    </select>
+                  </div>
+                  {singleDeactivate.reason === 'other' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Other Reason</label>
+                      <input
+                        type="text"
+                        className="w-full border rounded px-2 py-2"
+                        value={singleDeactivate.otherReason}
+                        onChange={(e)=> setSingleDeactivate(prev => ({ ...prev, otherReason: e.target.value }))}
+                      />
+                    </div>
+                  )}
+                </>
+              )}
             </div>
             <div
               className="p-3"
@@ -956,6 +1465,167 @@ export default function AdminManageUsers() {
               >
                 {confirmDeactivate.active ? "Deactivate" : "Activate"}
               </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {bulkModal.open && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal" role="dialog" aria-modal="true">
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">Bulk Deactivate Users</h3>
+              <button className="admin-modal-close" onClick={()=>setBulkModal(m=>({ ...m, open: false }))}>×</button>
+            </div>
+            <div className="admin-modal-body space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">Reason</label>
+                <select className="w-full border rounded px-2 py-2" value={bulkModal.reason} onChange={(e)=>setBulkModal(m=>({ ...m, reason: e.target.value }))}>
+                  <option value="graduated">Graduated</option>
+                  <option value="dropped">Dropped</option>
+                  <option value="other">Other (specify)</option>
+                </select>
+              </div>
+              {bulkModal.reason === 'other' && (
+                <div>
+                  <label className="block text-sm font-medium mb-1">Other Reason</label>
+                  <input type="text" className="w-full border rounded px-2 py-2" value={bulkModal.otherReason} onChange={(e)=>setBulkModal(m=>({ ...m, otherReason: e.target.value }))} />
+                </div>
+              )}
+              <div>
+                <label className="block text-sm font-medium mb-1">Apply to Term</label>
+                <select className="w-full border rounded px-2 py-2" value={bulkModal.termId} onChange={(e)=>setBulkModal(m=>({ ...m, termId: e.target.value }))}>
+                  <option value="current">Current Term</option>
+                  {terms.map(t => (
+                    <option key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-center gap-3">
+                <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={bulkModal.archiveOpen} onChange={(e)=>setBulkModal(m=>({ ...m, archiveOpen: e.target.checked }))} /> Archive open consultations in term</label>
+                <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={bulkModal.cancelSlots} onChange={(e)=>setBulkModal(m=>({ ...m, cancelSlots: e.target.checked }))} /> Cancel advisors' future slots in term</label>
+              </div>
+            </div>
+            <div className="p-3 flex justify-end gap-2">
+              <Button variant="outline" onClick={()=>setBulkModal(m=>({ ...m, open: false }))}>Cancel</Button>
+              <Button variant="destructive" onClick={submitBulkDeactivate} disabled={selectedIds.length===0}>Deactivate</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {false && promoteModal.open && (
+        <div className="admin-modal-overlay">
+          <div className="admin-modal" role="dialog" aria-modal="true">
+            <div className="admin-modal-header">
+              <h3 className="admin-modal-title">Advance Students to Next Term</h3>
+              <button className="admin-modal-close" onClick={()=>setPromoteModal({ open: false, toTermId: '' })}>×</button>
+            </div>
+            <div className="admin-modal-body space-y-3">
+              <div>
+                <label className="block text-sm font-medium mb-1">To Term</label>
+                <Select value={promoteModal.toTermId} onValueChange={(v)=>setPromoteModal(m=>({ ...m, toTermId: v }))}>
+                  <SelectTrigger className="w-full"><SelectValue placeholder="Select term" /></SelectTrigger>
+                  <SelectContent style={{ zIndex: 4000 }}>
+                    {terms.map(t => (
+                      <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Filter Program (optional)</label>
+                  <Select value={promoteModal.program || ''} onValueChange={(v)=>setPromoteModal(m=>({ ...m, program: v }))}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="All programs" /></SelectTrigger>
+                    <SelectContent style={{ zIndex: 4000 }}>
+                      <div className="px-2 py-1"><input
+                        className="w-full border rounded px-2 py-1 text-sm"
+                        placeholder="Search..."
+                        value={promoteSearch.program}
+                        onChange={(e)=>setPromoteSearch(s=>({ ...s, program: e.target.value }))}
+                        onClick={(e)=>e.stopPropagation()}
+                      /></div>
+                      <SelectItem value="">All programs</SelectItem>
+                      {(programsForAdvance || [])
+                        .filter(p => !promoteSearch.program || String(p.name).toLowerCase().includes(promoteSearch.program.toLowerCase()))
+                        .map(p => (
+                         <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                       ))}
+                      {(!programsForAdvance || programsForAdvance.length === 0) && (
+                        <div className="px-2 py-1 text-xs text-gray-500">No programs found</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Filter Year (optional)</label>
+                  <Select value={promoteModal.year || ''} onValueChange={(v)=>setPromoteModal(m=>({ ...m, year: v }))}>
+                    <SelectTrigger className="w-full"><SelectValue placeholder="All years" /></SelectTrigger>
+                    <SelectContent style={{ zIndex: 4000 }}>
+                      <div className="px-2 py-1"><input
+                        className="w-full border rounded px-2 py-1 text-sm"
+                        placeholder="Search..."
+                        value={promoteSearch.year}
+                        onChange={(e)=>setPromoteSearch(s=>({ ...s, year: e.target.value }))}
+                        onClick={(e)=>e.stopPropagation()}
+                      /></div>
+                      <SelectItem value="">All years</SelectItem>
+                      {(yearsForAdvance || [])
+                        .filter(y => {
+                          if (!promoteSearch.year) return true;
+                          const label = `${y.name}${y.name==='1'?'st':y.name==='2'?'nd':y.name==='3'?'rd':'th'} Year`;
+                          return label.toLowerCase().includes(promoteSearch.year.toLowerCase());
+                        })
+                        .map(y => (
+                          <SelectItem key={y.id} value={String(y.name)}>
+                            {`${y.name}${y.name==='1'?'st':y.name==='2'?'nd':y.name==='3'?'rd':'th'} Year`}
+                          </SelectItem>
+                        ))}
+                      {(!yearsForAdvance || yearsForAdvance.length === 0) && (
+                        <div className="px-2 py-1 text-xs text-gray-500">No years available</div>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <label className="inline-flex items-center gap-2 text-sm"><input type="checkbox" checked={!!promoteModal.onlySelected} onChange={(e)=>setPromoteModal(m=>({ ...m, onlySelected: e.target.checked }))} /> Advance only selected rows</label>
+              <div className="text-sm text-gray-600">
+                {(() => {
+                  let fromMembers = memberList.filter(m => String(m.status_in_term).toLowerCase() === 'enrolled');
+                  if (promoteModal.onlySelected) {
+                    const set = new Set(selectedIds || []);
+                    fromMembers = fromMembers.filter(m => set.has(m.id));
+                  }
+                  const program = (promoteModal.program || '').trim();
+                  const year = (promoteModal.year || '').trim();
+                  const filtered = fromMembers.filter(m => (
+                    (!program || String(m.program_snapshot || m.program || '').toLowerCase() === program.toLowerCase()) &&
+                    (!year || String(m.year_level_snapshot || m.year_level || '') === year)
+                  ));
+                  const n = filtered.length;
+                  return n > 0 ? `${n} students will be advanced` : `0 students match the current term and filters`;
+                })()}
+              </div>
+            </div>
+            <div className="p-3 flex justify-end gap-2">
+              <Button variant="outline" onClick={()=>setPromoteModal({ open: false, toTermId: '' })}>Cancel</Button>
+              <Button onClick={async()=>{
+                try{
+                  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                  let fromTerm = termFilter;
+                  if (fromTerm === 'current' || fromTerm === 'all') {
+                    const res = await fetch(`${base}/api/settings/academic/terms`);
+                    const data = await res.json();
+                    const current = Array.isArray(data) ? data.find(t=>t.is_current) : null;
+                    fromTerm = current?.id;
+                  }
+                  if (!fromTerm || !promoteModal.toTermId) return alert('Select specific from/to terms');
+                  const body = promoteModal.onlySelected ? { toTermId: Number(promoteModal.toTermId), userIds: selectedIds } : { toTermId: Number(promoteModal.toTermId), program: promoteModal.program || undefined, year: promoteModal.year || undefined };
+                  await fetch(`${base}/api/settings/academic/terms/${fromTerm}/promote`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+                  setPromoteModal({ open:false, toTermId:'' });
+                }catch(e){ alert('Failed to advance'); }
+              }}>Advance</Button>
             </div>
           </div>
         </div>
@@ -1344,20 +2014,14 @@ export default function AdminManageUsers() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Year Level
                     </label>
-                    <Select
-                      value={editForm.year}
-                      onValueChange={(v) =>
-                        setEditForm({ ...editForm, year: v })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={editForm.year} onValueChange={(v) => setEditForm({ ...editForm, year: v })}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="1st Year">1st Year</SelectItem>
-                        <SelectItem value="2nd Year">2nd Year</SelectItem>
-                        <SelectItem value="3rd Year">3rd Year</SelectItem>
-                        <SelectItem value="4th Year">4th Year</SelectItem>
+                        {(yearsForProfile || []).map(y => (
+                          <SelectItem key={y.id} value={`${y.name}${y.name==='1'?'st':y.name==='2'?'nd':y.name==='3'?'rd':'th'} Year`}>
+                            {`${y.name}${y.name==='1'?'st':y.name==='2'?'nd':y.name==='3'?'rd':'th'} Year`}
+                          </SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1365,19 +2029,12 @@ export default function AdminManageUsers() {
                     <label className="block text-sm font-medium text-gray-700 mb-1">
                       Program
                     </label>
-                    <Select
-                      value={editForm.program}
-                      onValueChange={(v) =>
-                        setEditForm({ ...editForm, program: v })
-                      }
-                    >
-                      <SelectTrigger className="w-full">
-                        <SelectValue />
-                      </SelectTrigger>
+                    <Select value={editForm.program} onValueChange={(v) => setEditForm({ ...editForm, program: v })}>
+                      <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="BSIT">
-                          BSIT - Bachelor of Science in Information Technology
-                        </SelectItem>
+                        {(programsForProfile || []).map(p => (
+                          <SelectItem key={p.id} value={p.name}>{p.name}</SelectItem>
+                        ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -1456,6 +2113,33 @@ export default function AdminManageUsers() {
                   Inactive
                 </button>
               </div>
+              {!editForm.active && activeTab === 'students' && (
+                <div className="mt-3 space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Reason</label>
+                    <select className="w-full border rounded px-2 py-2" value={drawerDeactivate.reason} onChange={(e)=>setDrawerDeactivate(d=>({ ...d, reason: e.target.value }))}>
+                      <option value="graduated">Graduated</option>
+                      <option value="dropped">Dropped</option>
+                      <option value="other">Other (specify)</option>
+                    </select>
+                  </div>
+                  {drawerDeactivate.reason === 'other' && (
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Other Reason</label>
+                      <input className="w-full border rounded px-2 py-2" value={drawerDeactivate.otherReason} onChange={(e)=>setDrawerDeactivate(d=>({ ...d, otherReason: e.target.value }))} />
+                    </div>
+                  )}
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Apply to Term</label>
+                    <select className="w-full border rounded px-2 py-2" value={drawerDeactivate.termId} onChange={(e)=>setDrawerDeactivate(d=>({ ...d, termId: e.target.value }))}>
+                      <option value="current">Current Term</option>
+                      {terms.map(t => (
+                        <option key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
           <DrawerFooter style={{ position: 'sticky', bottom: 0, background: '#fff', borderTop: '1px solid #e5e7eb', zIndex: 10 }}>
@@ -1473,21 +2157,26 @@ export default function AdminManageUsers() {
       </Drawer>
 
       {/* Undo Notification */}
-      {pendingAction && (
-        <div className="undo-notification">
-          <div className="undo-content">
-            <span className="undo-message">
-              User "{pendingAction.user.name}" {pendingAction.actionType}
-            </span>
-            <button className="undo-btn" onClick={handleUndoAction}>
-              Undo
-            </button>
-          </div>
-          <div className="undo-timer">
-            <div className="undo-timer-bar"></div>
-          </div>
-        </div>
-      )}
+  {pendingAction && (
+    <div className="undo-notification">
+      <div className="undo-content">
+        <span className="undo-message">{pendingAction.actionType === 'deleted' ? `User "${pendingAction.user.name}" deleted` : `User "${pendingAction.user.name}" ${pendingAction.actionType}`}</span>
+        <button className="undo-btn" onClick={async()=>{
+          if (pendingAction.actionType === 'deleted') {
+            if (undoTimeout) { clearTimeout(undoTimeout); setUndoTimeout(null); }
+            const user = pendingAction.user;
+            if (pendingAction.tab === 'students') setStudentsData(prev => [user, ...prev]); else setAdvisorData(prev => [user, ...prev]);
+            setPendingAction(null);
+          } else {
+            await handleUndoAction();
+          }
+        }}>Undo</button>
+      </div>
+      <div className="undo-timer">
+        <div className="undo-timer-bar"></div>
+      </div>
+    </div>
+  )}
     </div>
   );
 }

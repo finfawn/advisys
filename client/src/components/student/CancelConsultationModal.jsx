@@ -9,6 +9,33 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
   const [reason, setReason] = useState("");
   const [customReason, setCustomReason] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
+  
+  // Get current student name from localStorage or consultation data
+  const getStudentName = () => {
+    // First try consultation data
+    if (consultation?.student?.name) {
+      return consultation.student.name;
+    }
+    if (consultation?.student_name) {
+      return consultation.student_name;
+    }
+    if (consultation?.studentName) {
+      return consultation.studentName;
+    }
+    
+    // Fallback to current logged-in user
+    try {
+      const userData = localStorage.getItem('advisys_user');
+      if (userData) {
+        const user = JSON.parse(userData);
+        return user.full_name || user.name || 'Student';
+      }
+    } catch (error) {
+      console.error('Error parsing user data:', error);
+    }
+    
+    return 'Student';
+  };
 
   const handleClose = () => {
     if (!isCancelling) {
@@ -103,7 +130,7 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
           {/* Consultation Details - compact form style */}
           <div className="consultation-info">
             <p className="info-label">Student:</p>
-            <p className="info-value">{consultation?.student?.name || consultation?.student_name || consultation?.studentName || '—'}</p>
+            <p className="info-value">{getStudentName()}</p>
             <p className="info-label">Topic:</p>
             <p className="info-value">{consultation?.topic}</p>
             <p className="info-label">Date:</p>
@@ -201,6 +228,7 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
           </p>
           <div className="confirmation-details">
             <p><strong>Consultation:</strong> {consultation.topic}</p>
+            <p><strong>Student:</strong> {getStudentName()}</p>
             <p><strong>With:</strong> {consultation.faculty.name}</p>
             <p><strong>Date:</strong> {formatDate(consultation.date)} at {consultation.time}</p>
             <p><strong>Reason:</strong> {reason === "other" ? customReason : reason}</p>

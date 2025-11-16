@@ -261,3 +261,60 @@ ALTER TABLE `advisor_profiles`
 ALTER TABLE `student_profiles`
   ADD CONSTRAINT `fk_student_program`
     FOREIGN KEY (`program_id`) REFERENCES `programs`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Academic terms for school year/semester
+CREATE TABLE IF NOT EXISTS `academic_terms` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `year_label` VARCHAR(20) NOT NULL,
+  `semester_label` VARCHAR(10) NOT NULL,
+  `start_date` DATE NOT NULL,
+  `end_date` DATE NOT NULL,
+  `is_current` TINYINT(1) NOT NULL DEFAULT 0,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_term` (`year_label`, `semester_label`),
+  KEY `idx_term_current` (`is_current`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Per-term memberships and status snapshots
+CREATE TABLE IF NOT EXISTS `academic_term_memberships` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `term_id` INT UNSIGNED NOT NULL,
+  `user_id` INT UNSIGNED NOT NULL,
+  `role` ENUM('student','advisor') NOT NULL,
+  `status_in_term` ENUM('enrolled','dropped','graduated') NOT NULL DEFAULT 'enrolled',
+  `program_snapshot` VARCHAR(255) NULL,
+  `year_level_snapshot` VARCHAR(50) NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_term_user` (`term_id`,`user_id`),
+  KEY `idx_term_role` (`term_id`,`role`),
+  CONSTRAINT `fk_membership_term` FOREIGN KEY (`term_id`) REFERENCES `academic_terms`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_membership_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Optional archival metadata for consultations and linkage to term
+ALTER TABLE `consultations`
+  ADD COLUMN IF NOT EXISTS `academic_term_id` INT UNSIGNED NULL,
+  ADD COLUMN IF NOT EXISTS `archived_at` DATETIME NULL,
+  ADD COLUMN IF NOT EXISTS `archive_reason` ENUM('graduated','dropped','year_end') NULL,
+  ADD KEY `idx_consult_term` (`academic_term_id`),
+  ADD CONSTRAINT `fk_consult_term` FOREIGN KEY (`academic_term_id`) REFERENCES `academic_terms`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- Audit trail for user deactivations
+CREATE TABLE IF NOT EXISTS `user_deactivation_events` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `user_id` INT UNSIGNED NOT NULL,
+  `term_id` INT UNSIGNED NULL,
+  `reason` ENUM('graduated','dropped','other') NOT NULL,
+  `other_reason` VARCHAR(255) NULL,
+  `performed_by` INT UNSIGNED NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `idx_deact_user` (`user_id`),
+  KEY `idx_deact_term` (`term_id`),
+  CONSTRAINT `fk_deact_user` FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT `fk_deact_term` FOREIGN KEY (`term_id`) REFERENCES `academic_terms`(`id`) ON DELETE SET NULL ON UPDATE CASCADE,
+  CONSTRAINT `fk_deact_actor` FOREIGN KEY (`performed_by`) REFERENCES `users`(`id`) ON DELETE SET NULL ON UPDATE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;

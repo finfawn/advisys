@@ -2,6 +2,10 @@ import React from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
 export default function AdminAreaChart({ data, colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"], height = 200 }) {
+  const truncate = (s, max = 12) => {
+    const t = String(s || "");
+    return t.length > max ? t.slice(0, max - 1) + "…" : t;
+  };
   return (
     <ResponsiveContainer width="100%" height={height}>
       <AreaChart
@@ -21,6 +25,7 @@ export default function AdminAreaChart({ data, colors = ["#3b82f6", "#10b981", "
           tickLine={false}
           tick={{ fontSize: 12, fill: '#6b7280' }}
           interval={0}
+          tickFormatter={(v) => truncate(v)}
         />
         <YAxis 
           axisLine={false}

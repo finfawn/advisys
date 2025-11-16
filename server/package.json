@@ -12,9 +12,8 @@
     "db:migrate:password-resets": "node db/scripts/add_password_resets_table.js",
     "db:add-admin": "node db/add_admin.js",
     "db:clear:users": "node db/clear_users.js",
-    "email:test": "node scripts/sendgrid_test_send.js",
     "deploy": "gcloud run deploy advisys-api --source . --region YOUR_REGION --project YOUR_PROJECT_ID --allow-unauthenticated",
-    "deploy:env": "gcloud run deploy advisys-api --source . --region YOUR_REGION --project YOUR_PROJECT_ID --allow-unauthenticated --set-env-vars=DB_HOST=YOUR_DB_HOST,DB_PORT=3306,DB_USER=YOUR_DB_USER,DB_PASSWORD=YOUR_DB_PASSWORD,DB_NAME=YOUR_DB_NAME,JWT_SECRET=YOUR_JWT_SECRET,SENDGRID_API_KEY=YOUR_SENDGRID_API_KEY,MAIL_FROM=no-reply@yourdomain.com,MAIL_FROM_NAME=AdviSys,APP_BASE_URL=https://your-frontend-domain,RESET_TOKEN_EXPIRE_MINUTES=30"
+    "deploy:env": "gcloud run deploy advisys-api --source . --region YOUR_REGION --project YOUR_PROJECT_ID --allow-unauthenticated --set-env-vars=DB_HOST=YOUR_DB_HOST,DB_PORT=3306,DB_USER=YOUR_DB_USER,DB_PASSWORD=YOUR_DB_PASSWORD,DB_NAME=YOUR_DB_NAME,JWT_SECRET=YOUR_JWT_SECRET,MAILJET_API_KEY=YOUR_MAILJET_API_KEY,MAILJET_API_SECRET=YOUR_MAILJET_API_SECRET,MAIL_FROM=no-reply@yourdomain.com,MAIL_FROM_NAME=AdviSys,APP_BASE_URL=https://your-frontend-domain,RESET_TOKEN_EXPIRE_MINUTES=30,VERIFICATION_CODE_TTL_MINUTES=10,VERIFICATION_CODE_RESEND_SECONDS=60,VERIFICATION_MAX_PER_HOUR=5,FIREBASE_PROJECT_ID=your-project-id,FIREBASE_CLIENT_EMAIL=firebase-adminsdk@your-project-id.iam.gserviceaccount.com,FIREBASE_PRIVATE_KEY=-----BEGIN%20PRIVATE%20KEY-----%5Cn...%5Cn-----END%20PRIVATE%20KEY-----"
   },
   "author": "Jezreel D.",
   "license": "MIT",
@@ -28,6 +27,8 @@
     "csv-parser": "^3.2.0",
     "dotenv": "^17.2.2",
     "express": "^5.1.0",
+    "firebase": "^12.6.0",
+    "firebase-admin": "^12.6.0",
     "jsonwebtoken": "^9.0.2",
     "moment-timezone": "^0.6.0",
     "multer": "^2.0.2",

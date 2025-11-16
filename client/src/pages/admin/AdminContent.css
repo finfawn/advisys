@@ -113,6 +113,110 @@
   overflow: auto; /* Enable scrolling for content if it overflows */
 }
 
+/* Filters bar outside table/card */
+.manage-filters-bar {
+  margin: 6px 0 10px 0;
+  background: #ffffff;
+  border: 1px solid rgba(0,0,0,0.08);
+  border-radius: 10px;
+  padding: 6px 8px;
+}
+
+.bulk-actions-top {
+  border-top: 1px dashed #e5e7eb;
+  padding-top: 8px;
+}
+
+/* Tables */
+.admin-table thead th {
+  position: sticky;
+  top: 0;
+  background: #111827; /* dark header */
+  color: #ffffff;
+  z-index: 3;
+  border-bottom: 1px solid #0b1220;
+}
+.admin-table thead th,
+.admin-table tbody td {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+.admin-table thead th:first-child,
+.admin-table tbody td:first-child {
+  width: 40px;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+.admin-table thead th:nth-child(2),
+.admin-table tbody td:nth-child(2) {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+.admin-table thead th:nth-child(3),
+.admin-table tbody td:nth-child(3) {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+.admin-table thead th:nth-child(4),
+.admin-table tbody td:nth-child(4) {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+.admin-table thead th:nth-child(5),
+.admin-table tbody td:nth-child(5) {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+.admin-table thead th:last-child,
+.admin-table tbody td:last-child {
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+}
+.admin-table thead th:first-child input,
+.admin-table tbody td:first-child input {
+  margin: 0;
+  display: inline-block;
+  vertical-align: middle;
+}
+.admin-table tbody td { vertical-align: middle; }
+.admin-table tbody tr { height: auto; }
+
+/* Compact badges and icon buttons inside table */
+.admin-table .badge {
+  padding: 2px 8px;
+  font-size: 12px;
+  line-height: 1;
+}
+.compact-icon-btn {
+  width: 28px !important;
+  height: 28px !important;
+  padding: 0 !important;
+}
+.admin-table tbody tr:nth-child(even) {
+  background-color: #fafafa;
+}
+.admin-table tbody tr:hover {
+  background-color: #f3f4f6;
+}
+.admin-table td .truncate {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Sticky bulk bar under table header */
+.admin-bulkbar {
+  position: sticky;
+  top: 44px; /* below sticky header */
+  background: #ffffff;
+  z-index: 2;
+  padding: 8px 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
 /* Allow tabs to scroll horizontally on narrow screens */
 .content-tabs {
   max-width: 100%;

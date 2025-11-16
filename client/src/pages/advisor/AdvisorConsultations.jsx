@@ -1,13 +1,12 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BsTrash, BsCalendar, BsClockHistory, BsListCheck } from "react-icons/bs";
+import { BsCalendar, BsClockHistory, BsListCheck } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import ProfileCompletionBanner from "../../components/advisor/ProfileCompletionBanner";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import AdvisorConsultationCard from "../../components/advisor/my_consultation/AdvisorConsultationCard";
-import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
 import DeclineConsultationModal from "../../components/advisor/DeclineConsultationModal";
 import { toast } from "../../components/hooks/use-toast";
 import { Button } from "../../lightswind/button";
@@ -144,6 +143,10 @@ export default function AdvisorConsultations() {
 
   // Load consultations from backend and categorize
   const [allConsultations, setAllConsultations] = useState([]);
+  const [historyView, setHistoryView] = useState('consultations');
+  const [historyTermId, setHistoryTermId] = useState('current');
+  const [counterparts, setCounterparts] = useState([]);
+  const [terms, setTerms] = useState([]);
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
@@ -161,7 +164,27 @@ export default function AdvisorConsultations() {
       }
     };
     fetchConsultations();
+    (async()=>{
+      try { const r = await fetch(`${base}/api/settings/academic/terms`); const d = await r.json(); if (Array.isArray(d)) setTerms(d); } catch(_){}
+    })();
   }, []);
+
+  useEffect(() => {
+    const fetchCounterparts = async () => {
+      try {
+        const storedUser = localStorage.getItem('advisys_user');
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id || 1;
+        const url = new URL(`${base}/api/consultations/advisors/${advisorId}/counterparts`);
+        if (historyTermId === 'all') url.searchParams.set('term', 'all');
+        else if (historyTermId !== 'current') url.searchParams.set('termId', String(historyTermId));
+        const res = await fetch(url.toString(), { headers: { ...authHeader } });
+        const data = await res.json();
+        setCounterparts(Array.isArray(data) ? data : []);
+      } catch (_) { setCounterparts([]); }
+    };
+    if (historyView === 'by-students') fetchCounterparts();
+  }, [historyView, historyTermId]);
 
   const upcomingData = useMemo(() => {
     const now = new Date();
@@ -608,7 +631,6 @@ export default function AdvisorConsultations() {
                         consultation={c}
                         onApprove={handleApprove}
                         onDecline={handleDecline}
-                        onDelete={handleDelete}
                         onActionClick={(cons) => handleActionClick(cons, 'requests')}
                       />
                     ))}
@@ -630,30 +652,7 @@ export default function AdvisorConsultations() {
                     )}
                   </div>
 
-                  {/* Undo Notification for Declined Consultations */}
-                  {deletedDeclinedItems.length > 0 && (
-                    <div className="undo-notification">
-                      <div className="undo-content">
-                        <span className="undo-message">
-                          {deletedDeclinedItems.length === 1 
-                            ? `"${deletedDeclinedItems[0].topic}" deleted`
-                            : `${deletedDeclinedItems.length} consultations deleted`
-                          }
-                        </span>
-                        <button 
-                          className="undo-btn"
-                          onClick={deletedDeclinedItems.length === 1 ? () => handleUndoDeleteDeclined(deletedDeclinedItems[0]) : () => {
-                            deletedDeclinedItems.forEach(item => handleUndoDeleteDeclined(item));
-                          }}
-                        >
-                          Undo
-                        </button>
-                      </div>
-                      <div className="undo-timer">
-                        <div className="undo-timer-bar"></div>
-                      </div>
-                    </div>
-                  )}
+                  
                 </section>
               )}
 
@@ -662,6 +661,23 @@ export default function AdvisorConsultations() {
                   <div className="section-header">
                     <h2 className="section-title">Consultation History</h2>
                     <div className="section-controls">
+                      <Select value={historyView} onValueChange={setHistoryView}>
+                        <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="consultations">View by Consultations</SelectItem>
+                          <SelectItem value="by-students">View by Students</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <Select value={historyTermId} onValueChange={setHistoryTermId}>
+                        <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="current">Current Term</SelectItem>
+                          <SelectItem value="all">All Terms</SelectItem>
+                          {terms.map(t => (
+                            <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label} Semester</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
                       <Select value={historyFilter} onValueChange={setHistoryFilter}>
                         <SelectTrigger className="filter-dropdown">
                           <SelectValue />
@@ -672,61 +688,53 @@ export default function AdvisorConsultations() {
                           <SelectItem value="in-person">In-Person</SelectItem>
                         </SelectContent>
                       </Select>
-                      {filteredHistory.length > 0 && (
-                        <Button 
-                          variant="outline"
-                          size="sm"
-                          className="delete-all-btn text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
-                          onClick={handleDeleteAllHistory}
-                        >
-                          <BsTrash className="w-4 h-4 mr-1" />
-                          Delete All
-                        </Button>
-                      )}
+                      
                       <span className="section-count">{filteredHistory.length} past sessions</span>
                     </div>
                   </div>
                   
-                  <div className="consultations-grid">
-                    {filteredHistory.map((consultation) => (
-                      <AdvisorConsultationCard
-                        key={consultation.id}
-                        consultation={consultation}
-                        onActionClick={(cons) => handleActionClick(cons, 'history')}
-                        onDelete={handleDeleteHistory}
-                      />
-                    ))}
-                    {filteredHistory.length === 0 && (
-                      <div className="no-history">
-                        <BsListCheck className="no-history-icon" />
-                        <h3>No consultation history</h3>
-                        <p>You haven’t completed any consultation sessions yet.</p>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Undo Notification */}
-                  {deletedItems.length > 0 && (
-                    <div className="undo-notification">
-                      <div className="undo-content">
-                        <span className="undo-message">
-                          {deletedItems.length === 1 
-                            ? `"${deletedItems[0].topic}" deleted`
-                            : `${deletedItems.length} consultations deleted`
-                          }
-                        </span>
-                        <button 
-                          className="undo-btn"
-                          onClick={deletedItems.length === 1 ? () => handleUndoDelete(deletedItems[0]) : handleUndoDeleteAll}
-                        >
-                          Undo
-                        </button>
-                      </div>
-                      <div className="undo-timer">
-                        <div className="undo-timer-bar"></div>
-                      </div>
+                  {historyView === 'consultations' ? (
+                    <div className="consultations-grid">
+                      {filteredHistory.map((consultation) => (
+                        <AdvisorConsultationCard
+                          key={consultation.id}
+                          consultation={consultation}
+                          onActionClick={(cons) => handleActionClick(cons, 'history')}
+                        />
+                      ))}
+                      {filteredHistory.length === 0 && (
+                        <div className="no-history">
+                          <BsListCheck className="no-history-icon" />
+                          <h3>No consultation history</h3>
+                          <p>You haven’t completed any consultation sessions yet.</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="consultations-grid">
+                      {counterparts.map(cp => (
+                        <div key={cp.id} className="p-4 bg-white rounded-lg border cursor-pointer flex items-center gap-3" onClick={()=>navigate(`/advisor-dashboard/history/thread/${cp.id}`)}>
+                          <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                            {cp.avatar_url ? (<img src={cp.avatar_url} alt="" className="w-full h-full object-cover" />) : null}
+                          </div>
+                          <div className="flex-1">
+                          <div className="font-semibold">{cp.name}</div>
+                          <div className="text-xs text-gray-600">{cp.program ? `${cp.program}` : ''}{cp.year_level ? ` • Year ${cp.year_level}` : ''}</div>
+                          <div className="text-xs text-gray-500 mt-1">{cp.count} consultations • Last {cp.last_date ? new Date(cp.last_date).toLocaleDateString() : ''}</div>
+                          </div>
+                        </div>
+                      ))}
+                      {counterparts.length === 0 && (
+                        <div className="no-history">
+                          <BsListCheck className="no-history-icon" />
+                          <h3>No students found</h3>
+                          <p>No consultations with students in this selection.</p>
+                        </div>
+                      )}
                     </div>
                   )}
+
+                  
                 </section>
               )}
             </div>
@@ -734,17 +742,7 @@ export default function AdvisorConsultations() {
         </main>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={showDeleteModal}
-        onClose={handleCloseDeleteModal}
-        onConfirm={handleConfirmDeleteAll}
-        title="Delete All History"
-        message="Are you sure you want to delete all consultation history items? This action cannot be undone."
-        itemCount={historyData.length}
-        confirmText="Delete All"
-        cancelText="Cancel"
-      />
+      
 
       {/* Decline Consultation Modal */}
       <DeclineConsultationModal

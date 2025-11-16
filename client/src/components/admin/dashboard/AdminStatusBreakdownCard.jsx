@@ -1,10 +1,24 @@
 import React from "react";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from "recharts";
 import { Skeleton } from "../../../lightswind/skeleton";
 
 export default function AdminStatusBreakdownCard({ loading = false, data = null, height = 360 }) {
+  const palette = {
+    completed: "#10b981",
+    approved: "#3b82f6",
+    requested: "#6366f1",
+    pending: "#eab308",
+    missed: "#f97316",
+    cancelled: "#ef4444",
+    canceled: "#ef4444",
+    rejected: "#ef4444",
+  };
   const chartData = Array.isArray(data)
-    ? data.map((d) => ({ name: String(d.label || d.status || ''), value: Number(d.value || d.count || 0) }))
+    ? data.map((d, i) => {
+        const raw = String(d.label || d.status || '').toLowerCase();
+        const color = palette[raw] || ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][i % 5];
+        return { name: String(d.label || d.status || ''), value: Number(d.value || d.count || 0), color };
+      })
     : [];
 
   return (
@@ -24,7 +38,11 @@ export default function AdminStatusBreakdownCard({ loading = false, data = null,
               <XAxis type="number" domain={[0, 'dataMax']} tick={{ fontSize: 12, fill: '#6b7280' }} />
               <YAxis dataKey="name" type="category" tick={{ fontSize: 12, fill: '#6b7280' }} width={80} tickMargin={4} />
               <Tooltip cursor={{ fill: '#f9fafb' }} />
-              <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 4, 4]} />
+              <Bar dataKey="value" radius={[4, 4, 4, 4]}>
+                {chartData.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         ) : (

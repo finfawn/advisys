@@ -365,20 +365,26 @@ export default function ConsultationDetailsPage() {
                     <h1 className="consultation-title">{consultationData.topic}</h1>
                     <div className="consultation-badges">
                       {(() => {
-                        const status = String(consultationData?.status || '').toLowerCase();
+                        const raw = String(consultationData?.status || '').toLowerCase();
+                        const status = raw === 'canceled' ? 'cancelled' : raw;
                         const inSession = status === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
                         const labelMap = {
                           approved: 'Approved',
                           pending: 'Pending',
                           declined: 'Declined',
                           cancelled: 'Cancelled',
+                          canceled: 'Cancelled',
                           completed: 'Completed',
                           missed: 'Missed',
                           expired: 'Expired',
                         };
-                        const label = inSession ? 'In Session' : (labelMap[status] || 'Approved');
+                        const label = inSession ? 'In Session' : (labelMap[status] || 'Pending');
                         const icon = inSession ? <BsClock /> : <BsCheckCircle />;
-                        const statusClass = status === 'missed' ? 'status-missed' : (inSession ? 'insession' : 'approved');
+                        const statusClass = status === 'missed'
+                          ? 'status-missed'
+                          : inSession
+                            ? 'insession'
+                            : (status === 'approved' ? 'approved' : '');
                         return (
                           <span className={`status-badge ${statusClass}`}>
                             {icon}

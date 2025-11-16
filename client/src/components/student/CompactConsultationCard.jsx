@@ -1,5 +1,5 @@
 import React from "react";
-import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsTrash } from "react-icons/bs";
+import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle } from "react-icons/bs";
 import "./CompactConsultationCard.css";
 
 function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
@@ -61,12 +61,7 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
     return consultation.status !== 'declined';
   };
 
-  const handleDeleteConsultation = (e) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(consultation);
-    }
-  };
+  
 
   const handleRescheduleConsultation = (e) => {
     e.stopPropagation();
@@ -102,7 +97,10 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
       <div className="compact-content">
         <div className="compact-faculty-info">
           <div className="compact-faculty-name">{consultation?.advisor?.name || consultation?.faculty?.name || 'Advisor'}</div>
-          <div className="compact-faculty-title">{consultation?.advisor?.title || consultation?.faculty?.title || consultation.category || consultation.topic || 'No Topic'}</div>
+          <div className="compact-faculty-title">{consultation.topic || consultation.title || 'No Title'}</div>
+          {consultation.category && (
+            <div className="compact-category-tag">{consultation.category}</div>
+          )}
         </div>
         
         <div className="compact-time-info">
@@ -143,13 +141,6 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
       
       {consultation.status === 'declined' && (
         <div className="compact-action declined-actions">
-          <button 
-            className="compact-card-action-btn delete"
-            onClick={handleDeleteConsultation}
-            title="Delete consultation"
-          >
-            <BsTrash className="delete-icon" />
-          </button>
           <button 
             className="compact-card-action-btn reschedule"
             onClick={handleRescheduleConsultation}

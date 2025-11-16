@@ -134,7 +134,7 @@ function AdvisorCard({
       <Card hoverable className="advisor-card-new h-full flex flex-col">
         <CardHeader spacing="compact" className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-600 text-white flex items-center justify-center text-2xl flex-shrink-0">
+            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-2xl flex-shrink-0">
               {facultyData.avatar ? (
                 <img src={facultyData.avatar} alt={`${name}'s avatar`} className="w-full h-full rounded-full object-cover" />
               ) : (
@@ -148,66 +148,80 @@ function AdvisorCard({
           </div>
         </CardHeader>
         
-        <CardContent className="space-y-3 flex-1">
+        <CardContent className="flex-1">
           {Array.isArray(coursesTaught) && coursesTaught.length > 0 && (
             <div className="advisor-card-courses">
               <div className="flex flex-wrap gap-1.5">
-                {coursesTaught.map((course, index) => {
-                  // Prefer course code for compact pills; fallback to name
+                {coursesTaught.slice(0,4).map((course, index) => {
                   const label = (typeof course === 'string')
                     ? course
                     : (course?.subject_code || course?.code || course?.course_code || '');
-                  if (!label) return null; // hide when no code available
+                  if (!label) return null;
                   return (
                     <Badge key={index} variant="outline" size="sm" className="text-xs font-semibold">
                       {label}
                     </Badge>
                   );
                 })}
+                {coursesTaught.length > 4 && (
+                  <span className="text-xs text-gray-500 font-medium">+{coursesTaught.length - 4}</span>
+                )}
               </div>
             </div>
           )}
-          
-          {time && (
-            <div className="advisor-card-availability">
-              <Badge variant="info" size="sm" className="flex items-center gap-1 w-fit text-xs font-medium">
-                <BsClock className="w-3 h-3" />
-                {time}
-              </Badge>
-            </div>
-          )}
-          {modeInfo.showSeparate ? (
-            <div className="flex gap-2 mt-2">
-              <Badge variant="info" size="sm" className="flex items-center gap-1">
-                <BsCameraVideo className="w-3 h-3" />
-                Online
-              </Badge>
-              <Badge variant="warning" size="sm" className="flex items-center gap-1">
-                <BsGeoAlt className="w-3 h-3" />
-                In-Person
-              </Badge>
-            </div>
-          ) : (
-            <div className="mt-2">
-              <Badge 
-                variant={modeInfo.class === 'online-mode' ? 'info' : modeInfo.class === 'inperson-mode' ? 'warning' : 'secondary'} 
-                size="sm" 
-                className="flex items-center gap-1 w-fit"
-              >
-                {modeInfo.icons}
-                {modeInfo.text}
-              </Badge>
-            </div>
-          )}
 
-          {!!facultyData.officeLocation && (
-            <div className="mt-2">
-              <Badge variant="secondary" size="sm" className="flex items-center gap-1 w-fit">
-                <BsGeoAlt className="w-3 h-3" />
-                {facultyData.officeLocation}
-              </Badge>
-            </div>
-          )}
+          <div className="mt-3 border-t pt-3 space-y-2">
+            {time && (
+              <div className="flex items-start gap-3">
+                <div className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-gray-500">Availability</div>
+                <div>
+                  <Badge variant="outline" size="sm" className="flex items-center gap-1 w-fit text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
+                    <BsClock className="w-3 h-3" />
+                    {time}
+                  </Badge>
+                </div>
+              </div>
+            )}
+
+              <div className="flex items-start gap-3">
+                <div className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-gray-500">Mode</div>
+                <div className="flex gap-2">
+                  {modeInfo.showSeparate ? (
+                    <>
+                    <Badge variant="outline" size="sm" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
+                      <BsCameraVideo className="w-3 h-3" />
+                      Online
+                    </Badge>
+                    <Badge variant="outline" size="sm" className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200">
+                      <BsGeoAlt className="w-3 h-3" />
+                      In-Person
+                    </Badge>
+                    </>
+                  ) : (
+                  <Badge 
+                    variant="outline"
+                    size="sm" 
+                    className={`flex items-center gap-1 w-fit ${modeInfo.class === 'online-mode' ? 'bg-blue-50 text-blue-700 border-blue-200' : modeInfo.class === 'inperson-mode' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
+                  >
+                    {modeInfo.icons}
+                    {modeInfo.text}
+                  </Badge>
+                  )}
+                </div>
+              </div>
+
+            {!!facultyData.officeLocation && (
+              <div className="flex items-start gap-3">
+                <div className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-gray-500">Location</div>
+                <div>
+                  <Badge variant="outline" size="sm" className="flex items-center gap-1 w-fit bg-gray-50 text-gray-700 border-gray-200">
+                    <BsGeoAlt className="w-3 h-3" />
+                    {facultyData.officeLocation}
+                  </Badge>
+                </div>
+              </div>
+            )}
+          </div>
         </CardContent>
         
         <CardFooter className="pt-3 gap-2" align="between">

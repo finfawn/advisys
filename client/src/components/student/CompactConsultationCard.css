@@ -79,6 +79,18 @@
   text-overflow: ellipsis;
 }
 
+.compact-category-tag {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  background: #e5e7eb;
+  color: #374151;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  margin-top: 0.2rem;
+  width: fit-content;
+}
+
 .compact-time-info {
   display: flex;
   align-items: center;

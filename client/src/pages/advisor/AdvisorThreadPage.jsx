@@ -1,0 +1,202 @@
+import React, { useEffect, useMemo, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
+import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
+import { useSidebar } from "../../contexts/SidebarContext";
+import { Button } from "../../lightswind/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
+import { Card, CardContent } from "../../lightswind/card";
+import { BsDownload, BsCameraVideo, BsGeoAlt } from "react-icons/bs";
+import jsPDF from "jspdf";
+
+export default function AdvisorThreadPage() {
+  const { collapsed, toggleSidebar } = useSidebar();
+  const { studentId } = useParams();
+  const navigate = useNavigate();
+  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+
+  const [terms, setTerms] = useState([]);
+  const [termId, setTermId] = useState('current');
+  const [advisorId, setAdvisorId] = useState(null);
+  const [thread, setThread] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    try {
+      const user = JSON.parse(localStorage.getItem('advisys_user') || 'null');
+      setAdvisorId(user?.id || null);
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [tRes] = await Promise.all([
+          fetch(`${base}/api/settings/academic/terms`)
+        ]);
+        const t = await tRes.json();
+        if (Array.isArray(t)) setTerms(t);
+      } catch {}
+    };
+    load();
+  }, []);
+
+  const loadThread = async () => {
+    if (!advisorId) return;
+    setLoading(true);
+    try {
+      const url = new URL(`${base}/api/consultations/thread`);
+      url.searchParams.set('studentId', String(studentId));
+      url.searchParams.set('advisorId', String(advisorId));
+      if (termId === 'all') {
+        url.searchParams.set('term', 'all');
+      } else if (termId !== 'current') {
+        url.searchParams.set('termId', String(termId));
+      }
+      const res = await fetch(url.toString(), { headers: { ...authHeader } });
+      const data = await res.json();
+      setThread(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setThread([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => { loadThread(); }, [advisorId, termId, studentId]);
+
+  const studentMeta = useMemo(() => {
+    const first = thread[0];
+    if (!first) return null;
+    return {
+      name: first.student_name || 'Student',
+      program: first.student_program || null,
+      year: first.student_year || null,
+      avatar: first.student_avatar_url || null,
+    };
+  }, [thread]);
+
+  const exportPdf = () => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const lineHeight = 16; const margin = 40; const pageWidth = 595; const maxWidth = pageWidth - margin * 2;
+    let y = margin;
+    const title = `Consultation Thread — ${studentMeta?.name || 'Student'}`;
+    doc.setFontSize(14); doc.text(title, margin, y); y += lineHeight;
+    const termLabel = termId === 'all' ? 'All Terms' : (termId === 'current' ? 'Current Term' : (terms.find(t=>String(t.id)===String(termId))?.year_label + ' • ' + terms.find(t=>String(t.id)===String(termId))?.semester_label + ' Semester'));
+    doc.setFontSize(10); doc.text(`Term: ${termLabel || 'Current'}`, margin, y); y += lineHeight;
+    y += 6;
+    doc.setFontSize(11);
+    const addPageIfNeeded = (needed) => {
+      if (y + needed > 842 - margin) { doc.addPage(); y = margin; }
+    };
+    thread.forEach((c, idx) => {
+      const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+      const header = `${dateStr} • ${c.mode === 'online' ? 'Online' : 'In-Person'} • ${c.status}`;
+      const topic = `Topic: ${c.category || c.topic || '—'}`;
+      const summary = c.summary_notes ? `Summary:\n${c.summary_notes}` : (c.ai_summary ? `Summary (AI):\n${c.ai_summary}` : 'Summary: —');
+      const block = [header, topic, summary].join('\n');
+      const lines = doc.splitTextToSize(block, maxWidth);
+      addPageIfNeeded(lines.length * (lineHeight - 2) + 12);
+      doc.setFont(undefined, 'bold'); doc.text(`Consultation ${idx + 1}`, margin, y); y += lineHeight;
+      doc.setFont(undefined, 'normal');
+      lines.forEach(line => { doc.text(line, margin, y); y += lineHeight - 2; });
+      y += 8;
+    });
+    const fname = `Consultations_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.pdf`;
+    doc.save(fname);
+  };
+
+  const exportCsv = () => {
+    const headers = ['Date','Mode','Status','Topic','Summary'];
+    const rows = thread.map(c => {
+      const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
+      const mode = c.mode;
+      const status = c.status;
+      const topic = c.category || c.topic || '';
+      const summary = c.summary_notes || c.ai_summary || '';
+      return [dateStr, mode, status, topic, String(summary).replace(/\r?\n/g,' ')];
+    });
+    const csv = [headers.join(','), ...rows.map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `Consultations_${studentMeta?.name || 'Student'}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  return (
+    <div className="admin-dash-wrap">
+      <AdvisorTopNavbar />
+      <div className={`admin-dash-body ${collapsed ? 'collapsed' : ''}`}>
+        <div className="hidden xl:block">
+          <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={(p)=>navigate(p)} />
+        </div>
+        <main className="admin-dash-main">
+          <div className="consultations-container">
+            <div className="consultations-header">
+              <h1 className="consultations-title">Consultation Thread</h1>
+              <div className="flex items-center gap-2">
+                <Select value={termId} onValueChange={setTermId}>
+                  <SelectTrigger className="filter-dropdown"><SelectValue placeholder="Term" /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="current">Current Term</SelectItem>
+                    <SelectItem value="all">All Terms</SelectItem>
+                    {terms.map(t => (
+                      <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label} Semester</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Button onClick={exportPdf} disabled={!thread.length}><BsDownload className="w-4 h-4 mr-1" />Download PDF</Button>
+                <Button variant="outline" onClick={exportCsv} disabled={!thread.length}><BsDownload className="w-4 h-4 mr-1" />Download CSV</Button>
+              </div>
+            </div>
+
+            {studentMeta && (
+              <div className="mb-3 text-sm text-gray-600 flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                  {studentMeta.avatar ? (<img src={studentMeta.avatar} alt="" className="w-full h-full object-cover" />) : null}
+                </div>
+                <div>
+                  <div className="font-medium text-gray-900">{studentMeta.name}</div>
+                  <div className="text-xs text-gray-600">{studentMeta.program ? `${studentMeta.program}` : ''}{studentMeta.year ? ` • Year ${studentMeta.year}` : ''}</div>
+                </div>
+              </div>
+            )}
+
+            {loading ? (
+              <div>Loading…</div>
+            ) : thread.length === 0 ? (
+              <div className="text-sm text-gray-600">No consultations for this selection.</div>
+            ) : (
+              <div className="consultations-grid">
+                {thread.map((c) => {
+                  const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+                  return (
+                    <Card key={c.id} className="h-full">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="text-sm font-semibold">{c.category || c.topic || 'No Topic'}</div>
+                        <div className="text-xs text-gray-600">{dateStr} • {c.mode === 'online' ? (<span className="inline-flex items-center gap-1"><BsCameraVideo />Online</span>) : (<span className="inline-flex items-center gap-1"><BsGeoAlt />In-Person</span>)} • {c.status}</div>
+                        {c.summary_notes && (
+                          <div className="text-sm mt-2"><span className="font-semibold">Summary: </span><span className="whitespace-pre-wrap">{c.summary_notes}</span></div>
+                        )}
+                        {!c.summary_notes && c.ai_summary && (
+                          <div className="text-sm mt-2"><span className="font-semibold">AI Summary: </span><span className="whitespace-pre-wrap">{c.ai_summary}</span></div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </main>
+      </div>
+    </div>
+  );
+}

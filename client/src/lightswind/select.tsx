@@ -12,6 +12,9 @@ interface SelectContextType {
   triggerRef: React.RefObject<HTMLButtonElement>;
   searchQuery: string;
   setSearchQuery: (query: string) => void;
+  items: Record<string, React.ReactNode>;
+  registerItem: (value: string, label: React.ReactNode) => void;
+  unregisterItem: (value: string) => void;
 }
 
 const SelectContext = React.createContext<SelectContextType | undefined>(
@@ -45,6 +48,7 @@ const Select: React.FC<SelectProps> = ({
   const [isOpen, setIsOpen] = React.useState(open || defaultOpen);
   const triggerRef = React.useRef<HTMLButtonElement>(null);
   const [searchQuery, setSearchQuery] = React.useState("");
+  const [items, setItems] = React.useState<Record<string, React.ReactNode>>({});
 
   React.useEffect(() => {
     if (value !== undefined) {
@@ -86,6 +90,38 @@ const Select: React.FC<SelectProps> = ({
     [onOpenChange, open, disabled]
   );
 
+  const registerItem = React.useCallback((v: string, label: React.ReactNode) => {
+    setItems((prev) => {
+      if (prev[v] === label) return prev;
+      return { ...prev, [v]: label };
+    });
+  }, []);
+
+  const unregisterItem = React.useCallback((v: string) => {
+    setItems((prev) => {
+      if (!(v in prev)) return prev;
+      const next = { ...prev };
+      delete next[v];
+      return next;
+    });
+  }, []);
+
+  React.useEffect(() => {
+    const map: Record<string, React.ReactNode> = {};
+    const walk = (nodes: React.ReactNode) => {
+      React.Children.forEach(nodes, (node) => {
+        if (!React.isValidElement(node)) return;
+        const anyType: any = node.type as any;
+        if (anyType?.displayName === "SelectItem" && node.props?.value != null) {
+          map[String(node.props.value)] = node.props.children;
+        }
+        if (node.props && node.props.children) walk(node.props.children);
+      });
+    };
+    walk(children);
+    if (Object.keys(map).length) setItems(map);
+  }, [children]);
+
   return (
     <SelectContext.Provider
       value={{
@@ -96,6 +132,9 @@ const Select: React.FC<SelectProps> = ({
         triggerRef,
         searchQuery,
         setSearchQuery,
+        items,
+        registerItem,
+        unregisterItem,
       }}
     >
       {children}
@@ -125,37 +164,8 @@ const SelectValue = React.forwardRef<HTMLSpanElement, SelectValueProps>(
     if (!context) {
       throw new Error("SelectValue must be used within a Select");
     }
-    // This is a bit of a hack to get the children from the parent Select component.
-    // A better implementation would involve passing a map of values to display labels via context.
-    // For simplicity, we are assuming children are passed directly or can be inferred.
-    const parentChildren =
-      (context as any).__SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
-        ?.children || children;
-
-    let displayValue: React.ReactNode = null;
-
-    const findDisplayValue = (nodes: React.ReactNode) => {
-      React.Children.forEach(nodes, (node) => {
-        if (!React.isValidElement(node)) return;
-        if (displayValue) return;
-
-        // Check if it's a SelectItem
-        if (
-          (node.type as any).displayName === "SelectItem" &&
-          node.props.value === context.value
-        ) {
-          displayValue = node.props.children;
-        }
-        // Check if it's a SelectGroup and recurse
-        else if ((node.type as any).displayName === "SelectGroup") {
-          findDisplayValue(node.props.children);
-        }
-      });
-    };
-
-    findDisplayValue(parentChildren);
-
-    const content = displayValue || context.value || placeholder;
+    const displayValue = context.items[context.value];
+    const content = displayValue || placeholder || context.value;
 
     return (
       <span ref={ref} className={cn("text-sm", className)} {...props}>
@@ -453,18 +463,22 @@ const SelectContent = React.forwardRef<HTMLDivElement, SelectContentProps>(
         {open && (
           <motion.div
             ref={combinedRef}
-            style={calculatedStyle}
             className={cn(
               "z-50 min-w-[var(--radix-select-trigger-width)] overflow-hidden rounded-md border bg-popover text-popover-foreground shadow-md",
               position === "popper" &&
                 "data-[side=bottom]:translate-y-1 data-[side=top]:-translate-y-1",
               className
             )}
+            {...props}
+            style={{
+              ...calculatedStyle,
+              zIndex: Math.max(4000, (props as any)?.style?.zIndex || 0),
+              ...(props as any)?.style,
+            }}
             initial={{ opacity: 0, y: currentSide === "bottom" ? -10 : 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: currentSide === "bottom" ? -10 : 10 }}
             transition={{ duration: 0.2 }}
-            {...props}
           >
             <SelectScrollUpButton />
             <div
@@ -516,8 +530,12 @@ const SelectItem = React.forwardRef<HTMLDivElement, SelectItemProps>(
       throw new Error("SelectItem must be used within a Select");
     }
 
-    const { value: selectedValue, onValueChange, setOpen } = context;
+    const { value: selectedValue, onValueChange, setOpen, registerItem } = context;
     const isSelected = selectedValue === value;
+
+    React.useEffect(() => {
+      registerItem(value, children);
+    }, [value, children, registerItem]);
 
     const handleSelect = (e: React.MouseEvent) => {
       if (disabled) return;

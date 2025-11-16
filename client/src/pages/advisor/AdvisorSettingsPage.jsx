@@ -13,6 +13,9 @@ import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorSettingsPage.css";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
+import ChangePasswordDialog from "../../components/common/ChangePasswordDialog";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
+import { toast } from "../../components/hooks/use-toast";
 
 export default function AdvisorSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -50,6 +53,10 @@ export default function AdvisorSettingsPage() {
   const displayData = isEditing ? editData : advisorData;
   const [mobileSettingsOpen, setMobileSettingsOpen] = useState(false);
   const [departmentOptions, setDepartmentOptions] = useState([]);
+  const [showChangePw, setShowChangePw] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
 
   // Consultation profile state
   const [consultationData, setConsultationData] = useState({
@@ -261,20 +268,7 @@ export default function AdvisorSettingsPage() {
   };
 
   const handleChangePassword = () => {
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-    const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
-    const currentPassword = window.prompt('Enter current password');
-    if (!currentPassword) return;
-    const newPassword = window.prompt('Enter new password');
-    if (!newPassword) return;
-    const confirmPassword = window.prompt('Confirm new password');
-    if (!confirmPassword || newPassword !== confirmPassword) return;
-    fetch(`${base}/api/auth/change-password`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...authHeader },
-      body: JSON.stringify({ currentPassword, newPassword }),
-    }).then(() => {}).catch(() => {});
+    setShowChangePw(true);
   };
 
   // Consultation handlers
@@ -547,7 +541,7 @@ export default function AdvisorSettingsPage() {
       <AdvisorTopNavbar />
 
       {/* Hamburger Menu Overlay - Mobile & Tablet */}
-      <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+      <div className="lg:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
         <style>{`
           .square-hamburger-btn {
             border-radius: 8px !important;
@@ -586,7 +580,7 @@ export default function AdvisorSettingsPage() {
       </div>
 
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
-      <div className="hidden xl:block">
+      <div className="hidden lg:block">
           <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
         </div>
 
@@ -599,7 +593,7 @@ export default function AdvisorSettingsPage() {
             </div>
 
             {/* Mobile Settings Accordion - visible on mobile & tablets */}
-      <div className="xl:hidden mobile-settings-accordion">
+      <div className="lg:hidden mobile-settings-accordion">
               <Collapsible open={mobileSettingsOpen} onOpenChange={setMobileSettingsOpen}>
                 <CollapsibleTrigger className="mobile-settings-trigger">
                   <div className="flex items-center justify-between w-full">
@@ -880,9 +874,16 @@ export default function AdvisorSettingsPage() {
                           <h4 className="security-title">Password</h4>
                           <p className="security-description">Last changed 3 months ago</p>
                         </div>
-                        <Button variant="outline-primary" onClick={handleChangePassword}>
+                        <Button variant="outline" onClick={handleChangePassword}>
                           Change Password
                         </Button>
+                      </div>
+                      <div className="security-item danger-card">
+                        <div className="security-info">
+                          <h4 className="security-title">Delete Account</h4>
+                          <p className="security-description">Permanently delete your account</p>
+                        </div>
+                        <Button variant="outline" className="danger-btn" onClick={()=>setShowDeleteModal(true)}>Delete Account</Button>
                       </div>
                     </div>
                   </div>
@@ -1116,6 +1117,28 @@ export default function AdvisorSettingsPage() {
           </div>
         </main>
       </div>
+      <ChangePasswordDialog open={showChangePw} onClose={()=>setShowChangePw(false)} />
+      <AlertDialog open={showDeleteModal} onOpenChange={(open)=>{ if (!open) setShowDeleteModal(false); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="leading-none text-center">Confirm Account Deletion</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">This action cannot be undone. Your account and related data will be deleted.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:items-center sm:justify-between">
+            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">Cancel</AlertDialogCancel>
+            <AlertDialogAction className="min-w-[140px] bg-destructive text-destructive-foreground hover:bg-destructive/90" onClick={async()=>{
+              try {
+                const res = await fetch(`${apiBase}/api/profile/me`, { method: 'DELETE', headers: { ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}) } });
+                if (!res.ok) { const d = await res.json().catch(()=>({})); throw new Error(d?.error || 'Delete failed'); }
+                setShowDeleteModal(false);
+                navigate('/logout');
+              } catch (e) {
+                toast.destructive({ title: 'Delete failed', description: e?.message || 'Unable to delete account' });
+              }
+            }}>Delete</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

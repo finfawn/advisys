@@ -16,6 +16,12 @@
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
   }
 
+  /* Ensure consistent horizontal padding on the profile page */
+  .student-settings-main {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
   /* Prevent extra trailing space at end of content */
   .settings-section:last-child,
   .settings-panel:last-child {
@@ -31,7 +37,7 @@
 
 @media (max-width: 768px) {
   .settings-container {
-    padding: 0 8px;
+    padding: 0 16px;
     width: 100%;
     max-width: 100%;
     overflow-x: hidden;
@@ -60,8 +66,8 @@
 }
 
 /* Settings Content Layout */
-.settings-content {
-  display: grid;
+.student-settings-main .settings-content {
+  display: grid !important;
   grid-template-columns: 280px 1fr;
   gap: 32px;
   min-height: 600px;
@@ -230,6 +236,17 @@
   align-items: center;
   gap: 12px;
   flex-shrink: 0;
+}
+
+/* Prevent any stretching of avatar when editing */
+.profile-picture-section .profile-picture,
+.profile-picture-section .profile-picture-placeholder {
+  width: 100px !important;
+  height: 100px !important;
+  min-width: 100px !important;
+  min-height: 100px !important;
+  border-radius: 50% !important;
+  aspect-ratio: 1 / 1;
 }
 
 /* Placeholder style alias to match JSX */
@@ -882,7 +899,12 @@ input:checked + .toggle-slider:before {
 
 @media (max-width: 576px) {
   .settings-container {
-    padding: 0 4px;
+    padding: 0 16px;
+  }
+
+  /* Remove inner header micro-padding that reduces perceived edge padding */
+  .settings-header {
+    padding: 0;
   }
 
   .settings-content {

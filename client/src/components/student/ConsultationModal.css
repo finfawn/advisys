@@ -338,6 +338,11 @@
   gap: 12px;
 }
 
+/* Align only the summary grid content to the left */
+.confirmation-panel .summary-grid {
+  text-align: left;
+}
+
 .summary-card-item {
   display: flex;
   gap: 10px;

@@ -46,6 +46,27 @@ mount('/api/programs', './routes/programs');
 mount('/api', './routes/ai_debug');
 mount('/api/stream', './routes/stream');
 
+// Ensure critical auxiliary tables exist early to avoid race conditions
+(async () => {
+  try {
+    const pool = getPool();
+    await pool.query(`CREATE TABLE IF NOT EXISTS user_deactivation_events (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      term_id INT UNSIGNED NULL,
+      reason ENUM('graduated','dropped','other') NOT NULL,
+      other_reason VARCHAR(255) NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_user (user_id),
+      KEY idx_term (term_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    console.log('[DB] Ensured user_deactivation_events table');
+  } catch (e) {
+    console.warn('[DB] Could not ensure user_deactivation_events table:', e?.message || e);
+  }
+})();
+
 
 // Auto-migrate database on server start (optional)
 let autoMigrate = null;

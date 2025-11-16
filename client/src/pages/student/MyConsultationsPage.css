@@ -29,6 +29,8 @@
 @media (max-width: 768px) {
   .student-my-consultations {
     padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
+    padding-left: 16px !important;
+    padding-right: 16px !important;
   }
 
   .student-my-consultations .consultations-section {

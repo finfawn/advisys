@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useRef } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
-import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsTrash, BsListCheck, BsClockHistory, BsCheckCircle } from "react-icons/bs";
+import { BsPlus, BsCalendar, BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsListCheck, BsClockHistory, BsCheckCircle, BsPerson } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import { Card, CardContent } from '../../lightswind/card';
@@ -10,7 +10,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '.
 import { Skeleton, TemplateCardSkeleton } from '../../lightswind/skeleton';
 import ConsultationCard from "../../components/student/ConsultationCard";
 import ConsultationModal from "../../components/student/ConsultationModal";
-import DeleteConfirmationModal from "../../components/student/DeleteConfirmationModal";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./MyConsultationsPage.css";
@@ -22,14 +21,11 @@ export default function MyConsultationsPage() {
   const [upcomingFilter, setUpcomingFilter] = useState("all");
   const [requestFilter, setRequestFilter] = useState("all");
   const [historyFilter, setHistoryFilter] = useState("all");
-  const [historyPage, setHistoryPage] = useState(1);
-  const [showAllHistory, setShowAllHistory] = useState(false);
+  const [historyView, setHistoryView] = useState('consultations');
+  const [historyTermId, setHistoryTermId] = useState('current');
+  const [terms, setTerms] = useState([]);
+  const [counterparts, setCounterparts] = useState([]);
   const [consultationHistory, setConsultationHistory] = useState([]);
-  const [deletedItems, setDeletedItems] = useState([]);
-  const [undoTimeout, setUndoTimeout] = useState(null);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [deletedDeclinedItems, setDeletedDeclinedItems] = useState([]);
-  const [declinedUndoTimeout, setDeclinedUndoTimeout] = useState(null);
   const [requestConsultationsState, setRequestConsultationsState] = useState([]);
   const [showCancelModal, setShowCancelModal] = useState(false);
   const [consultationToCancel, setConsultationToCancel] = useState(null);
@@ -37,6 +33,7 @@ export default function MyConsultationsPage() {
   const [cancelUndoToast, setCancelUndoToast] = useState({ open: false, item: null, timeoutId: null, message: '' });
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [consultationToReschedule, setConsultationToReschedule] = useState(null);
+  const disableReasonBackfill = useRef(false);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -55,6 +52,7 @@ export default function MyConsultationsPage() {
   };
 
   const [allConsultations, setAllConsultations] = useState([]);
+  const listSignatureRef = useRef("");
   const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
   const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
@@ -68,7 +66,29 @@ export default function MyConsultationsPage() {
     return `${base}/${s}`;
   };
 
-  // Shape server consultation item into UI format with faculty details normalized
+  // Heuristic: search nested objects for reason fields if list payload hides them
+  const findReason = (obj, kind /* 'decline' | 'cancel' */) => {
+    try {
+      if (!obj || typeof obj !== 'object') return null;
+      const stack = [obj];
+      const kw = kind === 'decline' ? 'declin' : 'cancel';
+      while (stack.length) {
+        const cur = stack.pop();
+        if (!cur || typeof cur !== 'object') continue;
+        for (const [k, v] of Object.entries(cur)) {
+          const lk = String(k).toLowerCase();
+          if ((lk.includes(kw) && (lk.includes('reason') || lk.includes('note') || lk.includes('message'))) || (lk === 'reason' && kw === 'declin')) {
+            const s = String(v ?? '').trim();
+            if (s) return s;
+          }
+          if (v && typeof v === 'object') stack.push(v);
+        }
+      }
+    } catch {}
+    return null;
+  };
+
+  // Shape server consultation item into UI format with normalized fields
   const shapeConsultation = (c) => {
     const name = c?.advisor?.name ?? c?.faculty?.name ?? c?.advisor_name ?? null;
     const title = c?.advisor?.title ?? c?.faculty?.title ?? c?.advisor_title ?? null;
@@ -76,7 +96,59 @@ export default function MyConsultationsPage() {
     const avatarRaw = c?.advisor?.avatar_url ?? c?.faculty?.avatar_url ?? c?.advisor_avatar_url ?? c?.faculty?.avatar ?? null;
     const avatar = resolveAssetUrl(avatarRaw);
     const id = c?.advisor?.id ?? c?.faculty?.id ?? c?.advisor_user_id ?? null;
-    return { ...c, faculty: { id, name, title, department, avatar } };
+
+    // Normalize status/mode
+    const statusRaw = c?.status ?? c?.consultation_status ?? c?.consultationStatus ?? c?.session_status ?? c?.state;
+    const status = typeof statusRaw === 'string' ? statusRaw.toLowerCase() : statusRaw;
+    const mode = c?.mode ?? c?.consultation_mode ?? c?.session_mode ?? 'online';
+
+    // Normalize date/time fields
+    const startDT = c?.start_datetime ?? c?.scheduled_at ?? c?.start_time ?? c?.startTime ?? c?.datetime ?? (c?.date && c?.time ? `${c.date} ${c.time}` : null);
+    const endDT = c?.end_datetime ?? c?.actual_end_datetime ?? c?.end_time ?? c?.endTime ?? null;
+    let date = c?.date;
+    let time = c?.time;
+    if (!date || !time) {
+      const d = startDT ? new Date(startDT) : null;
+      if (d && !isNaN(d)) {
+        const yyyy = d.getFullYear();
+        const mm = String(d.getMonth() + 1).padStart(2, '0');
+        const dd = String(d.getDate()).padStart(2, '0');
+        const hh = String(d.getHours()).padStart(2, '0');
+        const mi = String(d.getMinutes()).padStart(2, '0');
+        date = date || `${yyyy}-${mm}-${dd}`;
+        time = time || `${hh}:${mi}`;
+      }
+    }
+
+    const declineReason = (() => {
+      const r = c?.decline_reason ?? c?.declineReason ?? c?.advisor_decline_reason ?? c?.declined_reason ?? c?.decline_reason_text ?? c?.decline_note ?? c?.decline_notes ?? c?.decline_message ?? c?.reason;
+      if (r == null) return null;
+      const s = String(r).trim();
+      return s ? s : null;
+    })();
+
+    const cancelReason = (() => {
+      const r = c?.cancel_reason ?? c?.cancelReason ?? c?.cancellation_reason ?? c?.advisor_cancel_reason ?? c?.student_cancel_reason ?? c?.canceled_reason ?? c?.cancel_notes ?? c?.cancel_message ?? c?.cancellation_reason_text;
+      if (r == null) return null;
+      const s = String(r).trim();
+      return s ? s : null;
+    })();
+
+    const declineR = declineReason || findReason(c, 'decline');
+    const cancelR = cancelReason || findReason(c, 'cancel');
+
+    return {
+      ...c,
+      status,
+      mode,
+      start_datetime: startDT || c?.start_datetime,
+      end_datetime: endDT || c?.end_datetime,
+      date,
+      time,
+      declineReason: declineR,
+      cancelReason: cancelR,
+      faculty: { id, name, title, department, avatar },
+    };
   };
 
   // Enrich items missing advisor details by fetching advisor profile
@@ -99,11 +171,52 @@ export default function MyConsultationsPage() {
             avatar: item.faculty.avatar || resolveAssetUrl(adv?.avatar || adv?.avatar_url || null),
           },
         };
-      } catch (_) {
+      } catch (error) {
+        console.error('Error enriching consultation:', error);
         return item;
       }
     });
     return Promise.all(tasks);
+  };
+
+  // Enrich missing decline/cancel reasons for items where the list API doesn't include them
+  const enrichMissingReasons = async (items) => {
+    try {
+      if (disableReasonBackfill.current) return;
+      const targets = (items || []).filter(c => (
+        (String(c.status).toLowerCase() === 'declined' && !c.declineReason) ||
+        (String(c.status).toLowerCase() === 'cancelled' && !c.cancelReason)
+      )).slice(0, 12);
+      if (targets.length === 0) return;
+      // Probe first to see if endpoint exists; if 404, stop further calls
+      const probe = targets[0];
+      if (probe) {
+        const pr = await fetch(`${base}/api/consultations/${probe.id}`, { headers: { ...authHeader } });
+        if (pr.status === 404) { disableReasonBackfill.current = true; return; }
+      }
+      const results = await Promise.all(targets.map(async (c) => {
+        try {
+          const r = await fetch(`${base}/api/consultations/${c.id}`, { headers: { ...authHeader } });
+          if (r.status === 404) { disableReasonBackfill.current = true; return null; }
+          if (!r.ok) return null;
+          const d = await r.json();
+          const pickDecline = d?.decline_reason ?? d?.declineReason ?? d?.advisor_decline_reason ?? d?.declined_reason ?? d?.decline_reason_text ?? d?.decline_note ?? d?.decline_notes ?? d?.decline_message ?? d?.reason ?? null;
+          const pickCancel = d?.cancel_reason ?? d?.cancelReason ?? d?.cancellation_reason ?? d?.advisor_cancel_reason ?? d?.student_cancel_reason ?? d?.canceled_reason ?? d?.cancel_notes ?? d?.cancel_message ?? d?.cancellation_reason_text ?? null;
+          return { id: c.id, declineReason: pickDecline ? String(pickDecline).trim() : null, cancelReason: pickCancel ? String(pickCancel).trim() : null };
+        } catch { return null; }
+      }));
+      const nonNull = results.filter(Boolean);
+      if (nonNull.length === 0) return;
+      setAllConsultations(prev => prev.map(c => {
+        const m = nonNull.find(x => x.id === c.id);
+        if (!m) return c;
+        return {
+          ...c,
+          declineReason: c.declineReason || m.declineReason || null,
+          cancelReason: c.cancelReason || m.cancelReason || null,
+        };
+      }));
+    } catch {}
   };
   const reloadConsultations = async () => {
     try {
@@ -111,12 +224,31 @@ export default function MyConsultationsPage() {
       const storedUser = localStorage.getItem('advisys_user');
       const parsed = storedUser ? JSON.parse(storedUser) : null;
       const studentId = parsed?.id || 1;
-      const res = await fetch(`${base}/api/consultations/students/${studentId}/consultations`, { headers: { ...authHeader } });
-      const data = await res.json();
-      const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
-      const enriched = await enrichFacultyDetails(shaped);
-      setAllConsultations(enriched);
-    } catch (err) {
+      {
+        const url = new URL(`${base}/api/consultations/students/${studentId}/consultations`);
+        url.searchParams.set('__ts', String(Date.now()));
+        const res = await fetch(url.toString(), { headers: { ...authHeader, 'Cache-Control': 'no-cache', Pragma: 'no-cache' }, cache: 'no-store' });
+        const raw = await res.json();
+      const toArray = (x) => {
+        if (Array.isArray(x)) return x;
+        if (!x || typeof x !== 'object') return [];
+        const direct = x.consultations || x.items || x.data || x.results || x.rows || x.list;
+        if (Array.isArray(direct)) return direct;
+        const nestedCandidates = [x.data?.items, x.data?.consultations, x.result?.items, x.result?.data, x.payload?.items, x.payload?.data];
+        for (const c of nestedCandidates) { if (Array.isArray(c)) return c; }
+        for (const v of Object.values(x)) { if (Array.isArray(v)) return v; }
+        return [];
+      };
+        const data = toArray(raw);
+        const shaped = data.map(shapeConsultation);
+        const enriched = await enrichFacultyDetails(shaped);
+        const sig = enriched.map(c => `${c.id}|${c.status}|${c.start_datetime}|${c.declineReason||''}|${c.cancelReason||''}`).join(',');
+        if (sig !== listSignatureRef.current) {
+          listSignatureRef.current = sig;
+          setAllConsultations(enriched);
+        }
+    }
+  } catch (err) {
       console.error('Reload consultations failed', err);
     } finally {
       setIsLoading(false);
@@ -129,13 +261,28 @@ export default function MyConsultationsPage() {
         const storedUser = localStorage.getItem('advisys_user');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const studentId = parsed?.id || 1;
-        const res = await fetch(`${base}/api/consultations/students/${studentId}/consultations`, {
-          headers: { ...authHeader },
-        });
-        const data = await res.json();
-        const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
+        const url = new URL(`${base}/api/consultations/students/${studentId}/consultations`);
+        url.searchParams.set('__ts', String(Date.now()));
+        const res = await fetch(url.toString(), { headers: { ...authHeader, 'Cache-Control': 'no-cache', Pragma: 'no-cache' }, cache: 'no-store' });
+        const raw = await res.json();
+        const toArray = (x) => {
+          if (Array.isArray(x)) return x;
+          if (!x || typeof x !== 'object') return [];
+          const direct = x.consultations || x.items || x.data || x.results || x.rows || x.list;
+          if (Array.isArray(direct)) return direct;
+          const nestedCandidates = [x.data?.items, x.data?.consultations, x.result?.items, x.result?.data, x.payload?.items, x.payload?.data];
+          for (const c of nestedCandidates) { if (Array.isArray(c)) return c; }
+          for (const v of Object.values(x)) { if (Array.isArray(v)) return v; }
+          return [];
+        };
+        const data = toArray(raw);
+        const shaped = data.map(shapeConsultation);
         const enriched = await enrichFacultyDetails(shaped);
-        setAllConsultations(enriched);
+        const sig = enriched.map(c => `${c.id}|${c.status}|${c.start_datetime}|${c.declineReason||''}|${c.cancelReason||''}`).join(',');
+        if (sig !== listSignatureRef.current) {
+          listSignatureRef.current = sig;
+          setAllConsultations(enriched);
+        }
       } catch (err) {
         console.error('Failed to load consultations', err);
       } finally {
@@ -143,11 +290,35 @@ export default function MyConsultationsPage() {
       }
     };
     fetchConsultations();
-    // Lightweight polling to auto-refresh list every 20s
-    const intervalId = setInterval(() => {
-      reloadConsultations();
-    }, 20000);
-    return () => clearInterval(intervalId);
+    // Conditional polling: visible tab and page only, with longer cadence
+    const POLL_MS = 60000;
+    const tick = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (activeTab === 'upcoming' || activeTab === 'requests') reloadConsultations();
+    };
+    const intervalId = setInterval(tick, POLL_MS);
+    const visHandler = () => { if (document.visibilityState === 'visible') tick(); };
+    document.addEventListener('visibilitychange', visHandler);
+    return () => { clearInterval(intervalId); document.removeEventListener('visibilitychange', visHandler); };
+  }, [activeTab]);
+
+  // Load academic terms for history filtering
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await fetch(`${base}/api/settings/academic/terms`, { headers: { ...authHeader } });
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : [];
+        // Sort: current first, then by start_date desc
+        const sorted = arr.sort((a,b) => {
+          if ((b?.is_current|0) - (a?.is_current|0) !== 0) return (b?.is_current|0) - (a?.is_current|0);
+          return String(b?.start_date||'').localeCompare(String(a?.start_date||''));
+        });
+        setTerms(sorted);
+      } catch (_) {
+        // Silently handle errors - terms will remain empty if fetch fails
+      }
+    })();
   }, []);
 
   // Set active tab from route query or hash on navigation
@@ -160,8 +331,8 @@ export default function MyConsultationsPage() {
       if (tabParam && validTabs.includes(tabParam)) {
         setActiveTab(tabParam);
       }
-    } catch (e) {
-      // No-op: keep default tab
+    } catch (error) {
+      // No-op: keep default tab if URL parsing fails
     }
   }, [location.search, location.hash]);
 
@@ -171,12 +342,11 @@ export default function MyConsultationsPage() {
     const now = new Date();
     const normalized = allConsultations.map(c => {
       const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
-      const end = c.end_datetime ? new Date(c.end_datetime) : null;
       const durationMin = c.duration || c.duration_minutes || 30;
       const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
       const inGrace = start ? now < (start.getTime() + graceMs) : false;
       const isFuture = start ? start >= now : (c.date ? new Date(c.date) >= now : false);
-      let status = c.status;
+      let status = String(c.status || '').toLowerCase();
       // After grace window, still "approved" implies missed
       if (status === 'approved' && start && now >= (start.getTime() + graceMs)) {
         status = 'missed';
@@ -194,7 +364,7 @@ export default function MyConsultationsPage() {
 
     const requests = normalized.filter(c => c.status === 'pending' || c.status === 'declined' || c.status === 'expired');
 
-    const history = normalized.filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'missed');
+    const history = normalized.filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'canceled' || c.status === 'missed');
 
     return {
       upcomingConsultations: upcoming,
@@ -209,6 +379,52 @@ export default function MyConsultationsPage() {
     setRequestConsultationsState(requestConsultations);
   }, [historyConsultations, requestConsultations]);
 
+  // Load advisor counterparts for history view when on history tab
+  useEffect(() => {
+    if (activeTab === 'history') {
+      const loadCounterparts = async () => {
+        try {
+          const storedUser = localStorage.getItem('advisys_user');
+          const parsed = storedUser ? JSON.parse(storedUser) : null;
+          const studentId = parsed?.id || 1;
+          
+          // Build URL with term filtering
+          let url = `${base}/api/consultations/students/${studentId}/counterparts`;
+          const params = new URLSearchParams();
+          
+          if (historyTermId === 'current') {
+            params.set('term', 'current');
+          } else if (historyTermId === 'all') {
+            params.set('term', 'all');
+          } else if (historyTermId) {
+            params.set('termId', historyTermId);
+          }
+          
+          if (params.toString()) {
+            url += `?${params.toString()}`;
+          }
+          
+          const res = await fetch(url, { headers: { ...authHeader } });
+          const data = await res.json();
+          
+          if (Array.isArray(data)) {
+            setCounterparts(data);
+          } else {
+            setCounterparts([]);
+          }
+        } catch (error) {
+          console.error('Failed to load advisor counterparts:', error);
+          setCounterparts([]);
+        }
+      };
+      
+      loadCounterparts();
+    }
+  }, [activeTab, historyTermId]);
+
+  // If there are no upcoming consultations but there is history, default to History tab for better UX
+  // Removed automatic tab switching - let users stay on empty tabs
+
   // Filter upcoming consultations
   const filteredUpcoming = useMemo(() => {
     if (upcomingFilter === "all") return upcomingConsultations;
@@ -221,15 +437,71 @@ export default function MyConsultationsPage() {
     return requestConsultationsState.filter(consultation => consultation.mode === requestFilter);
   }, [requestConsultationsState, requestFilter]);
 
-  // Filter history consultations
+  // Filter history consultations by mode and term
   const filteredHistory = useMemo(() => {
-    if (historyFilter === "all") return consultationHistory;
-    return consultationHistory.filter(consultation => consultation.mode === historyFilter);
-  }, [consultationHistory, historyFilter]);
+    const source = consultationHistory && consultationHistory.length ? consultationHistory : allConsultations;
+    // Mode filter first
+    const byMode = historyFilter === 'all'
+      ? source
+      : source.filter(c => c.mode === historyFilter);
+
+    // Determine selected term window
+    if (!byMode.length) return byMode;
+    if (historyTermId === 'all') return byMode;
+
+    let term = null;
+    if (historyTermId === 'current') {
+      term = (terms || []).find(t => Number(t?.is_current) === 1) || null;
+    } else {
+      term = (terms || []).find(t => String(t?.id) === String(historyTermId)) || null;
+    }
+    if (!term || !term.start_date || !term.end_date) return byMode.filter(c => ['completed','cancelled','canceled','missed'].includes(String(c.status||'').toLowerCase()));
+
+    const start = new Date(term.start_date);
+    const end = new Date(term.end_date);
+    const parseDate = (c) => {
+      const candidates = [
+        c?.start_datetime, c?.startDateTime, c?.start_time, c?.startTime,
+        c?.date, c?.scheduled_at, c?.scheduledAt, c?.datetime, c?.date_time,
+        c?.dateTime, c?.timestamp, c?.created_at, c?.createdAt
+      ];
+      for (const v of candidates) {
+        if (!v) continue;
+        const d = new Date(v);
+        if (!isNaN(d)) return d;
+      }
+      if (c?.date && c?.time) {
+        const d = new Date(`${c.date} ${c.time}`);
+        if (!isNaN(d)) return d;
+      }
+      return null;
+    };
+
+    const matchTermId = (c) => {
+      const tid = c?.term_id ?? c?.termId ?? c?.term;
+      return tid != null && String(tid) === String(term.id);
+    };
+
+    let parsedAny = false;
+    const within = byMode.filter(c => {
+      if (matchTermId(c)) return true;
+      const d = parseDate(c);
+      if (!d) return false;
+      parsedAny = true;
+      return d >= start && d <= end;
+    });
+    // If no items had parseable dates, return byMode to avoid empty due to unknown format
+    const cleaned = (parsedAny ? within : byMode).filter(c => ['completed','cancelled','canceled','missed'].includes(String(c.status||'').toLowerCase()));
+    // If nothing after term filter, fall back to all terms so history is visible by default
+    if (cleaned.length === 0 && historyTermId !== 'all') {
+      return byMode.filter(c => ['completed','cancelled','canceled','missed'].includes(String(c.status||'').toLowerCase()));
+    }
+    return cleaned;
+  }, [consultationHistory, allConsultations, historyFilter, historyTermId, terms]);
 
   // Delete functions with undo functionality
-  const handleDeleteHistoryItem = (consultation) => {
-    // Clear any existing undo timeout
+  // const handleDeleteHistoryItem = (consultation) => {
+    /* Clear any existing undo timeout
     if (undoTimeout) {
       clearTimeout(undoTimeout);
     }
@@ -256,10 +528,10 @@ export default function MyConsultationsPage() {
     }, 5000);
     
     setUndoTimeout(timeout);
-  };
+  }; */
 
-  const handleUndoDelete = (consultation) => {
-    // Clear the timeout
+  // const handleUndoDelete = (consultation) => {
+    /* Clear the timeout
     if (undoTimeout) {
       clearTimeout(undoTimeout);
       setUndoTimeout(null);
@@ -270,14 +542,14 @@ export default function MyConsultationsPage() {
     
     // Remove from deleted items
     setDeletedItems(prev => prev.filter(item => item.id !== consultation.id));
-  };
+  }; */
 
-  const handleDeleteAllHistory = () => {
-    setShowDeleteModal(true);
-  };
+  // const handleDeleteAllHistory = () => {
+    // setShowDeleteModal(true);
+  // };
 
-  const handleConfirmDeleteAll = () => {
-    setShowDeleteModal(false);
+  // const handleConfirmDeleteAll = () => {
+    /* setShowDeleteModal(false);
     
     // Clear any existing undo timeout
     if (undoTimeout) {
@@ -308,14 +580,14 @@ export default function MyConsultationsPage() {
     }, 5000);
     
     setUndoTimeout(timeout);
-  };
+  }; */
 
-  const handleCloseDeleteModal = () => {
-    setShowDeleteModal(false);
-  };
+  // const handleCloseDeleteModal = () => {
+    // setShowDeleteModal(false);
+  // };
 
-  const handleUndoDeleteAll = () => {
-    // Clear the timeout
+  // const handleUndoDeleteAll = () => {
+    /* Clear the timeout
     if (undoTimeout) {
       clearTimeout(undoTimeout);
       setUndoTimeout(null);
@@ -326,11 +598,11 @@ export default function MyConsultationsPage() {
     
     // Clear deleted items
     setDeletedItems([]);
-  };
+  }; */
 
   // Delete functionality for declined consultations
-  const handleDeleteDeclinedConsultation = (consultation) => {
-    // Clear any existing undo timeout
+  // const handleDeleteDeclinedConsultation = (consultation) => {
+    /* Clear any existing undo timeout
     if (declinedUndoTimeout) {
       clearTimeout(declinedUndoTimeout);
     }
@@ -357,10 +629,10 @@ export default function MyConsultationsPage() {
     }, 5000);
     
     setDeclinedUndoTimeout(timeout);
-  };
+  }; */
 
-  const handleUndoDeleteDeclined = (consultation) => {
-    // Clear the timeout
+  // const handleUndoDeleteDeclined = (consultation) => {
+    /* Clear the timeout
     if (declinedUndoTimeout) {
       clearTimeout(declinedUndoTimeout);
       setDeclinedUndoTimeout(null);
@@ -371,7 +643,7 @@ export default function MyConsultationsPage() {
     
     // Remove from deleted items
     setDeletedDeclinedItems(prev => prev.filter(item => item.id !== consultation.id));
-  };
+  }; */
 
 
 
@@ -665,7 +937,6 @@ export default function MyConsultationsPage() {
                         key={consultation.id}
                         consultation={consultation}
                         onActionClick={() => handleJoinConsultation(consultation)}
-                        onDelete={handleDeleteDeclinedConsultation}
                         onCancel={handleCancelConsultation}
                         onReschedule={handleOpenReschedule}
                       />
@@ -689,30 +960,7 @@ export default function MyConsultationsPage() {
                   </div>
                 )}
 
-                {/* Undo Notification for Declined Consultations */}
-                {deletedDeclinedItems.length > 0 && (
-                  <div className="undo-notification">
-                    <div className="undo-content">
-                      <span className="undo-message">
-                        {deletedDeclinedItems.length === 1 
-                          ? `"${deletedDeclinedItems[0].topic}" deleted`
-                          : `${deletedDeclinedItems.length} consultations deleted`
-                        }
-                      </span>
-                      <button 
-                        className="undo-btn"
-                        onClick={deletedDeclinedItems.length === 1 ? () => handleUndoDeleteDeclined(deletedDeclinedItems[0]) : () => {
-                          deletedDeclinedItems.forEach(item => handleUndoDeleteDeclined(item));
-                        }}
-                      >
-                        Undo
-                      </button>
-                    </div>
-                    <div className="undo-timer">
-                      <div className="undo-timer-bar"></div>
-                    </div>
-                  </div>
-                )}
+                
               </section>
             )}
 
@@ -722,6 +970,23 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Consultation History</h2>
                   <div className="section-controls">
+                    <Select value={historyView} onValueChange={setHistoryView}>
+                      <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="consultations">View by Consultations</SelectItem>
+                        <SelectItem value="by-advisors">View by Advisors</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Select value={historyTermId} onValueChange={setHistoryTermId}>
+                      <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="current">Current Term</SelectItem>
+                        <SelectItem value="all">All Terms</SelectItem>
+                        {terms.map(t => (
+                          <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <Select value={historyFilter} onValueChange={setHistoryFilter}>
                       <SelectTrigger className="filter-dropdown">
                         <SelectValue />
@@ -732,17 +997,7 @@ export default function MyConsultationsPage() {
                         <SelectItem value="in-person">In-Person</SelectItem>
                       </SelectContent>
                     </Select>
-                    {filteredHistory.length > 0 && (
-                      <Button 
-                        variant="outline"
-                        size="sm"
-                        className="delete-all-btn text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
-                        onClick={handleDeleteAllHistory}
-                      >
-                        <BsTrash className="w-4 h-4 mr-1" />
-                        Delete All
-                      </Button>
-                    )}
+                    
                     <span className="section-count">{filteredHistory.length} past sessions</span>
                   </div>
                 </div>
@@ -753,67 +1008,62 @@ export default function MyConsultationsPage() {
                     ))}
                   </div>
                 ) : (
-                  filteredHistory.length > 0 ? (
-                    <>
-                      <div className="consultations-grid">
-                        {filteredHistory.map(consultation => (
-                          <ConsultationCard
-                            key={consultation.id}
-                            consultation={consultation}
-                            onActionClick={() => handleViewHistoryDetails(consultation)}
-                            onDelete={handleDeleteHistoryItem}
-                          />
-                        ))}
+                  historyView === 'consultations' ? (
+                    filteredHistory.length > 0 ? (
+                      <>
+                        <div className="consultations-grid">
+                          {filteredHistory.map(consultation => (
+                            <ConsultationCard
+                              key={consultation.id}
+                              consultation={consultation}
+                              onActionClick={() => handleViewHistoryDetails(consultation)}
+                            />
+                          ))}
+                        </div>
+                      </>
+                    ) : (
+                      <div className="no-history">
+                        <BsListCheck className="no-history-icon" />
+                        <h3>No consultation history</h3>
+                        <p>You haven't completed any consultation sessions yet.</p>
                       </div>
-                    </>
+                    )
                   ) : (
-                    <div className="no-history">
-                      <BsListCheck className="no-history-icon" />
-                      <h3>No consultation history</h3>
-                      <p>You haven't completed any consultation sessions yet.</p>
+                    <div className="consultations-grid">
+                      {counterparts.map(cp => (
+                        <div key={cp.id} className="p-4 bg-white rounded-lg border cursor-pointer flex items-center gap-3" onClick={()=>navigate(`/student-dashboard/history/thread/${cp.id}`)}>
+                          <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                            {cp.avatar_url ? (
+                              <img src={cp.avatar_url} alt="" className="w-full h-full object-cover" />
+                            ) : null}
+                          </div>
+                          <div className="flex-1">
+                            <div className="font-semibold">{cp.name}</div>
+                            <div className="text-xs text-gray-600">{cp.title ? `${cp.title}` : ''}{cp.department ? ` • ${cp.department}` : ''}</div>
+                            <div className="text-xs text-gray-500 mt-1">{cp.count} consultations • Last {cp.last_date ? new Date(cp.last_date).toLocaleDateString() : ''}</div>
+                          </div>
+                          <BsChevronRight className="text-gray-400" />
+                        </div>
+                      ))}
+                      {counterparts.length === 0 && (
+                        <div className="no-history">
+                          <BsListCheck className="no-history-icon" />
+                          <h3>No advisors found</h3>
+                          <p>You haven't had any consultations with advisors yet.</p>
+                        </div>
+                      )}
                     </div>
                   )
                 )}
 
-                {/* Undo Notification */}
-                {deletedItems.length > 0 && (
-                  <div className="undo-notification">
-                    <div className="undo-content">
-                      <span className="undo-message">
-                        {deletedItems.length === 1 
-                          ? `"${deletedItems[0].topic}" deleted`
-                          : `${deletedItems.length} consultations deleted`
-                        }
-                      </span>
-                      <button 
-                        className="undo-btn"
-                        onClick={deletedItems.length === 1 ? () => handleUndoDelete(deletedItems[0]) : handleUndoDeleteAll}
-                      >
-                        Undo
-                      </button>
-                    </div>
-                    <div className="undo-timer">
-                      <div className="undo-timer-bar"></div>
-                    </div>
-                  </div>
-                )}
+                
               </section>
             )}
           </div>
         </main>
       </div>
 
-      {/* Delete Confirmation Modal */}
-      <DeleteConfirmationModal
-        isOpen={showDeleteModal}
-        onClose={handleCloseDeleteModal}
-        onConfirm={handleConfirmDeleteAll}
-        title="Delete All History"
-        message="Are you sure you want to delete all consultation history items? This action cannot be undone."
-        itemCount={consultationHistory.length}
-        confirmText="Delete All"
-        cancelText="Cancel"
-      />
+      
 
       {/* Cancel Consultation Modal */}
       {consultationToCancel && (

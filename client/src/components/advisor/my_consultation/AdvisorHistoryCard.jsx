@@ -1,5 +1,5 @@
 import React from "react";
-import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsCheckCircle, BsXCircle, BsChevronRight, BsTrash } from "react-icons/bs";
+import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsCheckCircle, BsXCircle, BsChevronRight } from "react-icons/bs";
 import { Card, CardHeader, CardContent, CardFooter } from "../../../lightswind/card";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
@@ -44,12 +44,7 @@ function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
     }
   };
 
-  const handleDelete = (e) => {
-    e.stopPropagation();
-    if (onDelete) {
-      onDelete(consultation);
-    }
-  };
+  
 
   return (
     <Card hoverable className="advisor-history-card-new h-full flex flex-col">
@@ -101,9 +96,6 @@ function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
         <Button size="sm" className="flex-1" onClick={handleViewDetails}>
           View Details
           <BsChevronRight className="w-4 h-4 ml-1" />
-        </Button>
-        <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleDelete}>
-          <BsTrash className="w-4 h-4" />
         </Button>
       </CardFooter>
     </Card>

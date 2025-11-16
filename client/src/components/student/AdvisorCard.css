@@ -10,8 +10,8 @@
 }
 
 .advisor-card-new:hover {
-  border-color: #3b82f6 !important;
-  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
+  border-color: #93c5fd !important;
+  box-shadow: 0 6px 16px rgba(59, 130, 246, 0.08) !important;
   transform: none !important;
 }
 

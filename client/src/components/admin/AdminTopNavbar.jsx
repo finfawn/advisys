@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsPersonCircle, BsChevronDown, BsBoxArrowRight } from "react-icons/bs";
+import { BsPersonCircle, BsChevronDown, BsBoxArrowRight, BsGear } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
@@ -168,7 +168,13 @@ function AdminTopNavbar() {
               <div className="dropdown-divider"></div>
 
               <div className="dropdown-items">
-                {/* Settings removed per request */}
+                <button
+                  className="dropdown-item"
+                  onClick={() => { setIsDropdownOpen(false); navigate('/admin-dashboard/settings'); }}
+                >
+                  <BsGear className="dropdown-item-icon" />
+                  <span>Settings</span>
+                </button>
 
                 <div className="dropdown-divider"></div>
 

@@ -304,6 +304,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     // Prefer direct consultation detail when we can resolve the ID
     const tryResolveForStudent = async () => {
       const cid = Number(notification?.data?.consultation_id);
+      const t = String(notification?.type || '').toLowerCase();
+      const preferDetails = t === 'consultation_summary_edit_approved';
       const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
       const userRaw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
       const user = userRaw ? JSON.parse(userRaw) : null;
@@ -320,14 +322,37 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
               const item = Array.isArray(list) ? list.find(c => Number(c.id) === Number(cid)) : null;
               if (item) {
                 const mode = String(item.mode || '').toLowerCase();
-                if (mode === 'online') return `/student-dashboard/consultations/online/${cid}`;
-                return `/student-dashboard/consultations/${cid}`;
+                if (preferDetails) {
+                  if (mode === 'online') return `/student-dashboard/consultations/online/${cid}`;
+                  return `/student-dashboard/consultations/${cid}`;
+                } else {
+                  const rawStatus = String(item.status || '').toLowerCase();
+                  const status = rawStatus === 'canceled' ? 'cancelled' : rawStatus;
+                  const tab = (
+                    status === 'approved' ? 'upcoming' :
+                    (status === 'pending' || status === 'declined') ? 'requests' :
+                    ['cancelled','completed','missed','expired'].includes(status) ? 'history' :
+                    'upcoming'
+                  );
+                  return `/student-dashboard/consultations?tab=${tab}`;
+                }
               }
             }
           }
         } catch (_) {}
-        // Fallback without mode info
-        return `/student-dashboard/consultations/${cid}`;
+        // Fallback when we couldn't load item: infer from notification type
+        const t = String(notification?.type || '').toLowerCase();
+        if (preferDetails) return `/student-dashboard/consultations/${cid}`;
+        const tab = t === 'consultation_declined' ? 'requests'
+          : t === 'consultation_request_submitted' ? 'requests'
+          : t === 'consultation_approved' ? 'upcoming'
+          : t === 'consultation_cancelled' ? 'history'
+          : t === 'consultation_missed' ? 'history'
+          : t === 'consultation_room_ready' ? 'upcoming'
+          : t === 'consultation_rescheduled' ? 'upcoming'
+          : t === 'consultation_reminder' ? 'upcoming'
+          : 'upcoming';
+        return `/student-dashboard/consultations?tab=${tab}`;
       }
       // Legacy notifications: attempt topic-based resolution for the student
       try {
@@ -342,9 +367,21 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         const list = await res.json();
         const match = Array.isArray(list) ? list.find(c => String(c?.topic || '').trim() === topic) : null;
         if (match?.id) {
-          const mode = String(match.mode || '').toLowerCase();
-          if (mode === 'online') return `/student-dashboard/consultations/online/${match.id}`;
-          return `/student-dashboard/consultations/${match.id}`;
+          if (preferDetails) {
+            const mode = String(match.mode || '').toLowerCase();
+            if (mode === 'online') return `/student-dashboard/consultations/online/${match.id}`;
+            return `/student-dashboard/consultations/${match.id}`;
+          } else {
+            const rawStatus = String(match.status || '').toLowerCase();
+            const status = rawStatus === 'canceled' ? 'cancelled' : rawStatus;
+            const tab = (
+              status === 'approved' ? 'upcoming' :
+              (status === 'pending' || status === 'declined') ? 'requests' :
+              ['cancelled','completed','missed','expired'].includes(status) ? 'history' :
+              'upcoming'
+            );
+            return `/student-dashboard/consultations?tab=${tab}`;
+          }
         }
       } catch (_) {}
 
@@ -363,6 +400,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
 
     const tryResolveForAdvisor = async () => {
       const cid = Number(notification?.data?.consultation_id);
+      const t = String(notification?.type || '').toLowerCase();
+      const preferDetails = t === 'consultation_summary_edit_requested';
       const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
       const userRaw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
       const user = userRaw ? JSON.parse(userRaw) : null;
@@ -378,13 +417,33 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
               const item = Array.isArray(list) ? list.find(c => Number(c.id) === Number(cid)) : null;
               if (item) {
                 const mode = String(item.mode || '').toLowerCase();
-                if (mode === 'online') return `/advisor-dashboard/consultations/online/${cid}`;
-                return `/advisor-dashboard/consultations/${cid}`;
+                if (preferDetails) {
+                  if (mode === 'online') return `/advisor-dashboard/consultations/online/${cid}`;
+                  return `/advisor-dashboard/consultations/${cid}`;
+                }
+                const rawStatus = String(item.status || '').toLowerCase();
+                const status = rawStatus === 'canceled' ? 'cancelled' : rawStatus;
+                const tab = (
+                  status === 'approved' ? 'upcoming' :
+                  (status === 'pending' || status === 'declined') ? 'requests' :
+                  ['cancelled','completed','missed','expired'].includes(status) ? 'history' :
+                  'upcoming'
+                );
+                return `/advisor-dashboard/consultations?tab=${tab}`;
               }
             }
           }
         } catch (_) {}
-        return `/advisor-dashboard/consultations/${cid}`;
+        if (preferDetails) return `/advisor-dashboard/consultations/${cid}`;
+        const t2 = String(notification?.type || '').toLowerCase();
+        const tab = t2 === 'consultation_request' ? 'requests'
+          : t2 === 'consultation_cancelled' ? 'history'
+          : t2 === 'consultation_missed' ? 'history'
+          : t2 === 'consultation_room_ready' ? 'upcoming'
+          : t2 === 'consultation_rescheduled' ? 'upcoming'
+          : t2 === 'consultation_reminder' ? 'upcoming'
+          : 'upcoming';
+        return `/advisor-dashboard/consultations?tab=${tab}`;
       }
 
       // Fall back to tab-based navigation for advisors
@@ -405,7 +464,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     e.stopPropagation();
     markAsRead(notification.id);
     const route = await resolveActionRouteAsync(notification);
-    navigate(route);
+    navigate(route, { state: { entry: 'notification', nid: notification.id, ntype: notification.type } });
+    handleClose();
   };
 
   const handleApproveEditRequest = (e, notification) => {

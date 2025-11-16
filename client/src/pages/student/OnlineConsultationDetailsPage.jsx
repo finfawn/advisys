@@ -488,10 +488,34 @@ export default function OnlineConsultationDetailsPage() {
                   <div className="consultation-title-section">
                     <h1 className="consultation-title">{consultationData.topic}</h1>
                     <div className="consultation-badges">
-                      <span className="status-badge approved">
-                        <BsCheckCircle />
-                        <span>Approved</span>
-                      </span>
+                      {(() => {
+                        const raw = String(consultationData?.status || '').toLowerCase();
+                        const status = raw === 'canceled' ? 'cancelled' : raw;
+                        const inSession = status === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
+                        const labelMap = {
+                          approved: 'Approved',
+                          pending: 'Pending',
+                          declined: 'Declined',
+                          cancelled: 'Cancelled',
+                          canceled: 'Cancelled',
+                          completed: 'Completed',
+                          missed: 'Missed',
+                          expired: 'Expired',
+                        };
+                        const label = inSession ? 'In Session' : (labelMap[status] || 'Pending');
+                        const icon = inSession ? <BsClock /> : <BsCheckCircle />;
+                        const statusClass = status === 'missed'
+                          ? 'status-missed'
+                          : inSession
+                            ? 'insession'
+                            : (status === 'approved' ? 'approved' : '');
+                        return (
+                          <span className={`status-badge ${statusClass}`}>
+                            {icon}
+                            <span>{label}</span>
+                          </span>
+                        );
+                      })()}
                       <span className="mode-badge online">
                         <BsCameraVideo />
                         <span>Online</span>
@@ -742,7 +766,21 @@ export default function OnlineConsultationDetailsPage() {
                       </div>
                       <div className="info-item">
                         <span className="info-label">Status</span>
-                        <span className="info-value status-approved">Approved</span>
+                        <span className="info-value">{(() => {
+                          const raw = String(consultationData?.status || '').toLowerCase();
+                          const status = raw === 'canceled' ? 'cancelled' : raw;
+                          const labelMap = {
+                            approved: 'Approved',
+                            pending: 'Pending',
+                            declined: 'Declined',
+                            cancelled: 'Cancelled',
+                            canceled: 'Cancelled',
+                            completed: 'Completed',
+                            missed: 'Missed',
+                            expired: 'Expired',
+                          };
+                          return labelMap[status] || 'Pending';
+                        })()}</span>
                       </div>
                       <div className="info-item">
                         <span className="info-label">Mode</span>
