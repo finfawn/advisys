@@ -1,5 +1,3 @@
-const { request } = require('undici');
-
 const MAILJET_API_KEY = (process.env.MAILJET_API_KEY || '').trim();
 const MAILJET_API_SECRET = (process.env.MAILJET_API_SECRET || '').trim();
 const MAIL_FROM = (process.env.MAIL_FROM || '').trim();
@@ -21,7 +19,7 @@ async function sendEmail({ to, subject, html }) {
       },
     ],
   };
-  const res = await request('https://api.mailjet.com/v3.1/send', {
+  const res = await fetch('https://api.mailjet.com/v3.1/send', {
     method: 'POST',
     headers: {
       Authorization: `Basic ${auth}`,
@@ -29,12 +27,11 @@ async function sendEmail({ to, subject, html }) {
     },
     body: JSON.stringify(payload),
   });
-  const ok = res.statusCode >= 200 && res.statusCode < 300;
-  if (!ok) {
-    const text = await res.body.text();
-    console.error('Mailjet email failed:', res.statusCode, text);
+  if (!res.ok) {
+    const text = await res.text();
+    console.error('Mailjet email failed:', res.status, text);
   }
-  return { ok };
+  return { ok: res.ok };
 }
 
 module.exports = { sendEmail };
