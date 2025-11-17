@@ -83,6 +83,40 @@ mount('/api/stream', './routes/stream');
   }
 })();
 
+// Ensure auth auxiliary tables exist (email_verifications, password_resets)
+(async () => {
+  try {
+    const pool = getPool();
+    await pool.query(`CREATE TABLE IF NOT EXISTS email_verifications (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      code_hash VARCHAR(64) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      consumed_at DATETIME NULL,
+      resend_count INT UNSIGNED NOT NULL DEFAULT 0,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_email_verif_user (user_id),
+      KEY idx_email_verif_expires (expires_at),
+      CONSTRAINT fk_email_verif_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    await pool.query(`CREATE TABLE IF NOT EXISTS password_resets (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      user_id INT UNSIGNED NOT NULL,
+      token_hash VARCHAR(64) NOT NULL,
+      expires_at DATETIME NOT NULL,
+      used_at DATETIME NULL,
+      created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (id),
+      KEY idx_password_resets_user (user_id),
+      KEY idx_password_resets_token (token_hash),
+      CONSTRAINT fk_password_resets_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE ON UPDATE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4`);
+    console.log('[DB] Ensured auth auxiliary tables');
+  } catch (e) {
+    console.warn('[DB] Could not ensure auth auxiliary tables:', e?.message || e);
+  }
+})();
 
 // Auto-migrate database on server start (optional)
 let autoMigrate = null;
