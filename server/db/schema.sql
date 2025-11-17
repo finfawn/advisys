@@ -250,10 +250,7 @@ CREATE TABLE IF NOT EXISTS `programs` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE `advisor_profiles`
-  ADD KEY `idx_advisor_department_id` (`department_id`);
-ALTER TABLE `student_profiles`
-  ADD KEY `idx_student_program_id` (`program_id`);
+
 
 ALTER TABLE `advisor_profiles`
   ADD CONSTRAINT `fk_advisor_department`
@@ -296,9 +293,9 @@ CREATE TABLE IF NOT EXISTS `academic_term_memberships` (
 
 -- Optional archival metadata for consultations and linkage to term
 ALTER TABLE `consultations`
-  ADD COLUMN IF NOT EXISTS `academic_term_id` INT UNSIGNED NULL,
-  ADD COLUMN IF NOT EXISTS `archived_at` DATETIME NULL,
-  ADD COLUMN IF NOT EXISTS `archive_reason` ENUM('graduated','dropped','year_end') NULL,
+  ADD COLUMN `academic_term_id` INT UNSIGNED NULL,
+  ADD COLUMN `archived_at` DATETIME NULL,
+  ADD COLUMN `archive_reason` ENUM('graduated','dropped','year_end') NULL,
   ADD KEY `idx_consult_term` (`academic_term_id`),
   ADD CONSTRAINT `fk_consult_term` FOREIGN KEY (`academic_term_id`) REFERENCES `academic_terms`(`id`) ON DELETE SET NULL ON UPDATE CASCADE;
 

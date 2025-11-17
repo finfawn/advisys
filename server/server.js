@@ -6,7 +6,23 @@ const { getPool } = require('./db/pool');
 
 const app = express();
 
-app.use(cors());
+const corsOrigins = (process.env.CORS_ORIGINS || process.env.APP_BASE_URL || '')
+  .split(',')
+  .map((s) => String(s).trim())
+  .filter(Boolean);
+const corsOptions = {
+  origin: (origin, cb) => {
+    if (!origin) return cb(null, true);
+    if (!corsOrigins.length) return cb(null, true);
+    if (corsOrigins.includes(origin)) return cb(null, true);
+    return cb(null, false);
+  },
+  credentials: true,
+  methods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type','Authorization'],
+};
+app.use(cors(corsOptions));
+app.options('*', cors(corsOptions));
 app.use(express.json());
 
 // Global error handlers to avoid hard crashes on startup

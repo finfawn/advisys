@@ -10,6 +10,7 @@ try { ({ verifyFirebaseIdToken } = require('../services/firebaseAdmin')); } catc
 
 const router = express.Router();
 
+const FIREBASE_AUTH_ENABLED = String(process.env.FIREBASE_AUTH_ENABLED || 'false').toLowerCase() === 'true';
 const VERIF_TTL_MIN = Number(process.env.VERIFICATION_CODE_TTL_MINUTES || 10);
 const VERIF_RESEND_SECONDS = Number(process.env.VERIFICATION_CODE_RESEND_SECONDS || 60);
 const VERIF_MAX_PER_HOUR = Number(process.env.VERIFICATION_MAX_PER_HOUR || 5);
@@ -256,6 +257,7 @@ router.post('/verify/confirm', async (req, res) => {
 // POST /api/auth/firebase-login
 // Body: { idToken, role? }
 router.post('/firebase-login', async (req, res) => {
+  if (!FIREBASE_AUTH_ENABLED) return res.status(404).json({ error: 'Not available' });
   const pool = getPool();
   const idToken = req.body?.idToken;
   let desiredRole = req.body?.role;
