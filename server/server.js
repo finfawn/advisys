@@ -62,8 +62,10 @@ mount('/api/programs', './routes/programs');
 mount('/api', './routes/ai_debug');
 mount('/api/stream', './routes/stream');
 
+const SKIP_STARTUP_DB_ENSURE = String(process.env.SKIP_STARTUP_DB_ENSURE || 'false').toLowerCase() === 'true';
+
 // Ensure critical auxiliary tables exist early to avoid race conditions
-(async () => {
+if (!SKIP_STARTUP_DB_ENSURE) (async () => {
   try {
     const pool = getPool();
     await pool.query(`CREATE TABLE IF NOT EXISTS user_deactivation_events (
@@ -84,7 +86,7 @@ mount('/api/stream', './routes/stream');
 })();
 
 // Ensure auth auxiliary tables exist (email_verifications, password_resets)
-(async () => {
+if (!SKIP_STARTUP_DB_ENSURE) (async () => {
   try {
     const pool = getPool();
     await pool.query(`CREATE TABLE IF NOT EXISTS email_verifications (
