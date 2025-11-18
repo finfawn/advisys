@@ -2,6 +2,7 @@ try { require('dotenv').config(); } catch (_) {}
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const https = require('https');
 const { getPool } = require('./db/pool');
 
 const app = express();
@@ -61,6 +62,7 @@ mount('/api/departments', './routes/departments');
 mount('/api/programs', './routes/programs');
 mount('/api', './routes/ai_debug');
 mount('/api/stream', './routes/stream');
+mount('/api/diag', './routes/diagnostics');
 
 const SKIP_STARTUP_DB_ENSURE = String(process.env.SKIP_STARTUP_DB_ENSURE || 'false').toLowerCase() === 'true';
 
@@ -131,7 +133,29 @@ try {
 // test route
 app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
 // health check for Cloud Run
-app.get('/healthz', (req, res) => res.status(200).json({ ok: true }));
+  app.get('/healthz', (req, res) => res.status(200).json({ ok: true }));
+  app.get('/api/diag-email', async (req, res) => {
+    const MAILJET_API_KEY = (process.env.MAILJET_API_KEY || '').trim();
+    const MAILJET_API_SECRET = (process.env.MAILJET_API_SECRET || '').trim();
+    const MAIL_FROM = (process.env.MAIL_FROM || '').trim();
+    const envOk = Boolean(MAILJET_API_KEY && MAILJET_API_SECRET && MAIL_FROM);
+    function checkHttps(hostname) {
+      return new Promise((resolve) => {
+        const rq = https.request({ hostname, method: 'HEAD', path: '/', timeout: 8000 }, (r) => {
+          resolve({ ok: true, statusCode: r.statusCode || 0 });
+        });
+        rq.on('timeout', () => {
+          rq.destroy(new Error('timeout'));
+        });
+        rq.on('error', (e) => {
+          resolve({ ok: false, error: e.message || String(e) });
+        });
+        rq.end();
+      });
+    }
+    const net = await checkHttps('api.mailjet.com');
+    res.json({ envOk, net });
+  });
 
 // Temporary debug: list registered routes (method and path)
 // NOTE: This is for debugging and can be removed later.
