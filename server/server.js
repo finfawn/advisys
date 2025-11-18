@@ -4,6 +4,7 @@ const cors = require('cors');
 const path = require('path');
 const https = require('https');
 const { getPool } = require('./db/pool');
+const bcrypt = require('bcrypt');
 
 const app = express();
 
@@ -466,6 +467,38 @@ app.listen(PORT, '0.0.0.0', () => {
   setImmediate(() => {
     if (autoMigrate) {
       autoMigrate().catch((err) => console.error('Auto-migrate startup error:', err));
+    }
+    const shouldSeedAdmin = String(process.env.SEED_ADMIN_ON_START || '').toLowerCase() === 'true';
+    if (shouldSeedAdmin) {
+      const pool = getPool();
+      (async () => {
+        try {
+          const email = (process.env.ADMIN_EMAIL || 'admin@advisys.local').trim().toLowerCase();
+          const fullName = (process.env.ADMIN_FULL_NAME || 'System Admin').trim();
+          const plainPassword = String(process.env.ADMIN_PASSWORD || 'Admin!2025-ChangeMe');
+          const [[existing]] = await pool.query('SELECT id, role FROM users WHERE email = ? LIMIT 1', [email]);
+          const hash = await bcrypt.hash(plainPassword, 10);
+          if (existing && existing.id) {
+            await pool.query('UPDATE users SET role = ?, password_hash = ?, full_name = ?, status = ? WHERE id = ?', [
+              'admin',
+              hash,
+              fullName,
+              'active',
+              existing.id,
+            ]);
+            console.log(`[admin] Updated existing user to admin: ${email}`);
+          } else {
+            const [resUser] = await pool.query(
+              'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
+              ['admin', email, hash, fullName, 'active']
+            );
+            console.log(`[admin] Created admin user: ${email} (id=${resUser.insertId})`);
+          }
+          console.log(`[admin] Temporary password: ${plainPassword}`);
+        } catch (e) {
+          console.error('[admin] Seeding failed:', e?.message || e);
+        }
+      })();
     }
   });
 });
