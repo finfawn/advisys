@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { BsPersonCircle, BsChevronDown, BsBoxArrowRight, BsGear } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
-import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../icons/Heroicons";
 import "./AdminTopNavbar.css";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 
@@ -31,14 +31,14 @@ function AdminTopNavbar() {
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
     
-    if (page === 'home') {
-      navigate('/');
-    } else if (page === 'dashboard') {
+    if (page === 'dashboard') {
       navigate('/admin-dashboard');
-    } else if (page === 'manage-users') {
-      navigate('/admin-dashboard/manage-users');
-    } else if (page === 'appointments') {
-      navigate('/admin-dashboard/appointments');
+    } else if (page === 'manage-students') {
+      navigate('/admin-dashboard/manage-students');
+    } else if (page === 'manage-advisors') {
+      navigate('/admin-dashboard/manage-advisors');
+    } else if (page === 'department-settings') {
+      navigate('/admin-dashboard/department-settings');
     } else if (page === 'logout') {
       navigate('/logout');
     }
@@ -46,19 +46,24 @@ function AdminTopNavbar() {
 
   const menuItems = [
     { 
-      label: "Home", 
-      icon: <HomeIcon className="w-6 h-6" />, 
-      onClick: () => handleNavigation('home') 
-    },
-    { 
       label: "Dashboard", 
       icon: <ChartBarIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('dashboard') 
     },
     { 
-      label: "Manage Users", 
+      label: "Manage Students", 
       icon: <UsersIcon className="w-6 h-6" />, 
-      onClick: () => handleNavigation('manage-users') 
+      onClick: () => handleNavigation('manage-students') 
+    },
+    { 
+      label: "Manage Advisors", 
+      icon: <UsersIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('manage-advisors') 
+    },
+    { 
+      label: "Settings", 
+      icon: <Cog6ToothIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('department-settings') 
     },
     { 
       label: "Logout", 

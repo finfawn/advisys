@@ -16,6 +16,9 @@ const {
   SPEECH_MODEL,
   S3_UPLOADS_BUCKET,
   AWS_REGION,
+  TRANSCRIBE_IDENTIFY_LANGUAGE,
+  TRANSCRIBE_IDENTIFY_MULTIPLE_LANGUAGES,
+  S3_TRANSCRIPTIONS_PREFIX,
 } = process.env;
 // Allow disabling STT upload for local/dev environments
 const DISABLE_STT_UPLOAD = String(process.env.DISABLE_STT_UPLOAD || '').toLowerCase() === 'true';
@@ -96,7 +99,8 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
   try {
     const file = req.file;
     const consultationIdRaw = req.body?.consultationId;
-    const languageCode = req.body?.languageCode || SPEECH_LANGUAGE_CODE || 'en-US';
+    let languageCode = req.body?.languageCode || SPEECH_LANGUAGE_CODE || 'en-US';
+    if (String(languageCode).toLowerCase() === 'fil-ph') languageCode = 'tl-PH';
     if (!file) return res.status(400).json({ error: 'Missing audio file' });
     const consultationId = Number(consultationIdRaw);
     if (!consultationId) return res.status(400).json({ error: 'Missing or invalid consultationId' });
@@ -130,10 +134,31 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
     const region = AWS_REGION || 'us-east-1';
     const s3 = new S3Client({ region });
     const transcribe = new TranscribeClient({ region });
-    const key = `consultations/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+    const prefix = (S3_TRANSCRIPTIONS_PREFIX || 'consultations').replace(/\/$/, '');
+    const key = `${prefix}/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
     await s3.send(new PutObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key, Body: file.buffer, ContentType: mime || 'audio/webm' }));
     const jobName = `advisys-${consultationId}-${Date.now()}`.replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 200);
-    await transcribe.send(new StartTranscriptionJobCommand({ TranscriptionJobName: jobName, LanguageCode: languageCode, Media: { MediaFileUri: `s3://${S3_UPLOADS_BUCKET}/${key}` }, MediaFormat: mediaFormat }));
+    const identifyLang = String(TRANSCRIBE_IDENTIFY_LANGUAGE || '').toLowerCase() === 'true';
+    const identifyMulti = String(TRANSCRIBE_IDENTIFY_MULTIPLE_LANGUAGES || '').toLowerCase() === 'true';
+    const altRaw = String(SPEECH_ALTERNATIVE_LANGUAGE_CODES || '').trim();
+    const languageOptions = altRaw
+      ? altRaw.split(',').map(s => s.trim()).filter(Boolean).map(c => (c.toLowerCase() === 'fil-ph' ? 'tl-PH' : c))
+      : [];
+    const params = {
+      TranscriptionJobName: jobName,
+      Media: { MediaFileUri: `s3://${S3_UPLOADS_BUCKET}/${key}` },
+      MediaFormat: mediaFormat,
+    };
+    if (identifyMulti) {
+      params.IdentifyMultipleLanguages = true;
+      if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
+    } else if (identifyLang) {
+      params.IdentifyLanguage = true;
+      if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
+    } else {
+      params.LanguageCode = languageCode;
+    }
+    await transcribe.send(new StartTranscriptionJobCommand(params));
     let status = 'IN_PROGRESS';
     let transcriptUri = null;
     const start = Date.now();
