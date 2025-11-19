@@ -1393,7 +1393,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                   setMemberStatusMap(prev => new Map(prev.set(item.id, newStatus)));
                 } catch (_) { alert('Failed to update term status'); }
               }}
-              showTermStatus={activeTab === 'students'}
+              showTermStatus={activeTab === 'students' && termFilter !== 'all'}
             />
 
             <AdminUserHistoryDrawer

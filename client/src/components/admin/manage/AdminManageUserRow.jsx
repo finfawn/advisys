@@ -68,25 +68,14 @@ export default function AdminManageUserRow({
                 : ((item.deactivationReason || '').charAt(0).toUpperCase() + (item.deactivationReason || '').slice(1))}
             </span>
           )}
-          {showTermStatus && isStudent && item.active && !(item.deactivationReason || item.deactivationOther) && (
+          {showTermStatus && isStudent && item.active && isMember && termStatus !== undefined && !['graduated','dropped'].includes(String(termStatus || '').toLowerCase()) && (
             <span 
-              className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag ${
-                !isMember || termStatus === undefined 
-                  ? 'opacity-50 animate-pulse bg-gray-50' 
-                  : 'opacity-100'
-              }`}
+              className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag opacity-100`}
             >
-              {!isMember || termStatus === undefined ? (
-                <>
-                  <span className="w-1 h-1 bg-gray-400 rounded-full mr-1"></span>
-                  <span className="text-xs">...</span>
-                </>
-              ) : (
-                (() => {
-                  const s = String(termStatus || 'enrolled');
-                  return s.charAt(0).toUpperCase() + s.slice(1);
-                })()
-              )}
+              {(() => {
+                const s = String(termStatus || 'enrolled');
+                return s.charAt(0).toUpperCase() + s.slice(1);
+              })()}
             </span>
           )}
         </div>
