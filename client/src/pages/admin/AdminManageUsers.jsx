@@ -234,6 +234,8 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       // Optimistically reflect status
       if (activeTab === 'students') {
         setStudentsData(prev => prev.map(u => selectedIds.includes(u.id) ? { ...u, active: false } : u));
+        // Reload term members to reflect enrollment status changes
+        await loadTermMembers();
       } else {
         setAdvisorData(prev => prev.map(u => selectedIds.includes(u.id) ? { ...u, active: false } : u));
       }
@@ -514,11 +516,16 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
         extras = { reason: singleDeactivate.reason, otherReason: singleDeactivate.reason === 'other' ? (singleDeactivate.otherReason || '') : undefined, termId: termId || undefined };
       }
       await persistStatus(item.id, !previousState, extras);
-      try {
-        if (extras && extras.termId && extras.reason && (extras.reason === 'graduated' || extras.reason === 'dropped') && activeTab === 'students') {
-          setMemberStatusMap(prev => new Map(prev.set(item.id, String(extras.reason))));
-        }
-      } catch {}
+      // Reload term members to reflect enrollment status changes when student is deactivated
+      if (activeTab === 'students' && previousState === true) {
+        await loadTermMembers();
+      } else {
+        try {
+          if (extras && extras.termId && extras.reason && (extras.reason === 'graduated' || extras.reason === 'dropped') && activeTab === 'students') {
+            setMemberStatusMap(prev => new Map(prev.set(item.id, String(extras.reason))));
+          }
+        } catch {}
+      }
     } catch {
       // Revert optimistic update on error
       if (activeTab === "students") {
