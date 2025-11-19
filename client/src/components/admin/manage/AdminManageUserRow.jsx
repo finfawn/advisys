@@ -70,7 +70,7 @@ export default function AdminManageUserRow({
                     : ((item.deactivationReason || '').charAt(0).toUpperCase() + (item.deactivationReason || '').slice(1))}
                 </span>
               );
-            } else if (showTermStatus && isStudent && item.active && isMember && termStatus !== undefined && !['graduated', 'dropped'].includes(String(termStatus || '').toLowerCase())) {
+            } else if (showTermStatus && isStudent && item.active && isMember && termStatus !== undefined && String(termStatus || '').toLowerCase() === 'enrolled') {
               return (
                 <span 
                   className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag opacity-100`}
