@@ -7,6 +7,9 @@ import { signInWithPopup, signInWithRedirect, getRedirectResult, getIdToken } fr
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../lightswind/dialog";
 // role selection now uses Lightswind Select
 
+const ACCOUNT_DEACTIVATED_CODE = 'ACCOUNT_DEACTIVATED';
+const DEACTIVATED_NOTICE = 'This account has been deactivated. Please contact the administrator for assistance.';
+
 function AuthPage({ embedded = false }) {
   const enableGoogle = String(
     (import.meta.env.VITE_ENABLE_GOOGLE_SIGNIN ?? (import.meta.env.MODE === 'development' ? 'true' : 'false'))
@@ -76,8 +79,9 @@ function AuthPage({ embedded = false }) {
         if (!res.ok) {
           if (res.status === 403) {
             const msg = String(data?.error || '').toLowerCase();
-            if (msg.includes('deactivated')) {
-              setServerError('This account is deactivated. Please contact the administrator.');
+            const code = data?.code;
+            if (code === ACCOUNT_DEACTIVATED_CODE || msg.includes('deactivated')) {
+              setServerError(DEACTIVATED_NOTICE);
               return;
             }
             setServerError('Email not verified. Check your inbox or verify now.');
@@ -208,9 +212,13 @@ function AuthPage({ embedded = false }) {
           setServerError("No account for this Google email. Use Sign up with Google.");
           return;
         }
-        if (res.status === 403 && String(data?.error || '').toLowerCase().includes('deactivated')) {
-          setServerError('This account is deactivated. Please contact the administrator.');
-          return;
+        if (res.status === 403) {
+          const msg = String(data?.error || '').toLowerCase();
+          const code = data?.code;
+          if (code === ACCOUNT_DEACTIVATED_CODE || msg.includes('deactivated')) {
+            setServerError(DEACTIVATED_NOTICE);
+            return;
+          }
         }
         throw new Error(data?.error || 'Google login failed');
       }

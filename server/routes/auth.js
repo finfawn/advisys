@@ -15,6 +15,8 @@ const VERIF_TTL_MIN = Number(process.env.VERIFICATION_CODE_TTL_MINUTES || 10);
 const VERIF_RESEND_SECONDS = Number(process.env.VERIFICATION_CODE_RESEND_SECONDS || 60);
 const VERIF_MAX_PER_HOUR = Number(process.env.VERIFICATION_MAX_PER_HOUR || 5);
 const VERIFICATION_DISABLED = String(process.env.EMAIL_VERIFICATION_DISABLED || 'false').toLowerCase() === 'true';
+const ACCOUNT_DEACTIVATED_CODE = 'ACCOUNT_DEACTIVATED';
+const ACCOUNT_DEACTIVATED_MESSAGE = 'This account has been deactivated. Please contact the administrator for assistance.';
 
 function genCode() {
   const n = Math.floor(Math.random() * 1_000_000);
@@ -54,6 +56,41 @@ function makeToken(user) {
   };
   const secret = process.env.JWT_SECRET || 'dev-secret';
   return jwt.sign(payload, secret, { expiresIn: '7d' });
+}
+
+function buildDeactivatedResponse() {
+  return {
+    error: ACCOUNT_DEACTIVATED_MESSAGE,
+    code: ACCOUNT_DEACTIVATED_CODE,
+  };
+}
+
+function hasEmailVerifiedField(user = {}) {
+  return Object.prototype.hasOwnProperty.call(user, 'email_verified');
+}
+
+function isEmailVerified(user = {}) {
+  if (!hasEmailVerifiedField(user)) return false;
+  const val = user.email_verified;
+  if (val === null || typeof val === 'undefined') return false;
+  return Number(val) === 1;
+}
+
+async function shouldBlockForDeactivation(pool, user = {}) {
+  if (!user || !user.id) return false;
+  const statusLower = String(user.status || '').toLowerCase();
+  if (statusLower === 'active') return false;
+  let hasDeactivationEvent = false;
+  try {
+    const [[deact]] = await pool.query(
+      'SELECT id FROM user_deactivation_events WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+      [user.id]
+    );
+    hasDeactivationEvent = Boolean(deact && deact.id);
+  } catch (_) {}
+  if (hasDeactivationEvent) return true;
+  if (VERIFICATION_DISABLED) return true;
+  return isEmailVerified(user);
 }
 
 // POST /api/auth/register
@@ -156,17 +193,9 @@ router.post('/login', async (req, res) => {
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
 
-    try {
-      if (String(user.status).toLowerCase() !== 'active') {
-        const [[deact]] = await pool.query(
-          'SELECT id FROM user_deactivation_events WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
-          [user.id]
-        );
-        if (deact && deact.id) {
-          return res.status(403).json({ error: 'Account deactivated' });
-        }
-      }
-    } catch (_) {}
+    if (await shouldBlockForDeactivation(pool, user)) {
+      return res.status(403).json(buildDeactivatedResponse());
+    }
     if (!VERIFICATION_DISABLED) {
       const hasEmailVerified = typeof user.email_verified !== 'undefined';
       const notVerified = hasEmailVerified ? Number(user.email_verified) !== 1 : (String(user.status).toLowerCase() !== 'active');
@@ -285,20 +314,20 @@ router.post('/firebase-login', async (req, res) => {
     const email = String(decoded.email || '').trim().toLowerCase();
     const name = String(decoded.name || decoded.displayName || '').trim() || email;
     if (!email) return res.status(400).json({ error: 'Email missing from token' });
-    const [rows] = await pool.query('SELECT id, role, email, full_name, status FROM users WHERE email = ? LIMIT 1', [email]);
+    let rows;
+    try {
+      [rows] = await pool.query('SELECT id, role, email, full_name, status, email_verified FROM users WHERE email = ? LIMIT 1', [email]);
+    } catch (_) {
+      [rows] = await pool.query('SELECT id, role, email, full_name, status FROM users WHERE email = ? LIMIT 1', [email]);
+    }
     if (rows.length) {
       const user = rows[0];
+      if (await shouldBlockForDeactivation(pool, user)) {
+        return res.status(403).json(buildDeactivatedResponse());
+      }
       if (String(user.status).toLowerCase() !== 'active') {
-        try {
-          const [[deact]] = await pool.query(
-            'SELECT id FROM user_deactivation_events WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
-            [user.id]
-          );
-          if (deact && deact.id) {
-            return res.status(403).json({ error: 'Account deactivated' });
-          }
-        } catch (_) {}
         await pool.query('UPDATE users SET status = ? WHERE id = ?', ['active', user.id]);
+        user.status = 'active';
       }
       try { await pool.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [user.id]); } catch (_) {}
       const token = makeToken(user);
