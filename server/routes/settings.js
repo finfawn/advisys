@@ -607,15 +607,43 @@ router.post('/academic/terms/:termId/ensure-members', async (req, res) => {
     }
 
     if (toInsertRows.length) {
-      const values = [];
-      for (const r of toInsertRows) {
-        values.push([termId, Number(r.user_id), 'student', 'enrolled', r.program || null, r.year_level != null ? String(r.year_level) : null]);
+      const conn = await pool.getConnection();
+      try {
+        await conn.beginTransaction();
+
+        const values = [];
+        const toActivateIds = [];
+        for (const r of toInsertRows) {
+          const uid = Number(r.user_id);
+          values.push([termId, uid, 'student', 'enrolled', r.program || null, r.year_level != null ? String(r.year_level) : null]);
+          toActivateIds.push(uid);
+        }
+        await conn.query(
+          `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
+           VALUES ${values.map(()=>'(?,?,?,?,?,?)').join(',')}`,
+          values.flat()
+        );
+
+        // Activate any inactive students being added to the term
+        if (toActivateIds.length) {
+          await conn.query(
+            `UPDATE users SET status = 'active' WHERE role = 'student' AND id IN (${toActivateIds.map(()=>'?').join(',')})`,
+            toActivateIds
+          );
+          // Normalize membership status to 'enrolled' in case of previous 'dropped'/'graduated'
+          await conn.query(
+            `UPDATE academic_term_memberships SET status_in_term = 'enrolled' WHERE term_id = ? AND role = 'student' AND user_id IN (${toActivateIds.map(()=>'?').join(',')})`,
+            [termId, ...toActivateIds]
+          );
+        }
+
+        await conn.commit();
+      } catch (err) {
+        try { await conn.rollback(); } catch (_) {}
+        throw err;
+      } finally {
+        conn.release();
       }
-      await pool.query(
-        `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
-         VALUES ${values.map(()=>'(?,?,?,?,?,?)').join(',')}`,
-        values.flat()
-      );
     }
     return res.json({ success: true, totalCandidates: ids.length, alreadyMembers: existingSet.size, toInsert: toInsertRows.length, inserted: toInsertRows.length });
   } catch (err) {

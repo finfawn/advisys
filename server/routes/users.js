@@ -152,7 +152,21 @@ router.get('/', async (req, res) => {
     // Return both students and advisors if no role filter
     const [studentRows] = await pool.query(
       `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
-              sp.program, sp.year_level, sp.avatar_url
+              sp.program, sp.year_level, sp.avatar_url,
+              (
+                SELECT e.reason
+                FROM user_deactivation_events e
+                WHERE e.user_id = u.id
+                ORDER BY e.created_at DESC, e.id DESC
+                LIMIT 1
+              ) AS last_reason,
+              (
+                SELECT e.other_reason
+                FROM user_deactivation_events e
+                WHERE e.user_id = u.id
+                ORDER BY e.created_at DESC, e.id DESC
+                LIMIT 1
+              ) AS last_other
        FROM users u
        LEFT JOIN student_profiles sp ON sp.user_id = u.id
        WHERE u.role = 'student'
@@ -176,6 +190,8 @@ router.get('/', async (req, res) => {
       program: r.program || null,
       year: formatYear(r.year_level || 1),
       avatar_url: r.avatar_url || null,
+      deactivationReason: r.last_reason || null,
+      deactivationOther: r.last_other || null,
     }));
     const advisors = advisorRows.map(r => ({
       id: r.id,
@@ -358,10 +374,12 @@ router.patch('/:id/status', async (req, res) => {
     const [[userCheck]] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
     const isStudent = userCheck && String(userCheck.role).toLowerCase() === 'student';
 
-    // If student is being activated, remove from all term memberships (active students can't be enrolled)
+    // If student is being activated, ensure term memberships reflect 'enrolled'
     if (newStatus === 'active' && isStudent) {
       await pool.query(
-        `DELETE FROM academic_term_memberships WHERE user_id = ? AND role = 'student'`,
+        `UPDATE academic_term_memberships
+         SET status_in_term = 'enrolled'
+         WHERE user_id = ? AND role = 'student' AND status_in_term IN ('dropped','graduated')`,
         [userId]
       );
     }
