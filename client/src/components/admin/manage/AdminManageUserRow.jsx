@@ -68,7 +68,7 @@ export default function AdminManageUserRow({
                 : ((item.deactivationReason || '').charAt(0).toUpperCase() + (item.deactivationReason || '').slice(1))}
             </span>
           )}
-          {showTermStatus && isStudent && (
+          {showTermStatus && isStudent && item.active && (
             <span 
               className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag ${
                 !isMember || termStatus === undefined 

@@ -38,22 +38,37 @@ export default function AdminManageFilters({
       <input type="text" name="username" autoComplete="username" style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} tabIndex={-1} aria-hidden="true" />
       <input type="password" name="password" autoComplete="new-password" style={{ position: 'absolute', opacity: 0, height: 0, width: 0, pointerEvents: 'none' }} tabIndex={-1} aria-hidden="true" />
       <div className="flex w-full items-center justify-between gap-1.5 flex-wrap">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {showTermSelector && Array.isArray(terms) && terms.length > 0 && (
-            <Select value={termId || 'current'} onValueChange={onTermChange}>
-              <SelectTrigger className="select-trigger w-[180px] h-7 px-2 py-1 text-[11px] md:h-8 md:text-xs">
-                <SelectValue placeholder="Show data for" />
-              </SelectTrigger>
-              <SelectContent align="start">
-                <SelectItem value="current">Current Term</SelectItem>
-                <SelectItem value="all">All Terms</SelectItem>
-                {terms.map(t => (
-                  <SelectItem key={t.id} value={String(t.id)}>
-                    {t.year_label} • {t.semester_label} Semester
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <>
+              <Select value={termId || 'current'} onValueChange={onTermChange}>
+                <SelectTrigger className="select-trigger w-[180px] h-7 px-2 py-1 text-[11px] md:h-8 md:text-xs">
+                  <SelectValue placeholder="Show data for" />
+                </SelectTrigger>
+                <SelectContent align="start">
+                  <SelectItem value="current">Current Term</SelectItem>
+                  <SelectItem value="all">All Terms</SelectItem>
+                  {terms.map(t => (
+                    <SelectItem key={t.id} value={String(t.id)}>
+                      {t.year_label} • {t.semester_label} Semester
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {termId !== 'all' && (
+                <Select value={termStatus} onValueChange={onTermStatusChange}>
+                  <SelectTrigger className="select-trigger w-[150px] h-7 px-2 py-1 text-[11px] md:h-8 md:text-xs">
+                    <SelectValue placeholder="Term Status" />
+                  </SelectTrigger>
+                  <SelectContent align="start">
+                    <SelectItem value="all">All Term Status</SelectItem>
+                    <SelectItem value="enrolled">Enrolled</SelectItem>
+                    <SelectItem value="dropped">Dropped</SelectItem>
+                    <SelectItem value="graduated">Graduated</SelectItem>
+                  </SelectContent>
+                </Select>
+              )}
+            </>
           )}
           <div className="relative min-w-[200px] max-w-[440px]">
             <Input
@@ -102,17 +117,6 @@ export default function AdminManageFilters({
               <SelectItem value="2nd Year">2nd Year</SelectItem>
               <SelectItem value="3rd Year">3rd Year</SelectItem>
               <SelectItem value="4th Year">4th Year</SelectItem>
-            </SelectContent>
-          </Select>
-        )}
-        {showTermSelector && termId !== 'all' && (
-          <Select value={termStatus} onValueChange={onTermStatusChange}>
-            <SelectTrigger className="select-trigger w-[150px] h-7 px-2 py-1 text-[11px] md:h-8 md:text-xs"><SelectValue placeholder="Term Status" /></SelectTrigger>
-            <SelectContent align="end">
-              <SelectItem value="all">All Term Status</SelectItem>
-              <SelectItem value="enrolled">Enrolled</SelectItem>
-              <SelectItem value="dropped">Dropped</SelectItem>
-              <SelectItem value="graduated">Graduated</SelectItem>
             </SelectContent>
           </Select>
         )}
