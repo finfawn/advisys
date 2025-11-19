@@ -358,6 +358,14 @@ router.patch('/:id/status', async (req, res) => {
     const [[userCheck]] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
     const isStudent = userCheck && String(userCheck.role).toLowerCase() === 'student';
 
+    // If student is being activated, remove from all term memberships (active students can't be enrolled)
+    if (newStatus === 'active' && isStudent) {
+      await pool.query(
+        `DELETE FROM academic_term_memberships WHERE user_id = ? AND role = 'student'`,
+        [userId]
+      );
+    }
+
     // Record deactivation event with optional term context
     if (newStatus === 'inactive' && reason) {
       await pool.query(
@@ -366,32 +374,25 @@ router.patch('/:id/status', async (req, res) => {
         [userId, termId || null, ['graduated','dropped'].includes(String(reason)) ? String(reason) : 'other', otherReason || null]
       );
       
-      // If student is being deactivated, unenroll from all terms where they are enrolled
+      // If student is being deactivated, update enrollment status in all terms
       if (isStudent) {
         const deactivationStatus = (reason === 'graduated' || reason === 'dropped') ? String(reason) : 'dropped';
         
-        // If specific term provided, update that term
+        // Update enrollment status in all terms where student is enrolled
+        await pool.query(
+          `UPDATE academic_term_memberships
+           SET status_in_term = ?
+           WHERE user_id = ? AND role = 'student' AND status_in_term = 'enrolled'`,
+          [deactivationStatus, userId]
+        );
+        
+        // If specific term provided, also archive consultations for that term
         if (termId && (reason === 'graduated' || reason === 'dropped')) {
-          await pool.query(
-            `UPDATE academic_term_memberships
-             SET status_in_term = ?
-             WHERE term_id = ? AND user_id = ? AND role = 'student'`,
-            [deactivationStatus, Number(termId), userId]
-          );
-          // Archive pending/approved requests for that student in the term
           await pool.query(
             `UPDATE consultations
              SET archived_at = IFNULL(archived_at, NOW()), archive_reason = ?
              WHERE student_user_id = ? AND academic_term_id = ? AND status IN ('pending','approved')`,
             [String(reason), userId, Number(termId)]
-          );
-        } else {
-          // No specific term, unenroll from all terms where student is enrolled
-          await pool.query(
-            `UPDATE academic_term_memberships
-             SET status_in_term = ?
-             WHERE user_id = ? AND role = 'student' AND status_in_term = 'enrolled'`,
-            [deactivationStatus, userId]
           );
         }
       }
@@ -443,23 +444,17 @@ router.post('/bulk-deactivate', async (req, res) => {
     // Unenroll students from all terms when deactivated
     const deactivationStatus = (reasonNorm === 'graduated' || reasonNorm === 'dropped') ? reasonNorm : 'dropped';
     
-    // If specific term provided, update that term
-    if (term && (reasonNorm === 'graduated' || reasonNorm === 'dropped')) {
+    // Update enrollment status in all terms where students are enrolled
+    await pool.query(
+      `UPDATE academic_term_memberships SET status_in_term = ? WHERE role = 'student' AND status_in_term = 'enrolled' AND user_id IN (${ids.map(()=>'?').join(',')})`,
+      [deactivationStatus, ...ids]
+    );
+    
+    // If specific term provided, also archive consultations for that term
+    if (term && archiveOpenConsultations && (reasonNorm === 'graduated' || reasonNorm === 'dropped')) {
       await pool.query(
-        `UPDATE academic_term_memberships SET status_in_term = ? WHERE term_id = ? AND role = 'student' AND user_id IN (${ids.map(()=>'?').join(',')})`,
+        `UPDATE consultations SET archived_at = IFNULL(archived_at, NOW()), archive_reason = ? WHERE academic_term_id = ? AND status IN ('pending','approved') AND student_user_id IN (${ids.map(()=>'?').join(',')})`,
         [reasonNorm, term, ...ids]
-      );
-      if (archiveOpenConsultations) {
-        await pool.query(
-          `UPDATE consultations SET archived_at = IFNULL(archived_at, NOW()), archive_reason = ? WHERE academic_term_id = ? AND status IN ('pending','approved') AND student_user_id IN (${ids.map(()=>'?').join(',')})`,
-          [reasonNorm, term, ...ids]
-        );
-      }
-    } else {
-      // No specific term, unenroll from all terms where students are enrolled
-      await pool.query(
-        `UPDATE academic_term_memberships SET status_in_term = ? WHERE role = 'student' AND status_in_term = 'enrolled' AND user_id IN (${ids.map(()=>'?').join(',')})`,
-        [deactivationStatus, ...ids]
       );
     }
 

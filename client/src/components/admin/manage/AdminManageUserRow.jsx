@@ -58,32 +58,28 @@ export default function AdminManageUserRow({
           >
             {item.active ? "Active" : "Inactive"}
           </Badge>
-          {(() => {
-            if (!item.active && (item.deactivationReason || item.deactivationOther)) {
-              return (
-                <span
-                  className="ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs max-w-[120px] truncate"
-                  title={item.deactivationReason === 'other' ? (item.deactivationOther || 'Other') : (item.deactivationReason || '')}
-                >
-                  {item.deactivationReason === 'other'
-                    ? (item.deactivationOther || 'Other')
-                    : ((item.deactivationReason || '').charAt(0).toUpperCase() + (item.deactivationReason || '').slice(1))}
-                </span>
-              );
-            } else if (showTermStatus && isStudent && item.active && isMember && termStatus !== undefined && String(termStatus || '').toLowerCase() === 'enrolled') {
-              return (
-                <span 
-                  className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag opacity-100`}
-                >
-                  {(() => {
-                    const s = String(termStatus || 'enrolled');
-                    return s.charAt(0).toUpperCase() + s.slice(1);
-                  })()}
-                </span>
-              );
-            }
-            return null;
-          })()}
+          {/* Show enrollment status tag ONLY for inactive students who are term members */}
+          {showTermStatus && isStudent && !item.active && isMember && termStatus !== undefined && (
+            <span 
+              className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag ${
+                !isMember || termStatus === undefined 
+                  ? 'opacity-50 animate-pulse bg-gray-50' 
+                  : 'opacity-100'
+              }`}
+            >
+              {!isMember || termStatus === undefined ? (
+                <>
+                  <span className="w-1 h-1 bg-gray-400 rounded-full mr-1"></span>
+                  <span className="text-xs">...</span>
+                </>
+              ) : (
+                (() => {
+                  const s = String(termStatus || 'enrolled');
+                  return s.charAt(0).toUpperCase() + s.slice(1);
+                })()
+              )}
+            </span>
+          )}
         </div>
       </TableCell>
       <TableCell className="w-[64px] text-right py-1">

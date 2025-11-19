@@ -313,7 +313,17 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       const data = await res.json().catch(()=>({}));
       if (!res.ok) throw new Error(data?.error || 'Add failed');
       await loadTermMembers();
-      try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Added to term', description: `${selectedIds.length} user(s) added` }); } catch {}
+      // Refresh students data since they'll be deactivated when added to term
+      if (activeTab === 'students') {
+        try {
+          const res = await fetch(`${base}/api/users?role=student`);
+          const data = await res.json();
+          if (Array.isArray(data)) setStudentsData(data);
+        } catch (err) {
+          console.error('Failed to refresh students data', err);
+        }
+      }
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Added to term', description: `${selectedIds.length} user(s) added and deactivated` }); } catch {}
     } catch (e) {
       try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Error', description: e?.message || 'Failed to add to term' }); } catch { alert('Failed to add to term'); }
     }
@@ -516,15 +526,10 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
         extras = { reason: singleDeactivate.reason, otherReason: singleDeactivate.reason === 'other' ? (singleDeactivate.otherReason || '') : undefined, termId: termId || undefined };
       }
       await persistStatus(item.id, !previousState, extras);
-      // Reload term members to reflect enrollment status changes when student is deactivated
-      if (activeTab === 'students' && previousState === true) {
+      // Reload term members to reflect enrollment status changes when student status changes
+      // (deactivation updates enrollment status, activation removes from term memberships)
+      if (activeTab === 'students') {
         await loadTermMembers();
-      } else {
-        try {
-          if (extras && extras.termId && extras.reason && (extras.reason === 'graduated' || extras.reason === 'dropped') && activeTab === 'students') {
-            setMemberStatusMap(prev => new Map(prev.set(item.id, String(extras.reason))));
-          }
-        } catch {}
       }
     } catch {
       // Revert optimistic update on error
