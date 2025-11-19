@@ -65,7 +65,9 @@ export default function AdminManageUserRow({
                   className="ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs max-w-[120px] truncate"
                   title={item.deactivationReason === 'other' ? (item.deactivationOther || 'Other') : (item.deactivationReason || '')}
                 >
-                  Deactivated
+                  {item.deactivationReason === 'other'
+                    ? (item.deactivationOther || 'Other')
+                    : ((item.deactivationReason || '').charAt(0).toUpperCase() + (item.deactivationReason || '').slice(1))}
                 </span>
               );
             } else if (showTermStatus && isStudent && item.active && isMember && termStatus !== undefined && String(termStatus || '').toLowerCase() === 'enrolled') {

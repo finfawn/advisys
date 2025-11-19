@@ -259,7 +259,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       const res = await fetch(`${base}/api/settings/academic/terms/${termId}/members?role=${role}`);
       const data = await res.json();
       const set = new Set(Array.isArray(data) ? data.map(x=>x.id) : []);
-      const map = new Map(Array.isArray(data) ? data.map(x => [x.id, x.status_in_term]) : []);
+      const map = new Map(Array.isArray(data) ? data.map(x => [x.id, x.active ? x.status_in_term : undefined]) : []);
       setMemberSet(set);
       setMemberStatusMap(map);
       setMemberList(Array.isArray(data) ? data : []);
