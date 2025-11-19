@@ -653,6 +653,7 @@ export default function AdvisorSettingsPage() {
             {/* Settings Content */}
             <div className="settings-content">
               {/* Sidebar Navigation */}
+              {!mobileSettingsOpen && (
               <div className="settings-sidebar">
                 <button
                   className={`settings-nav-item ${activeSection === "profile" ? "active" : ""}`}
@@ -683,6 +684,7 @@ export default function AdvisorSettingsPage() {
                   <span>Security</span>
                 </button>
               </div>
+              )}
 
               {/* Main Content Area */}
               <div className="settings-panel">

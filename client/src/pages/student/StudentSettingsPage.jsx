@@ -443,6 +443,7 @@ export default function StudentSettingsPage() {
 
             <div className="settings-content">
               {/* Settings Sidebar */}
+              {!mobileSettingsOpen && (
               <div className="settings-sidebar">
                 <nav className="settings-nav">
                   {settingsSections.map((section) => {
@@ -460,6 +461,7 @@ export default function StudentSettingsPage() {
                   })}
                 </nav>
               </div>
+              )}
 
               {/* Settings Content */}
               <div className="settings-panel">

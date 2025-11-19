@@ -167,7 +167,7 @@ router.post('/consultations', async (req, res) => {
       `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.advisor_user_id
-       JOIN advisor_profiles ap ON ap.user_id = u.id
+       LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE c.id = ?`, [newId]
     );
     if (!rows.length) {
@@ -976,7 +976,7 @@ router.patch('/consultations/:id', async (req, res) => {
       `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
        FROM consultations c
        JOIN users u ON u.id = c.advisor_user_id
-       JOIN advisor_profiles ap ON ap.user_id = u.id
+       LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE c.id = ?`, [id]
     );
     const start = new Date(r.start_datetime);

@@ -600,10 +600,35 @@ input:checked + .toggle-slider:before {
 }
 
 @media (min-width: 768px) {
-  .settings-content {
-    padding-bottom: 115px;
+.settings-content {
+  padding-bottom: 115px;
+}
+
+}
+
+/* Tablet and mid-width responsiveness: prevent main content from disappearing */
+@media (min-width: 768px) and (max-width: 1366px) {
+  .advisor-dash-wrap {
+    height: auto !important;
+    min-height: 100vh !important;
+    overflow: visible !important;
   }
-  
+  .advisor-dash-body,
+  .advisor-dash-body.collapsed {
+    grid-template-columns: 1fr !important;
+    height: auto !important;
+    overflow: visible !important;
+    gap: 0 !important;
+  }
+  .advisor-dash-main {
+    padding: 18px !important;
+    padding-left: 18px !important;
+    height: auto !important;
+    overflow-y: visible !important;
+  }
+  .advisor-dash-main .settings-content {
+    min-height: auto !important;
+  }
 }
 
 @media (max-width: 768px) {

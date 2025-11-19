@@ -479,14 +479,20 @@ export default function AdvisorAvailability() {
           <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Delete Slot</AlertDialogTitle>
-                <AlertDialogDescription>
+                <AlertDialogTitle className="leading-none text-center">Delete Slot</AlertDialogTitle>
+                <AlertDialogDescription className="text-center">
                   {pendingDeleteEvent ? `Delete the slot from ${formatTimePH(pendingDeleteEvent.start)} to ${formatTimePH(pendingDeleteEvent.end)}?` : 'Delete this slot?'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
-              <AlertDialogFooter className="items-center">
+              <AlertDialogFooter className="sm:items-center sm:justify-between">
+                <AlertDialogCancel 
+                  className="min-w-[96px] mt-0 mr-auto"
+                  onClick={() => { setDeleteOpen(false); setPendingDeleteEvent(null); }}
+                >
+                  Cancel
+                </AlertDialogCancel>
                 <AlertDialogAction 
-                  className="min-w-[110px] h-10 px-4"
+                  className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
                   onClick={async () => {
                     if (pendingDeleteEvent) {
                       try {
@@ -514,12 +520,6 @@ export default function AdvisorAvailability() {
                 >
                   Delete
                 </AlertDialogAction>
-                <AlertDialogCancel 
-                  className="min-w-[110px] h-10 px-4"
-                  onClick={() => { setDeleteOpen(false); setPendingDeleteEvent(null); }}
-                >
-                  Cancel
-                </AlertDialogCancel>
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
