@@ -654,7 +654,7 @@ export default function AdvisorSettingsPage() {
             <div className="settings-content">
               {/* Sidebar Navigation */}
               {!mobileSettingsOpen && (
-              <div className="settings-sidebar">
+              <div className="settings-sidebar hidden lg:block">
                 <button
                   className={`settings-nav-item ${activeSection === "profile" ? "active" : ""}`}
                   onClick={() => setActiveSection("profile")}

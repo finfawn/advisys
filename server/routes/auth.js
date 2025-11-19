@@ -155,8 +155,21 @@ router.post('/login', async (req, res) => {
     if (!user.password_hash) return res.status(401).json({ error: 'Invalid credentials' });
     const ok = await bcrypt.compare(password, user.password_hash);
     if (!ok) return res.status(401).json({ error: 'Invalid credentials' });
+
+    try {
+      if (String(user.status).toLowerCase() !== 'active') {
+        const [[deact]] = await pool.query(
+          'SELECT id FROM user_deactivation_events WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+          [user.id]
+        );
+        if (deact && deact.id) {
+          return res.status(403).json({ error: 'Account deactivated' });
+        }
+      }
+    } catch (_) {}
     if (!VERIFICATION_DISABLED) {
-      const notVerified = (typeof user.email_verified !== 'undefined') ? Number(user.email_verified) !== 1 : (user.status !== 'active');
+      const hasEmailVerified = typeof user.email_verified !== 'undefined';
+      const notVerified = hasEmailVerified ? Number(user.email_verified) !== 1 : (String(user.status).toLowerCase() !== 'active');
       if (notVerified) {
         return res.status(403).json({ error: 'Email not verified' });
       }
@@ -275,7 +288,18 @@ router.post('/firebase-login', async (req, res) => {
     const [rows] = await pool.query('SELECT id, role, email, full_name, status FROM users WHERE email = ? LIMIT 1', [email]);
     if (rows.length) {
       const user = rows[0];
-      if (user.status !== 'active') await pool.query('UPDATE users SET status = ? WHERE id = ?', ['active', user.id]);
+      if (String(user.status).toLowerCase() !== 'active') {
+        try {
+          const [[deact]] = await pool.query(
+            'SELECT id FROM user_deactivation_events WHERE user_id = ? ORDER BY created_at DESC, id DESC LIMIT 1',
+            [user.id]
+          );
+          if (deact && deact.id) {
+            return res.status(403).json({ error: 'Account deactivated' });
+          }
+        } catch (_) {}
+        await pool.query('UPDATE users SET status = ? WHERE id = ?', ['active', user.id]);
+      }
       try { await pool.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [user.id]); } catch (_) {}
       const token = makeToken(user);
       return res.json({ token, user: { id: user.id, role: user.role, email: user.email, full_name: user.full_name } });

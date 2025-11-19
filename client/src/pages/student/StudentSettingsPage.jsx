@@ -444,7 +444,7 @@ export default function StudentSettingsPage() {
             <div className="settings-content">
               {/* Settings Sidebar */}
               {!mobileSettingsOpen && (
-              <div className="settings-sidebar">
+              <div className="settings-sidebar hidden lg:block">
                 <nav className="settings-nav">
                   {settingsSections.map((section) => {
                     const Icon = section.icon;

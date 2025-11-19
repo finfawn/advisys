@@ -75,11 +75,16 @@ function AuthPage({ embedded = false }) {
         const data = await res.json();
         if (!res.ok) {
           if (res.status === 403) {
-            setServerError("Email not verified. Check your inbox or verify now.");
+            const msg = String(data?.error || '').toLowerCase();
+            if (msg.includes('deactivated')) {
+              setServerError('This account is deactivated. Please contact the administrator.');
+              return;
+            }
+            setServerError('Email not verified. Check your inbox or verify now.');
             navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}`);
             return;
           }
-          const errMsg = data?.error || "Login failed";
+          const errMsg = data?.error || 'Login failed';
           throw new Error(errMsg);
         }
         localStorage.setItem("advisys_token", data.token);
@@ -203,7 +208,11 @@ function AuthPage({ embedded = false }) {
           setServerError("No account for this Google email. Use Sign up with Google.");
           return;
         }
-        throw new Error(data?.error || "Google login failed");
+        if (res.status === 403 && String(data?.error || '').toLowerCase().includes('deactivated')) {
+          setServerError('This account is deactivated. Please contact the administrator.');
+          return;
+        }
+        throw new Error(data?.error || 'Google login failed');
       }
       localStorage.setItem("advisys_token", data.token);
       localStorage.setItem("advisys_user", JSON.stringify(data.user));
