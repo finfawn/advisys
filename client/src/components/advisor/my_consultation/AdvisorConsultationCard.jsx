@@ -93,7 +93,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   };
 
   const shouldShowSingleAction = () => {
-    return consultation.status !== 'pending' && consultation.status !== 'declined';
+    return consultation.status !== 'pending' && consultation.status !== 'declined' && consultation.status !== 'completed' && consultation.status !== 'missed' && consultation.status !== 'expired';
   };
 
   const statusInfo = getStatusInfo();

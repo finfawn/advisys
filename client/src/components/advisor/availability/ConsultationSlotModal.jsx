@@ -300,13 +300,11 @@ export default function ConsultationSlotModal({
 
   // Update end time when start time changes and preset is active
   const handleStartChange = useCallback((value) => {
-    const rounded = roundTo15(value);
-    setStartTime(rounded);
+    setStartTime(value);
   }, []);
 
   const handleEndChange = useCallback((value) => {
-    const rounded = roundTo15(value);
-    setEndTime(rounded);
+    setEndTime(value);
   }, []);
 
   const durationMinutes = useMemo(() => (durationPreset === "custom" ? Number(customMinutes || 0) : Number(durationPreset)), [durationPreset, customMinutes]);

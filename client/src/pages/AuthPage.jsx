@@ -40,6 +40,8 @@ function AuthPage({ embedded = false }) {
   const [forgotSubmitting, setForgotSubmitting] = useState(false);
   const [forgotDone, setForgotDone] = useState(false);
   const [forgotErr, setForgotErr] = useState('');
+  const [serverFirebaseAuthEnabled, setServerFirebaseAuthEnabled] = useState(false);
+  const [configLoaded, setConfigLoaded] = useState(false);
 
   const onChange = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
 
@@ -137,7 +139,7 @@ function AuthPage({ embedded = false }) {
   };
 
   const onGoogle = async () => {
-    if (!enableGoogle) return;
+    if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
     setSubmitting(true);
     setServerError("");
     const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -194,7 +196,7 @@ function AuthPage({ embedded = false }) {
   };
 
   const onGoogleLogin = async () => {
-    if (!enableGoogle) return;
+    if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
     setSubmitting(true);
     setServerError("");
     const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -236,9 +238,25 @@ function AuthPage({ embedded = false }) {
   };
 
   React.useEffect(() => {
-    if (!enableGoogle) return;
-    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-    getRedirectResult(auth).then(async (result) => {
+  if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
+  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  // Fetch server auth config first
+  fetch(`${base}/api/auth/config`)
+    .then(res => res.json())
+    .then(data => {
+      setServerFirebaseAuthEnabled(Boolean(data.firebaseAuthEnabled));
+      setConfigLoaded(true);
+    })
+    .catch(() => {
+      setServerFirebaseAuthEnabled(false);
+      setConfigLoaded(true);
+    });
+}, [enableGoogle]);
+
+React.useEffect(() => {
+  if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
+  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  getRedirectResult(auth).then(async (result) => {
       if (!result || !result.user) return;
       try {
         const idToken = await getIdToken(result.user, true);
@@ -287,9 +305,9 @@ function AuthPage({ embedded = false }) {
           <p className="mt-1 text-sm text-gray-500">
             {mode === "login" ? "Sign in to continue" : "Join us in minutes"}
           </p>
-          {enableGoogle && (
-            <p className="mt-1 text-xs text-gray-500">Use Google only to authenticate your AdviSys account.</p>
-          )}
+          {enableGoogle && configLoaded && serverFirebaseAuthEnabled && (
+  <p className="mt-1 text-xs text-gray-500">Use Google only to authenticate your AdviSys account.</p>
+)}
         </div>
 
         <form onSubmit={onSubmit} className={embedded ? "space-y-4" : "space-y-6"} autoComplete="off">

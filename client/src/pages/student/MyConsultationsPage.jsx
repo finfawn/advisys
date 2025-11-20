@@ -359,10 +359,10 @@ export default function MyConsultationsPage() {
     });
 
     const upcoming = normalized
-      .filter(c => c.status === 'approved' && (c._isFuture || c._inGrace))
+      .filter(c => (c.status === 'approved' || c.status === 'pending') && (c._isFuture || c._inGrace))
       .sort((a, b) => new Date(a.start_datetime || a.date) - new Date(b.start_datetime || b.date));
 
-    const requests = normalized.filter(c => c.status === 'pending' || c.status === 'declined' || c.status === 'expired');
+    const requests = normalized.filter(c => c.status === 'declined' || c.status === 'expired');
 
     const history = normalized.filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'canceled' || c.status === 'missed');
 

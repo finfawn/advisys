@@ -378,6 +378,10 @@ router.post('/change-password', authMiddleware, async (req, res) => {
   }
 });
 
+router.get('/config', (req, res) => {
+  return res.json({ firebaseAuthEnabled: FIREBASE_AUTH_ENABLED });
+});
+
 module.exports = router;
 // --- Forgot Password ---
 // POST /api/auth/forgot-password
