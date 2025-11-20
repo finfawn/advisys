@@ -227,7 +227,7 @@ export default function MyConsultationsPage() {
       {
         const url = new URL(`${base}/api/consultations/students/${studentId}/consultations`);
         url.searchParams.set('__ts', String(Date.now()));
-        const res = await fetch(url.toString(), { headers: { ...authHeader, 'Cache-Control': 'no-cache', Pragma: 'no-cache' }, cache: 'no-store' });
+        const res = await fetch(url.toString(), { headers: { ...authHeader }, cache: 'no-store' });
         const raw = await res.json();
       const toArray = (x) => {
         if (Array.isArray(x)) return x;
@@ -263,7 +263,7 @@ export default function MyConsultationsPage() {
         const studentId = parsed?.id || 1;
         const url = new URL(`${base}/api/consultations/students/${studentId}/consultations`);
         url.searchParams.set('__ts', String(Date.now()));
-        const res = await fetch(url.toString(), { headers: { ...authHeader, 'Cache-Control': 'no-cache', Pragma: 'no-cache' }, cache: 'no-store' });
+        const res = await fetch(url.toString(), { headers: { ...authHeader }, cache: 'no-store' });
         const raw = await res.json();
         const toArray = (x) => {
           if (Array.isArray(x)) return x;

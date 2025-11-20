@@ -146,7 +146,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   };
 
   return (
-    <Card hoverable className="consultation-card-new flex flex-col">
+    <Card hoverable className="consultation-card-new advisor-consultation-card-new flex flex-col">
       <CardHeader spacing="compact" className="flex-row justify-between items-start pb-2">
         <Badge 
           variant={

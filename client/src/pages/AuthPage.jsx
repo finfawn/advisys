@@ -2,18 +2,16 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import RippleButton from "../lightswind/ripple-button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../lightswind/select";
-import { auth, googleProvider } from "../lib/firebase";
-import { signInWithPopup, signInWithRedirect, getRedirectResult, getIdToken } from "firebase/auth";
+
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "../lightswind/dialog";
+
+
 // role selection now uses Lightswind Select
 
 const ACCOUNT_DEACTIVATED_CODE = 'ACCOUNT_DEACTIVATED';
 const DEACTIVATED_NOTICE = 'This account has been deactivated. Please contact the administrator for assistance.';
 
 function AuthPage({ embedded = false }) {
-  const enableGoogle = String(
-    (import.meta.env.VITE_ENABLE_GOOGLE_SIGNIN ?? (import.meta.env.MODE === 'development' ? 'true' : 'false'))
-  ).toLowerCase() === 'true';
   const navigate = useNavigate();
   const [mode, setMode] = useState("login");
   const [form, setForm] = useState({
@@ -29,19 +27,12 @@ function AuthPage({ embedded = false }) {
   const [errors, setErrors] = useState({});
   const [submitting, setSubmitting] = useState(false);
   const [serverError, setServerError] = useState("");
-  const [googleOpen, setGoogleOpen] = useState(false);
-  const [googleRole, setGoogleRole] = useState('student');
-  const [googleProgram, setGoogleProgram] = useState('');
-  const [googleYearLevel, setGoogleYearLevel] = useState('');
-  const [googleDepartment, setGoogleDepartment] = useState('');
-  const [googleErr, setGoogleErr] = useState('');
+
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotEmail, setForgotEmail] = useState('');
   const [forgotSubmitting, setForgotSubmitting] = useState(false);
   const [forgotDone, setForgotDone] = useState(false);
   const [forgotErr, setForgotErr] = useState('');
-  const [serverFirebaseAuthEnabled, setServerFirebaseAuthEnabled] = useState(false);
-  const [configLoaded, setConfigLoaded] = useState(false);
 
   const onChange = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
 
@@ -138,37 +129,7 @@ function AuthPage({ embedded = false }) {
     }
   };
 
-  const onGoogle = async () => {
-    if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
-    setSubmitting(true);
-    setServerError("");
-    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-    try {
-      if ((import.meta.env.VITE_FIREBASE_SIGNIN_MODE || '').toLowerCase() === 'redirect') {
-        await signInWithRedirect(auth, googleProvider);
-        return;
-      }
-      const cred = await signInWithPopup(auth, googleProvider);
-      const idToken = await getIdToken(cred.user, true);
-      const res = await fetch(`${base}/api/auth/firebase-login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, role: googleRole, program: googleProgram, yearLevel: googleYearLevel, department: googleDepartment })
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data?.error || "Google sign-in failed");
-      localStorage.setItem("advisys_token", data.token);
-      localStorage.setItem("advisys_user", JSON.stringify(data.user));
-      if (data.user.role === "student") navigate("/student-dashboard");
-      else if (data.user.role === "advisor") navigate("/advisor-dashboard");
-      else if (data.user.role === "admin") navigate("/admin-dashboard");
-      else navigate("/");
-    } catch (err) {
-      setServerError(err?.code === 'auth/popup-closed-by-user' ? 'Google sign-in was cancelled.' : (err?.message || 'Google sign-in failed'));
-    } finally {
-      setSubmitting(false);
-    }
-  };
+
 
   const onForgot = async () => {
     const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
@@ -195,89 +156,9 @@ function AuthPage({ embedded = false }) {
     }
   };
 
-  const onGoogleLogin = async () => {
-    if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
-    setSubmitting(true);
-    setServerError("");
-    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-    try {
-      const cred = await signInWithPopup(auth, googleProvider);
-      const idToken = await getIdToken(cred.user, true);
-      const res = await fetch(`${base}/api/auth/firebase-login`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idToken, preventCreate: true })
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        if (res.status === 404) {
-          setServerError("No account for this Google email. Use Sign up with Google.");
-          return;
-        }
-        if (res.status === 403) {
-          const msg = String(data?.error || '').toLowerCase();
-          const code = data?.code;
-          if (code === ACCOUNT_DEACTIVATED_CODE || msg.includes('deactivated')) {
-            setServerError(DEACTIVATED_NOTICE);
-            return;
-          }
-        }
-        throw new Error(data?.error || 'Google login failed');
-      }
-      localStorage.setItem("advisys_token", data.token);
-      localStorage.setItem("advisys_user", JSON.stringify(data.user));
-      if (data.user.role === "student") navigate("/student-dashboard");
-      else if (data.user.role === "advisor") navigate("/advisor-dashboard");
-      else if (data.user.role === "admin") navigate("/admin-dashboard");
-      else navigate("/");
-    } catch (err) {
-      setServerError(err?.message || 'Google login failed');
-    } finally {
-      setSubmitting(false);
-    }
-  };
 
-  React.useEffect(() => {
-  if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
-  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-  // Fetch server auth config first
-  fetch(`${base}/api/auth/config`)
-    .then(res => res.json())
-    .then(data => {
-      setServerFirebaseAuthEnabled(Boolean(data.firebaseAuthEnabled));
-      setConfigLoaded(true);
-    })
-    .catch(() => {
-      setServerFirebaseAuthEnabled(false);
-      setConfigLoaded(true);
-    });
-}, [enableGoogle]);
 
-React.useEffect(() => {
-  if (!enableGoogle || !configLoaded || !serverFirebaseAuthEnabled) return;
-  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-  getRedirectResult(auth).then(async (result) => {
-      if (!result || !result.user) return;
-      try {
-        const idToken = await getIdToken(result.user, true);
-        const res = await fetch(`${base}/api/auth/firebase-login`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ idToken })
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data?.error || "Google sign-in failed");
-        localStorage.setItem("advisys_token", data.token);
-        localStorage.setItem("advisys_user", JSON.stringify(data.user));
-        if (data.user.role === "student") navigate("/student-dashboard");
-        else if (data.user.role === "advisor") navigate("/advisor-dashboard");
-        else if (data.user.role === "admin") navigate("/admin-dashboard");
-        else navigate("/");
-      } catch (err) {
-        setServerError(err.message || String(err));
-      }
-    }).catch(() => {});
-  }, [navigate, enableGoogle]);
+
 
   return (
     <div className={embedded ? "w-full min-h-[80vh] flex items-center justify-center px-4 py-8" : "min-h-screen auth-bg flex items-center justify-center px-4 py-10"}>
@@ -305,9 +186,7 @@ React.useEffect(() => {
           <p className="mt-1 text-sm text-gray-500">
             {mode === "login" ? "Sign in to continue" : "Join us in minutes"}
           </p>
-          {enableGoogle && configLoaded && serverFirebaseAuthEnabled && (
-  <p className="mt-1 text-xs text-gray-500">Use Google only to authenticate your AdviSys account.</p>
-)}
+
         </div>
 
         <form onSubmit={onSubmit} className={embedded ? "space-y-4" : "space-y-6"} autoComplete="off">
@@ -459,115 +338,8 @@ React.useEffect(() => {
               </button>
             </div>
           )}
-          {enableGoogle && (
-            <div className="pt-2 grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={onGoogleLogin}
-                className="w-full h-10 md:h-11 px-3 md:px-4 rounded-xl border border-gray-300 text-sm bg-white hover:bg-gray-50"
-              >
-                Log in with Google
-              </button>
-              <button
-                type="button"
-                onClick={() => { setGoogleErr(''); setGoogleOpen(true); }}
-                className="w-full h-10 md:h-11 px-3 md:px-4 rounded-xl border border-blue-400/70 text-sm bg-white hover:bg-blue-50"
-              >
-                Sign up with Google
-              </button>
-            </div>
-          )}
-          <Dialog open={enableGoogle && googleOpen} onOpenChange={setGoogleOpen}>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Continue with Google</DialogTitle>
-                <DialogDescription>Select your role and required details.</DialogDescription>
-              </DialogHeader>
-              <div className="mt-4 space-y-4">
-                <div>
-                  <label className="block text-xs text-gray-600 mb-1">Sign in as</label>
-                  <Select value={googleRole} onValueChange={(v)=> setGoogleRole(v)}>
-                    <SelectTrigger className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-white">
-                      <SelectValue placeholder="Select role" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="student">Student</SelectItem>
-                      <SelectItem value="advisor">Advisor</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                {googleRole === 'student' && (
-                  <>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Program</label>
-                      <Select value={googleProgram || ''} onValueChange={(v)=> setGoogleProgram(v)}>
-                        <SelectTrigger className={`w-full rounded-md border px-3 py-2 text-sm ${googleErr && !googleProgram ? 'border-red-400' : 'border-gray-300 bg-white'}`}>
-                          <SelectValue placeholder="Select program" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Bachelor of Science in Information Technology">Bachelor of Science in Information Technology</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Year Level</label>
-                      <Select value={googleYearLevel || ''} onValueChange={(v)=> setGoogleYearLevel(v)}>
-                        <SelectTrigger className={`w-full rounded-md border px-3 py-2 text-sm ${googleErr && !googleYearLevel ? 'border-red-400' : 'border-gray-300 bg-white'}`}>
-                          <SelectValue placeholder="Select year level" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="1">1st Year</SelectItem>
-                          <SelectItem value="2">2nd Year</SelectItem>
-                          <SelectItem value="3">3rd Year</SelectItem>
-                          <SelectItem value="4">4th Year</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                  </>
-                )}
-                {googleRole === 'advisor' && (
-                  <div>
-                    <label className="block text-xs text-gray-600 mb-1">Department</label>
-                    <Select value={googleDepartment || ''} onValueChange={(v)=> setGoogleDepartment(v)}>
-                      <SelectTrigger className={`w-full rounded-md border px-3 py-2 text-sm ${googleErr && !googleDepartment ? 'border-red-400' : 'border-gray-300 bg-white'}`}>
-                        <SelectValue placeholder="Select department" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="College of Information Technology">College of Information Technology</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                )}
-                {googleErr && <p className="text-sm text-red-600">{googleErr}</p>}
-                <div className="flex items-center justify-end gap-3 pt-2">
-                  <button
-                    type="button"
-                    className="h-10 px-4 rounded-xl border border-gray-300 text-sm bg-white hover:bg-gray-50"
-                    onClick={()=> setGoogleOpen(false)}
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700"
-                    onClick={() => {
-                      if (googleRole === 'student') {
-                        if (!googleProgram || !googleYearLevel) { setGoogleErr('Please select program and year level'); return; }
-                      } else {
-                        if (!googleDepartment) { setGoogleErr('Please select a department'); return; }
-                      }
-                      setGoogleErr('');
-                      setGoogleOpen(false);
-                      onGoogle();
-                    }}
-                  >
-                    Continue
-                  </button>
-                </div>
-              </div>
-              <DialogFooter className="mt-2"></DialogFooter>
-            </DialogContent>
-          </Dialog>
+
+
 
           {/* Forgot Password Dialog */}
           <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>

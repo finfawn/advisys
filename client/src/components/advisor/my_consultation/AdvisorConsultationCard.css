@@ -5,6 +5,7 @@
   transition: all 0.2s ease !important;
   border: 2px solid transparent !important;
   transform: none !important;
+  min-height: 220px;
 }
 
 .advisor-consultation-card-new:hover {
