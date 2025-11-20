@@ -179,7 +179,7 @@ function AuthPage({ embedded = false }) {
         <div className={embedded ? "text-center mb-6" : "text-center mb-8"}>
           <div className="flex items-center justify-center gap-3 mb-2">
                         <img src={logoLargeTransparent} alt="AdviSys" className="h-8 w-8 rounded-sm" />
-            <span className="text-lg font-semibold text-gray-900">AdviSys</span>
+            <span className="text-2xl font-bold text-gray-900">Advi<span className="text-blue-600">Sys</span></span>
           </div>
           <h1 className={embedded ? "mt-3 text-2xl font-extrabold tracking-tight text-gray-900" : "mt-3 text-3xl font-extrabold tracking-tight text-gray-900"}>
             {mode === "login" ? "Welcome back" : "Create your account"}

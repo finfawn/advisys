@@ -100,17 +100,13 @@ export default function AdvisorThreadPage() {
     if (advisorLabel) { doc.text(advisorLabel, margin, y); y += lineHeight; }
     if (studentLabel) { doc.text(studentLabel, margin, y); y += lineHeight; }
 
-    doc.setFontSize(16); doc.setFont(undefined, 'bold'); doc.text(title, margin, y); y += lineHeight;
-    doc.setFontSize(11); doc.setFont(undefined, 'normal');
-    if (advisorLabel) { doc.text(advisorLabel, margin, y); y += lineHeight; }
-    if (studentLabel) { doc.text(studentLabel, margin, y); y += lineHeight; }
-
     const termLabel = termId === 'all' ? 'All Terms' : (termId === 'current' ? 'Current Term' : (terms.find(t=>String(t.id)===String(termId))?.year_label + ' • ' + terms.find(t=>String(t.id)===String(termId))?.semester_label + ' Semester'));
     doc.setFontSize(10); doc.text(`Term: ${termLabel || 'Current'}`, margin, y); y += lineHeight;
-    y += 6;
-    doc.setFontSize(11);
+    const textLineHeight = 12;
+    const rowGap = 10;
     const addPageIfNeeded = (needed) => {
-      if (y + needed > 842 - margin) { doc.addPage(); y = margin; }
+      const pageHeight = doc.internal.pageSize.getHeight();
+      if (y + needed > pageHeight - margin) { doc.addPage(); y = margin; }
     };
     thread.forEach((c, idx) => {
       const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
@@ -135,15 +131,15 @@ export default function AdvisorThreadPage() {
       }
 
       const blockParts = [header, topic];
-      if (cancelReasonContent) blockParts.push(cancelReasonContent);
-      if (summaryContent) blockParts.push(summaryContent);
+      if (cancelReasonContent) blockParts.push('', cancelReasonContent);
+      if (summaryContent) blockParts.push('', summaryContent);
       const block = blockParts.join('\n');
       const lines = doc.splitTextToSize(block, maxWidth);
-      addPageIfNeeded(lines.length * (lineHeight - 2) + 12);
+      addPageIfNeeded(lines.length * textLineHeight + rowGap);
       doc.setFont(undefined, 'bold'); doc.text(`Consultation ${idx + 1}`, margin, y); y += lineHeight;
       doc.setFont(undefined, 'normal');
-      lines.forEach(line => { doc.text(line, margin, y); y += lineHeight - 2; });
-      y += 8;
+      lines.forEach(line => { doc.text(line, margin, y); y += textLineHeight; });
+      y += rowGap;
     });
     const fname = `Consultations_${advisorName || 'Advisor'}_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(fname);

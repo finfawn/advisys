@@ -202,7 +202,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
 
       // Add AdviSys logo
       const imgWidth = 100; // Adjust as needed
-      const imgHeight = 20; // Adjust as needed
+      const imgHeight = 20; // Adjust as needed (assuming 5:1 aspect ratio for logo)
       doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
       y += imgHeight + 10; // Adjust y position after logo
       doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title, margin, y); y += lineGap;
@@ -219,16 +219,23 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
       const ensurePage = (rowHeight) => { const pageHeightNow = doc.internal.pageSize.getHeight(); if (y + rowHeight + margin > pageHeightNow) { doc.addPage(); y = margin; } };
       const drawBlock = (c) => {
         const labelW = 110; const valueW = usable - labelW;
-        let boxTop = y - 8;
+        let boxTop = y - 6;
         const put = (label, val, bold=false) => {
           const lines = wrapText(val, valueW);
-          const h = Math.max(18, lines.length * 12);
-          ensurePage(h + 6);
+          const textHeight = lines.length * lineGap;
+          const currentBlockHeight = Math.max(lineGap, textHeight);
+          ensurePage(currentBlockHeight + rowGap);
+          
           if (bold) doc.setFont('helvetica','bold'); else doc.setFont('helvetica','normal');
           doc.text(label, margin, y);
           doc.setFont('helvetica','normal');
-          let yy = y; lines.forEach((ln,i)=>{ doc.text(ln, margin + labelW, yy); yy += 12; });
-          y = Math.max(y + 18, yy);
+          
+          let currentY = y;
+          lines.forEach((ln,i)=>{ 
+            doc.text(ln, margin + labelW + 9, currentY); 
+            currentY += lineGap; 
+          });
+          y = currentY;
         };
         const dateStr = getDisplayDate(c); const timeStr = getDisplayTime(c);
         const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
@@ -255,27 +262,27 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
             sNotes = 'Not available';
             aNotes = 'Not available';
             put('Location', consultationLocation);
-            y += 6; put('Summary', summary);
-            y += 6; put('Student Notes', sNotes);
-            y += 6; put('Advisor Notes', aNotes);
+            put('Summary', summary);
+            put('Student Notes', sNotes);
+            put('Advisor Notes', aNotes);
             break;
           case 'cancelled':
           case 'canceled':
             if (consultationLocation) put('Location', consultationLocation);
-            if (cancelReason) { y += 6; put('Cancellation Reason', cancelReason); }
-            if (summary) { y += 6; put('Summary', summary); }
-            if (sNotes) { y += 6; put('Student Notes', sNotes); }
-            if (aNotes) { y += 6; put('Advisor Notes', aNotes); }
+            if (cancelReason) { put('Cancellation Reason', cancelReason); }
+            if (summary) { put('Summary', summary); }
+            if (sNotes) { put('Student Notes', sNotes); }
+            if (aNotes) { put('Advisor Notes', aNotes); }
             break;
           case 'completed':
           default:
             if (consultationLocation) put('Location', consultationLocation);
-            if (summary) { y += 6; put('Summary', summary); }
-            if (sNotes) { y += 6; put('Student Notes', sNotes); }
-            if (aNotes) { y += 6; put('Advisor Notes', aNotes); }
+            if (summary) { put('Summary', summary); }
+            if (sNotes) { put('Student Notes', sNotes); }
+            if (aNotes) { put('Advisor Notes', aNotes); }
             break;
         }
-        doc.setDrawColor(230); doc.rect(margin-8, boxTop, usable+16, y - boxTop + 6);
+        doc.setDrawColor(230); doc.rect(margin - 9, boxTop, usable + 18, y - boxTop + rowGap + 6);
         y += 14;
       };
       visibleConsultations.forEach(c => drawBlock(c));
