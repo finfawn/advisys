@@ -1,5 +1,7 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { useParams, useNavigate, Link } from "react-router-dom";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import jsPDF from "jspdf";
+import logoLarge from "../../../public/logo-large.png";
+import { useParams, Link } from "react-router-dom";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import { useSidebar } from "../../contexts/SidebarContext";
@@ -13,10 +15,9 @@ import "./StudentThreadPage.css";
 export default function StudentThreadPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const { advisorId } = useParams();
-  const navigate = useNavigate();
   const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-  const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
+  const authHeader = useMemo(() => (token ? { Authorization: `Bearer ${token}` } : {}), [token]);
 
   const [terms, setTerms] = useState([]);
   const [termId, setTermId] = useState('current');
@@ -45,9 +46,9 @@ export default function StudentThreadPage() {
       }
     };
     load();
-  }, []);
+  }, [base]);
 
-  const loadThread = async () => {
+  const loadThread = useCallback(async () => {
     if (!studentId) return;
     setLoading(true);
     try {
@@ -65,9 +66,9 @@ export default function StudentThreadPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [studentId, advisorId, termId, base, authHeader]);
 
-  useEffect(() => { loadThread(); }, [studentId, termId, advisorId]);
+  useEffect(() => { loadThread(); }, [studentId, termId, advisorId, loadThread]);
 
   const historyThread = useMemo(() => {
     const historyStatuses = new Set(['completed', 'cancelled', 'canceled', 'missed', 'expired']);
@@ -106,6 +107,93 @@ export default function StudentThreadPage() {
     URL.revokeObjectURL(url);
   };
 
+  const exportPdf = () => {
+    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
+    const lineHeight = 16;
+    const margin = 40;
+    const pageWidth = 595;
+    const maxWidth = pageWidth - margin * 2;
+    let y = margin;
+
+    // Add AdviSys logo
+    const imgWidth = 100;
+    const imgHeight = 20;
+    doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
+    y += imgHeight + 10; // Adjust y position after logo
+
+    const title = 'Consultation Thread';
+    doc.setFontSize(16);
+    doc.setFont(undefined, 'bold');
+    doc.text(title, margin, y);
+    y += lineHeight;
+
+    if (advisorMeta) {
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'normal');
+      doc.text(`Advisor: ${advisorMeta.name}`, margin, y);
+      y += lineHeight;
+    }
+
+    const selectedTerm = terms.find(t => String(t.id) === termId);
+    if (selectedTerm) {
+      doc.text(`Term: ${selectedTerm.year_label} ${selectedTerm.semester_label} Semester`, margin, y);
+      y += lineHeight;
+    } else if (termId === 'current') {
+      doc.text('Term: Current Term', margin, y);
+      y += lineHeight;
+    } else if (termId === 'all') {
+      doc.text('Term: All Terms', margin, y);
+      y += lineHeight;
+    }
+
+    y += lineHeight; // Extra space before consultations
+
+    historyThread.forEach((consultation, index) => {
+      if (y > doc.internal.pageSize.height - margin * 2) {
+        doc.addPage();
+        y = margin;
+        doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
+        y += imgHeight + 10;
+      }
+
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Consultation #${index + 1}`, margin, y);
+      y += lineHeight;
+
+      doc.setFont(undefined, 'normal');
+      doc.text(`Date: ${new Date(consultation.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}`, margin, y);
+      y += lineHeight;
+      doc.text(`Mode: ${consultation.mode}`, margin, y);
+      y += lineHeight;
+      doc.text(`Status: ${consultation.status}`, margin, y);
+      y += lineHeight;
+
+      switch (consultation.status) {
+        case 'missed':
+          doc.setFont(undefined, 'italic');
+          doc.text('Details: Not available for missed consultations.', margin, y);
+          y += lineHeight;
+          break;
+        case 'canceled':
+          doc.text(`Cancel Reason: ${consultation.cancel_reason || 'N/A'}`, margin, y);
+          y += lineHeight;
+          break;
+        case 'completed':
+          doc.text(`Topic: ${consultation.category || consultation.topic || 'N/A'}`, margin, y);
+          y += lineHeight;
+          doc.text(`Summary: ${consultation.summary_notes || consultation.ai_summary || 'N/A'}`, margin, y, { maxWidth: maxWidth });
+          y += doc.getTextDimensions(consultation.summary_notes || consultation.ai_summary || 'N/A', { maxWidth: maxWidth }).h + 5;
+          break;
+        default:
+          break;
+      }
+      y += lineHeight; // Space after each consultation
+    });
+
+    doc.save(`Consultations_${advisorMeta?.name || 'Advisor'}.pdf`);
+  };
+
   return (
     <div className="admin-dash-wrap">
       <TopNavbar />
@@ -139,6 +227,7 @@ export default function StudentThreadPage() {
                     </SelectContent>
                   </Select>
                   <Button variant="outline" onClick={exportCsv} disabled={!thread.length}><BsDownload className="w-4 h-4 mr-1" />Download CSV</Button>
+                  <Button variant="outline" onClick={exportPdf} disabled={!thread.length}><BsDownload className="w-4 h-4 mr-1" />Download PDF</Button>
                 </div>
               </div>
             </div>

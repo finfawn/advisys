@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import jsPDF from "jspdf";
+import logoLarge from "../../../public/logo-large.png";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "../../../lightswind/drawer";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
@@ -198,6 +199,12 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         return `Academic Term: ${t.semester_label} Semester • S.Y. ${t.year_label}`;
       })();
       let y = margin;
+
+      // Add AdviSys logo
+      const imgWidth = 100; // Adjust as needed
+      const imgHeight = 20; // Adjust as needed
+      doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
+      y += imgHeight + 10; // Adjust y position after logo
       doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title, margin, y); y += lineGap;
       doc.setFont('helvetica','normal'); doc.setFontSize(11);
       if (termLabel) { doc.text(termLabel, margin, y); y += lineGap; }
@@ -229,18 +236,45 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         const adv = c?.faculty?.name || '';
         const topic = c?.topic || '-';
         const loc = c?.location || '';
-        const summary = c?.summaryNotes || c?.aiSummary || '';
-        const sNotes = c?.studentPrivateNotes || '';
-        const aNotes = c?.advisorPrivateNotes || '';
+        let summary = c?.summaryNotes || c?.aiSummary || '';
+        let sNotes = c?.studentPrivateNotes || '';
+        let aNotes = c?.advisorPrivateNotes || '';
+        let loc = c?.location || '';
+        let cancelReason = c?.cancel_reason || '';
+
         put('Topic', topic, true);
         put('Date/Time', `${dateStr} • ${timeStr}`);
         put('Mode', modeStr);
         put('Status', statusStr);
         if (adv) put('Advisor', adv);
-        if (loc) put('Location', loc);
-        if (summary) { y += 6; put('Summary', summary); }
-        if (sNotes) { y += 6; put('Student Notes', sNotes); }
-        if (aNotes) { y += 6; put('Advisor Notes', aNotes); }
+
+        switch (String(c.status || '').toLowerCase()) {
+          case 'missed':
+            loc = 'Not available';
+            summary = 'Not available';
+            sNotes = 'Not available';
+            aNotes = 'Not available';
+            put('Location', loc);
+            y += 6; put('Summary', summary);
+            y += 6; put('Student Notes', sNotes);
+            y += 6; put('Advisor Notes', aNotes);
+            break;
+          case 'canceled':
+          case 'cancelled':
+            if (loc) put('Location', loc);
+            if (cancelReason) { y += 6; put('Cancellation Reason', cancelReason); }
+            if (summary) { y += 6; put('Summary', summary); }
+            if (sNotes) { y += 6; put('Student Notes', sNotes); }
+            if (aNotes) { y += 6; put('Advisor Notes', aNotes); }
+            break;
+          case 'completed':
+          default:
+            if (loc) put('Location', loc);
+            if (summary) { y += 6; put('Summary', summary); }
+            if (sNotes) { y += 6; put('Student Notes', sNotes); }
+            if (aNotes) { y += 6; put('Advisor Notes', aNotes); }
+            break;
+        }
         doc.setDrawColor(230); doc.rect(margin-8, boxTop, usable+16, y - boxTop + 6);
         y += 14;
       };

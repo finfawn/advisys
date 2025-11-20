@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import { Card, CardContent } from "../../lightswind/card";
 import { BsDownload, BsCameraVideo, BsGeoAlt } from "react-icons/bs";
 import jsPDF from "jspdf";
+import logoLarge from "../../../public/logo-large.png";
 
 export default function AdvisorThreadPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -20,6 +21,7 @@ export default function AdvisorThreadPage() {
   const [terms, setTerms] = useState([]);
   const [termId, setTermId] = useState('current');
   const [advisorId, setAdvisorId] = useState(null);
+  const [advisorName, setAdvisorName] = useState(null);
   const [thread, setThread] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -27,6 +29,7 @@ export default function AdvisorThreadPage() {
     try {
       const user = JSON.parse(localStorage.getItem('advisys_user') || 'null');
       setAdvisorId(user?.id || null);
+      setAdvisorName(user?.name || null);
     } catch {}
   }, []);
 
@@ -82,8 +85,26 @@ export default function AdvisorThreadPage() {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
     const lineHeight = 16; const margin = 40; const pageWidth = 595; const maxWidth = pageWidth - margin * 2;
     let y = margin;
-    const title = `Consultation Thread — ${studentMeta?.name || 'Student'}`;
-    doc.setFontSize(14); doc.text(title, margin, y); y += lineHeight;
+    const advisorLabel = advisorName ? `Advisor: ${advisorName}` : '';
+    const studentLabel = studentMeta?.name ? `Student: ${studentMeta.name}` : '';
+    const title = 'Consultation Thread';
+
+    // Add AdviSys logo
+    const imgWidth = 100; // Adjust as needed
+    const imgHeight = 20; // Adjust as needed
+    doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
+    y += imgHeight + 10; // Adjust y position after logo
+
+    doc.setFontSize(16); doc.setFont(undefined, 'bold'); doc.text(title, margin, y); y += lineHeight;
+    doc.setFontSize(11); doc.setFont(undefined, 'normal');
+    if (advisorLabel) { doc.text(advisorLabel, margin, y); y += lineHeight; }
+    if (studentLabel) { doc.text(studentLabel, margin, y); y += lineHeight; }
+
+    doc.setFontSize(16); doc.setFont(undefined, 'bold'); doc.text(title, margin, y); y += lineHeight;
+    doc.setFontSize(11); doc.setFont(undefined, 'normal');
+    if (advisorLabel) { doc.text(advisorLabel, margin, y); y += lineHeight; }
+    if (studentLabel) { doc.text(studentLabel, margin, y); y += lineHeight; }
+
     const termLabel = termId === 'all' ? 'All Terms' : (termId === 'current' ? 'Current Term' : (terms.find(t=>String(t.id)===String(termId))?.year_label + ' • ' + terms.find(t=>String(t.id)===String(termId))?.semester_label + ' Semester'));
     doc.setFontSize(10); doc.text(`Term: ${termLabel || 'Current'}`, margin, y); y += lineHeight;
     y += 6;
@@ -95,8 +116,28 @@ export default function AdvisorThreadPage() {
       const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
       const header = `${dateStr} • ${c.mode === 'online' ? 'Online' : 'In-Person'} • ${c.status}`;
       const topic = `Topic: ${c.category || c.topic || '—'}`;
-      const summary = c.summary_notes ? `Summary:\n${c.summary_notes}` : (c.ai_summary ? `Summary (AI):\n${c.ai_summary}` : 'Summary: —');
-      const block = [header, topic, summary].join('\n');
+      let summaryContent = '';
+      let cancelReasonContent = '';
+
+      switch (String(c.status || '').toLowerCase()) {
+        case 'missed':
+          summaryContent = 'Summary: Not available';
+          break;
+        case 'canceled':
+        case 'cancelled':
+          summaryContent = c.summary_notes ? `Summary:\n${c.summary_notes}` : (c.ai_summary ? `Summary (AI):\n${c.ai_summary}` : 'Summary: —');
+          cancelReasonContent = c.cancel_reason ? `Cancellation Reason:\n${c.cancel_reason}` : '';
+          break;
+        case 'completed':
+        default:
+          summaryContent = c.summary_notes ? `Summary:\n${c.summary_notes}` : (c.ai_summary ? `Summary (AI):\n${c.ai_summary}` : 'Summary: —');
+          break;
+      }
+
+      const blockParts = [header, topic];
+      if (cancelReasonContent) blockParts.push(cancelReasonContent);
+      if (summaryContent) blockParts.push(summaryContent);
+      const block = blockParts.join('\n');
       const lines = doc.splitTextToSize(block, maxWidth);
       addPageIfNeeded(lines.length * (lineHeight - 2) + 12);
       doc.setFont(undefined, 'bold'); doc.text(`Consultation ${idx + 1}`, margin, y); y += lineHeight;
@@ -104,7 +145,7 @@ export default function AdvisorThreadPage() {
       lines.forEach(line => { doc.text(line, margin, y); y += lineHeight - 2; });
       y += 8;
     });
-    const fname = `Consultations_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.pdf`;
+    const fname = `Consultations_${advisorName || 'Advisor'}_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(fname);
   };
 
