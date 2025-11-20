@@ -213,30 +213,36 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
       const wrapText = (text, maxWidth) => {
         const words = String(text||'').split(/\s+/);
         const lines = []; let line = '';
-        words.forEach(w=>{ const test = line ? line + ' ' + w : w; if (doc.getTextWidth(test) > maxWidth) { if (line) lines.push(line); line = w; } else { line = test; } });
-        if (line) lines.push(line); return lines;
+        words.forEach(w=>{ const next = line ? line + ' ' + w : w; if (doc.getTextWidth(next) > maxWidth) { if (line) lines.push(line); line = w; } else { line = next; } });
+        if (line) lines.push(line);
+        return lines;
       };
-      const ensurePage = (rowHeight) => { const pageHeightNow = doc.internal.pageSize.getHeight(); if (y + rowHeight + margin > pageHeightNow) { doc.addPage(); y = margin; } };
-      const drawBlock = (c) => {
-        const labelW = 110; const valueW = usable - labelW;
-        let boxTop = y - 6;
-        const put = (label, val, bold=false) => {
-          const lines = wrapText(val, valueW);
-          const textHeight = lines.length * lineGap;
-          const currentBlockHeight = Math.max(lineGap, textHeight);
-          ensurePage(currentBlockHeight + rowGap);
-          
-          if (bold) doc.setFont('helvetica','bold'); else doc.setFont('helvetica','normal');
-          doc.text(label, margin, y);
+      const ensurePage = (heightNeeded) => { const pageH = doc.internal.pageSize.getHeight(); if (y + heightNeeded + margin > pageH) { doc.addPage(); y = margin; } };
+      const drawTable = (rows) => {
+        const labelW = Math.max(120, Math.min(180, usable * 0.32));
+        const valueW = usable - labelW;
+        const rowHeights = rows.map(r => Math.max(lineGap, wrapText(r.value, valueW).length * lineGap));
+        const tableH = rowHeights.reduce((a,b)=>a+b,0) + rows.length; 
+        ensurePage(tableH + 16);
+        const x = margin; let cy = y;
+        doc.setDrawColor(200);
+        doc.rect(x, cy - 10, usable, tableH + 20);
+        rows.forEach((r, idx) => {
+          const vLines = wrapText(r.value, valueW);
+          const rh = rowHeights[idx];
+          doc.setFont('helvetica', r.bold ? 'bold' : 'normal');
+          doc.text(r.label, x + 8, cy);
           doc.setFont('helvetica','normal');
-          
-          let currentY = y;
-          lines.forEach((ln,i)=>{ 
-            doc.text(ln, margin + labelW + 9, currentY); 
-            currentY += lineGap; 
-          });
-          y = currentY;
-        };
+          let ty = cy;
+          vLines.forEach(ln => { doc.text(ln, x + labelW + 12, ty); ty += lineGap; });
+          doc.setDrawColor(220);
+          doc.line(x, cy - lineGap + 6, x + usable, cy - lineGap + 6);
+          doc.line(x + labelW, cy - lineGap + 6, x + labelW, cy - lineGap + 6 + rh);
+          cy += rh + 1;
+        });
+        y = cy + 14;
+      };
+      const drawConsultation = (c) => {
         const dateStr = getDisplayDate(c); const timeStr = getDisplayTime(c);
         const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
         const statusStr = String(c.status||'').charAt(0).toUpperCase() + String(c.status||'').slice(1);
@@ -246,46 +252,35 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         let summary = c?.summaryNotes || c?.aiSummary || '';
         let sNotes = c?.studentPrivateNotes || '';
         let aNotes = c?.advisorPrivateNotes || '';
-        let consultationLocation = c?.location || '';
         let cancelReason = c?.cancel_reason || '';
-
-        put('Topic', topic, true);
-        put('Date/Time', `${dateStr} • ${timeStr}`);
-        put('Mode', modeStr);
-        put('Status', statusStr);
-        if (adv) put('Advisor', adv);
-
-        switch (String(c.status || '').toLowerCase()) {
-          case 'missed':
-            consultationLocation = 'Not available';
-            summary = 'Not available';
-            sNotes = 'Not available';
-            aNotes = 'Not available';
-            put('Location', consultationLocation);
-            put('Summary', summary);
-            put('Student Notes', sNotes);
-            put('Advisor Notes', aNotes);
-            break;
-          case 'cancelled':
-          case 'canceled':
-            if (consultationLocation) put('Location', consultationLocation);
-            if (cancelReason) { put('Cancellation Reason', cancelReason); }
-            if (summary) { put('Summary', summary); }
-            if (sNotes) { put('Student Notes', sNotes); }
-            if (aNotes) { put('Advisor Notes', aNotes); }
-            break;
-          case 'completed':
-          default:
-            if (consultationLocation) put('Location', consultationLocation);
-            if (summary) { put('Summary', summary); }
-            if (sNotes) { put('Student Notes', sNotes); }
-            if (aNotes) { put('Advisor Notes', aNotes); }
-            break;
+        const baseRows = [
+          { label: 'Topic', value: topic, bold: true },
+          { label: 'Date/Time', value: `${dateStr} • ${timeStr}` },
+          { label: 'Mode', value: modeStr },
+          { label: 'Status', value: statusStr },
+        ];
+        if (adv) baseRows.push({ label: 'Advisor', value: adv });
+        const state = String(c.status||'').toLowerCase();
+        if (state === 'missed') {
+          baseRows.push({ label: 'Location', value: 'Not available' });
+          baseRows.push({ label: 'Summary', value: 'Not available' });
+          baseRows.push({ label: 'Student Notes', value: 'Not available' });
+          baseRows.push({ label: 'Advisor Notes', value: 'Not available' });
+        } else if (state === 'cancelled' || state === 'canceled') {
+          if (loc) baseRows.push({ label: 'Location', value: loc });
+          if (cancelReason) baseRows.push({ label: 'Cancellation Reason', value: cancelReason });
+          if (summary) baseRows.push({ label: 'Summary', value: summary });
+          if (sNotes) baseRows.push({ label: 'Student Notes', value: sNotes });
+          if (aNotes) baseRows.push({ label: 'Advisor Notes', value: aNotes });
+        } else {
+          if (loc) baseRows.push({ label: 'Location', value: loc });
+          if (summary) baseRows.push({ label: 'Summary', value: summary });
+          if (sNotes) baseRows.push({ label: 'Student Notes', value: sNotes });
+          if (aNotes) baseRows.push({ label: 'Advisor Notes', value: aNotes });
         }
-        doc.setDrawColor(230); doc.rect(margin - 9, boxTop, usable + 18, y - boxTop + rowGap + 6);
-        y += 14;
+        drawTable(baseRows);
       };
-      visibleConsultations.forEach(c => drawBlock(c));
+      visibleConsultations.forEach(c => drawConsultation(c));
       const fullName = String(user?.name || 'User').trim();
       const parts = fullName.split(/\s+/);
       const first = parts[0] || 'User';
