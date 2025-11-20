@@ -218,34 +218,34 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         return lines;
       };
       const ensurePage = (heightNeeded) => { const pageH = doc.internal.pageSize.getHeight(); if (y + heightNeeded + margin > pageH) { doc.addPage(); y = margin; } };
-      const drawTable = (rows) => {
-        const labelW = Math.max(120, Math.min(180, usable * 0.32));
-        const valueW = usable - labelW;
-        const rowHeights = rows.map(r => Math.max(lineGap, wrapText(r.value, valueW).length * lineGap));
-        const tableH = rowHeights.reduce((a,b)=>a+b,0) + rows.length; 
-        ensurePage(tableH + 16);
-        const x = margin; let cy = y;
-        doc.setDrawColor(200);
-        doc.rect(x, cy - 10, usable, tableH + 20);
-        rows.forEach((r, idx) => {
-          const vLines = wrapText(r.value, valueW);
-          const rh = rowHeights[idx];
-          doc.setFont('helvetica', r.bold ? 'bold' : 'normal');
-          doc.text(r.label, x + 8, cy);
-          doc.setFont('helvetica','normal');
-          let ty = cy;
-          vLines.forEach(ln => { doc.text(ln, x + labelW + 12, ty); ty += lineGap; });
-          doc.setDrawColor(220);
-          doc.line(x, cy - lineGap + 6, x + usable, cy - lineGap + 6);
-          doc.line(x + labelW, cy - lineGap + 6, x + labelW, cy - lineGap + 6 + rh);
-          cy += rh + 1;
-        });
-        y = cy + 14;
-      };
-      const drawConsultation = (c) => {
-        const dateStr = getDisplayDate(c); const timeStr = getDisplayTime(c);
+
+      const drawConsultation = (c, idx) => {
+        ensurePage(lineGap * 8); // Estimate space for a consultation block
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text(`Consultation ${idx + 1}`, margin, y);
+        y += lineGap;
+
+        const addDetail = (label, value, isBold = false) => {
+          if (!value) return;
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+          doc.text(label + ':', margin, y);
+          doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+          const textLines = wrapText(value, usable - doc.getTextWidth(label + ': ') - 10);
+          let currentX = margin + doc.getTextWidth(label + ': ') + 5;
+          textLines.forEach(line => {
+            doc.text(line, currentX, y);
+            y += lineGap * 0.8; // Smaller line gap for wrapped text
+            currentX = margin + doc.getTextWidth(label + ': ') + 5; // Align subsequent lines
+          });
+          y += lineGap * 0.2; // Add a small gap after each detail
+        };
+
+        const dateStr = getDisplayDate(c);
+        const timeStr = getDisplayTime(c);
         const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
-        const statusStr = String(c.status||'').charAt(0).toUpperCase() + String(c.status||'').slice(1);
+        const statusStr = String(c.status || '').charAt(0).toUpperCase() + String(c.status || '').slice(1);
         const adv = c?.faculty?.name || '';
         const topic = c?.topic || '-';
         const loc = c?.location || '';
@@ -253,34 +253,34 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         let sNotes = c?.studentPrivateNotes || '';
         let aNotes = c?.advisorPrivateNotes || '';
         let cancelReason = c?.cancel_reason || '';
-        const baseRows = [
-          { label: 'Topic', value: topic, bold: true },
-          { label: 'Date/Time', value: `${dateStr} • ${timeStr}` },
-          { label: 'Mode', value: modeStr },
-          { label: 'Status', value: statusStr },
-        ];
-        if (adv) baseRows.push({ label: 'Advisor', value: adv });
-        const state = String(c.status||'').toLowerCase();
+
+        addDetail('Topic', topic, true);
+        addDetail('Date/Time', `${dateStr} • ${timeStr}`);
+        addDetail('Mode', modeStr);
+        addDetail('Status', statusStr);
+        if (adv) addDetail('Advisor', adv);
+
+        const state = String(c.status || '').toLowerCase();
         if (state === 'missed') {
-          baseRows.push({ label: 'Location', value: 'Not available' });
-          baseRows.push({ label: 'Summary', value: 'Not available' });
-          baseRows.push({ label: 'Student Notes', value: 'Not available' });
-          baseRows.push({ label: 'Advisor Notes', value: 'Not available' });
+          addDetail('Location', 'Not available');
+          addDetail('Summary', 'Not available');
+          addDetail('Student Notes', 'Not available');
+          addDetail('Advisor Notes', 'Not available');
         } else if (state === 'cancelled' || state === 'canceled') {
-          if (loc) baseRows.push({ label: 'Location', value: loc });
-          if (cancelReason) baseRows.push({ label: 'Cancellation Reason', value: cancelReason });
-          if (summary) baseRows.push({ label: 'Summary', value: summary });
-          if (sNotes) baseRows.push({ label: 'Student Notes', value: sNotes });
-          if (aNotes) baseRows.push({ label: 'Advisor Notes', value: aNotes });
+          if (loc) addDetail('Location', loc);
+          if (cancelReason) addDetail('Cancellation Reason', cancelReason);
+          if (summary) addDetail('Summary', summary);
+          if (sNotes) addDetail('Student Notes', sNotes);
+          if (aNotes) addDetail('Advisor Notes', aNotes);
         } else {
-          if (loc) baseRows.push({ label: 'Location', value: loc });
-          if (summary) baseRows.push({ label: 'Summary', value: summary });
-          if (sNotes) baseRows.push({ label: 'Student Notes', value: sNotes });
-          if (aNotes) baseRows.push({ label: 'Advisor Notes', value: aNotes });
+          if (loc) addDetail('Location', loc);
+          if (summary) addDetail('Summary', summary);
+          if (sNotes) addDetail('Student Notes', sNotes);
+          if (aNotes) addDetail('Advisor Notes', aNotes);
         }
-        drawTable(baseRows);
+        y += lineGap * 2; // Space between consultations
       };
-      visibleConsultations.forEach(c => drawConsultation(c));
+      visibleConsultations.forEach((c, idx) => drawConsultation(c, idx));
       const fullName = String(user?.name || 'User').trim();
       const parts = fullName.split(/\s+/);
       const first = parts[0] || 'User';

@@ -110,30 +110,30 @@ export default function AdvisorThreadPage() {
       return lines;
     };
     const ensurePage = (heightNeeded) => { const pageH = doc.internal.pageSize.getHeight(); if (y + heightNeeded + margin > pageH) { doc.addPage(); y = margin; } };
-    const drawTable = (rows, idx) => {
-      const labelW = Math.max(120, Math.min(180, usable * 0.32));
-      const valueW = usable - labelW;
-      const rowHeights = rows.map(r => Math.max(lineHeight, wrapText(r.value, valueW).length * lineHeight));
-      const tableH = rowHeights.reduce((a,b)=>a+b,0) + rows.length;
-      ensurePage(tableH + 24);
-      doc.setFontSize(12); doc.setFont(undefined, 'bold'); doc.text(`Consultation ${idx + 1}`, margin, y); y += 18;
-      const x = margin; let cy = y; doc.setDrawColor(200); doc.rect(x, cy - 10, usable, tableH + 20);
-      rows.forEach((r, i) => {
-        const vLines = wrapText(r.value, valueW);
-        const rh = rowHeights[i];
-        doc.setFont('helvetica', r.bold ? 'bold' : 'normal');
-        doc.text(r.label, x + 8, cy);
-        doc.setFont('helvetica','normal');
-        let ty = cy;
-        vLines.forEach(ln => { doc.text(ln, x + labelW + 12, ty); ty += lineHeight; });
-        doc.setDrawColor(220);
-        doc.line(x, cy - lineHeight + 6, x + usable, cy - lineHeight + 6);
-        doc.line(x + labelW, cy - lineHeight + 6, x + labelW, cy - lineHeight + 6 + rh);
-        cy += rh + 1;
+
+    const addDetail = (label, value, isBold = false) => {
+      if (!value) return;
+      doc.setFontSize(10);
+      doc.setFont(undefined, 'bold');
+      doc.text(label + ':', margin, y);
+      doc.setFont(undefined, isBold ? 'bold' : 'normal');
+      const textLines = wrapText(value, usable - doc.getTextWidth(label + ': ') - 10);
+      let currentX = margin + doc.getTextWidth(label + ': ') + 5;
+      textLines.forEach(line => {
+        doc.text(line, currentX, y);
+        y += lineHeight * 0.8; // Smaller line gap for wrapped text
+        currentX = margin + doc.getTextWidth(label + ': ') + 5; // Align subsequent lines
       });
-      y = cy + 14;
+      y += lineHeight * 0.2; // Add a small gap after each detail
     };
+
     thread.forEach((c, idx) => {
+      ensurePage(lineHeight * 8); // Estimate space for a consultation block
+      doc.setFontSize(12);
+      doc.setFont(undefined, 'bold');
+      doc.text(`Consultation ${idx + 1}`, margin, y);
+      y += lineHeight;
+
       const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
       const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
       const statusStr = String(c.status||'').charAt(0).toUpperCase() + String(c.status||'').slice(1);
@@ -141,23 +141,25 @@ export default function AdvisorThreadPage() {
       const loc = c.location || '';
       let summary = c.summary_notes || c.ai_summary || '';
       let cancelReason = c.cancel_reason || '';
-      const rows = [
-        { label: 'Topic', value: topic, bold: true },
-        { label: 'Date/Time', value: dateStr },
-        { label: 'Mode', value: modeStr },
-        { label: 'Status', value: statusStr },
-      ];
-      if (loc) rows.push({ label: 'Location', value: loc });
+
+      addDetail('Topic', topic, true);
+      addDetail('Date/Time', dateStr);
+      addDetail('Mode', modeStr);
+      addDetail('Status', statusStr);
+
       const state = String(c.status||'').toLowerCase();
       if (state === 'missed') {
-        rows.push({ label: 'Summary', value: 'Not available' });
+        addDetail('Location', 'Not available');
+        addDetail('Summary', 'Not available');
       } else if (state === 'cancelled' || state === 'canceled') {
-        if (cancelReason) rows.push({ label: 'Cancellation Reason', value: cancelReason });
-        if (summary) rows.push({ label: 'Summary', value: summary });
+        if (loc) addDetail('Location', loc);
+        if (cancelReason) addDetail('Cancellation Reason', cancelReason);
+        if (summary) addDetail('Summary', summary);
       } else {
-        if (summary) rows.push({ label: 'Summary', value: summary });
+        if (loc) addDetail('Location', loc);
+        if (summary) addDetail('Summary', summary);
       }
-      drawTable(rows, idx);
+      y += lineHeight * 2; // Space between consultations
     });
     const fname = `Consultations_${advisorName || 'Advisor'}_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.pdf`;
     doc.save(fname);
