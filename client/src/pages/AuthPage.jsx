@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import logoLargeTransparent from "../public/logo-large-transparent.png";
+import logoLargeTransparent from "/logo-large-transparent.png";
 import { useNavigate } from "react-router-dom";
 import RippleButton from "../lightswind/ripple-button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../lightswind/select";

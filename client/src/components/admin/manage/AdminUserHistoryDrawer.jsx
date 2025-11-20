@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import jsPDF from "jspdf";
-import logoLarge from "../../../public/logo-large.png";
+import logoLarge from "/logo-large.png";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "../../../lightswind/drawer";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
@@ -239,7 +239,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         let summary = c?.summaryNotes || c?.aiSummary || '';
         let sNotes = c?.studentPrivateNotes || '';
         let aNotes = c?.advisorPrivateNotes || '';
-        let loc = c?.location || '';
+        let consultationLocation = c?.location || '';
         let cancelReason = c?.cancel_reason || '';
 
         put('Topic', topic, true);
@@ -250,18 +250,18 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
 
         switch (String(c.status || '').toLowerCase()) {
           case 'missed':
-            loc = 'Not available';
+            consultationLocation = 'Not available';
             summary = 'Not available';
             sNotes = 'Not available';
             aNotes = 'Not available';
-            put('Location', loc);
+            put('Location', consultationLocation);
             y += 6; put('Summary', summary);
             y += 6; put('Student Notes', sNotes);
             y += 6; put('Advisor Notes', aNotes);
             break;
-          case 'canceled':
           case 'cancelled':
-            if (loc) put('Location', loc);
+          case 'canceled':
+            if (consultationLocation) put('Location', consultationLocation);
             if (cancelReason) { y += 6; put('Cancellation Reason', cancelReason); }
             if (summary) { y += 6; put('Summary', summary); }
             if (sNotes) { y += 6; put('Student Notes', sNotes); }
@@ -269,7 +269,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
             break;
           case 'completed':
           default:
-            if (loc) put('Location', loc);
+            if (consultationLocation) put('Location', consultationLocation);
             if (summary) { y += 6; put('Summary', summary); }
             if (sNotes) { y += 6; put('Student Notes', sNotes); }
             if (aNotes) { y += 6; put('Advisor Notes', aNotes); }
