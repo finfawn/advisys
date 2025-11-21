@@ -37,9 +37,13 @@ async function seed() {
     // Insert users
     const users = [
       { role: 'student', email: 'juan@example.com', full_name: 'Juan Dela Cruz' },
+      { role: 'student', email: 'sara@example.com', full_name: 'Sara Lee' },
+      { role: 'student', email: 'mike@example.com', full_name: 'Mike Johnson' },
       { role: 'advisor', email: 'maria.santos@example.com', full_name: 'Dr. Maria Santos' },
       { role: 'advisor', email: 'jennifer.lee@example.com', full_name: 'Dr. Jennifer Lee' },
       { role: 'advisor', email: 'david.kim@example.com', full_name: 'Prof. David Kim' },
+      { role: 'advisor', email: 'emily.wang@example.com', full_name: 'Dr. Emily Wang' },
+      { role: 'advisor', email: 'chris.green@example.com', full_name: 'Prof. Chris Green' },
     ];
     const userIds = {};
     for (const u of users) {
@@ -50,10 +54,18 @@ async function seed() {
       userIds[u.email] = res.insertId;
     }
 
-    // Student profile
+    // Student profiles
     await conn.query(
       'INSERT INTO student_profiles (user_id, program, year_level) VALUES (?,?,?)',
       [userIds['juan@example.com'], 'BS Computer Science', '3']
+    );
+    await conn.query(
+      'INSERT INTO student_profiles (user_id, program, year_level) VALUES (?,?,?)',
+      [userIds['sara@example.com'], 'BA Psychology', '2']
+    );
+    await conn.query(
+      'INSERT INTO student_profiles (user_id, program, year_level) VALUES (?,?,?)',
+      [userIds['mike@example.com'], 'BSc Mathematics', '4']
     );
 
     // Advisor profiles
@@ -73,10 +85,24 @@ async function seed() {
         status: 'available',
       },
       {
-        email: 'david.kim@example.com',
+      email: 'david.kim@example.com',
         title: 'Associate Professor of Statistics',
         department: 'Statistics',
         bio: 'Applied statistics and data analysis in research.',
+        status: 'available',
+      },
+      {
+        email: 'emily.wang@example.com',
+        title: 'Lecturer in Literature',
+        department: 'English',
+        bio: 'Expert in modern literature and creative writing.',
+        status: 'available',
+      },
+      {
+        email: 'chris.green@example.com',
+        title: 'Senior Lecturer in Environmental Science',
+        department: 'Environmental Science',
+        bio: 'Research focus on climate change and sustainable development.',
         status: 'available',
       },
     ];
@@ -92,6 +118,8 @@ async function seed() {
     await conn.query('INSERT INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userIds['maria.santos@example.com'], 1, 1]);
     await conn.query('INSERT INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userIds['jennifer.lee@example.com'], 1, 1]);
     await conn.query('INSERT INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userIds['david.kim@example.com'], 0, 1]);
+    await conn.query('INSERT INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userIds['emily.wang@example.com'], 1, 0]);
+    await conn.query('INSERT INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userIds['chris.green@example.com'], 1, 1]);
 
     // Advisor courses/topics/guidelines
     const insertMany = async (sql, rows) => {
@@ -108,6 +136,10 @@ async function seed() {
         [userIds['jennifer.lee@example.com'], 'PSY 301', 'PSY301', 'Cognitive Psychology'],
         [userIds['david.kim@example.com'], 'STAT 201', 'STAT201', 'Applied Statistics'],
         [userIds['david.kim@example.com'], 'STAT 301', 'STAT301', 'Statistical Modeling'],
+        [userIds['emily.wang@example.com'], 'ENG 101', 'ENG101', 'Introduction to Literature'],
+        [userIds['emily.wang@example.com'], 'ENG 305', 'ENG305', 'Creative Writing Workshop'],
+        [userIds['chris.green@example.com'], 'ENV 200', 'ENV200', 'Environmental Science Basics'],
+        [userIds['chris.green@example.com'], 'ENV 410', 'ENV410', 'Climate Change Policy'],
       ]
     );
 
@@ -152,9 +184,12 @@ async function seed() {
     );
 
     // Consultations for the student
-    const studentId = userIds['juan@example.com'];
     const c = [];
+
+    // Consultations for Juan Dela Cruz (juan@example.com)
+    const juanId = userIds['juan@example.com'];
     c.push({
+      studentId: juanId,
       advisorEmail: 'maria.santos@example.com',
       date: '2025-10-15',
       time: '9:00 AM - 9:30 AM',
@@ -165,6 +200,7 @@ async function seed() {
       location: null,
     });
     c.push({
+      studentId: juanId,
       advisorEmail: 'jennifer.lee@example.com',
       date: '2025-10-18',
       time: '1:00 PM - 1:30 PM',
@@ -175,6 +211,7 @@ async function seed() {
       location: 'Conference Room A, Psychology Building',
     });
     c.push({
+      studentId: juanId,
       advisorEmail: 'david.kim@example.com',
       date: '2025-10-20',
       time: '2:30 PM - 3:00 PM',
@@ -185,6 +222,7 @@ async function seed() {
       location: null,
     });
     c.push({
+      studentId: juanId,
       advisorEmail: 'maria.santos@example.com',
       date: '2024-01-10',
       time: '10:00 AM - 10:30 AM',
@@ -194,6 +232,111 @@ async function seed() {
       meeting_link: null,
       location: null,
     });
+    c.push({
+      studentId: juanId,
+      advisorEmail: 'emily.wang@example.com',
+      date: '2025-11-01',
+      time: '10:00 AM - 10:30 AM',
+      topic: 'Literature Review for Thesis',
+      mode: 'online',
+      status: 'approved',
+      meeting_link: 'https://zoom.us/j/1122334455',
+      location: null,
+    });
+
+    // Consultations for Sara Lee (sara@example.com)
+    const saraId = userIds['sara@example.com'];
+    c.push({
+      studentId: saraId,
+      advisorEmail: 'jennifer.lee@example.com',
+      date: '2025-10-25',
+      time: '11:00 AM - 11:30 AM',
+      topic: 'Cognitive Psychology Research',
+      mode: 'in-person',
+      status: 'approved',
+      meeting_link: null,
+      location: 'Psychology Lab 203',
+    });
+    c.push({
+      studentId: saraId,
+      advisorEmail: 'chris.green@example.com',
+      date: '2025-10-28',
+      time: '2:00 PM - 2:30 PM',
+      topic: 'Environmental Impact of Urbanization',
+      mode: 'online',
+      status: 'pending',
+      meeting_link: 'https://meet.google.com/xyz-uvw-rst',
+      location: null,
+    });
+    c.push({
+      studentId: saraId,
+      advisorEmail: 'david.kim@example.com',
+      date: '2024-02-15',
+      time: '9:00 AM - 9:30 AM',
+      topic: 'Statistical Analysis for Thesis',
+      mode: 'online',
+      status: 'completed',
+      meeting_link: null,
+      location: null,
+    });
+    c.push({
+      studentId: saraId,
+      advisorEmail: 'maria.santos@example.com',
+      date: '2025-09-01',
+      time: '1:00 PM - 1:30 PM',
+      topic: 'Missed Consultation - Project Discussion',
+      mode: 'online',
+      status: 'missed',
+      meeting_link: 'https://zoom.us/j/9988776655',
+      location: null,
+    });
+
+    // Consultations for Mike Johnson (mike@example.com)
+    const mikeId = userIds['mike@example.com'];
+    c.push({
+      studentId: mikeId,
+      advisorEmail: 'david.kim@example.com',
+      date: '2025-11-05',
+      time: '10:00 AM - 10:30 AM',
+      topic: 'Advanced Calculus Problems',
+      mode: 'in-person',
+      status: 'approved',
+      meeting_link: null,
+      location: 'Math Department Office 101',
+    });
+    c.push({
+      studentId: mikeId,
+      advisorEmail: 'maria.santos@example.com',
+      date: '2025-11-08',
+      time: '3:00 PM - 3:30 PM',
+      topic: 'Introduction to AI Ethics',
+      mode: 'online',
+      status: 'pending',
+      meeting_link: 'https://meet.google.com/qwe-rty-uio',
+      location: null,
+    });
+    c.push({
+      studentId: mikeId,
+      advisorEmail: 'jennifer.lee@example.com',
+      date: '2024-03-20',
+      time: '11:00 AM - 11:30 AM',
+      topic: 'Career Path in Data Science',
+      mode: 'online',
+      status: 'completed',
+      meeting_link: null,
+      location: null,
+    });
+    c.push({
+      studentId: mikeId,
+      advisorEmail: 'emily.wang@example.com',
+      date: '2025-08-10',
+      time: '2:00 PM - 2:30 PM',
+      topic: 'Cancelled Consultation - Essay Review',
+      mode: 'online',
+      status: 'cancelled',
+      meeting_link: 'https://zoom.us/j/1122334455',
+      location: null,
+    });
 
     for (const item of c) {
       const advisorId = userIds[item.advisorEmail];
@@ -201,7 +344,7 @@ async function seed() {
       const [res] = await conn.query(
         'INSERT INTO consultations (student_user_id, advisor_user_id, topic, mode, status, meeting_link, location, start_datetime, end_datetime, duration_minutes) VALUES (?,?,?,?,?,?,?,?,?,?)',
         [
-          studentId,
+          item.studentId,
           advisorId,
           item.topic,
           item.mode,

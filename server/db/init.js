@@ -1,4 +1,4 @@
-require('dotenv').config();
+require('dotenv').config({ path: require('path').resolve(__dirname, '../.env') });
 const fs = require('fs');
 const path = require('path');
 const mysql = require('mysql2/promise');
@@ -25,34 +25,32 @@ const mysql = require('mysql2/promise');
       multipleStatements: true,
     });
     console.log('Connected. Applying tables to database...', DB_NAME);
+    // Drop advisor_profiles to resolve legacy foreign key conflicts
+    await conn.query(`DROP TABLE IF EXISTS advisor_profiles;`);
+    // Drop student_profiles to resolve legacy foreign key conflicts
+    await conn.query(`DROP TABLE IF EXISTS student_profiles;`);
+    // Drop consultations to resolve duplicate column conflicts
+    await conn.query(`DROP TABLE IF EXISTS transcriptions;`);
+    await conn.query(`DROP TABLE IF EXISTS consultation_guidelines;`);
+    await conn.query(`DROP TABLE IF EXISTS consultations;`);
     await conn.query(sql);
-    // Clean up legacy email verification artifacts if present
-    try {
-      const [[tbl]] = await conn.query(
-        `SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'email_verifications' LIMIT 1`,
-        [DB_NAME]
-      );
-      if (tbl && tbl.TABLE_NAME) {
-        console.log('Dropping legacy table: email_verifications');
-        await conn.query(`DROP TABLE IF EXISTS email_verifications`);
-      }
 
-      const [cols] = await conn.query(
-        `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users'`,
-        [DB_NAME]
-      );
-      const names = new Set(cols.map(c => c.COLUMN_NAME));
-      const dropCols = [];
-      if (names.has('email_verified')) dropCols.push('email_verified');
-      if (names.has('email_verified_at')) dropCols.push('email_verified_at');
-      if (dropCols.length) {
-        console.log('Dropping legacy columns on users:', dropCols.join(', '));
-        const alters = dropCols.map(c => `DROP COLUMN ${c}`).join(', ');
-        await conn.query(`ALTER TABLE users ${alters}`);
-      }
-    } catch (e) {
-      console.warn('Legacy verification cleanup skipped or failed:', e?.message || e);
+    // Add email_verified and email_verified_at columns to users table if they don't exist
+    const [cols] = await conn.query(
+      `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_SCHEMA = ? AND TABLE_NAME = 'users' AND COLUMN_NAME IN ('email_verified', 'email_verified_at')`,
+      [DB_NAME]
+    );
+    const existingCols = new Set(cols.map(c => c.COLUMN_NAME));
+
+    if (!existingCols.has('email_verified')) {
+      console.log('Adding column: users.email_verified');
+      await conn.query(`ALTER TABLE users ADD COLUMN email_verified TINYINT(1) NOT NULL DEFAULT 0 AFTER status;`);
     }
+    if (!existingCols.has('email_verified_at')) {
+      console.log('Adding column: users.email_verified_at');
+      await conn.query(`ALTER TABLE users ADD COLUMN email_verified_at DATETIME NULL AFTER email_verified;`);
+    }
+
     console.log(`Schema applied successfully. Database '${DB_NAME}' ready.`);
   } catch (err) {
     console.error('Failed to initialize database:', err.message);
