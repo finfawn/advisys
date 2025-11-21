@@ -470,43 +470,45 @@ app.listen(PORT, '0.0.0.0', () => {
     }
     const shouldSeedAdmin = String(process.env.SEED_ADMIN_ON_START || '').toLowerCase() === 'true';
     const shouldResetAdmin = String(process.env.SEED_ADMIN_RESET || '').toLowerCase() === 'true';
-    if (shouldSeedAdmin) {
-      const pool = getPool();
-      (async () => {
-        try {
-          const email = (process.env.ADMIN_EMAIL || 'admin@advisys.local').trim().toLowerCase();
-          const fullName = (process.env.ADMIN_FULL_NAME || 'System Admin').trim();
-          const plainPassword = String(process.env.ADMIN_PASSWORD || 'Admin!2025-ChangeMe');
-          const [[existing]] = await pool.query('SELECT id, role FROM users WHERE email = ? LIMIT 1', [email]);
-          if (existing && existing.id) {
-            if (shouldResetAdmin) {
-              const hash = await bcrypt.hash(plainPassword, 10);
-              await pool.query('UPDATE users SET role = ?, password_hash = ?, full_name = ?, status = ? WHERE id = ?', [
-                'admin',
-                hash,
-                fullName,
-                'active',
-                existing.id,
-              ]);
-              console.log(`[admin] Updated existing user to admin: ${email}`);
-              console.log(`[admin] Temporary password: ${plainPassword}`);
-            } else {
-              console.log(`[admin] Admin exists; no changes: ${email}`);
+        if (shouldSeedAdmin) {
+          const pool = getPool();
+          (async () => {
+            try {
+              const email = (process.env.ADMIN_EMAIL || 'admin@advisys.local').trim().toLowerCase();
+              const fullName = (process.env.ADMIN_FULL_NAME || 'System Admin').trim();
+              const plainPassword = String(process.env.ADMIN_PASSWORD || 'Admin!2025-ChangeMe');
+              const [[existing]] = await pool.query('SELECT id, role FROM users WHERE email = ? LIMIT 1', [email]);
+              if (existing && existing.id) {
+                if (shouldResetAdmin) {
+                  const hash = await bcrypt.hash(plainPassword, 10);
+                  await pool.query('UPDATE users SET role = ?, password_hash = ?, full_name = ?, status = ? WHERE id = ?', [
+                    'admin',
+                    hash,
+                    fullName,
+                    'active',
+                    existing.id,
+                  ]);
+                  await pool.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [existing.id]);
+                  console.log(`[admin] Updated existing user to admin: ${email}`);
+                  console.log(`[admin] Temporary password: ${plainPassword}`);
+                } else {
+                  console.log(`[admin] Admin exists; no changes: ${email}`);
+                }
+              } else {
+                const hash = await bcrypt.hash(plainPassword, 10);
+                const [resUser] = await pool.query(
+                  'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
+                  ['admin', email, hash, fullName, 'active']
+                );
+                await pool.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [resUser.insertId]);
+                console.log(`[admin] Created admin user: ${email} (id=${resUser.insertId})`);
+                console.log(`[admin] Temporary password: ${plainPassword}`);
+              }
+            } catch (e) {
+              console.error('[admin] Seeding failed:', e?.message || e);
             }
-          } else {
-            const hash = await bcrypt.hash(plainPassword, 10);
-            const [resUser] = await pool.query(
-              'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
-              ['admin', email, hash, fullName, 'active']
-            );
-            console.log(`[admin] Created admin user: ${email} (id=${resUser.insertId})`);
-            console.log(`[admin] Temporary password: ${plainPassword}`);
-          }
-        } catch (e) {
-          console.error('[admin] Seeding failed:', e?.message || e);
+          })();
         }
-      })();
-    }
   });
 });
 

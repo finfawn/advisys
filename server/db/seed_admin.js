@@ -1,17 +1,9 @@
-require('dotenv').config({ path: 'c:\\Users\\Jezreel D\\OneDrive\\Desktop\\AdviSys\\server\\.env' });
-const mysql = require('mysql2/promise');
+try { require('dotenv').config(); } catch (_) {}
 const bcrypt = require('bcrypt');
-
-const { DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME } = process.env;
+const { getPool } = require('./pool');
 
 async function seedAdminUser() {
-  const pool = mysql.createPool({
-    host: DB_HOST,
-    port: DB_PORT,
-    user: DB_USER,
-    password: DB_PASSWORD,
-    database: DB_NAME,
-  });
+  const pool = getPool();
 
   const email = 'advisys.info@gmail.com';
   const fullName = 'Advisys Admin';
@@ -36,7 +28,7 @@ async function seedAdminUser() {
   } catch (error) {
     console.error('Error seeding admin user:', error);
   } finally {
-    await pool.end();
+    try { await pool.end(); } catch (_) {}
   }
 }
 
