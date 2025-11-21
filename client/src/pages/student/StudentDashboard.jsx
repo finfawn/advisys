@@ -349,63 +349,7 @@ export default function StudentDashboard() {
               </section>
             </div>
 
-            {/* Upcoming Consultations - Medium Bento - Hidden on mobile & tablets */}
-      <div className="bento-item bento-upcoming hidden xl:block">
-              <aside className="upcoming h-100">
-                <div className="up-header">
-                  <span>Upcoming Consultations</span>
-                  <button 
-                    onClick={() => handleNavigation('consultations')} 
-                    className="view-all-link"
-                    style={{ background: 'none', border: 'none', color: '#2d5bd1', cursor: 'pointer', fontSize: '0.9rem', fontWeight: '500' }}
-                  >
-                    View All ▸
-                  </button>
-                </div>
-                <div className="upcoming-consultations-list">
-                  {loadingConsultations ? (
-                    Array.from({ length: 3 }).map((_, idx) => (
-                      <div key={`skeleton-${idx}`} className="compact-consultation-card">
-                        <div className="compact-date-section">
-                          <Skeleton className="h-12 w-12 rounded-lg" shimmer />
-                        </div>
-                        <div className="compact-content w-full">
-                          <Skeleton className="h-5 w-2/3 mb-2" shimmer />
-                          <Skeleton className="h-4 w-1/2 mb-2" shimmer />
-                          <Skeleton className="h-4 w-24" shimmer />
-                        </div>
-                        <div className="compact-action">
-                          <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                        </div>
-                      </div>
-                    ))
-                  ) : upcomingConsultations.length > 0 ? (
-                    upcomingConsultations.slice(0, 4).map(consultation => (
-                      <CompactConsultationCard
-                        key={consultation.id}
-                        consultation={consultation}
-                        onActionClick={() => handleJoinConsultation(consultation)}
-                        onDelete={() => console.log('Delete consultation:', consultation.id)}
-                        onCancel={() => console.log('Cancel consultation:', consultation.id)}
-                      />
-                    ))
-                  ) : (
-                    <div className="no-availability">
-                      <div className="no-availability-icon">
-                        <BsCalendarCheck />
-                      </div>
-                      <div className="no-availability-title">No upcoming consultations</div>
-                      <div className="no-availability-text">Book a session with a faculty advisor.</div>
-                      <div className="availability-actions">
-                        <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
-                          Book Now
-                        </button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </aside>
-            </div>
+            {/* */}
             </div>
             {/* Stats Bento Grid */}
             <div className="bento-grid-stats">

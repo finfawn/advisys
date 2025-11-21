@@ -45,7 +45,7 @@ if (typeof window.Notification === 'undefined') {
 try {
   Object.defineProperty(document, 'hidden', { configurable: true, get: () => false });
   document.hasFocus = () => true;
-} catch (_) {}
+} catch (err) { console.error(err); }
 
 // IntersectionObserver mock
 if (typeof window.IntersectionObserver === 'undefined') {

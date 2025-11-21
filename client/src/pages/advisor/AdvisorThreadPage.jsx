@@ -91,7 +91,7 @@ export default function AdvisorThreadPage() {
 
     // Add AdviSys logo
     const imgWidth = 100; // Adjust as needed
-    const imgHeight = 20; // Adjust as needed
+    const imgHeight = 100; // Adjust as needed
     doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
     y += imgHeight + 10; // Adjust y position after logo
 

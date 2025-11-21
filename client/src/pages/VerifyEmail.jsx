@@ -61,20 +61,17 @@ export default function VerifyEmail() {
 
   const onResend = async () => {
     if (!email || cooldown > 0) return;
-    setError("");
-    setMessage("");
     try {
-      const res = await fetch(`${base}/api/auth/verify/request`, {
+      const res = await fetch(`${base}/api/auth/verify/resend`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })
       });
-      await res.json();
-      setMessage("If an account exists, a new code was sent.");
-      setCooldown(60);
-    } catch (_e) {
-      setMessage("If an account exists, a new code was sent.");
-      setCooldown(60);
+      if (res.ok) {
+        setMessage('a new code was sent');
+        setCooldown(30);
+      }
+    } catch (_) {
     }
   };
 

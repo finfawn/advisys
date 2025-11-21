@@ -86,7 +86,7 @@ export default function AdvisorProfilePage() {
               hour: 'numeric',
               minute: '2-digit',
               hour12: true,
-            }).format(d);
+            }).format(d).replace(/[\u00A0\u202F]/g, ' ');
             const toDateLabel = (d) => new Intl.DateTimeFormat('en-PH', {
               timeZone: 'Asia/Manila',
               weekday: 'long',

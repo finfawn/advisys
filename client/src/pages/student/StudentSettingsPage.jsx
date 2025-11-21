@@ -100,24 +100,24 @@ export default function StudentSettingsPage() {
         // Load notification settings (email + master mute)
         try {
           const userId = data?.user_id || data?.id;
-        if (userId) {
-          const nRes = await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (nRes.ok) {
-            const ns = await nRes.json();
-            setSettings(prev => ({
-              ...prev,
-              emailNotifications: !!ns.emailNotifications,
-              notificationsMuted: !!ns.notificationsMuted,
-            }));
-            try {
-              localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!ns.emailNotifications));
-              localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!ns.notificationsMuted));
-            } catch (_) {}
+          if (userId) {
+            const nRes = await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
+              headers: { Authorization: `Bearer ${token}` }
+            });
+            if (nRes.ok) {
+              const ns = await nRes.json();
+              setSettings(prev => ({
+                ...prev,
+                emailNotifications: !!ns.emailNotifications,
+                notificationsMuted: !!ns.notificationsMuted,
+              }));
+              try {
+                localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!ns.emailNotifications));
+                localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!ns.notificationsMuted));
+              } catch (err) { console.error(err); }
+            }
           }
-        }
-        } catch (_) {}
+        } catch (err) { console.error(err); }
       } catch (err) {
         console.error('Profile fetch error', err);
       }
@@ -129,7 +129,7 @@ export default function StudentSettingsPage() {
         const res = await fetch(`${apiBase}/api/programs`);
         const list = await res.json();
         setProgramOptions(Array.isArray(list) ? list : []);
-      } catch (_) {}
+      } catch (err) { console.error(err); }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -215,36 +215,22 @@ export default function StudentSettingsPage() {
     }));
   };
 
-  const handleSettingChange = async (field, value) => {
-    const next = { ...settings, [field]: value };
-    setSettings(next);
-    try {
-      // Fetch current user id for settings persistence
-      const profRes = await fetch(`${apiBase}/api/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
-      const prof = await profRes.json();
-      const userId = prof?.user_id || prof?.id;
-      if (userId) {
-        const notifPayload = {
-          emailNotifications: next.emailNotifications,
-          notificationsMuted: next.notificationsMuted,
-        };
-        await fetch(`${apiBase}/api/settings/users/${userId}/notifications`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-          body: JSON.stringify(notifPayload),
-        });
-        try {
-          localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!next.emailNotifications));
-          localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!next.notificationsMuted));
-        } catch (_) {}
-      }
-    } catch (_) {}
-  };
+
 
   const handleToggleSetting = async (field) => {
     const next = { ...settings, [field]: !settings[field] };
     setSettings(next);
     try {
+      // Optimistically persist to localStorage for immediate feedback
+      try {
+        const userStr = localStorage.getItem('advisys_user');
+        const u = userStr ? JSON.parse(userStr) : null;
+        const uid = u?.id;
+        if (uid) {
+          localStorage.setItem(`advisys_email_notifications_${uid}`, String(!!next.emailNotifications));
+          localStorage.setItem(`advisys_notifications_muted_${uid}`, String(!!next.notificationsMuted));
+        }
+      } catch (err) { console.error(err); }
       const profRes = await fetch(`${apiBase}/api/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
       const prof = await profRes.json();
       const userId = prof?.user_id || prof?.id;
@@ -261,9 +247,9 @@ export default function StudentSettingsPage() {
         try {
           localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!next.emailNotifications));
           localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!next.notificationsMuted));
-        } catch (_) {}
+        } catch (err) { console.error(err); }
       }
-    } catch (_) {}
+    } catch (err) { console.error(err); }
   };
 
   const handleChangePassword = () => {
@@ -274,8 +260,7 @@ export default function StudentSettingsPage() {
 
 
   const handleDeleteAccount = () => {
-    console.log('Delete account clicked');
-    // Implement account deletion functionality
+    setShowDeleteModal(true);
   };
 
   // Profile picture handlers: upload to backend and use returned URL
@@ -303,14 +288,16 @@ export default function StudentSettingsPage() {
       .then(async (res) => {
         if (!res.ok) throw new Error('Upload failed');
         const data = await res.json();
-        const uploadedPath = data?.url || null; // may be relative or absolute
+        const uploadedPath = data?.url || null;
         const fullUrl = resolveAssetUrl(uploadedPath);
         setEditData(prev => ({ ...prev, profilePicture: fullUrl }));
+        setStudentData(prev => ({ ...prev, profilePicture: fullUrl }));
       })
       .catch((err) => {
         console.error('Avatar upload failed; using local preview', err);
         const previewUrl = URL.createObjectURL(file);
         setEditData(prev => ({ ...prev, profilePicture: previewUrl }));
+        setStudentData(prev => ({ ...prev, profilePicture: previewUrl }));
       });
   };
 
@@ -507,7 +494,7 @@ export default function StudentSettingsPage() {
                           </div>
                         )}
 
-                        {isEditing && (
+                        {(
                           <div className="profile-picture-actions">
                             <label htmlFor="profile-upload" className="upload-label">
                               Change Photo

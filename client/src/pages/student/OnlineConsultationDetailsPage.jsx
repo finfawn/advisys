@@ -180,7 +180,7 @@ export default function OnlineConsultationDetailsPage() {
     try {
       // Persist consultation data for the call window to read
       localStorage.setItem(`advisys_consultation_${consultationData.id}`, JSON.stringify(consultationData));
-    } catch (_) {}
+    } catch (err) { console.error(err); }
     const url = `/call?cid=${consultationData.id}`;
     const win = window.open(url, '_blank', 'noopener,noreferrer');
     setCallWin(win);
@@ -191,9 +191,9 @@ export default function OnlineConsultationDetailsPage() {
     try {
       // Ask the call window to leave gracefully
       callWin?.postMessage({ type: 'advisys-leave', cid: consultationData.id }, '*');
-    } catch (_) {}
+    } catch (err) { console.error(err); }
     setTimeout(() => {
-      try { if (callWin && !callWin.closed) callWin.close(); } catch (_) {}
+      try { if (callWin && !callWin.closed) callWin.close(); } catch (err) { console.error(err); }
       setCallWin(null);
       // Trigger a refresh shortly after leaving; summary may start generating
       refreshConsultationOnce();
@@ -229,7 +229,7 @@ export default function OnlineConsultationDetailsPage() {
         const shaped = { ...found, faculty: { id: found?.advisor?.id ?? found?.advisor_user_id ?? found?.faculty?.id ?? null, name, title, avatar: resolveAssetUrl(avatarRaw) } };
         setConsultationData(shaped);
       }
-    } catch (_) {}
+    } catch (err) { console.error(err); }
   };
 
   // Listen for call window notifying that the call has ended
@@ -273,7 +273,7 @@ export default function OnlineConsultationDetailsPage() {
             setSummaryLoading(false);
             clearInterval(id);
           }
-        } catch (_) {}
+        } catch (err) { console.error(err); }
         if (attempts >= 20) { // ~2 minutes at 6s interval
           setSummaryLoading(false);
           clearInterval(id);

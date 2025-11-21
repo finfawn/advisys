@@ -84,7 +84,7 @@ export default function MyConsultationsPage() {
           if (v && typeof v === 'object') stack.push(v);
         }
       }
-    } catch {}
+    } catch (err) { console.error(err); }
     return null;
   };
 
@@ -171,8 +171,8 @@ export default function MyConsultationsPage() {
             avatar: item.faculty.avatar || resolveAssetUrl(adv?.avatar || adv?.avatar_url || null),
           },
         };
-      } catch (error) {
-        console.error('Error enriching consultation:', error);
+      } catch (_error) {
+        console.error('Error enriching consultation:', _error);
         return item;
       }
     });
@@ -216,7 +216,7 @@ export default function MyConsultationsPage() {
           cancelReason: c.cancelReason || m.cancelReason || null,
         };
       }));
-    } catch {}
+    } catch (err) { console.error(err); }
   };
   const reloadConsultations = async () => {
     try {
@@ -242,6 +242,7 @@ export default function MyConsultationsPage() {
         const data = toArray(raw);
         const shaped = data.map(shapeConsultation);
         const enriched = await enrichFacultyDetails(shaped);
+        await enrichMissingReasons(enriched);
         const sig = enriched.map(c => `${c.id}|${c.status}|${c.start_datetime}|${c.declineReason||''}|${c.cancelReason||''}`).join(',');
         if (sig !== listSignatureRef.current) {
           listSignatureRef.current = sig;
@@ -278,6 +279,7 @@ export default function MyConsultationsPage() {
         const data = toArray(raw);
         const shaped = data.map(shapeConsultation);
         const enriched = await enrichFacultyDetails(shaped);
+        await enrichMissingReasons(enriched);
         const sig = enriched.map(c => `${c.id}|${c.status}|${c.start_datetime}|${c.declineReason||''}|${c.cancelReason||''}`).join(',');
         if (sig !== listSignatureRef.current) {
           listSignatureRef.current = sig;

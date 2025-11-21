@@ -17,13 +17,13 @@ export default function CallWindow() {
     try {
       const stored = localStorage.getItem(`advisys_consultation_${cid}`);
       consultationData = stored ? JSON.parse(stored) : { id: cid };
-    } catch (_) {
+    } catch (err) { console.error(err); } {
       consultationData = { id: cid };
     }
   }
 
   const handleClose = () => {
-    try { window.close(); } catch (_) {}
+    try { window.close(); } catch (err) { console.error(err); } {}
   };
 
   return (

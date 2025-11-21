@@ -6,6 +6,7 @@ interface RippleButtonProps {
   circleColor?: string;
   width?: string;  // e.g., "200px" or "100%"
   height?: string; // e.g., "50px"
+  onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
 const RippleButton: React.FC<RippleButtonProps> = ({
@@ -14,6 +15,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
   circleColor,
   width,
   height,
+  onClick,
 }) => {
   return (
     <>
@@ -24,6 +26,8 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           width: width,
           height: height,
         }}
+        type="submit"
+        onClick={onClick}
       >
         <span className="circle1"></span>
         <span className="circle2"></span>

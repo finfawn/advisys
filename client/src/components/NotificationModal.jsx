@@ -2,6 +2,26 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { BsBell, BsCheck, BsX, BsCalendar, BsClock, BsPersonCircle, BsCheckCircle, BsXCircle, BsExclamationTriangle, BsCameraVideo, BsGeoAlt, BsDownload, BsTrash } from "react-icons/bs";
+
+const getNotificationIcon = (iconName, className) => {
+  switch (iconName) {
+    case "BsBell": return <BsBell className={className} />;
+    case "BsCheck": return <BsCheck className={className} />;
+    case "BsX": return <BsX className={className} />;
+    case "BsCalendar": return <BsCalendar className={className} />;
+    case "BsClock": return <BsClock className={className} />;
+    case "BsPersonCircle": return <BsPersonCircle className={className} />;
+    case "BsCheckCircle": return <BsCheckCircle className={className} />;
+    case "BsXCircle": return <BsXCircle className={className} />;
+    case "BsExclamationTriangle": return <BsExclamationTriangle className={className} />;
+    case "BsCameraVideo": return <BsCameraVideo className={className} />;
+    case "BsGeoAlt": return <BsGeoAlt className={className} />;
+    case "BsDownload": return <BsDownload className={className} />;
+    case "BsTrash": return <BsTrash className={className} />;
+    default: return null;
+  }
+};
+
 import { useNotifications } from "../contexts/NotificationContext";
 import "./NotificationModal.css";
 import SummaryEditActionModal from "./SummaryEditActionModal";
@@ -134,7 +154,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 20, 2024",
         isRead: false,
         avatar: <BsPersonCircle />,
-        icon: <BsCheckCircle className="notification-icon approved" />,
+        icon: getNotificationIcon("BsCheckCircle", "notification-icon approved"),
         action: "View Details"
       },
       {
@@ -146,7 +166,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 20, 2024",
         isRead: false,
         avatar: <BsPersonCircle />,
-        icon: <BsClock className="notification-icon reminder" />,
+        icon: getNotificationIcon("BsClock", "notification-icon reminder"),
         action: "Join Meeting"
       },
       {
@@ -158,7 +178,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 19, 2024",
         isRead: true,
         avatar: <BsPersonCircle />,
-        icon: <BsXCircle className="notification-icon cancelled" />,
+        icon: getNotificationIcon("BsXCircle", "notification-icon cancelled"),
         action: "Reschedule"
       },
       {
@@ -170,7 +190,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 18, 2024",
         isRead: true,
         avatar: <BsPersonCircle />,
-        icon: <BsDownload className="notification-icon document" />,
+        icon: getNotificationIcon("BsDownload", "notification-icon document"),
         action: "Download",
         attachments: [
           { name: "Consultation Notes.pdf", size: "2.1 MB" },
@@ -188,7 +208,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 20, 2024",
         isRead: false,
         avatar: <BsPersonCircle />,
-        icon: <BsCalendar className="notification-icon request" />,
+        icon: getNotificationIcon("BsCalendar", "notification-icon request"),
         action: "Review Request"
       },
       {
@@ -200,7 +220,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 20, 2024",
         isRead: false,
         avatar: <BsPersonCircle />,
-        icon: <BsClock className="notification-icon reminder" />,
+        icon: getNotificationIcon("BsClock", "notification-icon reminder"),
         action: "Join Meeting"
       },
       {
@@ -212,7 +232,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 20, 2024",
         isRead: true,
         avatar: <BsPersonCircle />,
-        icon: <BsXCircle className="notification-icon cancelled" />,
+        icon: getNotificationIcon("BsXCircle", "notification-icon cancelled"),
         action: "View Details"
       },
       {
@@ -224,7 +244,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         date: "Dec 19, 2024",
         isRead: true,
         avatar: <BsPersonCircle />,
-        icon: <BsExclamationTriangle className="notification-icon system" />,
+        icon: getNotificationIcon("BsExclamationTriangle", "notification-icon system"),
         action: "Learn More"
       }
     ]
@@ -629,6 +649,9 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
               >
                 <div className="notification-avatar">
                   {notification.avatar}
+                </div>
+                <div className="notification-icon-wrapper">
+                  {notification.icon}
                 </div>
                 
                 <div className="notification-content">

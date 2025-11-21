@@ -72,18 +72,20 @@ function AuthPage({ embedded = false }) {
         const data = await res.json();
         if (!res.ok) {
           if (res.status === 403) {
-            const msg = String(data?.error || '').toLowerCase();
-            const code = data?.code;
-            if (code === ACCOUNT_DEACTIVATED_CODE || msg.includes('deactivated')) {
+            const code = data?.code || '';
+            const errMsg = data?.error || '';
+            if (code === ACCOUNT_DEACTIVATED_CODE) {
               setServerError(DEACTIVATED_NOTICE);
               return;
             }
-            setServerError('Email not verified. Check your inbox or verify now.');
-            navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}`);
-            return;
+            if (/email not verified/i.test(errMsg)) {
+              setServerError('Email not verified');
+              navigate(`/verify-email?email=${encodeURIComponent(form.email.trim())}`);
+              return;
+            }
           }
-          const errMsg = data?.error || 'Login failed';
-          throw new Error(errMsg);
+          setServerError(data?.error || 'Invalid credentials');
+          return;
         }
         localStorage.setItem("advisys_token", data.token);
         localStorage.setItem("advisys_user", JSON.stringify(data.user));
@@ -138,7 +140,6 @@ function AuthPage({ embedded = false }) {
     setForgotErr('');
     try {
       const email = String(forgotEmail || form.email || '').trim();
-      if (!email) { setForgotErr('Please enter your email'); setForgotSubmitting(false); return; }
       const res = await fetch(`${base}/api/auth/forgot-password`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -273,7 +274,7 @@ function AuthPage({ embedded = false }) {
                 <div>
                   <label className="block text-xs text-gray-600 mb-1">Program</label>
                   <Select value={form.program || ""} onValueChange={(v) => onChange("program", v)}>
-                    <SelectTrigger className={`w-full rounded-md border px-3 py-2 text-sm ${errors.program ? "border-red-400" : "border-gray-300 bg-white"}`}>
+                    <SelectTrigger data-testid="program-select-trigger" className={`w-full rounded-md border px-3 py-2 text-sm ${errors.program ? "border-red-400" : "border-gray-300 bg-white"}`}>
                       <SelectValue placeholder="Select program" />
                     </SelectTrigger>
                     <SelectContent>
@@ -285,7 +286,7 @@ function AuthPage({ embedded = false }) {
                   <div className="mt-4">
                     <label className="block text-xs text-gray-600 mb-1">Year Level</label>
                     <Select value={form.yearLevel || ""} onValueChange={(v) => onChange("yearLevel", v)}>
-                      <SelectTrigger className={`w-full rounded-md border px-3 py-2 text-sm ${errors.yearLevel ? "border-red-400" : "border-gray-300 bg-white"}`}>
+                      <SelectTrigger data-testid="yearlevel-select-trigger" className={`w-full rounded-md border px-3 py-2 text-sm ${errors.yearLevel ? "border-red-400" : "border-gray-300 bg-white"}`}>
                         <SelectValue placeholder="Select year level" />
                       </SelectTrigger>
                       <SelectContent>
@@ -325,7 +326,7 @@ function AuthPage({ embedded = false }) {
             </button>
             <div className="flex items-center gap-3">
               {serverError && <p className="text-xs text-red-600">{serverError}</p>}
-              <RippleButton text={submitting ? "Please wait" : (mode === "login" ? "Sign In" : "Register")} width="120px" height="40px" bgColor="#3a6bb8" circleColor="#60a5fa" />
+              <RippleButton onClick={onSubmit} text={submitting ? "Please wait" : (mode === "login" ? "Sign In" : "Register")} width="120px" height="40px" bgColor="#3a6bb8" circleColor="#60a5fa" />
             </div>
           </div>
           {mode === 'login' && (

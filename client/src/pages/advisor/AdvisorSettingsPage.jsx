@@ -912,7 +912,7 @@ export default function AdvisorSettingsPage() {
                         <p className="section-description">Edit details shown on your public profile</p>
                       </div>
                       {!isEditingConsult ? (
-                        <Button variant="primary" className="edit-btn" onClick={handleEditConsultation}>
+                        <Button data-testid="consult-edit-btn" variant="primary" className="edit-btn" onClick={handleEditConsultation}>
                           <BsPencil className="btn-icon" />
                           Edit
                         </Button>
