@@ -96,7 +96,30 @@ export default function AdminDashboard() {
   const [monthlyMode, setMonthlyMode] = useState(null);
 
   useEffect(() => {
-    // disabled data loading for simulation
+    const fetchData = async () => {
+      setIsLoading(true);
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const storedToken = localStorage.getItem('advisys_token');
+      const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined;
+
+      try {
+        const [summaryRes, monthlyModeRes] = await Promise.all([
+          fetch(`${base}/api/dashboard/admin/summary`, { headers }),
+          fetch(`${base}/api/dashboard/admin/monthly-mode`, { headers }),
+        ]);
+
+        const summaryData = await summaryRes.json();
+        const monthlyModeData = await monthlyModeRes.json();
+
+        setSummary(summaryData);
+        setMonthlyMode(monthlyModeData);
+      } catch (err) {
+        console.error('Failed to load admin dashboard data', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
   }, []);
 
   const handleNavigation = (page) => {
