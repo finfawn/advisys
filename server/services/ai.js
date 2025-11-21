@@ -66,7 +66,7 @@ function buildPrompt(transcript, topic, advisorName, studentName) {
 async function summarizeConsultation(transcript, topic, advisorName, studentName) {
   const { AI_SUMMARY_ENABLED, AI_SUMMARY_API_KEY, AI_SUMMARY_MODEL, AI_PROVIDER, AWS_REGION, BEDROCK_MODEL, DEEPSEEK_API_KEY, DEEPSEEK_MODEL } = process.env;
   if (String(AI_SUMMARY_ENABLED).toLowerCase() !== 'true') return null;
-  const provider = (AI_PROVIDER || 'bedrock').toLowerCase();
+  const provider = (AI_PROVIDER || 'google').toLowerCase();
   const prompt = buildPrompt(transcript, topic, advisorName, studentName);
   if (provider === 'bedrock') {
     const model = BEDROCK_MODEL || 'anthropic.claude-3-5-sonnet-20241022';

@@ -5,8 +5,12 @@ const { summarizeConsultation } = require('../services/ai');
 
 let S3Client, PutObjectCommand, DeleteObjectCommand;
 let TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand;
+let SpeechClient;
+let Storage;
 try { ({ S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')); } catch (_) {}
 try { ({ TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand } = require('@aws-sdk/client-transcribe')); } catch (_) {}
+try { ({ SpeechClient } = require('@google-cloud/speech')); } catch (_) {}
+try { ({ Storage } = require('@google-cloud/storage')); } catch (_) {}
 
 const router = express.Router();
 // Speech and Storage config from environment
@@ -19,6 +23,10 @@ const {
   TRANSCRIBE_IDENTIFY_LANGUAGE,
   TRANSCRIBE_IDENTIFY_MULTIPLE_LANGUAGES,
   S3_TRANSCRIPTIONS_PREFIX,
+  STT_PROVIDER,
+  GCS_BUCKET_NAME,
+  GCS_TRANSCRIPTIONS_PREFIX,
+  GCP_STORAGE_KEY_PATH,
 } = process.env;
 // Allow disabling STT upload for local/dev environments
 const DISABLE_STT_UPLOAD = String(process.env.DISABLE_STT_UPLOAD || '').toLowerCase() === 'true';
@@ -112,8 +120,15 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
       return res.json({ success: true, transcriptLength: 0, summarized: false, bypassed: true });
     }
 
-    if (!S3Client || !TranscribeClient || !S3_UPLOADS_BUCKET) {
-      return res.status(500).json({ error: 'Transcribe not available on server' });
+    const provider = String(STT_PROVIDER || 'google').toLowerCase();
+    if (provider === 'aws') {
+      if (!S3Client || !TranscribeClient || !S3_UPLOADS_BUCKET) {
+        return res.status(500).json({ error: 'Transcribe not available on server' });
+      }
+    } else {
+      if (!SpeechClient) {
+        return res.status(500).json({ error: 'Google Speech-to-Text not available on server' });
+      }
     }
 
     // Read consultation metadata for better summarization context
@@ -131,56 +146,106 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
     const mime = req.file?.mimetype || '';
     const ext = lower.endsWith('.ogg') ? 'ogg' : lower.endsWith('.mp3') ? 'mp3' : lower.endsWith('.wav') ? 'wav' : lower.endsWith('.mp4') ? 'mp4' : lower.endsWith('.webm') ? 'webm' : 'webm';
     const mediaFormat = ext.replace('.', '');
-    const region = AWS_REGION || 'us-east-1';
-    const s3 = new S3Client({ region });
-    const transcribe = new TranscribeClient({ region });
-    const prefix = (S3_TRANSCRIPTIONS_PREFIX || 'consultations').replace(/\/$/, '');
-    const key = `${prefix}/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-    await s3.send(new PutObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key, Body: file.buffer, ContentType: mime || 'audio/webm' }));
-    const jobName = `advisys-${consultationId}-${Date.now()}`.replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 200);
-    const identifyLang = String(TRANSCRIBE_IDENTIFY_LANGUAGE || '').toLowerCase() === 'true';
-    const identifyMulti = String(TRANSCRIBE_IDENTIFY_MULTIPLE_LANGUAGES || '').toLowerCase() === 'true';
-    const altRaw = String(SPEECH_ALTERNATIVE_LANGUAGE_CODES || '').trim();
-    const languageOptions = altRaw
-      ? altRaw.split(',').map(s => s.trim()).filter(Boolean).map(c => (c.toLowerCase() === 'fil-ph' ? 'tl-PH' : c))
-      : [];
-    const params = {
-      TranscriptionJobName: jobName,
-      Media: { MediaFileUri: `s3://${S3_UPLOADS_BUCKET}/${key}` },
-      MediaFormat: mediaFormat,
-    };
-    if (identifyMulti) {
-      params.IdentifyMultipleLanguages = true;
-      if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
-    } else if (identifyLang) {
-      params.IdentifyLanguage = true;
-      if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
-    } else {
-      params.LanguageCode = languageCode;
-    }
-    await transcribe.send(new StartTranscriptionJobCommand(params));
-    let status = 'IN_PROGRESS';
-    let transcriptUri = null;
-    const start = Date.now();
-    while (status === 'IN_PROGRESS' || status === 'QUEUED') {
-      const out = await transcribe.send(new GetTranscriptionJobCommand({ TranscriptionJobName: jobName }));
-      status = out?.TranscriptionJob?.TranscriptionJobStatus || 'FAILED';
-      if (status === 'COMPLETED') {
-        transcriptUri = out.TranscriptionJob.Transcript?.TranscriptFileUri || null;
-        break;
+    let merged = '';
+    let recordingUri = null;
+    if (provider === 'aws') {
+      const region = AWS_REGION || 'us-east-1';
+      const s3 = new S3Client({ region });
+      const transcribe = new TranscribeClient({ region });
+      const prefix = (S3_TRANSCRIPTIONS_PREFIX || 'consultations').replace(/\/$/, '');
+      const key = `${prefix}/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+      await s3.send(new PutObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key, Body: file.buffer, ContentType: mime || 'audio/webm' }));
+      const jobName = `advisys-${consultationId}-${Date.now()}`.replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 200);
+      const identifyLang = String(TRANSCRIBE_IDENTIFY_LANGUAGE || '').toLowerCase() === 'true';
+      const identifyMulti = String(TRANSCRIBE_IDENTIFY_MULTIPLE_LANGUAGES || '').toLowerCase() === 'true';
+      const altRaw = String(SPEECH_ALTERNATIVE_LANGUAGE_CODES || '').trim();
+      const languageOptions = altRaw
+        ? altRaw.split(',').map(s => s.trim()).filter(Boolean).map(c => (c.toLowerCase() === 'fil-ph' ? 'tl-PH' : c))
+        : [];
+      const params = {
+        TranscriptionJobName: jobName,
+        Media: { MediaFileUri: `s3://${S3_UPLOADS_BUCKET}/${key}` },
+        MediaFormat: mediaFormat,
+      };
+      if (identifyMulti) {
+        params.IdentifyMultipleLanguages = true;
+        if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
+      } else if (identifyLang) {
+        params.IdentifyLanguage = true;
+        if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
+      } else {
+        params.LanguageCode = languageCode;
       }
-      if (status === 'FAILED') break;
-      if (Date.now() - start > 5 * 60 * 1000) break;
-      await new Promise(r => setTimeout(r, 5000));
+      await transcribe.send(new StartTranscriptionJobCommand(params));
+      let status = 'IN_PROGRESS';
+      let transcriptUri = null;
+      const start = Date.now();
+      while (status === 'IN_PROGRESS' || status === 'QUEUED') {
+        const out = await transcribe.send(new GetTranscriptionJobCommand({ TranscriptionJobName: jobName }));
+        status = out?.TranscriptionJob?.TranscriptionJobStatus || 'FAILED';
+        if (status === 'COMPLETED') {
+          transcriptUri = out.TranscriptionJob.Transcript?.TranscriptFileUri || null;
+          break;
+        }
+        if (status === 'FAILED') break;
+        if (Date.now() - start > 5 * 60 * 1000) break;
+        await new Promise(r => setTimeout(r, 5000));
+      }
+      if (status !== 'COMPLETED' || !transcriptUri) {
+        try { await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]); } catch (_) {}
+        try { if (!KEEP_RECORDINGS_AT_REST) await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
+        return res.json({ success: true, transcriptLength: 0, summarized: false, sttError: 'Transcribe failed' });
+      }
+      const resp = await fetch(transcriptUri);
+      const j = await resp.json();
+      merged = Array.isArray(j?.results?.transcripts) && j.results.transcripts[0]?.transcript ? j.results.transcripts.map(t => t.transcript).join('\n') : (j?.results?.transcripts?.[0]?.transcript || j?.results?.items?.map(i => i.alternatives?.[0]?.content || '').join('') || '');
+      if (S3Client && S3_UPLOADS_BUCKET) {
+        if (KEEP_RECORDINGS_AT_REST) {
+          try { await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [`s3://${S3_UPLOADS_BUCKET}/${key}`, consultationId]); } catch (_) {}
+          recordingUri = `s3://${S3_UPLOADS_BUCKET}/${key}`;
+        } else {
+          try { await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
+        }
+      }
+    } else {
+      const client = GCP_STORAGE_KEY_PATH ? new SpeechClient({ keyFilename: GCP_STORAGE_KEY_PATH }) : new SpeechClient();
+      const bytes = file.buffer.toString('base64');
+      const altRaw = String(SPEECH_ALTERNATIVE_LANGUAGE_CODES || '').trim();
+      const alternativeLanguageCodes = altRaw ? altRaw.split(',').map(s => s.trim()).filter(Boolean).map(c => (c.toLowerCase() === 'fil-ph' ? 'tl-PH' : c)) : [];
+      function encodingForExt(e) {
+        const m = String(e || '').toLowerCase();
+        if (m === 'webm') return 'WEBM_OPUS';
+        if (m === 'ogg') return 'OGG_OPUS';
+        if (m === 'mp3') return 'MP3';
+        if (m === 'wav') return 'LINEAR16';
+        return undefined;
+      }
+      const cfg = {
+        languageCode,
+        enableAutomaticPunctuation: true,
+      };
+      const enc = encodingForExt(ext);
+      if (enc) cfg.encoding = enc;
+      if (SPEECH_MODEL) cfg.model = SPEECH_MODEL;
+      if (alternativeLanguageCodes.length) cfg.alternativeLanguageCodes = alternativeLanguageCodes;
+      const [operation] = await client.longRunningRecognize({
+        audio: { content: bytes },
+        config: cfg,
+      });
+      const [response] = await operation.promise();
+      merged = Array.isArray(response?.results) ? response.results.map(r => r.alternatives?.[0]?.transcript || '').filter(Boolean).join('\n') : '';
+      if (KEEP_RECORDINGS_AT_REST && Storage && GCS_BUCKET_NAME) {
+        try {
+          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
+          const bucket = storage.bucket(GCS_BUCKET_NAME);
+          const prefix = (GCS_TRANSCRIPTIONS_PREFIX || 'consultations').replace(/\/$/, '');
+          const key = `${prefix}/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+          await bucket.file(key).save(file.buffer, { contentType: mime || 'audio/webm', resumable: false, public: false });
+          recordingUri = `gs://${GCS_BUCKET_NAME}/${key}`;
+          try { await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [recordingUri, consultationId]); } catch (_) {}
+        } catch (_) {}
+      }
     }
-    if (status !== 'COMPLETED' || !transcriptUri) {
-      try { await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]); } catch (_) {}
-      try { if (!KEEP_RECORDINGS_AT_REST) await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
-      return res.json({ success: true, transcriptLength: 0, summarized: false, sttError: 'Transcribe failed' });
-    }
-    const resp = await fetch(transcriptUri);
-    const j = await resp.json();
-    const merged = Array.isArray(j?.results?.transcripts) && j.results.transcripts[0]?.transcript ? j.results.transcripts.map(t => t.transcript).join('\n') : (j?.results?.transcripts?.[0]?.transcript || j?.results?.items?.map(i => i.alternatives?.[0]?.content || '').join('') || '');
 
     // Persist transcript (no audio retained at rest)
     await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [merged || null, consultationId]);
@@ -209,16 +274,7 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
       }
     }
 
-    if (S3Client && S3_UPLOADS_BUCKET) {
-      if (KEEP_RECORDINGS_AT_REST) {
-        try { await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [`s3://${S3_UPLOADS_BUCKET}/${key}`, consultationId]); } catch (_) {}
-      } else {
-        try { await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
-      }
-    }
-
-    // Return status.
-    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), usedS3: true, recordingUri: KEEP_RECORDINGS_AT_REST ? `s3://${S3_UPLOADS_BUCKET}/${key}` : null });
+    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), provider, recordingUri });
   } catch (err) {
     console.error('Transcriptions upload error:', err?.message || err);
     return res.status(500).json({ error: 'Failed to process uploaded audio', details: err?.message || String(err) });

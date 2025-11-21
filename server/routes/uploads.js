@@ -98,7 +98,19 @@ router.post(
       }
 
       const { GCS_BUCKET_NAME, GCP_STORAGE_KEY_PATH, S3_UPLOADS_BUCKET, AWS_REGION, CDN_BASE_URL } = process.env;
-      if (S3Client && S3_UPLOADS_BUCKET) {
+      if (Storage && GCS_BUCKET_NAME) {
+        try {
+          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
+          const bucket = storage.bucket(GCS_BUCKET_NAME);
+          const gcsKey = `avatars/${req.file.filename}`;
+          const localFilePath = path.join(AVATARS_DIR, req.file.filename);
+          await bucket.upload(localFilePath, { destination: gcsKey, metadata: { contentType: req.file.mimetype || 'image/png' } });
+          try { fs.unlinkSync(localFilePath); } catch (_) {}
+          urlPath = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsKey}`;
+        } catch (gcsErr) {
+          console.error('GCS upload failed; falling back to local URL:', gcsErr);
+        }
+      } else if (S3Client && S3_UPLOADS_BUCKET) {
         try {
           const s3 = new S3Client({ region: AWS_REGION || 'us-east-1' });
           const key = `avatars/${req.file.filename}`;
@@ -113,18 +125,6 @@ router.post(
           }
         } catch (s3Err) {
           console.error('S3 upload failed; falling back to local URL:', s3Err);
-        }
-      } else if (Storage && GCS_BUCKET_NAME) {
-        try {
-          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-          const bucket = storage.bucket(GCS_BUCKET_NAME);
-          const gcsKey = `avatars/${req.file.filename}`;
-          const localFilePath = path.join(AVATARS_DIR, req.file.filename);
-          await bucket.upload(localFilePath, { destination: gcsKey, metadata: { contentType: req.file.mimetype || 'image/png' } });
-          try { fs.unlinkSync(localFilePath); } catch (_) {}
-          urlPath = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsKey}`;
-        } catch (gcsErr) {
-          console.error('GCS upload failed; falling back to local URL:', gcsErr);
         }
       }
 
