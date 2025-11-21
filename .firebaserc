@@ -1,12 +1,12 @@
 {
   "projects": {
-    "default": "gen-lang-client-0246208027"
+    "default": "advisysbackup-278ab"
   },
   "targets": {
-    "gen-lang-client-0246208027": {
+    "advisysbackup-278ab": {
       "hosting": {
         "default": [
-          "gen-lang-client-0246208027"
+          "advisysbackup-278ab"
         ]
       }
     }
