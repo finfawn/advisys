@@ -19,6 +19,7 @@ async function sendEmail({ to, subject, html }) {
       },
     ],
   };
+  console.log('Sending email via Mailjet:', { to, subject, html: html.substring(0, 100) + '...' });
   const res = await fetch('https://api.mailjet.com/v3.1/send', {
     method: 'POST',
     headers: {
@@ -29,7 +30,7 @@ async function sendEmail({ to, subject, html }) {
   });
   if (!res.ok) {
     const text = await res.text();
-    console.error('Mailjet email failed:', res.status, text);
+    console.error('Mailjet email failed:', res.status, text, payload);
   }
   return { ok: res.ok };
 }
