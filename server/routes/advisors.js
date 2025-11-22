@@ -307,6 +307,16 @@ router.post('/:id/slots', async (req, res) => {
       const d = new Date(val);
       return isNaN(d.getTime()) ? null : d;
     };
+    // Helper: format Date as MySQL DATETIME string in Asia/Manila wall time
+    const formatManilaMySQL = (d) => {
+      const parts = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+      }).formatToParts(d);
+      const get = (t) => parts.find(p => p.type === t)?.value || '';
+      return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
+    };
+
     for (const s of slots) {
       const startIso = s.start_datetime || s.start;
       const endIso = s.end_datetime || s.end;
@@ -330,9 +340,11 @@ router.post('/:id/slots', async (req, res) => {
       }
       const mode = normalizeMode(s.mode);
       const room = s.room || null;
+      const startStr = formatManilaMySQL(start);
+      const endStr = formatManilaMySQL(end);
       const [result] = await conn.query(
         'INSERT INTO advisor_slots (advisor_user_id, start_datetime, end_datetime, mode, room) VALUES (?,?,?,?,?)',
-        [advisorId, start, end, mode, room]
+        [advisorId, startStr, endStr, mode, room]
       );
       created.push({ id: result.insertId, advisor_user_id: Number(advisorId), start_datetime: start, end_datetime: end, mode, room, status: 'available' });
     }
@@ -397,10 +409,12 @@ router.patch('/:id/slots/:slotId', async (req, res) => {
     const newMode = mode ? normalizeMode(mode) : existing.mode;
     const newRoom = typeof room !== 'undefined' ? (room || null) : existing.room;
 
+    const startStr = formatManilaMySQL(newStart);
+    const endStr = formatManilaMySQL(newEnd);
     const [result] = await pool.query(
       `UPDATE advisor_slots SET start_datetime = ?, end_datetime = ?, mode = ?, room = ?
        WHERE id = ? AND advisor_user_id = ?`,
-      [newStart, newEnd, newMode, newRoom, slotId, advisorId]
+      [startStr, endStr, newMode, newRoom, slotId, advisorId]
     );
     if (result.affectedRows === 0) return res.status(404).json({ error: 'Slot not found' });
 

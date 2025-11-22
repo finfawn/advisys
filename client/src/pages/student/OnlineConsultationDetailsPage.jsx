@@ -698,7 +698,7 @@ export default function OnlineConsultationDetailsPage() {
                           onChange={(e) => setNotesDraft(e.target.value)}
                           onBlur={()=>{ setIsEditingNotes(false); handleSaveNotes(); }}
                           onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
-                          placeholder="Your notes for this consultation (visible only to you)"
+                          placeholder="write your notes here"
                           rows={8}
                           autoFocus
                         />

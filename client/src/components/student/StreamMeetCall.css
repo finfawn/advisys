@@ -7,6 +7,32 @@
   background: #0b1220;
 }
 
+.smc-topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  background: rgba(6, 10, 18, 0.9);
+  border-bottom: 1px solid #1f2937;
+  z-index: 10012;
+}
+.smc-title { color: #e5e7eb; font-weight: 600; }
+.smc-topbar-right { display: flex; gap: 8px; align-items: center; }
+.smc-pill {
+  color: #e5e7eb;
+  background: #111827;
+  border: 1px solid #374151;
+  border-radius: 9999px;
+  padding: 4px 10px;
+  font-size: 12px;
+}
+.smc-pill-secondary { background: #0b1220; }
+
 .smc-toolbar {
   position: fixed;
   top: 12px;
@@ -152,7 +178,7 @@
 
 .smc-countdown {
   position: fixed;
-  top: 60px; /* below toolbar to avoid overlap */
+  top: 56px;
   left: 12px;
   z-index: 10005;
   background: rgba(17, 24, 39, 0.9);
@@ -213,39 +239,7 @@
   100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
-/* Pin Stream native controls to bottom center */
-.str-video__call-controls {
-  position: fixed !important;
-  left: 50% !important;
-  bottom: 16px !important;
-  transform: translateX(-50%);
-  z-index: 10005;
-}
-
-/* Custom inline controls additions */
-.smc-inline-controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; align-items: center; }
-/* Align our icons with Stream tokens */
-.str-video__call-controls__button.smc-icon-btn { padding: 0; }
-.str-video__call-controls .smc-icon-btn { margin: 0 2px; }
-.smc-icon-btn {
-  width: 44px;
-  height: 44px;
-  border-radius: 9999px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  background: #111827;
-  border: 1px solid #374151;
-  color: #e5e7eb;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
-}
-.smc-icon-btn:hover { background: #1f2937; }
-.smc-icon-btn:active { transform: scale(0.98); }
-.smc-icon { display:block; }
-.smc-icon-btn .smc-icon { color: #e5e7eb; }
-.smc-end-icon { background: #ef4444; color: #fff; border-color: #f87171; }
-.smc-end-icon:hover { background: #dc2626; }
-.smc-icon-btn.active { outline: 2px solid #38bdf8; }
+/* Call controls use Stream defaults for responsive placement and styling */
 
 /* Stats overlay */
 .smc-stats-panel {
@@ -264,6 +258,20 @@
 .smc-stats-panel .k { color:#9ca3af; font-size:12px; }
 .smc-stats-panel .v { color:#e5e7eb; font-size:13px; font-weight:500; }
 .smc-stats-close { margin-top:8px; width:100%; padding:8px 10px; border-radius:8px; border:1px solid #374151; background:#0b1220; color:#e5e7eb; }
+
+/* Improve text contrast for Stream components */
+.smc-root .str-video__panel,
+.smc-root .str-video__header,
+.smc-root .str-video__title,
+.smc-root .str-video__participant-label,
+.smc-root .str-video__device-button,
+.smc-root .str-video__menu-item,
+.smc-root .str-video__participant-tile,
+.smc-root .str-video__call-controls__button {
+  color: #e5e7eb;
+}
+.smc-root .str-video__panel { background-color: #0d1628; border-color: #334155; }
+.smc-root .str-video__participant-tile { border-color: #1f2937; }
 
 /* Chat avatars and reactions */
 .smc-message-head { display:flex; gap:10px; align-items:flex-start; }
@@ -315,4 +323,31 @@
   .smc-btn { padding: 6px 8px; font-size: 12px; }
   .smc-status { top: auto; bottom: 12px; right: 12px; }
   .smc-icon-btn { width: 38px; height: 38px; }
+}
+/* Footer actions (Leave / End for all) */
+.smc-footer-actions {
+  position: fixed;
+  right: 12px;
+  bottom: calc(16px + env(safe-area-inset-bottom));
+  display: flex;
+  gap: 8px;
+  z-index: 10006;
+  flex-wrap: wrap;
+  max-width: 100vw;
+}
+.smc-footer-actions .str-video__call-controls__button {
+  min-width: 44px;
+}
+
+@media (max-width: 768px) {
+  .smc-topbar { height: 44px; padding: 0 10px; }
+  .smc-title { font-size: 14px; }
+  .smc-pill { font-size: 11px; padding: 3px 8px; }
+  .smc-footer-actions { left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); justify-content: flex-end; }
+}
+
+@media (max-width: 480px) {
+  .smc-pill-secondary { display: none; }
+  .smc-footer-actions { left: 12px; right: 12px; bottom: calc(10px + env(safe-area-inset-bottom)); justify-content: space-between; }
+  .smc-footer-actions .str-video__call-controls__button { padding: 8px 10px; }
 }

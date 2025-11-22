@@ -19,20 +19,8 @@ function ensureDirs() {
 }
 ensureDirs();
 
-// Configure Multer storage for avatars
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    ensureDirs();
-    cb(null, AVATARS_DIR);
-  },
-  filename: (req, file, cb) => {
-    const userId = req.user?.id || 'anon';
-    const ext = path.extname(file.originalname || '').toLowerCase();
-    const safeExt = ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext) ? ext : '.png';
-    const name = `avatar_${userId}_${Date.now()}${safeExt}`;
-    cb(null, name);
-  },
-});
+// Configure Multer storage for avatars (memory)
+const storage = multer.memoryStorage();
 
 function fileFilter(req, file, cb) {
   const allowed = ['image/png', 'image/jpeg', 'image/jpg', 'image/gif', 'image/webp'];
@@ -44,10 +32,6 @@ const uploadAvatar = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 
 
 let Storage;
 try { Storage = require('@google-cloud/storage').Storage; } catch (_) { Storage = null; }
-let S3Client, PutObjectCommand, DeleteObjectCommand;
-try {
-  ({ S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3'));
-} catch (_) {}
 const { getPool } = require('../db/pool');
 
 const router = express.Router();
@@ -72,9 +56,7 @@ router.post(
     try {
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
-      // Default: local URL
-      const relativePath = path.join('uploads', 'avatars', req.file.filename);
-      let urlPath = `/${relativePath.replace(/\\/g, '/')}`; // Normalize for Windows
+      let urlPath = null;
 
       // Fetch existing avatar for the user so we can clean it up later
       const pool = getPool();
@@ -97,36 +79,35 @@ router.post(
         console.error('Failed to read previous avatar_url:', prevErr);
       }
 
-      const { GCS_BUCKET_NAME, GCP_STORAGE_KEY_PATH, S3_UPLOADS_BUCKET, AWS_REGION, CDN_BASE_URL } = process.env;
+      const { GCS_BUCKET_NAME: GCS_ENV_BUCKET_NAME, GCP_STORAGE_KEY_PATH, CDN_BASE_URL, ALLOW_LOCAL_AVATAR_FALLBACK } = process.env;
+      const GCS_BUCKET_NAME = GCS_ENV_BUCKET_NAME || 'advisys_bucket_backup';
       if (Storage && GCS_BUCKET_NAME) {
         try {
           const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
           const bucket = storage.bucket(GCS_BUCKET_NAME);
-          const gcsKey = `avatars/${req.file.filename}`;
-          const localFilePath = path.join(AVATARS_DIR, req.file.filename);
-          await bucket.upload(localFilePath, { destination: gcsKey, metadata: { contentType: req.file.mimetype || 'image/png' } });
-          try { fs.unlinkSync(localFilePath); } catch (_) {}
-          urlPath = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsKey}`;
+          const userId2 = req.user?.id || 'anon';
+          const ext2 = path.extname(req.file.originalname || '').toLowerCase();
+          const safeExt2 = ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext2) ? ext2 : '.png';
+          const name2 = `avatar_${userId2}_${Date.now()}${safeExt2}`;
+          const gcsKey = `avatars/${name2}`;
+          await bucket.file(gcsKey).save(req.file.buffer, { contentType: req.file.mimetype || 'image/png', resumable: false, public: false });
+          try {
+            await bucket.file(gcsKey).makePublic();
+            urlPath = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsKey}`;
+          } catch (_) {
+            try {
+              const [signed] = await bucket.file(gcsKey).getSignedUrl({ action: 'read', expires: Date.now() + 30 * 24 * 60 * 60 * 1000 });
+              urlPath = signed;
+            } catch (_) {
+              urlPath = null;
+            }
+          }
         } catch (gcsErr) {
           console.error('GCS upload failed; falling back to local URL:', gcsErr);
         }
-      } else if (S3Client && S3_UPLOADS_BUCKET) {
-        try {
-          const s3 = new S3Client({ region: AWS_REGION || 'us-east-1' });
-          const key = `avatars/${req.file.filename}`;
-          const localFilePath = path.join(AVATARS_DIR, req.file.filename);
-          const body = fs.readFileSync(localFilePath);
-          await s3.send(new PutObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key, Body: body, ContentType: req.file.mimetype || 'image/png', ACL: 'public-read' }));
-          try { fs.unlinkSync(localFilePath); } catch (_) {}
-          if (CDN_BASE_URL) {
-            urlPath = `${CDN_BASE_URL.replace(/\/$/, '')}/${key}`;
-          } else {
-            urlPath = `https://${S3_UPLOADS_BUCKET}.s3.amazonaws.com/${key}`;
-          }
-        } catch (s3Err) {
-          console.error('S3 upload failed; falling back to local URL:', s3Err);
-        }
       }
+
+      // Allow local fallback when cloud URL is unavailable
 
       // Persist avatar_url to DB for the authenticated user
       try {
@@ -141,21 +122,8 @@ router.post(
           if (previousUrl && previousUrl !== urlPath) {
             try {
               const gcsMatch = previousUrl.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
-              const s3Match = previousUrl.match(/^https?:\/\/([^.]+)\.s3[.-][^/]+\.amazonaws\.com\/(.+)$/);
               const cdnMatch = CDN_BASE_URL ? previousUrl.replace(CDN_BASE_URL.replace(/\/$/, ''), '').match(/^\/(.+)$/) : null;
-              if (s3Match && S3Client && S3_UPLOADS_BUCKET) {
-                try {
-                  const s3 = new S3Client({ region: AWS_REGION || 'us-east-1' });
-                  const key = s3Match[2];
-                  await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key }));
-                } catch (_) {}
-              } else if (cdnMatch && S3Client && S3_UPLOADS_BUCKET) {
-                try {
-                  const s3 = new S3Client({ region: AWS_REGION || 'us-east-1' });
-                  const key = cdnMatch[1];
-                  await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key }));
-                } catch (_) {}
-              } else if (gcsMatch && Storage) {
+              if (gcsMatch && Storage) {
                 const [_, prevBucket, prevKey] = gcsMatch;
                 const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
                 await storage.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true });

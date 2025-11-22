@@ -3,36 +3,48 @@ const multer = require('multer');
 const { getPool } = require('../db/pool');
 const { summarizeConsultation } = require('../services/ai');
 
-let S3Client, PutObjectCommand, DeleteObjectCommand;
-let TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand;
 let SpeechClient;
 let Storage;
-try { ({ S3Client, PutObjectCommand, DeleteObjectCommand } = require('@aws-sdk/client-s3')); } catch (_) {}
-try { ({ TranscribeClient, StartTranscriptionJobCommand, GetTranscriptionJobCommand } = require('@aws-sdk/client-transcribe')); } catch (_) {}
 try { ({ SpeechClient } = require('@google-cloud/speech')); } catch (_) {}
 try { ({ Storage } = require('@google-cloud/storage')); } catch (_) {}
 
 const router = express.Router();
-// Speech and Storage config from environment
+// Speech and Storage config from environment (Google only)
 const {
   SPEECH_LANGUAGE_CODE,
   SPEECH_ALTERNATIVE_LANGUAGE_CODES,
   SPEECH_MODEL,
-  S3_UPLOADS_BUCKET,
-  AWS_REGION,
-  TRANSCRIBE_IDENTIFY_LANGUAGE,
-  TRANSCRIBE_IDENTIFY_MULTIPLE_LANGUAGES,
-  S3_TRANSCRIPTIONS_PREFIX,
-  STT_PROVIDER,
-  GCS_BUCKET_NAME,
+  GCS_BUCKET_NAME: GCS_ENV_BUCKET_NAME,
   GCS_TRANSCRIPTIONS_PREFIX,
   GCP_STORAGE_KEY_PATH,
 } = process.env;
+const GCS_BUCKET_NAME = GCS_ENV_BUCKET_NAME || 'advisys_bucket_backup';
 // Allow disabling STT upload for local/dev environments
 const DISABLE_STT_UPLOAD = String(process.env.DISABLE_STT_UPLOAD || '').toLowerCase() === 'true';
 // Optional: retain uploaded audio in cloud storage (default: delete after STT completes)
 const KEEP_RECORDINGS_AT_REST = String(process.env.KEEP_RECORDINGS_AT_REST || '').toLowerCase() === 'true';
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB cap
+
+async function ensureConsultationTranscriptColumns(pool) {
+  try {
+    const [cols1] = await pool.query('SHOW COLUMNS FROM consultations LIKE "final_transcript"');
+    if (!cols1 || cols1.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN final_transcript LONGTEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+  try {
+    const [cols2] = await pool.query('SHOW COLUMNS FROM consultations LIKE "ai_summary"');
+    if (!cols2 || cols2.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN ai_summary LONGTEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+  try {
+    const [cols3] = await pool.query('SHOW COLUMNS FROM consultations LIKE "recording_uri"');
+    if (!cols3 || cols3.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN recording_uri TEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+}
 
 // Helper: derive consultation id from meetingId like "advisys-<id>"
 function consultationIdFromMeeting(meetingId) {
@@ -120,15 +132,8 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
       return res.json({ success: true, transcriptLength: 0, summarized: false, bypassed: true });
     }
 
-    const provider = String(STT_PROVIDER || 'google').toLowerCase();
-    if (provider === 'aws') {
-      if (!S3Client || !TranscribeClient || !S3_UPLOADS_BUCKET) {
-        return res.status(500).json({ error: 'Transcribe not available on server' });
-      }
-    } else {
-      if (!SpeechClient) {
-        return res.status(500).json({ error: 'Google Speech-to-Text not available on server' });
-      }
+    if (!SpeechClient) {
+      return res.status(500).json({ error: 'Google Speech-to-Text not available on server' });
     }
 
     // Read consultation metadata for better summarization context
@@ -145,110 +150,64 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
     const lower = filename.toLowerCase();
     const mime = req.file?.mimetype || '';
     const ext = lower.endsWith('.ogg') ? 'ogg' : lower.endsWith('.mp3') ? 'mp3' : lower.endsWith('.wav') ? 'wav' : lower.endsWith('.mp4') ? 'mp4' : lower.endsWith('.webm') ? 'webm' : 'webm';
-    const mediaFormat = ext.replace('.', '');
     let merged = '';
     let recordingUri = null;
-    if (provider === 'aws') {
-      const region = AWS_REGION || 'us-east-1';
-      const s3 = new S3Client({ region });
-      const transcribe = new TranscribeClient({ region });
-      const prefix = (S3_TRANSCRIPTIONS_PREFIX || 'consultations').replace(/\/$/, '');
-      const key = `${prefix}/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-      await s3.send(new PutObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key, Body: file.buffer, ContentType: mime || 'audio/webm' }));
-      const jobName = `advisys-${consultationId}-${Date.now()}`.replace(/[^a-zA-Z0-9-]/g, '-').slice(0, 200);
-      const identifyLang = String(TRANSCRIBE_IDENTIFY_LANGUAGE || '').toLowerCase() === 'true';
-      const identifyMulti = String(TRANSCRIBE_IDENTIFY_MULTIPLE_LANGUAGES || '').toLowerCase() === 'true';
-      const altRaw = String(SPEECH_ALTERNATIVE_LANGUAGE_CODES || '').trim();
-      const languageOptions = altRaw
-        ? altRaw.split(',').map(s => s.trim()).filter(Boolean).map(c => (c.toLowerCase() === 'fil-ph' ? 'tl-PH' : c))
-        : [];
-      const params = {
-        TranscriptionJobName: jobName,
-        Media: { MediaFileUri: `s3://${S3_UPLOADS_BUCKET}/${key}` },
-        MediaFormat: mediaFormat,
-      };
-      if (identifyMulti) {
-        params.IdentifyMultipleLanguages = true;
-        if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
-      } else if (identifyLang) {
-        params.IdentifyLanguage = true;
-        if (languageOptions.length >= 2) params.LanguageOptions = languageOptions;
-      } else {
-        params.LanguageCode = languageCode;
-      }
-      await transcribe.send(new StartTranscriptionJobCommand(params));
-      let status = 'IN_PROGRESS';
-      let transcriptUri = null;
-      const start = Date.now();
-      while (status === 'IN_PROGRESS' || status === 'QUEUED') {
-        const out = await transcribe.send(new GetTranscriptionJobCommand({ TranscriptionJobName: jobName }));
-        status = out?.TranscriptionJob?.TranscriptionJobStatus || 'FAILED';
-        if (status === 'COMPLETED') {
-          transcriptUri = out.TranscriptionJob.Transcript?.TranscriptFileUri || null;
-          break;
-        }
-        if (status === 'FAILED') break;
-        if (Date.now() - start > 5 * 60 * 1000) break;
-        await new Promise(r => setTimeout(r, 5000));
-      }
-      if (status !== 'COMPLETED' || !transcriptUri) {
-        try { await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [null, consultationId]); } catch (_) {}
-        try { if (!KEEP_RECORDINGS_AT_REST) await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
-        return res.json({ success: true, transcriptLength: 0, summarized: false, sttError: 'Transcribe failed' });
-      }
-      const resp = await fetch(transcriptUri);
-      const j = await resp.json();
-      merged = Array.isArray(j?.results?.transcripts) && j.results.transcripts[0]?.transcript ? j.results.transcripts.map(t => t.transcript).join('\n') : (j?.results?.transcripts?.[0]?.transcript || j?.results?.items?.map(i => i.alternatives?.[0]?.content || '').join('') || '');
-      if (S3Client && S3_UPLOADS_BUCKET) {
-        if (KEEP_RECORDINGS_AT_REST) {
-          try { await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [`s3://${S3_UPLOADS_BUCKET}/${key}`, consultationId]); } catch (_) {}
-          recordingUri = `s3://${S3_UPLOADS_BUCKET}/${key}`;
-        } else {
-          try { await s3.send(new DeleteObjectCommand({ Bucket: S3_UPLOADS_BUCKET, Key: key })); } catch (_) {}
-        }
-      }
-    } else {
-      const client = GCP_STORAGE_KEY_PATH ? new SpeechClient({ keyFilename: GCP_STORAGE_KEY_PATH }) : new SpeechClient();
-      const bytes = file.buffer.toString('base64');
-      const altRaw = String(SPEECH_ALTERNATIVE_LANGUAGE_CODES || '').trim();
-      const alternativeLanguageCodes = altRaw ? altRaw.split(',').map(s => s.trim()).filter(Boolean).map(c => (c.toLowerCase() === 'fil-ph' ? 'tl-PH' : c)) : [];
-      function encodingForExt(e) {
-        const m = String(e || '').toLowerCase();
-        if (m === 'webm') return 'WEBM_OPUS';
-        if (m === 'ogg') return 'OGG_OPUS';
-        if (m === 'mp3') return 'MP3';
-        if (m === 'wav') return 'LINEAR16';
-        return undefined;
-      }
-      const cfg = {
-        languageCode,
-        enableAutomaticPunctuation: true,
-      };
-      const enc = encodingForExt(ext);
-      if (enc) cfg.encoding = enc;
-      if (SPEECH_MODEL) cfg.model = SPEECH_MODEL;
-      if (alternativeLanguageCodes.length) cfg.alternativeLanguageCodes = alternativeLanguageCodes;
-      const [operation] = await client.longRunningRecognize({
-        audio: { content: bytes },
-        config: cfg,
-      });
-      const [response] = await operation.promise();
-      merged = Array.isArray(response?.results) ? response.results.map(r => r.alternatives?.[0]?.transcript || '').filter(Boolean).join('\n') : '';
-      if (KEEP_RECORDINGS_AT_REST && Storage && GCS_BUCKET_NAME) {
+
+    const client = GCP_STORAGE_KEY_PATH ? new SpeechClient({ keyFilename: GCP_STORAGE_KEY_PATH }) : new SpeechClient();
+    const bytes = file.buffer.toString('base64');
+    const altRaw = String(SPEECH_ALTERNATIVE_LANGUAGE_CODES || '').trim();
+    const alternativeLanguageCodes = altRaw ? altRaw.split(',').map(s => s.trim()).filter(Boolean).map(c => (c.toLowerCase() === 'fil-ph' ? 'tl-PH' : c)) : [];
+    function encodingForExt(e) {
+      const m = String(e || '').toLowerCase();
+      if (m === 'webm') return 'WEBM_OPUS';
+      if (m === 'ogg') return 'OGG_OPUS';
+      if (m === 'mp3') return 'MP3';
+      if (m === 'wav') return 'LINEAR16';
+      return undefined;
+    }
+    const cfg = {
+      languageCode,
+      enableAutomaticPunctuation: true,
+    };
+    const enc = encodingForExt(ext);
+    if (enc) cfg.encoding = enc;
+    if (SPEECH_MODEL) cfg.model = SPEECH_MODEL;
+    if (alternativeLanguageCodes.length) cfg.alternativeLanguageCodes = alternativeLanguageCodes;
+    const [operation] = await client.longRunningRecognize({
+      audio: { content: bytes },
+      config: cfg,
+    });
+    const [response] = await operation.promise();
+    merged = Array.isArray(response?.results) ? response.results.map(r => r.alternatives?.[0]?.transcript || '').filter(Boolean).join('\n') : '';
+    if (KEEP_RECORDINGS_AT_REST && Storage && GCS_BUCKET_NAME) {
+      try {
+        const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
+        const bucket = storage.bucket(GCS_BUCKET_NAME);
+        const prefix = (GCS_TRANSCRIPTIONS_PREFIX || 'consultations').replace(/\/$/, '');
+        const key = `${prefix}/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
+        await bucket.file(key).save(file.buffer, { contentType: mime || 'audio/webm', resumable: false, public: false });
         try {
-          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-          const bucket = storage.bucket(GCS_BUCKET_NAME);
-          const prefix = (GCS_TRANSCRIPTIONS_PREFIX || 'consultations').replace(/\/$/, '');
-          const key = `${prefix}/${consultationId}/${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`;
-          await bucket.file(key).save(file.buffer, { contentType: mime || 'audio/webm', resumable: false, public: false });
-          recordingUri = `gs://${GCS_BUCKET_NAME}/${key}`;
-          try { await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [recordingUri, consultationId]); } catch (_) {}
-        } catch (_) {}
-      }
+          await bucket.file(key).makePublic();
+          recordingUri = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${key}`;
+        } catch (_) {
+          try {
+            const [signed] = await bucket.file(key).getSignedUrl({ action: 'read', expires: Date.now() + 7 * 24 * 60 * 60 * 1000 });
+            recordingUri = signed;
+          } catch (_) {
+            recordingUri = `gs://${GCS_BUCKET_NAME}/${key}`;
+          }
+        }
+        try { await pool.query('UPDATE consultations SET recording_uri = ? WHERE id = ?', [recordingUri, consultationId]); } catch (_) {}
+      } catch (_) {}
     }
 
     // Persist transcript (no audio retained at rest)
-    await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [merged || null, consultationId]);
+    try {
+      await ensureConsultationTranscriptColumns(pool);
+      await pool.query('UPDATE consultations SET final_transcript = ? WHERE id = ?', [merged || null, consultationId]);
+    } catch (e) {
+      // Ignore if column missing or write fails
+    }
 
     // Generate AI summary if available
     let summary = null;
@@ -262,6 +221,7 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
         );
         if (summary && typeof summary === 'string') {
           try {
+            await ensureConsultationTranscriptColumns(pool);
             await pool.query('UPDATE consultations SET ai_summary = ? WHERE id = ?', [summary, consultationId]);
           } catch (dbErr) {
             if (String(dbErr?.code) !== 'ER_BAD_FIELD_ERROR') {
@@ -274,7 +234,7 @@ router.post('/transcriptions/upload', upload.single('file'), async (req, res) =>
       }
     }
 
-    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), provider, recordingUri });
+    return res.json({ success: true, transcriptLength: merged.length || 0, summarized: Boolean(summary), provider: 'google', recordingUri });
   } catch (err) {
     console.error('Transcriptions upload error:', err?.message || err);
     return res.status(500).json({ error: 'Failed to process uploaded audio', details: err?.message || String(err) });
@@ -375,10 +335,13 @@ router.post('/transcriptions/finalize', async (req, res) => {
       })
       .join('\n');
 
-    await pool.query(
-      'UPDATE consultations SET final_transcript = ? WHERE id = ?',
-      [merged, consultationId]
-    );
+    try {
+      await ensureConsultationTranscriptColumns(pool);
+      await pool.query(
+        'UPDATE consultations SET final_transcript = ? WHERE id = ?',
+        [merged, consultationId]
+      );
+    } catch (_) {}
 
     // Attempt AI summarization (best-effort; does not block success)
     let summary = null;
@@ -398,6 +361,7 @@ router.post('/transcriptions/finalize', async (req, res) => {
       );
       if (summary && typeof summary === 'string') {
         try {
+          await ensureConsultationTranscriptColumns(pool);
           await pool.query('UPDATE consultations SET ai_summary = ? WHERE id = ?', [summary, consultationId]);
         } catch (dbErr) {
           // If ai_summary column doesn't exist (migration not applied), ignore gracefully

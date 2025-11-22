@@ -1,8 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout, PaginatedGridLayout, ToggleAudioPublishingButton, ToggleVideoPublishingButton, ScreenShareButton, RecordCallButton, ReactionsButton, useCallStateHooks } from '@stream-io/video-react-sdk';
+import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout, PaginatedGridLayout, CallControls } from '@stream-io/video-react-sdk';
 import { StreamChat } from 'stream-chat';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
-// Icons previously used for custom controls removed with minimal layout
+
 import './StreamMeetCall.css';
 
 /**
@@ -19,7 +19,7 @@ import './StreamMeetCall.css';
 const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const callType = 'default';
-  const CAPTURE_TAB_AUDIO = String(import.meta.env.VITE_CAPTURE_TAB_AUDIO || 'true').toLowerCase() === 'true';
+  const CAPTURE_TAB_AUDIO = String(import.meta.env.VITE_CAPTURE_TAB_AUDIO || 'false').toLowerCase() === 'true';
 
   const mediaRecorderRef = useRef(null);
   const captureStreamRef = useRef(null);
@@ -52,7 +52,11 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [selfName, setSelfName] = useState('');
   const chatListRef = useRef(null);
   const [statsOpen, setStatsOpen] = useState(false);
-  const [layoutName, setLayoutName] = useState('Speaker');
+  const [isAdvisor, setIsAdvisor] = useState(false);
+  const [cancelReason, setCancelReason] = useState('no_show');
+  const [cancelNotes, setCancelNotes] = useState('');
+  const endedForAllRef = useRef(false);
+  const [showCancelForm, setShowCancelForm] = useState(false);
 
   // Generate a stable call ID based on consultation ID
   const callId = `advisys-${consultationData?.id || roomName}`;
@@ -107,7 +111,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
         // If advisor: mark room ready with Stream call link
         const roleVal = String(parsedUser?.role || '').toLowerCase();
-        const isAdvisor = roleVal === 'advisor';
+        const isAdvisorLocal = roleVal === 'advisor';
+        setIsAdvisor(isAdvisorLocal);
         if (isAdvisor) {
           const link = `stream:${callType}/${callId}`;
           try {
@@ -122,6 +127,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         // Attempt to hook leave events to stop capture
         try {
           callObj.on('call.session_ended', () => {
+            endedForAllRef.current = true;
             handleLeave();
           });
         } catch (_) {}
@@ -175,6 +181,33 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API_BASE_URL, callId, callType, displayName, consultationData?.id]);
+
+  useEffect(() => {
+    const end = scheduledEnd();
+    if (!inMeeting || !end) return;
+    const delay = end.getTime() - Date.now();
+    if (delay <= 0) return;
+    const timer = setTimeout(async () => {
+      try { if (isAdvisor) { endedForAllRef.current = true; await call?.endCall?.(); } } catch (_) {}
+      try { await call?.leave?.(); } catch (_) {}
+      handleLeave();
+    }, delay);
+    return () => clearTimeout(timer);
+  }, [inMeeting, joinedAt, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, call, isAdvisor]);
+
+  useEffect(() => {
+    if (!inMeeting || rejoinSeed === 0) return;
+    (async () => {
+      try { await call?.join?.({ create: false }); } catch (_) {}
+      try { await startCombinedAudioCapture(); } catch (_) {}
+    })();
+  }, [rejoinSeed, inMeeting, call]);
+
+  useEffect(() => {
+    if (!inMeeting) return;
+    const t = setInterval(() => setCountdownText((s) => s), 1000);
+    return () => clearInterval(t);
+  }, [inMeeting]);
 
   // Auto-scroll chat to newest message when opened or updated
   useEffect(() => {
@@ -405,8 +438,12 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       }
       return;
     }
-    // Advisor flow: open decision modal after actual end-for-all so they can mark status
-    setAdvisorDecisionOpen(true);
+    // Advisor flow: open decision modal only if ended for all
+    if (endedForAllRef.current) {
+      setAdvisorDecisionOpen(true);
+    } else {
+      if (onClose) onClose();
+    }
   }
 
   // Using native CallControls; leave confirmation/decision handled by session_ended hook
@@ -431,7 +468,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
   // Recording toggles are not exposed in minimal layout; capture starts automatically on join
 
-  const LayoutComponent = layoutName === 'PaginatedGrid' ? PaginatedGridLayout : SpeakerLayout;
+  const [layoutName, setLayoutName] = useState('Speaker');
+  const isGridLayout = layoutName === 'PaginatedGrid';
 
   const StatsOverlay = ({ onClose }) => {
     const { useParticipants, useHasOngoingScreenShare, useMicrophoneState, useCameraState } = useCallStateHooks();
@@ -456,56 +494,38 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     <div className="smc-root">
       {/* Stream Call UI */}
       <div style={{position:'absolute', inset:0}}>
-        {client && call && (
+        {client && call && inMeeting && (
           <StreamVideo client={client}>
             <StreamCall call={call}>
               <StreamTheme>
-                {/* Runtime-switchable layout */}
-                <LayoutComponent />
-                <div className="str-video__call-controls smc-inline-controls">
-                  <ToggleAudioPublishingButton />
-                  <ToggleVideoPublishingButton />
-                  <ScreenShareButton />
-                  <RecordCallButton />
-                  <ReactionsButton />
-                  {/* Chat toggle placed in the call controls */}
-                  <button className={`str-video__call-controls__button smc-icon-btn ${chatOpen ? 'active' : ''}`} title={chatOpen ? 'Hide chat' : 'Show chat'} onClick={()=> setChatOpen(v=>!v)}>
-                    <svg className="smc-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4 5a3 3 0 0 1 3-3h10a3 3 0 0 1 3 3v8a3 3 0 0 1-3 3H9l-5 4V5z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
-                  {/* Layout switcher */}
-                  <button className="str-video__call-controls__button smc-icon-btn" title="Switch layout" onClick={()=> setLayoutName(prev => prev === 'Speaker' ? 'PaginatedGrid' : 'Speaker')}>
-                    <svg className="smc-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <rect x="3" y="3" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2" />
-                      <rect x="13" y="3" width="8" height="5" rx="2" stroke="currentColor" strokeWidth="2" />
-                      <rect x="13" y="10" width="8" height="8" rx="2" stroke="currentColor" strokeWidth="2" />
-                      <rect x="3" y="13" width="8" height="5" rx="2" stroke="currentColor" strokeWidth="2" />
-                    </svg>
-                  </button>
-                  {/* Call stats */}
-                  <button className="str-video__call-controls__button smc-icon-btn" title="Call stats" onClick={()=> setStatsOpen(v=>!v)}>
-                    <svg className="smc-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M4 20v-6M10 20v-10M16 20v-4M22 20V4" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-                    </svg>
-                  </button>
-                  {/* End options replaces native hangup */}
-                  <button className="str-video__call-controls__button smc-icon-btn smc-end-icon" title="End options" onClick={()=> setEndOptionsOpen(true)}>
-                    <svg className="smc-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M6 17a1 1 0 0 1-1-1v-2a8 8 0 0 1 8-8h2a1 1 0 0 1 1 1v3a1 1 0 0 1-1.2.98A9 9 0 0 0 8.98 12.2 1 1 0 0 1 8 13H5a1 1 0 0 1-1-1v-1" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </button>
+                <div className="smc-topbar">
+                  <div className="smc-topbar-left">
+                    <div className="smc-title">Stream Video Calling</div>
+                  </div>
+                  <div className="smc-topbar-right">
+                    <div className="smc-pill">{joinedAt ? `${Math.max(0, Math.floor((Date.now()-joinedAt.getTime())/1000))}s` : '—'}</div>
+                    {countdownText && <div className="smc-pill smc-pill-secondary">{countdownText}</div>}
+                  </div>
                 </div>
-                {statsOpen && (
-                  <StatsOverlay onClose={()=> setStatsOpen(false)} />
+                {isGridLayout ? (
+                  <PaginatedGridLayout />
+                ) : (
+                  <SpeakerLayout participantsBarPosition="bottom" />
                 )}
+                <CallControls />
+                <div className="smc-footer-actions">
+                  <button className="str-video__call-controls__button" onClick={handleHangup}>Leave</button>
+                  {isAdvisor && (
+                    <button className="str-video__call-controls__button" onClick={()=> setEndOptionsOpen(true)}>End for all</button>
+                  )}
+                </div>
               </StreamTheme>
             </StreamCall>
           </StreamVideo>
         )}
       </div>
 
-      {/* Chat toggle moved into call controls; remove top-left toolbar */}
+      
 
       {/* Countdown overlay */}
       {inMeeting && countdownText && (
@@ -521,98 +541,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
       {/* Call stats overlay now rendered inside StreamCall */}
 
-      {/* Chat panel with backdrop for outside-click close */}
-      {chatOpen && (
-        <div className="smc-chat-backdrop" onClick={()=> setChatOpen(false)} aria-hidden="true">
-          <aside className="smc-chat-panel" aria-label="Call chat" onClick={(e)=> e.stopPropagation()}>
-            <div className="smc-chat-header">
-              <strong>Chat</strong>
-              <button className="smc-chat-toggle" onClick={()=> setChatOpen(false)}>Close</button>
-            </div>
-            <div className="smc-chat-list" ref={chatListRef}>
-              {chatMessages.length === 0 && (
-                <div className="smc-chat-item"><div className="text">No messages yet.</div></div>
-              )}
-            {chatMessages.map(m => {
-              const userId = m.user?.id;
-              const userName = m.user?.name || m.user?.id || 'User';
-              const isMe = userId && userId === selfId;
-              const avatarUrl = m.user?.image;
-              const initials = (userName || 'U').split(' ').map(s=>s[0]).join('').slice(0,2).toUpperCase();
-              const rc = m.reaction_counts || {};
-              return (
-                <div key={m.id || m.created_at} className={`smc-chat-item ${isMe ? 'me' : 'other'}`}>
-                  <div className="smc-message-head">
-                    <div className="smc-message-avatar" aria-hidden="true">
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt="" />
-                      ) : (
-                        <span>{initials}</span>
-                      )}
-                    </div>
-                    <div className="smc-message-meta">
-                      <div className="meta">{userName} • {new Date(m.created_at || Date.now()).toLocaleTimeString()}</div>
-                      <div className="text">{m.text}</div>
-                    </div>
-                  </div>
-                  <div className="smc-reaction-bar">
-                    <button title="Like" onClick={async()=>{ try { await chatChannel?.sendReaction(m.id, { type: 'like' }); } catch(_){} }}>
-                      👍 <span className="count">{rc.like || 0}</span>
-                    </button>
-                    <button title="Love" onClick={async()=>{ try { await chatChannel?.sendReaction(m.id, { type: 'love' }); } catch(_){} }}>
-                      ❤️ <span className="count">{rc.love || 0}</span>
-                    </button>
-                    <button title="Haha" onClick={async()=>{ try { await chatChannel?.sendReaction(m.id, { type: 'haha' }); } catch(_){} }}>
-                      😂 <span className="count">{rc.haha || 0}</span>
-                    </button>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-          <div className="smc-chat-input">
-            <input
-              type="text"
-              value={chatInput}
-              onChange={(e)=> setChatInput(e.target.value)}
-              placeholder="Type a message"
-              onKeyDown={async (e)=>{
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  if (!chatChannel || !chatInput.trim() || sendingChat) return;
-                  try {
-                    setSendingChat(true);
-                    await chatChannel.sendMessage({ text: chatInput.trim() });
-                    setChatInput('');
-                  } catch (err) {
-                    console.warn('Send message failed', err);
-                  } finally {
-                    setSendingChat(false);
-                  }
-                }
-              }}
-            />
-            <button
-              disabled={!chatChannel || !chatInput.trim() || sendingChat}
-              onClick={async ()=>{
-                if (!chatChannel || !chatInput.trim() || sendingChat) return;
-                try {
-                  setSendingChat(true);
-                  await chatChannel.sendMessage({ text: chatInput.trim() });
-                  setChatInput('');
-                } catch (err) {
-                  console.warn('Send message failed', err);
-                } finally {
-                  setSendingChat(false);
-                }
-              }}
-            >
-              Send
-            </button>
-            </div>
-          </aside>
-        </div>
-      )}
+      
 
       {/* Early leave confirm modal (used for programmatic hangup only) */}
       {confirmLeaveOpen && (
@@ -667,44 +596,60 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         <div className="smc-modal-backdrop">
           <div className="smc-modal" style={{maxWidth:460}}>
             <h3 style={{margin:'0 0 8px 0', fontSize:18}}>End for all: mark consultation</h3>
-            <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>
-              The call has ended for everyone. Do you want to mark this consultation as completed?
-            </p>
-            <div className="smc-modal-actions" style={{gap:8}}>
-              <button onClick={async ()=>{
-                setAdvisorDecisionOpen(false);
-                if (consultationData?.id) {
-                  try {
-                    await fetch(`${API_BASE_URL}/api/consultations/${consultationData.id}/status`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status: 'completed' }),
-                    }).catch(()=>{});
-                  } catch (_) {}
-                }
-                // Leave the call after marking
-                try { await call?.leave?.(); } catch (_) {}
-                // brief wait to let STT upload/fire before closing
-                await new Promise(res => setTimeout(res, 800));
-                if (onClose) onClose();
-              }} style={{padding:'8px 12px', borderRadius:8, background:'#10b981', color:'#fff', border:'1px solid #34d399'}}>Mark completed</button>
-              <button onClick={async ()=>{
-                setAdvisorDecisionOpen(false);
-                if (consultationData?.id) {
-                  try {
-                    await fetch(`${API_BASE_URL}/api/consultations/${consultationData.id}/status`, {
-                      method: 'PATCH',
-                      headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify({ status: 'cancelled' }),
-                    }).catch(()=>{});
-                  } catch (_) {}
-                }
-                try { await call?.leave?.(); } catch (_) {}
-                await new Promise(res => setTimeout(res, 400));
-                if (onClose) onClose();
-              }} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>Mark cancelled</button>
-              <button onClick={()=> setAdvisorDecisionOpen(false)} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Resume call</button>
-            </div>
+            <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>Choose the outcome.</p>
+            {!showCancelForm && (
+              <div className="smc-modal-actions" style={{gap:8}}>
+                <button onClick={async ()=>{
+                  setAdvisorDecisionOpen(false);
+                  if (consultationData?.id) {
+                    try {
+                      await fetch(`${API_BASE_URL}/api/consultations/${consultationData.id}/status`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'completed' }),
+                      }).catch(()=>{});
+                    } catch (_) {}
+                  }
+                  try { await call?.leave?.(); } catch (_) {}
+                  await new Promise(res => setTimeout(res, 800));
+                  if (onClose) onClose();
+                }} style={{padding:'8px 12px', borderRadius:8, background:'#10b981', color:'#fff', border:'1px solid #34d399'}}>Mark completed</button>
+                <button onClick={()=> setShowCancelForm(true)} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>Mark cancelled</button>
+                <button onClick={()=> setAdvisorDecisionOpen(false)} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Resume call</button>
+              </div>
+            )}
+            {showCancelForm && (
+              <div style={{display:'flex', flexDirection:'column', gap:12}}>
+                <div style={{display:'flex', gap:8}}>
+                  <select value={cancelReason} onChange={(e)=> setCancelReason(e.target.value)} style={{flex:1, padding:'8px', borderRadius:8, border:'1px solid #4b5563', background:'#0b1220', color:'#fff'}}>
+                    <option value="no_show">No show</option>
+                    <option value="student_cancelled">Student cancelled</option>
+                    <option value="advisor_cancelled">Advisor cancelled</option>
+                    <option value="technical_issue">Technical issue</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <input type="text" value={cancelNotes} onChange={(e)=> setCancelNotes(e.target.value)} placeholder="Add notes (optional)" style={{flex:1, padding:'8px 10px', borderRadius:8, border:'1px solid #4b5563', background:'#0b1220', color:'#fff'}} />
+                </div>
+                <div className="smc-modal-actions" style={{gap:8}}>
+                  <button onClick={()=> setShowCancelForm(false)} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Back</button>
+                  <button onClick={async ()=>{
+                    setAdvisorDecisionOpen(false);
+                    if (consultationData?.id) {
+                      try {
+                        await fetch(`${API_BASE_URL}/api/consultations/${consultationData.id}/status`, {
+                          method: 'PATCH',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ status: 'cancelled', reason: cancelReason, notes: cancelNotes }),
+                        }).catch(()=>{});
+                      } catch (_) {}
+                    }
+                    try { await call?.leave?.(); } catch (_) {}
+                    await new Promise(res => setTimeout(res, 400));
+                    if (onClose) onClose();
+                  }} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>Confirm cancelled</button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

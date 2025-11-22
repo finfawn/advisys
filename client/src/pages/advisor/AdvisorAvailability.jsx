@@ -47,6 +47,17 @@ export default function AdvisorAvailability() {
     return Number(hourStr);
   };
 
+  const formatManilaDateYYYYMMDD = (date) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).formatToParts(new Date(date));
+    const get = (t) => parts.find((p) => p.type === t)?.value || '';
+    return `${get('year')}-${get('month')}-${get('day')}`;
+  };
+
   const showUndoToast = (items, message) => {
     // Clear previous timer if any
     if (undoToast.timeoutId) {
@@ -202,16 +213,12 @@ export default function AdvisorAvailability() {
     const groups = { morning: [], afternoon: [], evening: [] };
     for (const slot of slotsForSelected) {
       const hour = getPHHour24(slot.start);
-      // Morning: 8:00–11:59, Afternoon: 12:00–15:59, Evening: 16:00–20:59
-      if (hour >= 8 && hour < 12) {
+      if (hour < 12) {
         groups.morning.push(slot);
-      } else if (hour >= 12 && hour < 16) {
+      } else if (hour < 16) {
         groups.afternoon.push(slot);
-      } else if (hour >= 16 && hour < 21) {
-        groups.evening.push(slot);
       } else {
-        // Fallback: hours >= 21 belong to evening; early hours (< 8) to morning
-        (hour >= 21 ? groups.evening : groups.morning).push(slot);
+        groups.evening.push(slot);
       }
     }
     return groups;
@@ -231,6 +238,42 @@ export default function AdvisorAvailability() {
     const td = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     return sd < td;
   }, [selectedDate]);
+
+  const handleDeleteAllSlots = async () => {
+    if (!selectedDate) return;
+
+    const formattedDate = formatManilaDateYYYYMMDD(selectedDate);
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+
+    if (!advisorId) {
+      console.error('Advisor ID not found.');
+      return;
+    }
+
+    try {
+      const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots?date=${formattedDate}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+        },
+      });
+
+      if (resp.ok) {
+        // Remove deleted slots from local state
+        setEvents((prev) => prev.filter((ev) => !isSameDay(ev.start, selectedDate)));
+        setDeleteAllOpen(false);
+        showUndoToast([], `All slots for ${formattedDate} deleted.`);
+      } else {
+        console.error('Failed to delete all slots.', await resp.json());
+      }
+    } catch (err) {
+      console.error('Error deleting all slots:', err);
+    }
+  };
 
   const handleNavigation = (page) => {
     console.log('Navigating to:', page);
@@ -486,13 +529,15 @@ export default function AdvisorAvailability() {
               </AlertDialogHeader>
               <AlertDialogFooter className="sm:items-center sm:justify-between">
                 <AlertDialogCancel 
-                  className="min-w-[96px] mt-0 mr-auto"
-                  onClick={() => { setDeleteOpen(false); setPendingDeleteEvent(null); }}
+                  onClick={() => {
+                    setPendingDeleteEvent(null);
+                    setDeleteOpen(false);
+                  }}
                 >
                   Cancel
                 </AlertDialogCancel>
                 <AlertDialogAction 
-                  className="min-w-[96px] bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  className="w-full sm:w-auto"
                   onClick={async () => {
                     if (pendingDeleteEvent) {
                       try {
@@ -524,63 +569,26 @@ export default function AdvisorAvailability() {
             </AlertDialogContent>
           </AlertDialog>
 
-          {/* Reset Day Warning Modal (admin-style) */}
-          {deleteAllOpen && (
-            <div className="admin-modal-overlay">
-              <div className="admin-modal" role="dialog" aria-modal="true">
-                <div className="admin-modal-header">
-                  <h3 className="admin-modal-title">Confirm Action</h3>
-                  <button className="admin-modal-close" onClick={() => setDeleteAllOpen(false)}>×</button>
-                </div>
-                <div className="admin-modal-body">
-                  {selectedDate
-                    ? `Are you sure you want to delete all slots for ${moment(selectedDate).format('dddd, MMM D, YYYY')}?`
-                    : 'Are you sure you want to delete all slots for this day?'}
-                </div>
-                <div className="p-3" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-                  <Button variant="outline" onClick={() => setDeleteAllOpen(false)}>Cancel</Button>
-                  <Button
-                    variant="destructive"
-                    onClick={async () => {
-                      try {
-                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-                        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
-                        const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
-                        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-                        const formatLocalDateKey = (date) => {
-                          const y = date.getFullYear();
-                          const m = String(date.getMonth() + 1).padStart(2, '0');
-                          const d = String(date.getDate()).padStart(2, '0');
-                          return `${y}-${m}-${d}`;
-                        };
-                        const dateKey = selectedDate ? formatLocalDateKey(selectedDate) : null;
-                        if (advisorId && dateKey) {
-                          const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots?date=${dateKey}`, {
-                            method: 'DELETE',
-                            headers: {
-                              ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
-                            }
-                          });
-                          if (!resp.ok) throw new Error('Failed to delete all slots for day');
-                        }
-                      } catch (err) {
-                        console.error('Reset day error; proceeding to update UI', err);
-                      }
-                      setEvents((prev) => {
-                        const toDelete = prev.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
-                        const next = prev.filter((ev) => !(ev.type === 'available' && isSameDay(ev.start, selectedDate)));
-                        showUndoToast(toDelete, `${toDelete.length} slot${toDelete.length !== 1 ? 's' : ''} deleted`);
-                        return next;
-                      });
-                      setDeleteAllOpen(false);
-                    }}
-                  >
-                    Delete All
-                  </Button>
-                </div>
-              </div>
-            </div>
-          )}
+          {/* Delete All Confirmation Dialog */}
+          <AlertDialog open={deleteAllOpen} onOpenChange={setDeleteAllOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle className="leading-none text-center">Reset Day</AlertDialogTitle>
+                <AlertDialogDescription className="text-center">
+                  Are you sure you want to delete all available slots for {selectedDate ? moment(selectedDate).format('dddd, MMM D, YYYY') : 'this day'}? This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="sm:items-center sm:justify-between">
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction 
+                  className="w-full sm:w-auto"
+                  onClick={handleDeleteAllSlots}
+                >
+                  Reset Day
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           {/* Undo Toast (Advisor) */}
           {undoToast.open && (
             <div className="undo-notification">

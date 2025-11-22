@@ -327,8 +327,8 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
           avatar_url: r.advisor_avatar_url || null,
         },
         // Notes and summary
-        studentNotes: (r.student_notes != null ? r.student_notes : r.student_private_notes) || undefined,
-        studentPrivateNotes: (r.student_notes != null ? r.student_notes : r.student_private_notes) || undefined,
+        studentNotes: r.student_notes || undefined,
+        studentPrivateNotes: r.student_private_notes || undefined,
         // Do not expose advisor notes to students
         summaryNotes: r.summary_notes || undefined,
         finalTranscript: r.final_transcript || undefined,
@@ -598,7 +598,8 @@ router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) =
     return res.status(400).json({ error: 'aiSummary must be a string' });
   }
   try {
-    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic, summary_edit_approved_at FROM consultations WHERE id = ?', [id]);
+    await ensureSummaryApprovalColumn(pool);
+    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
     if (!c) return res.status(404).json({ error: 'Consultation not found' });
     const isAdvisor = user.role === 'advisor' && user.id === c.advisor_user_id;
     const isStudent = user.role === 'student' && user.id === c.student_user_id;
@@ -609,9 +610,14 @@ router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) =
     }
 
     if (isStudent) {
-      // Strict per-consultation approval: prefer the persisted flag, fallback to exact notification match
-      await ensureSummaryApprovalColumn(pool);
-      const flagApproved = !!c.summary_edit_approved_at;
+      // Strict per-consultation approval: prefer the persisted flag when available, fallback to exact notification match
+      let flagApproved = false;
+      try {
+        const [[row]] = await pool.query('SELECT summary_edit_approved_at FROM consultations WHERE id = ?', [id]);
+        flagApproved = !!row?.summary_edit_approved_at;
+      } catch (_) {
+        flagApproved = false;
+      }
       if (!flagApproved) {
         const [rows] = await pool.query(
           `SELECT id, type, data_json FROM notifications WHERE user_id = ? AND type IN ('consultation_summary_edit_approved', 'summary_edit_approved') ORDER BY id DESC LIMIT 200`,
@@ -762,7 +768,7 @@ router.patch('/consultations/:id/student-notes', authMiddleware, async (req, res
       return res.status(403).json({ error: 'Only the assigned student can edit student notes' });
     }
     await ensureNotesColumns(pool);
-    await pool.query('UPDATE consultations SET student_notes = ? WHERE id = ?', [studentNotes, id]);
+    await pool.query('UPDATE consultations SET student_private_notes = ? WHERE id = ?', [studentNotes, id]);
     return res.json({ success: true });
   } catch (err) {
     console.error('Update student notes error:', err);

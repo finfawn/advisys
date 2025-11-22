@@ -293,11 +293,12 @@ export default function StudentSettingsPage() {
         setEditData(prev => ({ ...prev, profilePicture: fullUrl }));
         setStudentData(prev => ({ ...prev, profilePicture: fullUrl }));
       })
-      .catch((err) => {
-        console.error('Avatar upload failed; using local preview', err);
-        const previewUrl = URL.createObjectURL(file);
-        setEditData(prev => ({ ...prev, profilePicture: previewUrl }));
-        setStudentData(prev => ({ ...prev, profilePicture: previewUrl }));
+      .catch(async (err) => {
+        console.error('Avatar upload failed', err);
+        try {
+          const { toast } = await import('../../components/hooks/use-toast');
+          toast.destructive({ title: 'Upload failed', description: 'Please retry or check bucket access.' });
+        } catch (_) {}
       });
   };
 

@@ -93,8 +93,14 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   const parseDbDatetime = (s) => {
     if (!s) return null;
     try {
-      const cleaned = typeof s === 'string' ? s.replace(' ', 'T') : s;
-      const d = new Date(cleaned);
+      if (typeof s === 'string') {
+        const hasTZ = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
+        const cleaned = s.replace(' ', 'T');
+        const src = hasTZ ? cleaned : `${cleaned}+08:00`;
+        const d = new Date(src);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const d = new Date(s);
       return isNaN(d.getTime()) ? null : d;
     } catch (_) {
       return null;
@@ -143,8 +149,6 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
         start: parseDbDatetime(s.start_datetime),
         end: parseDbDatetime(s.end_datetime),
       }))
-      // Exclude slots that have already passed when viewing the current day
-      .filter((slot) => !isToday || slot.start > now)
       .sort((a, b) => a.start - b.start)
       .forEach((slot) => {
         const h = slot.start.getHours();
@@ -610,7 +614,12 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                                   key={`${slot.id}-${slot.start_datetime}`}
                                   type="button"
                                   className={`time-slot ${selectedSlot?.id === slot.id && selectedSlot?.start_datetime === slot.start_datetime ? 'selected' : ''}`}
-                                  onClick={() => handleSlotSelect(slot)}
+                                  disabled={fmtDate(new Date()) === fmtDate(selectedDate) && slot.start <= new Date()}
+                                  onClick={() => {
+                                    const isPast = fmtDate(new Date()) === fmtDate(selectedDate) && slot.start <= new Date();
+                                    if (isPast) return;
+                                    handleSlotSelect(slot);
+                                  }}
                                 >
                                   <BsClock />
                                   <span>{toRangeStr(slot.start, slot.end)}</span>

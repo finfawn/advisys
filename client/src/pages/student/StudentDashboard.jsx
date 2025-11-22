@@ -121,6 +121,7 @@ export default function StudentDashboard() {
           headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
         });
         const data = await res.json();
+        console.log('Fetched all consultations:', data);
         setAllConsultations(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error('Failed to load consultations', err);
@@ -158,10 +159,14 @@ export default function StudentDashboard() {
 
   const upcomingConsultations = useMemo(() => {
     const now = new Date();
-    return allConsultations
+    const filtered = allConsultations
       .map(c => {
-        const start = c.start_datetime ? new Date(c.start_datetime) : null;
-        const end = c.end_datetime ? new Date(c.end_datetime) : null;
+        const start = c.start_datetime
+          ? new Date(c.start_datetime)
+          : (c.date && c.time ? new Date(`${c.date} ${c.time}`) : (c.date ? new Date(c.date) : null));
+        const end = c.end_datetime
+          ? new Date(c.end_datetime)
+          : null;
         const isPast = end ? end < now : false;
         let status = c.status;
         if (status === 'approved' && isPast) status = 'missed';
@@ -169,6 +174,8 @@ export default function StudentDashboard() {
       })
       .filter(c => c.status === 'approved' && c._start && c._start >= now)
       .sort((a, b) => new Date(a._start || a.date) - new Date(b._start || b.date));
+    console.log('Upcoming consultations:', filtered);
+    return filtered;
   }, [allConsultations]);
 
   const topTopic = useMemo(() => {
@@ -348,8 +355,62 @@ export default function StudentDashboard() {
                 </div>
               </section>
             </div>
-
-            {/* */}
+            <div className="bento-item bento-upcoming hidden xl:block">
+              <div className="upcoming">
+                <div className="up-header">
+                  <div>Upcoming Consultations</div>
+                  <button
+                    onClick={() => handleNavigation('consultations')}
+                    className="view-all-link"
+                    style={{ background: 'none', border: 'none', color: 'inherit', cursor: 'pointer' }}
+                  >
+                    View All ▸
+                  </button>
+                </div>
+                <div className="upcoming-consultations-list">
+                  {loadingConsultations ? (
+                    Array.from({ length: 4 }).map((_, idx) => (
+                      <div key={`skeleton-desktop-${idx}`} className="compact-consultation-card">
+                        <div className="compact-date-section">
+                          <Skeleton className="h-12 w-12 rounded-lg" shimmer />
+                        </div>
+                        <div className="compact-content w-full">
+                          <Skeleton className="h-5 w-2/3 mb-2" shimmer />
+                          <Skeleton className="h-4 w-1/2 mb-2" shimmer />
+                          <Skeleton className="h-4 w-24" shimmer />
+                        </div>
+                        <div className="compact-action">
+                          <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                        </div>
+                      </div>
+                    ))
+                  ) : upcomingConsultations.length > 0 ? (
+                    upcomingConsultations.slice(0, 5).map((consultation) => (
+                      <CompactConsultationCard
+                        key={consultation.id}
+                        consultation={consultation}
+                        onActionClick={() => handleJoinConsultation(consultation)}
+                        onDelete={() => console.log('Delete consultation:', consultation.id)}
+                        onCancel={() => console.log('Cancel consultation:', consultation.id)}
+                      />
+                    ))
+                  ) : (
+                    <div className="no-availability" style={{ padding: '24px' }}>
+                      <div className="no-availability-icon">
+                        <BsCalendarCheck />
+                      </div>
+                      <div className="no-availability-title">No upcoming consultations</div>
+                      <div className="no-availability-text">You have no upcoming sessions scheduled.</div>
+                      <div className="availability-actions">
+                        <button className="btn-schedule-primary" onClick={() => handleNavigation('advisors')}>
+                          Book Now
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
             </div>
             {/* Stats Bento Grid */}
             <div className="bento-grid-stats">

@@ -15,7 +15,7 @@
   "dependencies": {
     "@fortawesome/fontawesome-free": "^7.0.1",
     "@heroicons/react": "^2.1.5",
-    "@stream-io/video-react-sdk": "^1.25.1",
+    "@stream-io/video-react-sdk": "^1.27.1",
     "bootstrap": "^5.3.8",
     "firebase": "^11.10.0",
     "framer-motion": "^12.23.22",

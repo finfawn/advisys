@@ -604,7 +604,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                           onChange={(e) => setNotesDraft(e.target.value)}
                           onBlur={()=>{ setIsEditingNotes(false); handleSaveNotes(); }}
                           onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
-                          placeholder="My notes for this consultation (visible only to me)"
+                          placeholder="write your notes here"
                           rows={8}
                           autoFocus
                         />
