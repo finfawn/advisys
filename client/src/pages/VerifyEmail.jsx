@@ -62,7 +62,7 @@ export default function VerifyEmail() {
   const onResend = async () => {
     if (!email || cooldown > 0) return;
     try {
-      const res = await fetch(`${base}/api/auth/verify/resend`, {
+            const res = await fetch(`${base}/api/auth/verify/request`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email })

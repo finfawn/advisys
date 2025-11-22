@@ -23,7 +23,12 @@ export default function CallWindow() {
   }
 
   const handleClose = () => {
-    try { window.close(); } catch (err) { console.error(err); } {}
+    try {
+      if (window.opener && consultationData?.id) {
+        window.opener.postMessage({ type: 'advisys-call-ended', cid: consultationData.id }, '*');
+      }
+      window.close();
+    } catch (err) { console.error(err); } {}
   };
 
   return (
