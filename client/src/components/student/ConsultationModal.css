@@ -189,6 +189,25 @@
   color: #6b7280;
 }
 
+.optimize-btn {
+  margin-left: 10px;
+  padding: 4px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #fff;
+  color: #374151;
+  font-size: 0.85rem;
+}
+
+.optimize-btn:hover {
+  background: #f9fafb;
+}
+
+.optimize-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
 .character-warning {
   margin-top: 6px;
   font-size: 0.85rem;
@@ -275,7 +294,7 @@
 
 .slots-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
   gap: 8px;
 }
 
@@ -283,10 +302,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 10px;
+  padding: 6px 8px;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
   background: #fff;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  min-height: 36px;
+  white-space: nowrap;
 }
 
 .time-slot.selected {

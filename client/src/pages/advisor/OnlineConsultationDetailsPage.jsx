@@ -7,7 +7,8 @@ import StreamMeetCall from "../../components/student/StreamMeetCall";
 import { useSidebar } from "../../contexts/SidebarContext";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
-import { BsChevronLeft, BsCalendar, BsClock, BsCameraVideo, BsPersonCircle, BsBoxArrowUpRight, BsListCheck, BsFileText, BsTag, BsCalendarEvent, BsXCircle, BsPlayCircle, BsChevronDown } from "react-icons/bs";
+import { BsChevronLeft, BsCalendar, BsClock, BsCameraVideo, BsPersonCircle, BsBoxArrowUpRight, BsListCheck, BsFileText, BsTag, BsCalendarEvent, BsXCircle, BsPlayCircle, BsChevronDown, BsCalendarCheck } from "react-icons/bs";
+import AdminConfirmModal from "../../components/shared/AdminConfirmModal";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
 import "../student/ConsultationDetailsPage.css";
 
@@ -109,12 +110,50 @@ export default function AdvisorOnlineConsultationDetailsPage() {
   const [callWin, setCallWin] = useState(null);
   const [isCancelling, setIsCancelling] = useState(false);
   const [showCancelModal, setShowCancelModal] = useState(false);
+  const [isCompleting, setIsCompleting] = useState(false);
+  const [showCompleteModal, setShowCompleteModal] = useState(false);
+  const [summaryNotesDraft, setSummaryNotesDraft] = useState("");
   const [isDesktop, setIsDesktop] = useState(() => (typeof window !== 'undefined' ? window.innerWidth >= 1024 : true));
+  const [countdownText, setCountdownText] = useState('');
   useEffect(() => {
     const onResize = () => setIsDesktop(window.innerWidth >= 1024);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
+
+  const scheduledEnd = () => {
+    const endIso = consultationData?.end_datetime;
+    const startIso = consultationData?.start_datetime;
+    const durMin = Number(consultationData?.duration || consultationData?.duration_minutes || 0) || 0;
+    if (endIso) return new Date(endIso);
+    if (startIso && durMin > 0) {
+      const s = new Date(startIso);
+      return new Date(s.getTime() + durMin * 60000);
+    }
+    const start = getStartDate(consultationData);
+    if (start && durMin > 0) return new Date(start.getTime() + durMin * 60000);
+    return null;
+  };
+
+  useEffect(() => {
+    const status = String(consultationData?.status || '').toLowerCase();
+    if (status === 'completed' || status === 'cancelled' || status === 'canceled' || status === 'missed') {
+      setCountdownText('');
+      return;
+    }
+    const tick = () => {
+      const end = scheduledEnd();
+      if (!end) { setCountdownText(''); return; }
+      const diff = end.getTime() - Date.now();
+      if (diff <= 0) { setCountdownText(''); return; }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setCountdownText(`${mins}:${String(secs).padStart(2, '0')}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [consultationData?.status, consultationData?.start_datetime, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, consultationData?.date, consultationData?.time]);
 
   const handleSaveSummary = async () => {
     const token = localStorage.getItem('advisys_token');
@@ -189,31 +228,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
     return () => clearInterval(timer);
   }, [consultationId]);
 
-  // Poll for AI summary when consultation is completed but summary not available yet
-  useEffect(() => {
-    if (String(consultationData?.status).toLowerCase() === 'completed' && !consultationData?.aiSummary) {
-      setSummaryLoading(true);
-      let attempts = 0;
-      const id = setInterval(async () => {
-        attempts += 1;
-        try {
-          await refreshConsultationOnce();
-          if (consultationData?.aiSummary) {
-            setSummaryLoading(false);
-            clearInterval(id);
-          }
-        } catch (_) {}
-        if (attempts >= 20) {
-          setSummaryLoading(false);
-          clearInterval(id);
-        }
-      }, 6000);
-      return () => clearInterval(id);
-    } else {
-      setSummaryLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [consultationData?.status, consultationData?.aiSummary]);
+  useEffect(() => { setSummaryLoading(false); }, [consultationData?.status]);
 
   const handleSaveNotes = async () => {
     const token = localStorage.getItem('advisys_token');
@@ -287,8 +302,40 @@ export default function AdvisorOnlineConsultationDetailsPage() {
     if (page === 'logout') navigate('/logout');
   };
 
-  const formatDate = (iso) => new Date(iso).toLocaleDateString("en-US", { weekday: "long", year: "numeric", month: "long", day: "numeric" });
-  const formatBookingDate = (iso) => new Date(iso).toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  const handleConfirmComplete = async () => {
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    setIsCompleting(true);
+    try {
+      const r = await fetch(`${base}/api/consultations/${consultationData.id}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ status: 'completed', summaryNotes: summaryNotesDraft || null }),
+      });
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      setShowCompleteModal(false);
+      setSummaryNotesDraft("");
+      await refreshConsultationOnce();
+    } catch (err) {
+      console.error('Mark completed failed', err);
+    } finally {
+      setIsCompleting(false);
+    }
+  };
+
+  const toDateUtc = (val) => {
+    const s = String(val || '');
+    const base = s.includes('T') ? s : s.replace(' ', 'T');
+    const withSec = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(base) ? `${base}:00` : base;
+    const hasTz = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
+    const d = new Date(hasTz ? s : `${withSec}Z`);
+    return d;
+  };
+  const formatDate = (iso) => new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).format(toDateUtc(iso));
+  const formatBookingDate = (iso) => new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'short', day: 'numeric' }).format(toDateUtc(iso));
 
   // Derived UI state for status/mode and action visibility
   const statusRaw = String(consultationData?.status || '').toLowerCase();
@@ -379,6 +426,9 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                     <div className="consultation-badges">
                       <span className={`status-badge ${statusClass}`}><BsBoxArrowUpRight style={{display:'none'}}/> {statusLabel}</span>
                       <span className={`mode-badge ${modeClass}`}><BsCameraVideo /> <span>{modeLabel}</span></span>
+                      {countdownText && (
+                        <span className="status-badge insession" title="Time left">{countdownText}</span>
+                      )}
                     </div>
                   </div>
 
@@ -421,7 +471,6 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                         <div className="meeting-details">
                           <span className="meeting-label">Video Conference</span>
                           <span className="meeting-link-text">Secure AdviSys Video Call</span>
-                          <span className="meeting-subtitle">Powered by Stream</span>
                         </div>
                       </div>
                     </div>
@@ -508,27 +557,35 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                               >
                                 <BsPlayCircle /> Start
                               </button>
-                            ) : (
-                              <button
-                                className="action-btn cancel-consultation"
-                                onClick={() => {
-                                  try { callWin?.postMessage({ type: 'advisys-leave', cid: consultationData.id }, '*'); } catch (_) {}
-                                  setTimeout(() => { try { if (callWin && !callWin.closed) callWin.close(); } catch (_) {} setCallWin(null); refreshConsultationOnce(); }, 300);
-                                  setInCall(false);
-                                }}
-                                title="End the meeting"
-                              >
-                                <BsXCircle /> End
-                              </button>
-                            )
-                          )}
-                          <button
-                            className="action-btn cancel-consultation"
-                            onClick={() => setShowCancelModal(true)}
-                            disabled={isCancelling}
-                          >
-                            <BsXCircle /> Cancel Consultation
-                          </button>
+                          ) : (
+                            <button
+                              className="action-btn cancel-consultation"
+                              onClick={() => {
+                                try { callWin?.postMessage({ type: 'advisys-leave', cid: consultationData.id }, '*'); } catch (_) {}
+                                setTimeout(() => { try { if (callWin && !callWin.closed) callWin.close(); } catch (_) {} setCallWin(null); refreshConsultationOnce(); }, 300);
+                                setInCall(false);
+                              }}
+                              title="End the meeting"
+                            >
+                              <BsXCircle /> End
+                            </button>
+                          )
+                        )}
+                        <button
+                          className="action-btn join-meeting"
+                          onClick={() => setShowCompleteModal(true)}
+                          disabled={isCompleting || inCall}
+                          title="Mark this consultation as completed"
+                        >
+                          <BsCalendarCheck /> Mark Completed
+                        </button>
+                        <button
+                          className="action-btn cancel-consultation"
+                          onClick={() => setShowCancelModal(true)}
+                          disabled={isCancelling}
+                        >
+                          <BsXCircle /> Cancel Consultation
+                        </button>
                         </div>
                       </div>
                     </section>
@@ -576,6 +633,14 @@ export default function AdvisorOnlineConsultationDetailsPage() {
                                 </button>
                               )
                             )}
+                            <button
+                              className="action-btn join-meeting"
+                              onClick={() => setShowCompleteModal(true)}
+                              disabled={isCompleting || inCall}
+                              title="Mark this consultation as completed"
+                            >
+                              <BsCalendarCheck /> Mark Completed
+                            </button>
                             <button
                               className="action-btn cancel-consultation"
                               onClick={() => setShowCancelModal(true)}
@@ -648,6 +713,41 @@ export default function AdvisorOnlineConsultationDetailsPage() {
         isCancelling={isCancelling}
         variant="admin"
       />
+
+      <AdminConfirmModal
+        isOpen={showCompleteModal}
+        onClose={()=>!isCompleting && setShowCompleteModal(false)}
+        title="Mark Consultation Completed"
+        footer={(
+          <div className="flex gap-2">
+            <button
+              className="action-btn"
+              onClick={()=>!isCompleting && setShowCompleteModal(false)}
+              disabled={isCompleting}
+            >
+              Keep As Approved
+            </button>
+            <button
+              className="action-btn cancel-consultation"
+              onClick={handleConfirmComplete}
+              disabled={isCompleting}
+            >
+              {isCompleting ? 'Completing...' : 'Yes, Mark Completed'}
+            </button>
+          </div>
+        )}
+      >
+        <div className="space-y-2">
+          <div className="text-sm">Optional notes or summary</div>
+          <textarea
+            value={summaryNotesDraft}
+            onChange={(e)=>setSummaryNotesDraft(e.target.value)}
+            rows={5}
+            className="w-full border rounded p-2"
+            placeholder="Add summary notes (optional)"
+          />
+        </div>
+      </AdminConfirmModal>
 
 
     </div>

@@ -132,6 +132,14 @@ export default function AdvisorSettingsPage() {
     setEditData({ ...advisorData });
   };
 
+  const isPersistableAvatarUrl = (u) => {
+    if (!u || typeof u !== 'string') return null;
+    const s = u.trim();
+    if (!s || s.startsWith('blob:') || s.startsWith('data:')) return null;
+    if (/https?:\/\/storage\.googleapis\.com\//i.test(s)) return s;
+    return null;
+  };
+
   const handleSave = () => {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -145,8 +153,9 @@ export default function AdvisorSettingsPage() {
       full_name: fullName,
       department: editData.department || null,
       title: editData.position || null,
-      avatar_url: editData.profilePicture || null,
     };
+    const avatarPersist = isPersistableAvatarUrl(editData.profilePicture);
+    if (avatarPersist) body.avatar_url = avatarPersist;
     fetch(`${base}/api/profile/me`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeader },
@@ -408,6 +417,33 @@ export default function AdvisorSettingsPage() {
           const fullUrl = resolveAssetUrl(uploadedPath);
           if (fullUrl) {
             handleInputChange('profilePicture', fullUrl);
+            try {
+              await fetch(`${base}/api/profile/me`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', ...authHeader },
+                body: JSON.stringify({ avatar_url: fullUrl })
+              });
+            } catch (_) {}
+            try {
+              const pRes = await fetch(`${base}/api/profile/me`, { headers: authHeader });
+              if (pRes.ok) {
+                const p = await pRes.json();
+                const name = String(p.full_name || '').split(' ');
+                const firstName = name[0] || '';
+                const lastName = name.slice(1).join(' ') || '';
+                const nextAdvisor = {
+                  ...editData,
+                  firstName,
+                  lastName,
+                  department: p.department || editData.department || '',
+                  position: p.title || editData.position || '',
+                  email: p.email || editData.email || '',
+                  profilePicture: resolveAssetUrl(p.avatar_url) || fullUrl,
+                };
+                setAdvisorData(nextAdvisor);
+                setEditData(nextAdvisor);
+              }
+            } catch (_) {}
           } else {
             // Fallback to local preview if upload response missing URL
             const preview = URL.createObjectURL(file);

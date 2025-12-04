@@ -4,8 +4,10 @@
 /* No need to redefine wrapper classes */
 
 .settings-container {
-  padding: 0;
+  padding: 0 12px;
   max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
 }
 
 /* Settings Header */
@@ -32,9 +34,12 @@
 /* Settings Content Layout */
 .advisor-dash-main .settings-content {
   display: grid !important;
-  grid-template-columns: 280px 1fr;
+  grid-template-columns: 300px minmax(0, 1fr);
   gap: 32px;
   min-height: 600px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
 }
 
 /* Settings Sidebar */
@@ -88,6 +93,9 @@
   border-radius: 16px;
   padding: 32px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
 }
 
 .settings-section {
@@ -593,10 +601,13 @@ input:checked + .toggle-slider:before {
 
 /* Responsive Design */
 @media (max-width: 1024px) {
-  .settings-content {
-    grid-template-columns: 240px 1fr;
+  .advisor-dash-main .settings-content {
+    grid-template-columns: 1fr;
     gap: 24px;
+    width: 100%;
+    max-width: 100%;
   }
+  .settings-content > .settings-sidebar { display: none; }
 }
 
 @media (min-width: 768px) {
@@ -632,7 +643,7 @@ input:checked + .toggle-slider:before {
 }
 
 @media (max-width: 768px) {
-  .settings-content {
+  .advisor-dash-main .settings-content {
     grid-template-columns: 1fr;
     gap: 20px;
   }
@@ -641,7 +652,7 @@ input:checked + .toggle-slider:before {
     order: 2;
   }
   /* Hide the desktop sidebar only when it is in the grid */
-  .settings-content > .settings-sidebar { display: none; }
+  .advisor-dash-main .settings-content > .settings-sidebar { display: none; }
   
   .settings-panel {
     order: 1;

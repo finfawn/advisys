@@ -252,9 +252,13 @@
 /* Sections */
 /* Desktop-only spacing for sections */
 @media (min-width: 769px) {
+  .student-my-consultations {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
   .student-my-consultations .consultations-section {
     margin-bottom: 2.5rem;
-    padding: 0 25px 75px 0 !important;
+    padding: 0 24px 75px 24px !important;
   }
 }
 

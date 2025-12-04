@@ -6,13 +6,21 @@ import { Button } from "../../../lightswind/button";
 import "./AdvisorHistoryCard.css";
 
 function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
+  const toDateUtc = (val) => {
+    const s = String(val || '');
+    const base = s.includes('T') ? s : s.replace(' ', 'T');
+    const withSec = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(base) ? `${base}:00` : base;
+    const hasTz = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
+    const d = new Date(hasTz ? s : `${withSec}Z`);
+    return d;
+  };
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return new Intl.DateTimeFormat('en-PH', {
+      timeZone: 'Asia/Manila',
       weekday: 'short',
       month: 'short',
       day: 'numeric'
-    });
+    }).format(toDateUtc(dateString));
   };
 
   const getStatusInfo = () => {

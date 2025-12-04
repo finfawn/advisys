@@ -31,7 +31,12 @@ function fileFilter(req, file, cb) {
 const uploadAvatar = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } }); // 5 MB
 
 let Storage;
-try { Storage = require('@google-cloud/storage').Storage; } catch (_) { Storage = null; }
+let storageClient = null;
+try {
+  Storage = require('@google-cloud/storage').Storage;
+  const keyPath = process.env.GCP_STORAGE_KEY_PATH;
+  storageClient = Storage ? (keyPath ? new Storage({ keyFilename: keyPath }) : new Storage()) : null;
+} catch (_) { Storage = null; storageClient = null; }
 const { getPool } = require('../db/pool');
 
 const router = express.Router();
@@ -46,8 +51,14 @@ router.post(
   (req, res, next) => {
     uploadAvatar.single('avatar')(req, res, (err) => {
       if (err) {
-        const message = err?.message || 'Failed to upload avatar';
-        return res.status(500).json({ error: message });
+        const msg = err?.message || 'Failed to upload avatar';
+        if (err?.code === 'LIMIT_FILE_SIZE') {
+          return res.status(413).json({ error: 'File too large (max 5MB)' });
+        }
+        if (/Only image files are allowed/i.test(msg)) {
+          return res.status(415).json({ error: 'Unsupported media type. Only images are allowed.' });
+        }
+        return res.status(400).json({ error: msg });
       }
       next();
     });
@@ -66,7 +77,7 @@ router.post(
       try {
         if (userId) {
           const [[uRow]] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
-          role = uRow?.role || null;
+          role = (uRow?.role || '').toLowerCase();
           if (role === 'student') {
             const [[row]] = await pool.query('SELECT avatar_url FROM student_profiles WHERE user_id = ?', [userId]);
             previousUrl = row?.avatar_url || null;
@@ -80,53 +91,77 @@ router.post(
       }
 
       const { GCS_BUCKET_NAME: GCS_ENV_BUCKET_NAME, GCP_STORAGE_KEY_PATH, CDN_BASE_URL, ALLOW_LOCAL_AVATAR_FALLBACK } = process.env;
-      const GCS_BUCKET_NAME = GCS_ENV_BUCKET_NAME || 'advisys_bucket_backup';
-      if (Storage && GCS_BUCKET_NAME) {
+      const GCS_BUCKET_NAME = String(GCS_ENV_BUCKET_NAME || '').trim();
+      if (storageClient && GCS_BUCKET_NAME) {
         try {
-          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-          const bucket = storage.bucket(GCS_BUCKET_NAME);
+          const bucket = storageClient.bucket(GCS_BUCKET_NAME);
           const userId2 = req.user?.id || 'anon';
           const ext2 = path.extname(req.file.originalname || '').toLowerCase();
           const safeExt2 = ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext2) ? ext2 : '.png';
           const name2 = `avatar_${userId2}_${Date.now()}${safeExt2}`;
           const gcsKey = `avatars/${name2}`;
-          await bucket.file(gcsKey).save(req.file.buffer, { contentType: req.file.mimetype || 'image/png', resumable: false, public: false });
+          const file = bucket.file(gcsKey);
+          await file.save(req.file.buffer, { contentType: req.file.mimetype || 'image/png', resumable: false, public: false });
+          urlPath = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsKey}`;
+          let signedUrl = null;
           try {
-            await bucket.file(gcsKey).makePublic();
-            urlPath = `https://storage.googleapis.com/${GCS_BUCKET_NAME}/${gcsKey}`;
+            await file.makePublic();
           } catch (_) {
             try {
-              const [signed] = await bucket.file(gcsKey).getSignedUrl({ action: 'read', expires: Date.now() + 30 * 24 * 60 * 60 * 1000 });
-              urlPath = signed;
-            } catch (_) {
-              urlPath = null;
-            }
+              const [signed] = await file.getSignedUrl({ action: 'read', expires: Date.now() + 30 * 24 * 60 * 60 * 1000 });
+              signedUrl = signed;
+            } catch (_) {}
           }
         } catch (gcsErr) {
-          console.error('GCS upload failed; falling back to local URL:', gcsErr);
+          console.error('GCS upload failed completely:', gcsErr);
         }
       }
 
-      // Allow local fallback when cloud URL is unavailable
+      // Allow local fallback only when explicitly enabled (dev), otherwise prefer cloud URLs
+      const isProd = String(process.env.NODE_ENV || 'production').toLowerCase() === 'production';
+      const allowLocal = String(process.env.ALLOW_LOCAL_AVATAR_FALLBACK || (isProd ? 'false' : 'true')).toLowerCase() === 'true';
+      if (!urlPath && allowLocal) {
+        try {
+          const userId3 = req.user?.id || 'anon';
+          const ext3 = path.extname(req.file.originalname || '').toLowerCase();
+          const safeExt3 = ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext3) ? ext3 : '.png';
+          const name3 = `avatar_${userId3}_${Date.now()}${safeExt3}`;
+          const localPath = path.join(AVATARS_DIR, name3);
+          fs.writeFileSync(localPath, req.file.buffer);
+          urlPath = `/uploads/avatars/${name3}`;
+        } catch (localErr) {
+          console.error('Local avatar fallback failed:', localErr);
+        }
+      }
+
+      // If no URL could be produced, return a clear error instead of saving null
+      if (!urlPath) {
+        return res.status(500).json({ error: 'Avatar storage not configured. Set GCS_BUCKET_NAME or enable ALLOW_LOCAL_AVATAR_FALLBACK=true.' });
+      }
 
       // Persist avatar_url to DB for the authenticated user
       try {
-        if (userId && role) {
+        if (userId && role && urlPath) {
           if (role === 'student') {
-            await pool.query('UPDATE student_profiles SET avatar_url = ? WHERE user_id = ?', [urlPath, userId]);
+            const [upd] = await pool.query('UPDATE student_profiles SET avatar_url = ? WHERE user_id = ?', [urlPath, userId]);
+            if (upd.affectedRows === 0) {
+              await pool.query('INSERT INTO student_profiles (user_id, avatar_url) VALUES (?, ?)', [userId, urlPath]);
+            }
           } else if (role === 'advisor') {
-            await pool.query('UPDATE advisor_profiles SET avatar_url = ? WHERE user_id = ?', [urlPath, userId]);
+            const [upd] = await pool.query('UPDATE advisor_profiles SET avatar_url = ? WHERE user_id = ?', [urlPath, userId]);
+            if (upd.affectedRows === 0) {
+              await pool.query('INSERT INTO advisor_profiles (user_id, avatar_url) VALUES (?, ?)', [userId, urlPath]);
+            }
           }
 
-          // After saving the new avatar URL, delete the previous asset if different
-          if (previousUrl && previousUrl !== urlPath) {
+          // After saving the new avatar URL, delete the previous asset if different and the new URL is valid
+          if (urlPath && previousUrl && previousUrl !== urlPath) {
             try {
               const gcsMatch = previousUrl.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
               const cdnMatch = CDN_BASE_URL ? previousUrl.replace(CDN_BASE_URL.replace(/\/$/, ''), '').match(/^\/(.+)$/) : null;
-              if (gcsMatch && Storage) {
+              if (gcsMatch && storageClient) {
                 const [_, prevBucket, prevKey] = gcsMatch;
-                const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-                await storage.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true });
+                try { await storageClient.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true }); } catch (_) {}
               } else if (previousUrl.startsWith('/uploads/avatars/')) {
                 // If previous was local, remove the file from avatars dir
                 const prevName = path.basename(previousUrl);

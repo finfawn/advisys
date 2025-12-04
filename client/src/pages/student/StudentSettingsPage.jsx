@@ -170,14 +170,15 @@ export default function StudentSettingsPage() {
       return;
     }
     try {
+      const isCloudUrl = (u) => typeof u === 'string' && /https?:\/\/storage\.googleapis\.com\//i.test(u);
       const body = {
         firstName: String(editData.firstName || '').trim(),
         lastName: String(editData.lastName || '').trim(),
         email: String(editData.email || '').trim(),
         program: editData.program || null,
         yearLevel: parseYearLevel(editData.yearLevel),
-        avatar_url: editData.profilePicture || null,
       };
+      if (isCloudUrl(editData.profilePicture)) body.avatar_url = editData.profilePicture;
       const res = await fetch(`${apiBase}/api/profile/me`, {
         method: 'PATCH',
         headers: {
@@ -292,6 +293,33 @@ export default function StudentSettingsPage() {
         const fullUrl = resolveAssetUrl(uploadedPath);
         setEditData(prev => ({ ...prev, profilePicture: fullUrl }));
         setStudentData(prev => ({ ...prev, profilePicture: fullUrl }));
+        try {
+          await fetch(`${apiBase}/api/profile/me`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ avatar_url: fullUrl })
+          });
+        } catch (_) {}
+        try {
+          const pRes = await fetch(`${apiBase}/api/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
+          if (pRes.ok) {
+            const p = await pRes.json();
+            const full = String(p.full_name || '').trim();
+            const parts = full.split(' ');
+            const firstName = parts.shift() || '';
+            const lastName = parts.join(' ');
+            const mapped = {
+              firstName,
+              lastName,
+              program: p.program || '',
+              yearLevel: formatYearDisplay(p.year_level || '1'),
+              email: p.email || '',
+              profilePicture: resolveAssetUrl(p.avatar_url) || fullUrl,
+            };
+            setStudentData(mapped);
+            setEditData(mapped);
+          }
+        } catch (_) {}
       })
       .catch(async (err) => {
         console.error('Avatar upload failed', err);

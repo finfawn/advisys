@@ -3,6 +3,8 @@ const router = express.Router();
 const { authMiddleware } = require('../middleware/auth');
 const bcrypt = require('bcrypt');
 const { getPool } = require('../db/pool');
+const crypto = require('crypto');
+const { sendEmail } = require('../services/email');
 
 function formatYear(yearLevel) {
   const n = Number(yearLevel);
@@ -428,6 +430,117 @@ router.patch('/:id/status', async (req, res) => {
   } catch (err) {
     console.error('Failed to update user status:', err);
     res.status(500).json({ error: 'Failed to update user status' });
+  }
+});
+
+// Bulk create users (admin only)
+// POST /api/users/bulk-create
+// Body:
+// { role: 'students'|'advisors', rows: [ { firstName, lastName, email, ... } ] }
+router.post('/bulk-create', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const actor = req.user || {};
+  if (String(actor.role) !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const { role, rows } = req.body || {};
+  const roleKey = String(role || '').toLowerCase();
+  if (!['students','advisors'].includes(roleKey)) {
+    return res.status(400).json({ error: "role must be 'students' or 'advisors'" });
+  }
+  if (!Array.isArray(rows) || rows.length === 0) {
+    return res.status(400).json({ error: 'rows array required' });
+  }
+  const genTempPassword = () => {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    const bytes = crypto.randomBytes(12);
+    let out = '';
+    for (let i = 0; i < bytes.length; i++) out += alphabet[bytes[i] % alphabet.length];
+    return out;
+  };
+  const APP_BASE_URL = (process.env.APP_BASE_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const created = [];
+  const failed = [];
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    for (const r of rows) {
+      try {
+        const first = String(r.firstName || r.first_name || '').trim();
+        const last = String(r.lastName || r.last_name || '').trim();
+        const email = String(r.email || '').trim().toLowerCase();
+        if (!first || !last || !email) { failed.push({ email, error: 'Missing name/email' }); continue; }
+        const [existing] = await conn.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
+        if (existing.length) { failed.push({ email, error: 'Email exists' }); continue; }
+        const temp = genTempPassword();
+        const hash = await bcrypt.hash(temp, 10);
+        const full_name = `${first} ${last}`.trim();
+        const sysRole = roleKey === 'students' ? 'student' : 'advisor';
+        const [resUser] = await conn.query(
+          'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
+          [sysRole, email, hash, full_name, 'active']
+        );
+        const userId = resUser.insertId;
+        try {
+          await conn.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [userId]);
+        } catch (_) {}
+        if (sysRole === 'student') {
+          const program = r.program || r.Program || null;
+          const year = String(r.year || r.Year || '').trim();
+          const yearLevel = (/^\d/.test(year) ? Number(year) : (year.includes('1') ? 1 : year.includes('2') ? 2 : year.includes('3') ? 3 : year.includes('4') ? 4 : 1));
+          await conn.query('INSERT INTO student_profiles (user_id, program, year_level) VALUES (?,?,?)', [userId, program || null, yearLevel]);
+          try {
+            const [[t]] = await conn.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+            if (t && t.id) {
+              await conn.query(
+                `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
+                 VALUES (?,?,?,?,?,?)`,
+                [t.id, userId, 'student', 'enrolled', program || null, String(yearLevel)]
+              );
+            }
+          } catch (_) {}
+        } else {
+          const department = r.department || r.Department || null;
+          const title = r.title || r.Title || null;
+          await conn.query('INSERT INTO advisor_profiles (user_id, title, department, bio, status) VALUES (?,?,?,?,?)', [userId, title || null, department || null, null, 'available']);
+          try {
+            const onlineEnabled = String(r.online || r.Online || 'true').toLowerCase() === 'true' ? 1 : 0;
+            const inPersonEnabled = String(r.inPerson || r.InPerson || 'true').toLowerCase() === 'true' ? 1 : 0;
+            await conn.query('INSERT IGNORE INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userId, onlineEnabled, inPersonEnabled]);
+          } catch (_) {}
+          try {
+            const subjects = r.subjects || r.Subjects || '';
+            const list = String(subjects).split(';').map(s=>s.trim()).filter(Boolean).map(pair => {
+              const [code='', name=''] = pair.split('|');
+              return { code: code.trim(), name: name.trim() };
+            }).filter(x=>x.code || x.name);
+            for (const s of list) {
+              await conn.query('INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)', [userId, s.name || s.code, s.code || null, s.name || null]);
+            }
+          } catch (_) {}
+        }
+        created.push({ id: userId, email, tempPassword: temp });
+        const subject = 'Your AdviSys account credentials';
+        const loginUrl = `${APP_BASE_URL}/login`;
+        const html = `
+          <p>Hello ${full_name},</p>
+          <p>Your account has been created on AdviSys.</p>
+          <p><strong>Email:</strong> ${email}<br/><strong>Temporary password:</strong> ${temp}</p>
+          <p>Sign in at <a href="${loginUrl}">${loginUrl}</a> and please change your password after logging in.</p>
+        `;
+        try { await sendEmail({ to: email, subject, html }); } catch (_) {}
+      } catch (e) {
+        failed.push({ email: String(r.email || '').trim().toLowerCase(), error: e?.message || 'Create failed' });
+      }
+    }
+    await conn.commit();
+    return res.json({ success: true, createdCount: created.length, failedCount: failed.length, created, failed });
+  } catch (err) {
+    await conn.rollback();
+    console.error('Bulk create error:', err);
+    return res.status(500).json({ error: 'Bulk create failed' });
+  } finally {
+    try { await conn.release(); } catch (_) {}
   }
 });
 

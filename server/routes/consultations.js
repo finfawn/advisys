@@ -3,7 +3,8 @@ const { getPool } = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
-const { notify, getNotificationSettings } = require('../services/notifications');
+const { notify } = require('../services/notifications');
+const { optimizeBookingText } = require('../services/ai');
 
 function formatDate(d) {
   // Always format date in Asia/Manila to avoid server-local timezone drift
@@ -70,27 +71,39 @@ router.post('/consultations', async (req, res) => {
     // Normalize mode to match consultations schema
     const modeNorm = String(mode).toLowerCase() === 'in-person' ? 'in-person' : 'online';
 
-    // Resolve current academic term
-    const [[currTerm]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
-    const currentTermId = currTerm?.id || null;
+    // Resolve current academic term (defensive if table missing)
+    let currentTermId = null;
+    try {
+      const [[currTerm]] = await pool.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+      currentTermId = currTerm?.id || null;
+    } catch (e) {
+      currentTermId = null;
+    }
 
     // If a current term exists, ensure membership exists; block only if explicitly non-eligible
     if (currentTermId) {
-      const [[m]] = await pool.query(
-        `SELECT status_in_term FROM academic_term_memberships WHERE term_id = ? AND user_id = ? AND role = 'student'`,
-        [currentTermId, studentId]
-      );
-      if (!m) {
-        const [[sp]] = await pool.query('SELECT program, year_level FROM student_profiles WHERE user_id = ? LIMIT 1', [studentId]);
-        const prog = sp?.program || null;
-        const yr = sp?.year_level != null ? String(sp.year_level) : null;
-        await pool.query(
-          `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
-           VALUES (?,?,?,?,?,?)`,
-          [currentTermId, studentId, 'student', 'enrolled', prog, yr]
+      try {
+        const [[m]] = await pool.query(
+          `SELECT status_in_term FROM academic_term_memberships WHERE term_id = ? AND user_id = ? AND role = 'student'`,
+          [currentTermId, studentId]
         );
-      } else if (String(m.status_in_term) !== 'enrolled') {
-        return res.status(400).json({ error: 'Student is not eligible to book in the current academic term' });
+        if (!m) {
+          let prog = null, yr = null;
+          try {
+            const [[sp]] = await pool.query('SELECT program, year_level FROM student_profiles WHERE user_id = ? LIMIT 1', [studentId]);
+            prog = sp?.program || null;
+            yr = sp?.year_level != null ? String(sp.year_level) : null;
+          } catch (_) {}
+          await pool.query(
+            `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
+             VALUES (?,?,?,?,?,?)`,
+            [currentTermId, studentId, 'student', 'enrolled', prog, yr]
+          );
+        } else if (String(m.status_in_term) !== 'enrolled') {
+          return res.status(400).json({ error: 'Student is not eligible to book in the current academic term' });
+        }
+      } catch (_) {
+        // If term membership tables are missing, proceed without blocking
       }
     }
 
@@ -112,17 +125,47 @@ router.post('/consultations', async (req, res) => {
       await conn.query('UPDATE advisor_slots SET status = ? WHERE id = ?', ['booked', slotId]);
     }
 
+    // Removed undefined reschedule cleanup block
+
+    // Robustly parse incoming datetimes (slots are stored as UTC MySQL strings)
+    const parseUtcMySQL = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      const s = String(val).trim();
+      if (!s) return null;
+      if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const cleaned = s.replace(' ', 'T');
+      const d = new Date(`${cleaned}Z`);
+      return isNaN(d.getTime()) ? null : d;
+    };
+
+    const start = parseUtcMySQL(startIso);
+    const end = parseUtcMySQL(endIso);
+    if (!start || !end) {
+      return res.status(400).json({ error: 'Invalid start_datetime or end_datetime' });
+    }
+
     // Compute duration in minutes
-    const start = new Date(startIso);
-    const end = new Date(endIso);
     const durationMin = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 
     // Insert consultation
-    const [insertRes] = await conn.query(
-      `INSERT INTO consultations
-       (student_user_id, advisor_user_id, topic, category, mode, location, student_notes, start_datetime, end_datetime, duration_minutes, status, academic_term_id)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
-      [
+    let hasTermCol = false;
+    try {
+      const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "academic_term_id"');
+      hasTermCol = !!(cols && cols.length);
+    } catch (_) {
+      hasTermCol = false;
+    }
+    let insertSql;
+    let insertParams;
+    if (hasTermCol) {
+      insertSql = `INSERT INTO consultations
+        (student_user_id, advisor_user_id, topic, category, mode, location, student_notes, start_datetime, end_datetime, duration_minutes, status, academic_term_id)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`;
+      insertParams = [
         studentId,
         advisorId,
         topic,
@@ -135,8 +178,26 @@ router.post('/consultations', async (req, res) => {
         durationMin || null,
         'pending',
         currentTermId
-      ]
-    );
+      ];
+    } else {
+      insertSql = `INSERT INTO consultations
+        (student_user_id, advisor_user_id, topic, category, mode, location, student_notes, start_datetime, end_datetime, duration_minutes, status)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?)`;
+      insertParams = [
+        studentId,
+        advisorId,
+        topic,
+        category,
+        modeNorm,
+        location,
+        notes,
+        start,
+        end,
+        durationMin || null,
+        'pending'
+      ];
+    }
+    const [insertRes] = await conn.query(insertSql, insertParams);
 
     const newId = insertRes.insertId;
 
@@ -163,17 +224,33 @@ router.post('/consultations', async (req, res) => {
     await conn.commit();
 
     // Return the newly created consultation in the same shape as GET endpoints
-    const [rows] = await pool.query(
-      `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
-       FROM consultations c
-       JOIN users u ON u.id = c.advisor_user_id
-       LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
-       WHERE c.id = ?`, [newId]
-    );
-    if (!rows.length) {
-      return res.status(500).json({ error: 'Failed to load created consultation' });
+    let r;
+    try {
+      const [rows] = await pool.query(
+        `SELECT c.*, u.full_name AS advisor_name, ap.title AS advisor_title, ap.avatar_url AS advisor_avatar_url
+         FROM consultations c
+         JOIN users u ON u.id = c.advisor_user_id
+         LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
+         WHERE c.id = ?`, [newId]
+      );
+      if (!rows.length) {
+        return res.status(500).json({ error: 'Failed to load created consultation' });
+      }
+      r = rows[0];
+    } catch (e) {
+      const [rows] = await pool.query(
+        `SELECT c.*, u.full_name AS advisor_name
+         FROM consultations c
+         JOIN users u ON u.id = c.advisor_user_id
+         WHERE c.id = ?`, [newId]
+      );
+      if (!rows.length) {
+        return res.status(500).json({ error: 'Failed to load created consultation' });
+      }
+      r = rows[0];
+      r.advisor_title = null;
+      r.advisor_avatar_url = null;
     }
-    const r = rows[0];
     const startDt = new Date(r.start_datetime);
     const endDt = new Date(r.end_datetime);
     const date = formatDate(startDt);
@@ -185,16 +262,13 @@ router.post('/consultations', async (req, res) => {
       const studentName = stu?.full_name || 'Student';
       const title = `New consultation request from ${studentName}`;
       const message = `${studentName} requested a consultation for '${topic}' on ${date} at ${time}.`;
-      const settings = await getNotificationSettings(advisorId);
-      if (settings?.new_request_notifications) {
-        await notify(pool, advisorId, 'consultation_request', title, message, {
-          consultation_id: newId,
-          date,
-          time,
-          topic,
-          mode: modeNorm,
-        });
-      }
+      await notify(pool, advisorId, 'consultation_request', title, message, {
+        consultation_id: newId,
+        date,
+        time,
+        topic,
+        mode: modeNorm,
+      });
     } catch (err) {
       console.error('Advisor request notification error', err);
     }
@@ -246,6 +320,24 @@ router.post('/consultations', async (req, res) => {
     res.status(500).json({ error: 'Failed to create consultation' });
   } finally {
     conn.release();
+  }
+});
+
+router.post('/ai/optimize-consultation-input', authMiddleware, async (req, res) => {
+  try {
+    const { description, title } = req.body || {};
+    const desc = String(description || '').trim();
+    const t = String(title || '').trim();
+    if (!desc) return res.status(400).json({ error: 'Description is required' });
+    const result = await optimizeBookingText(desc, t);
+    if (!result) return res.status(503).json({ error: 'AI not available' });
+    const out = {
+      title: String(result.title || t).slice(0, 64),
+      description: String(result.description || desc).slice(0, 300)
+    };
+    return res.json(out);
+  } catch (e) {
+    return res.status(500).json({ error: 'Optimize failed' });
   }
 });
 
@@ -542,6 +634,11 @@ router.patch('/consultations/:id/status', async (req, res) => {
           // Notify both parties to ensure visibility regardless of who initiated
           await notify(pool, c.advisor_user_id, 'consultation_cancelled', title, message, data);
           await notify(pool, c.student_user_id, 'consultation_cancelled', title, message, data);
+
+          await pool.query(
+            'UPDATE advisor_slots SET status = ? WHERE advisor_user_id = ? AND start_datetime = ? AND end_datetime = ? AND status = ?',
+            ['available', c.advisor_user_id, c.start_datetime, c.end_datetime, 'booked']
+          );
         } else if (status === 'missed') {
           // Neutral "missed" state replaces "no-show" without blaming either party
           const title = `Consultation missed`;
@@ -891,14 +988,27 @@ router.patch('/consultations/:id', async (req, res) => {
     // Compute duration if datetime provided
     let startDate = null;
     let endDate = null;
+    const parseUtcMySQL = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      const s = String(val).trim();
+      if (!s) return null;
+      if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const cleaned = s.replace(' ', 'T');
+      const d = new Date(`${cleaned}Z`);
+      return isNaN(d.getTime()) ? null : d;
+    };
     if (startIso) {
-      startDate = new Date(startIso);
-      if (isNaN(startDate.getTime())) return res.status(400).json({ error: 'Invalid start_datetime' });
+      startDate = parseUtcMySQL(startIso);
+      if (!startDate) return res.status(400).json({ error: 'Invalid start_datetime' });
       fields.push('start_datetime = ?'); values.push(startDate);
     }
     if (endIso) {
-      endDate = new Date(endIso);
-      if (isNaN(endDate.getTime())) return res.status(400).json({ error: 'Invalid end_datetime' });
+      endDate = parseUtcMySQL(endIso);
+      if (!endDate) return res.status(400).json({ error: 'Invalid end_datetime' });
       fields.push('end_datetime = ?'); values.push(endDate);
     }
     if (startDate && endDate) {

@@ -24,6 +24,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   const [advisorSlots, setAdvisorSlots] = useState([]);
   const [availableModes, setAvailableModes] = useState({ inPerson: true, online: true });
   const [isLoadingSlots, setIsLoadingSlots] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
   
   // Character limit for description
   const MAX_DESCRIPTION_LENGTH = 300;
@@ -115,17 +116,26 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     day: '2-digit'
   }).format(d);
 
-  // Compact time range label: 9:00–9:30 AM or 11:30 AM–12:00 PM
-  const toRangeStr = (startDate, endDate) => {
-    const s = new Date(startDate);
-    const e = new Date(endDate);
-    const fmt = new Intl.DateTimeFormat('en-PH', {
-      timeZone: 'Asia/Manila',
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-    return `${fmt.format(s)}–${fmt.format(e)}`;
+  // Compact time range label by parsing strings with or without timezone
+  const toRangeStr = (startStr, endStr) => {
+    const toLocal = (val) => {
+      if (!val) return null;
+      if (val instanceof Date) return val;
+      const s = String(val).trim();
+      if (!s) return null;
+      if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+        const d = new Date(s);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const cleaned = s.replace(' ', 'T');
+      const d = new Date(`${cleaned}Z`);
+      return isNaN(d.getTime()) ? null : d;
+    };
+    const s = toLocal(startStr);
+    const e = toLocal(endStr);
+    if (!s || !e) return '';
+    const fmt = (d) => d.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true });
+    return `${fmt(s)}–${fmt(e)}`;
   };
 
   const slotsForSelectedDate = useMemo(() => {
@@ -195,7 +205,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
         try {
           setIsLoadingSlots(true);
           const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
-          const advisorId = faculty?.id || 1;
+      const advisorId = faculty?.id || facultyData?.id || null;
           const today = new Date();
           const future = new Date();
           future.setDate(today.getDate() + 30);
@@ -276,6 +286,34 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const handleOptimize = async () => {
+    const desc = String(formData.description || '').trim();
+    const t = String(formData.title || '').trim();
+    if (!desc) return;
+    try {
+      setIsOptimizing(true);
+      const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+      const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers.Authorization = `Bearer ${token}`;
+      const res = await fetch(`${base}/api/ai/optimize-consultation-input`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ description: desc, title: t })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data?.error || 'Optimize failed');
+      const newTitle = String(data?.title || t).slice(0, 64);
+      const newDesc = String(data?.description || desc).slice(0, MAX_DESCRIPTION_LENGTH);
+      setFormData(prev => ({ ...prev, title: newTitle, description: newDesc }));
+      toast.success({ title: 'Optimized', description: 'Title and description refined' });
+    } catch (err) {
+      toast.destructive({ title: 'Optimize failed', description: err?.message || 'Unable to optimize right now' });
+    } finally {
+      setIsOptimizing(false);
+    }
+  };
+
   const handleCategorySelect = (category) => {
     setFormData(prev => ({ ...prev, category }));
   };
@@ -328,7 +366,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
       const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
       const parsed = storedUser ? JSON.parse(storedUser) : null;
       const studentId = parsed?.id;
-      const advisorId = faculty?.id || facultyData?.id || 1;
+      const advisorId = faculty?.id || facultyData?.id || null;
 
       const payload = {
         topic: formData.title || "General Consultation",
@@ -342,7 +380,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
       };
 
       // Basic validation guard in UI
-      if (!payload.topic || !payload.start_datetime || !payload.end_datetime) {
+      if (!advisorId || !payload.topic || !payload.start_datetime || !payload.end_datetime) {
         throw new Error('Missing required consultation details');
       }
 
@@ -374,7 +412,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
       // Success: move to confirmation step and show toast
       setCurrentStep(3);
-      const when = selectedSlot ? `${toRangeStr(new Date(selectedSlot.start_datetime), new Date(selectedSlot.end_datetime))}` : '';
+      const when = selectedSlot ? `${toRangeStr(selectedSlot.start_datetime, selectedSlot.end_datetime)}` : '';
       toast.success({ title: 'Consultation requested', description: `${new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', year: 'numeric', month: 'long', day: 'numeric' }).format(selectedDate)} • ${when}` });
       if (onSubmitSuccess) onSubmitSuccess(data);
     } catch (err) {
@@ -502,6 +540,14 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 <span className="character-count">
                   {formData.description.length}/{MAX_DESCRIPTION_LENGTH}
                 </span>
+                <button
+                  type="button"
+                  className={`optimize-btn ${isOptimizing ? 'loading' : ''}`}
+                  onClick={handleOptimize}
+                  disabled={!formData.description.trim() || isOptimizing}
+                >
+                  {isOptimizing ? 'Optimizing…' : 'Optimize with AI'}
+                </button>
               </div>
               <Form.Control
                 as="textarea"
@@ -622,7 +668,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                                   }}
                                 >
                                   <BsClock />
-                                  <span>{toRangeStr(slot.start, slot.end)}</span>
+                                  <span>{toRangeStr(slot.start_datetime, slot.end_datetime)}</span>
                                 </button>
                               ))
                             )}

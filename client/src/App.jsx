@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate, Outlet, useLocation }
 import { SidebarProvider } from "./contexts/SidebarContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { Toaster } from "./lightswind/toaster";
+import SessionHandler from "./components/SessionHandler";
 import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import VerifyEmail from "./pages/VerifyEmail";
@@ -86,8 +87,9 @@ function App() {
     <NotificationProvider>
       <SidebarProvider>
         <Router>
-        <Routes>
-          {/* Home */}
+          <SessionHandler />
+          <Routes>
+            {/* Home */}
           <Route path="/" element={<Home />} />
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/verify-email" element={<VerifyEmail />} />

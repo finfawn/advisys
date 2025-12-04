@@ -189,6 +189,19 @@
   border: 1px solid #374151;
 }
 
+.smc-minute-warn {
+  position: fixed;
+  top: 56px;
+  left: 160px;
+  z-index: 10005;
+  background: #ef4444;
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #f87171;
+}
+
 .smc-status {
   display: none; /* replaced by breathing dot indicator */
 }
@@ -272,6 +285,11 @@
 }
 .smc-root .str-video__panel { background-color: #0d1628; border-color: #334155; }
 .smc-root .str-video__participant-tile { border-color: #1f2937; }
+.smc-root .str-video__menu,
+.smc-root .str-video__menu-list,
+.smc-root .str-video__menu-item { background-color: #0d1628; border-color: #334155; color: #e5e7eb; }
+.smc-root .str-video__menu-item:hover { background-color: #111827; }
+.smc-controls .str-video__call-controls__button { border-color: #374151; color: #e5e7eb; }
 
 /* Chat avatars and reactions */
 .smc-message-head { display:flex; gap:10px; align-items:flex-start; }

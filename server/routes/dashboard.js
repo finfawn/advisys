@@ -135,17 +135,17 @@ router.get('/advisors/:advisorId/summary', async (req, res) => {
     const weekCurrent = fillWeek(weekCurrentRaw);
     const weekPrevious = fillWeek(weekPreviousRaw);
 
-    // Top topics
-    const [topicRows] = await pool.query(
-      `SELECT topic AS name, COUNT(*) AS count
+    // Top categories (use category instead of title/topic)
+    const [catRows] = await pool.query(
+      `SELECT category AS name, COUNT(*) AS count
        FROM consultations
-       WHERE advisor_user_id = ? AND status = 'completed'
-       GROUP BY topic
+       WHERE advisor_user_id = ? AND status = 'completed' AND category IS NOT NULL AND category <> ''
+       GROUP BY category
        ORDER BY count DESC
        LIMIT 10`,
       [advisorId]
     );
-    const topTopics = topicRows.map(r => ({ name: r.name, count: Number(r.count || 0) }));
+    const topTopics = catRows.map(r => ({ name: r.name, count: Number(r.count || 0) }));
 
     return res.json({
       totalCompleted,
@@ -278,12 +278,12 @@ router.get('/admin/summary', authMiddleware, ensureAdmin, async (req, res) => {
     const weekCurrent = fillWeek(weekCurrentRaw);
     const weekPrevious = fillWeek(weekPreviousRaw);
 
-    // Top topics overall
+    // Top topics overall (prefer category; fallback to topic), completed only
     const [topicRows] = await pool.query(
-      `SELECT topic AS name, COUNT(*) AS count
+      `SELECT COALESCE(NULLIF(category, ''), NULLIF(topic, '')) AS name, COUNT(*) AS count
        FROM consultations
-       WHERE status IN ('requested','approved','completed')
-       GROUP BY topic
+       WHERE status = 'completed' AND COALESCE(NULLIF(category, ''), NULLIF(topic, '')) IS NOT NULL
+       GROUP BY COALESCE(NULLIF(category, ''), NULLIF(topic, ''))
        ORDER BY count DESC
        LIMIT 10`
     );

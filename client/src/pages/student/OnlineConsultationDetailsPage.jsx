@@ -22,6 +22,7 @@ import StreamMeetCall from "../../components/student/StreamMeetCall";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { useNotifications } from "../../contexts/NotificationContext";
 import { ShineButton } from "../../lightswind/shine-button";
+import { Skeleton } from "../../lightswind/skeleton";
 import "./ConsultationDetailsPage.css";
 
 export default function OnlineConsultationDetailsPage() {
@@ -46,6 +47,7 @@ export default function OnlineConsultationDetailsPage() {
   const [savingSummary, setSavingSummary] = useState(false);
   const [saveSummarySuccess, setSaveSummarySuccess] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [countdownText, setCountdownText] = useState('');
 
   // Normalize asset URLs (http/https/blob unchanged; relative prefixed with API base)
   const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -201,6 +203,40 @@ export default function OnlineConsultationDetailsPage() {
     setInCall(false);
   };
 
+  const scheduledEnd = () => {
+    const endIso = consultationData?.end_datetime;
+    const startIso = consultationData?.start_datetime;
+    const durMin = Number(consultationData?.duration || consultationData?.duration_minutes || 0) || 0;
+    if (endIso) return new Date(endIso);
+    if (startIso && durMin > 0) {
+      const s = new Date(startIso);
+      return new Date(s.getTime() + durMin * 60000);
+    }
+    const start = getStartDate(consultationData);
+    if (start && durMin > 0) return new Date(start.getTime() + durMin * 60000);
+    return null;
+  };
+
+  useEffect(() => {
+    const status = String(consultationData?.status || '').toLowerCase();
+    if (status === 'completed' || status === 'cancelled' || status === 'canceled' || status === 'missed') {
+      setCountdownText('');
+      return;
+    }
+    const tick = () => {
+      const end = scheduledEnd();
+      if (!end) { setCountdownText(''); return; }
+      const diff = end.getTime() - Date.now();
+      if (diff <= 0) { setCountdownText(''); return; }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setCountdownText(`${mins}:${String(secs).padStart(2, '0')}`);
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [consultationData?.status, consultationData?.start_datetime, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, consultationData?.date, consultationData?.time]);
+
   // Refresh helper to reload this consultation from API
   const refreshConsultationOnce = async () => {
     try {
@@ -211,7 +247,7 @@ export default function OnlineConsultationDetailsPage() {
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
       if (!studentId) return;
-      const r = await fetch(`${base}/api/consultations/students/${studentId}/consultations`, { headers });
+      const r = await fetch(`${base}/api/consultations/students/${studentId}/consultations?term=all`, { headers });
       const list = await r.json();
       const idNum = Number(consultationId);
       const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
@@ -260,30 +296,10 @@ export default function OnlineConsultationDetailsPage() {
     return () => clearInterval(timer);
   }, [consultationId]);
 
-  // Poll for AI summary when consultation is completed but summary not available yet
   useEffect(() => {
-    if (String(consultationData?.status).toLowerCase() === 'completed' && !consultationData?.aiSummary) {
-      setSummaryLoading(true);
-      let attempts = 0;
-      const id = setInterval(async () => {
-        attempts += 1;
-        try {
-          await refreshConsultationOnce();
-          if (consultationData?.aiSummary) {
-            setSummaryLoading(false);
-            clearInterval(id);
-          }
-        } catch (err) { console.error(err); }
-        if (attempts >= 20) { // ~2 minutes at 6s interval
-          setSummaryLoading(false);
-          clearInterval(id);
-        }
-      }, 6000);
-      return () => clearInterval(id);
-    } else {
-      setSummaryLoading(false);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    const status = String(consultationData?.status || '').toLowerCase();
+    const generating = status === 'completed' && !consultationData?.aiSummary;
+    setSummaryLoading(generating);
   }, [consultationData?.status, consultationData?.aiSummary]);
 
   const handleCancelConsultation = () => {
@@ -457,6 +473,114 @@ export default function OnlineConsultationDetailsPage() {
   const editApproved = approvedByFlag || approvedByNotification;
   const displayedSummary = consultationData.aiSummary || consultationData.summaryNotes || 'No summary available.';
 
+  if (loading) {
+    return (
+      <div className="consultation-details-wrap advisor-details-page">
+        <TopNavbar />
+        <div className={`consultation-details-body ${collapsed ? "collapsed" : ""}`}>
+          <div className="hidden xl:block">
+            <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={handleNavigation} />
+          </div>
+          <main className="consultation-details-main relative">
+            <div className="consultation-details-back">
+              <Skeleton className="h-8 w-40 rounded-md" shimmer />
+            </div>
+            <div className="consultation-details-container">
+              <section className="consultation-details-header">
+                <div className="header-content">
+                  <div className="consultation-meta">
+                    <div className="consultation-title-section">
+                      <Skeleton className="h-7 w-2/3 mb-2" shimmer />
+                      <div className="consultation-badges" style={{ display: 'flex', gap: 8 }}>
+                        <Skeleton className="h-6 w-24 rounded-md" shimmer />
+                        <Skeleton className="h-6 w-20 rounded-md" shimmer />
+                      </div>
+                    </div>
+                    <div className="consultation-datetime" style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                      <Skeleton className="h-5 w-40" shimmer />
+                      <Skeleton className="h-5 w-28" shimmer />
+                    </div>
+                  </div>
+                  <div className="advisor-info-card">
+                    <div className="advisor-avatar">
+                      <Skeleton className="w-16 h-16 rounded-full" shimmer />
+                    </div>
+                    <div className="advisor-details">
+                      <Skeleton className="h-5 w-48 mb-1" shimmer />
+                      <Skeleton className="h-4 w-40 mb-1" shimmer />
+                      <Skeleton className="h-4 w-32" shimmer />
+                    </div>
+                  </div>
+                </div>
+              </section>
+              <div className="consultation-details-grid">
+                <div className="consultation-details-left">
+                  <section className="consultation-details-section">
+                    <h2 className="section-title"><Skeleton className="h-6 w-40" shimmer /></h2>
+                    <div className="section-content">
+                      <Skeleton className="h-16 w-full rounded-md" shimmer />
+                    </div>
+                  </section>
+                  <section className="consultation-details-section">
+                    <h2 className="section-title"><Skeleton className="h-6 w-32" shimmer /></h2>
+                    <div className="section-content">
+                      <Skeleton className="h-5 w-28 mb-2" shimmer />
+                      <Skeleton className="h-4 w-full" shimmer />
+                      <Skeleton className="h-4 w-5/6" shimmer />
+                    </div>
+                  </section>
+                  <section className="consultation-details-section">
+                    <h2 className="section-title"><Skeleton className="h-6 w-44" shimmer /></h2>
+                    <div className="section-content">
+                      <div className="guidelines-list">
+                        <Skeleton className="h-4 w-full mb-2" shimmer />
+                        <Skeleton className="h-4 w-full mb-2" shimmer />
+                        <Skeleton className="h-4 w-3/4" shimmer />
+                      </div>
+                    </div>
+                  </section>
+                  <section className="consultation-details-section">
+                    <h2 className="section-title"><Skeleton className="h-6 w-44" shimmer /></h2>
+                    <div className="section-content">
+                      <Skeleton className="h-24 w-full rounded-md" shimmer />
+                    </div>
+                  </section>
+                </div>
+                <div className="consultation-details-right">
+                  <section className="consultation-details-section">
+                    <h2 className="section-title"><Skeleton className="h-6 w-40" shimmer /></h2>
+                    <div className="section-content">
+                      <Skeleton className="h-24 w-full rounded-md" shimmer />
+                    </div>
+                  </section>
+                  <section className="consultation-details-section actions-section">
+                    <h2 className="section-title"><Skeleton className="h-6 w-24" shimmer /></h2>
+                    <div className="section-content">
+                      <div className="action-buttons" style={{ display: 'flex', gap: 8 }}>
+                        <Skeleton className="h-9 w-36 rounded-md" shimmer />
+                        <Skeleton className="h-9 w-40 rounded-md" shimmer />
+                      </div>
+                    </div>
+                  </section>
+                  <section className="consultation-details-section">
+                    <h2 className="section-title"><Skeleton className="h-6 w-24" shimmer /></h2>
+                    <div className="section-content">
+                      <div className="info-grid">
+                        <Skeleton className="h-4 w-32 mb-2" shimmer />
+                        <Skeleton className="h-4 w-28 mb-2" shimmer />
+                        <Skeleton className="h-4 w-24 mb-2" shimmer />
+                      </div>
+                    </div>
+                  </section>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="consultation-details-wrap advisor-details-page">
       <TopNavbar />
@@ -520,6 +644,9 @@ export default function OnlineConsultationDetailsPage() {
                         <BsCameraVideo />
                         <span>Online</span>
                       </span>
+                      {countdownText && (
+                        <span className="status-badge insession" title="Time left">{countdownText}</span>
+                      )}
                     </div>
                   </div>
                   
@@ -567,7 +694,6 @@ export default function OnlineConsultationDetailsPage() {
                         <div className="meeting-details">
                           <span className="meeting-label">Video Conference</span>
                           <span className="meeting-link-text">Secure AdviSys Video Call</span>
-                          <span className="meeting-subtitle">Powered by Stream</span>
                         </div>
                       </div>
                     </div>
@@ -716,34 +842,43 @@ export default function OnlineConsultationDetailsPage() {
                   </h2>
                   <div className="section-content">
                     <div className="action-buttons">
-                      {!inCall ? (
-                        <button 
-                          className="action-btn join-meeting"
-                          onClick={handleJoinMeeting}
-                          disabled={!canJoin}
-                          title={!canJoin ? 'Available 5 minutes before start time' : undefined}
-                        >
-                          <BsBoxArrowUpRight />
-                          Join Meeting
-                        </button>
-                      ) : (
-                        <button 
-                          className="action-btn cancel-consultation"
-                          onClick={handleLeaveCall}
-                          title="Leave the meeting"
-                        >
-                          <BsXCircle />
-                          Leave Meeting
-                        </button>
-                      )}
-                      <button 
-                        className="action-btn cancel-consultation"
-                        onClick={handleCancelConsultation}
-                        disabled={isCancelling}
-                      >
-                        <BsXCircle />
-                        {isCancelling ? 'Cancelling...' : 'Cancel Consultation'}
-                      </button>
+                      {(() => {
+                        const statusLc = String(consultationData?.status || '').toLowerCase();
+                        const hide = statusLc === 'completed' || statusLc === 'cancelled' || statusLc === 'canceled';
+                        if (hide) return null;
+                        return (
+                        <>
+                          {!inCall ? (
+                            <button 
+                              className="action-btn join-meeting"
+                              onClick={handleJoinMeeting}
+                              disabled={statusLc !== 'approved' || !canJoin}
+                              title={statusLc !== 'approved' ? 'Available after approval' : (!canJoin ? 'Available 5 minutes before start time' : undefined)}
+                            >
+                              <BsBoxArrowUpRight />
+                              Join Meeting
+                            </button>
+                          ) : (
+                            <button 
+                              className="action-btn cancel-consultation"
+                              onClick={handleLeaveCall}
+                              title="Leave the meeting"
+                            >
+                              <BsXCircle />
+                              Leave Meeting
+                            </button>
+                          )}
+                          <button 
+                            className="action-btn cancel-consultation"
+                            onClick={handleCancelConsultation}
+                            disabled={isCancelling}
+                          >
+                            <BsXCircle />
+                            {isCancelling ? 'Cancelling...' : 'Cancel Consultation'}
+                          </button>
+                        </>
+                        );
+                      })()}
                     </div>
                   </div>
                 </section>

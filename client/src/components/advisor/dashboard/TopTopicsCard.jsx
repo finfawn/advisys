@@ -23,7 +23,8 @@ export default function TopTopicsCard() {
         const raw = Array.isArray(json?.topTopics) ? json.topTopics : [];
         const data = raw
           .map(t => ({ name: t.name ?? t.topic ?? '', count: Number(t.count || 0) }))
-          .filter(t => typeof t.name === 'string' && t.name.trim().length > 0);
+          .filter(t => typeof t.name === 'string' && t.name.trim().length > 0)
+          .slice(0, 4);
         setTopics(data);
       } catch (err) {
         console.error('Failed to load dashboard summary (top topics)', err);

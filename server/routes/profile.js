@@ -3,7 +3,12 @@ const { getPool } = require('../db/pool');
 const fs = require('fs');
 const path = require('path');
 let Storage;
-try { Storage = require('@google-cloud/storage').Storage; } catch (_) { Storage = null; }
+let storageClient = null;
+try {
+  Storage = require('@google-cloud/storage').Storage;
+  const keyPath = process.env.GCP_STORAGE_KEY_PATH;
+  storageClient = Storage ? (keyPath ? new Storage({ keyFilename: keyPath }) : new Storage()) : null;
+} catch (_) { Storage = null; storageClient = null; }
 const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
@@ -73,6 +78,19 @@ router.patch('/me', authMiddleware, async (req, res) => {
         console.error('Failed to read previous avatar_url before update:', prevErr);
       }
     }
+    const { CDN_BASE_URL, NODE_ENV } = process.env;
+    const isProd = String(NODE_ENV || '').toLowerCase() === 'production';
+    const sanitizeAvatarUrl = (u) => {
+      const s = String(u || '').trim();
+      if (!s) return null;
+      if (/^blob:/i.test(s) || /^data:/i.test(s)) return null;
+      if (isProd && (/^https?:\/\/[^/]+\/uploads\/avatars\//i.test(s) || s.startsWith('/uploads/avatars/'))) return null;
+      if (/^https?:\/\//i.test(s)) return s;
+      if (CDN_BASE_URL && s.startsWith(String(CDN_BASE_URL).replace(/\/$/, ''))) return s;
+      if (s.startsWith('/uploads/')) return s;
+      return null;
+    };
+
     if (role === 'student') {
       const fields = [];
       const values = [];
@@ -81,17 +99,25 @@ router.patch('/me', authMiddleware, async (req, res) => {
         const yr = body.year_level ?? body.yearLevel;
         fields.push('year_level = ?'); values.push(yr ? String(yr) : null);
       }
-      if (body.avatar_url !== undefined) { fields.push('avatar_url = ?'); values.push(body.avatar_url || null); }
+      if (body.avatar_url !== undefined) { fields.push('avatar_url = ?'); values.push(sanitizeAvatarUrl(body.avatar_url)); }
       if (fields.length) {
         values.push(userId);
-        await pool.query(`UPDATE student_profiles SET ${fields.join(', ')} WHERE user_id = ?`, values);
+        const [upd] = await pool.query(`UPDATE student_profiles SET ${fields.join(', ')} WHERE user_id = ?`, values);
+        if (upd.affectedRows === 0) {
+          const insertFields = ['user_id'];
+          const insertValues = [userId];
+          if (body.program !== undefined) { insertFields.push('program'); insertValues.push(body.program || null); }
+          if (body.year_level !== undefined || body.yearLevel !== undefined) { insertFields.push('year_level'); insertValues.push((body.year_level ?? body.yearLevel) ? String(body.year_level ?? body.yearLevel) : null); }
+          if (body.avatar_url !== undefined) { insertFields.push('avatar_url'); insertValues.push(sanitizeAvatarUrl(body.avatar_url)); }
+          await pool.query(`INSERT INTO student_profiles (${insertFields.join(', ')}) VALUES (${insertFields.map(() => '?').join(', ')})`, insertValues);
+        }
       }
     } else if (role === 'advisor') {
       const fields = [];
       const values = [];
       if (body.department !== undefined) { fields.push('department = ?'); values.push(body.department || null); }
       if (body.title !== undefined) { fields.push('title = ?'); values.push(body.title || null); }
-      if (body.avatar_url !== undefined) { fields.push('avatar_url = ?'); values.push(body.avatar_url || null); }
+      if (body.avatar_url !== undefined) { fields.push('avatar_url = ?'); values.push(sanitizeAvatarUrl(body.avatar_url)); }
       if (body.office_location !== undefined || body.officeLocation !== undefined) {
         const ol = body.office_location ?? body.officeLocation;
         // Debug: log advisor office_location update intent
@@ -106,20 +132,30 @@ router.patch('/me', authMiddleware, async (req, res) => {
       }
       if (fields.length) {
         values.push(userId);
-        await pool.query(`UPDATE advisor_profiles SET ${fields.join(', ')} WHERE user_id = ?`, values);
+        const [upd] = await pool.query(`UPDATE advisor_profiles SET ${fields.join(', ')} WHERE user_id = ?`, values);
+        if (upd.affectedRows === 0) {
+          const insertFields = ['user_id'];
+          const insertValues = [userId];
+          if (body.department !== undefined) { insertFields.push('department'); insertValues.push(body.department || null); }
+          if (body.title !== undefined) { insertFields.push('title'); insertValues.push(body.title || null); }
+          if (body.avatar_url !== undefined) { insertFields.push('avatar_url'); insertValues.push(sanitizeAvatarUrl(body.avatar_url)); }
+          if (body.office_location !== undefined || body.officeLocation !== undefined) { insertFields.push('office_location'); insertValues.push((body.office_location ?? body.officeLocation) || null); }
+          await pool.query(`INSERT INTO advisor_profiles (${insertFields.join(', ')}) VALUES (${insertFields.map(() => '?').join(', ')})`, insertValues);
+        }
       }
     }
 
     // After saving, if avatar_url changed, delete the previous asset
     try {
       if (willChangeAvatar && previousAvatarUrl && previousAvatarUrl !== (body.avatar_url || null)) {
-        const { GCP_STORAGE_KEY_PATH, CDN_BASE_URL } = process.env;
+        const { CDN_BASE_URL } = process.env;
         const gcsMatch = previousAvatarUrl.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
         const cdnMatch = CDN_BASE_URL ? previousAvatarUrl.replace(CDN_BASE_URL.replace(/\/$/, ''), '').match(/^\/(.+)$/) : null;
-        if (gcsMatch && Storage) {
+        if (gcsMatch && storageClient) {
           const [_, prevBucket, prevKey] = gcsMatch;
-          const storage = GCP_STORAGE_KEY_PATH ? new Storage({ keyFilename: GCP_STORAGE_KEY_PATH }) : new Storage();
-          await storage.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true });
+          try {
+            await storageClient.bucket(prevBucket).file(prevKey).delete({ ignoreNotFound: true });
+          } catch (_) {}
         } else if (previousAvatarUrl.startsWith('/uploads/avatars/')) {
           const AVATARS_DIR = path.join(__dirname, '..', 'uploads', 'avatars');
           const prevName = path.basename(previousAvatarUrl);
@@ -144,6 +180,14 @@ router.delete('/me', authMiddleware, async (req, res) => {
   const pool = getPool();
   const userId = req.user?.id;
   try {
+    let avatarUrls = [];
+    try {
+      const [[sp]] = await pool.query('SELECT avatar_url FROM student_profiles WHERE user_id = ? LIMIT 1', [userId]);
+      const [[ap]] = await pool.query('SELECT avatar_url FROM advisor_profiles WHERE user_id = ? LIMIT 1', [userId]);
+      const sUrl = sp?.avatar_url || null;
+      const aUrl = ap?.avatar_url || null;
+      avatarUrls = [sUrl, aUrl].filter(Boolean);
+    } catch (_) {}
     await pool.query('UPDATE users SET status = ? WHERE id = ?', ['inactive', userId]);
     try { await pool.query('DELETE FROM student_profiles WHERE user_id = ?', [userId]); } catch (_) {}
     try { await pool.query('DELETE FROM advisor_profiles WHERE user_id = ?', [userId]); } catch (_) {}
@@ -151,6 +195,23 @@ router.delete('/me', authMiddleware, async (req, res) => {
     try { await pool.query('DELETE FROM consultations WHERE student_id = ? OR advisor_id = ?', [userId, userId]); } catch (_) {}
     const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId]);
     if (result.affectedRows === 0) return res.status(404).json({ error: 'User not found' });
+
+    try {
+      for (const u of avatarUrls) {
+        const gcsMatch = u.match(/^https?:\/\/storage\.googleapis\.com\/([^/]+)\/(.+)$/);
+        if (gcsMatch && storageClient) {
+          const [_, bucket, key] = gcsMatch;
+          try { await storageClient.bucket(bucket).file(key).delete({ ignoreNotFound: true }); } catch (_) {}
+        } else if (u.startsWith('/uploads/avatars/')) {
+          const AVATARS_DIR = path.join(__dirname, '..', 'uploads', 'avatars');
+          const name = path.basename(u);
+          const local = path.join(AVATARS_DIR, name);
+          try { fs.unlinkSync(local); } catch (_) {}
+        }
+      }
+    } catch (e) {
+      console.error('Failed to delete avatar assets on account deletion:', e);
+    }
     return res.json({ success: true });
   } catch (err) {
     console.error('Delete account failed:', err);

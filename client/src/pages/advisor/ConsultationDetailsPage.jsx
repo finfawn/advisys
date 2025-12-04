@@ -54,6 +54,11 @@ export default function AdvisorConsultationDetailsPage() {
   const [savingNotes, setSavingNotes] = useState(false);
   const [saveNotesSuccess, setSaveNotesSuccess] = useState(false);
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+  const [countdownText, setCountdownText] = useState('');
+  const [advisorDecisionOpen, setAdvisorDecisionOpen] = useState(false);
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [cancelReason, setCancelReason] = useState('no_show');
+  const [cancelNotes, setCancelNotes] = useState('');
 
   // Normalize asset URLs for student avatars
   const resolveAssetUrl = (url) => {
@@ -92,16 +97,21 @@ export default function AdvisorConsultationDetailsPage() {
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
     if (!advisorId) return; // rely on fallback if advisor id not available
     setLoading(true);
-    fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, { headers })
+    fetch(`${base}/api/consultations/advisors/${advisorId}/consultations?term=all`, { headers })
       .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
       .then(list => {
         const idNum = Number(consultationId);
         const found = Array.isArray(list) ? list.find(c => Number(c.id) === idNum) : null;
-        if (found) setConsultationData(shapeConsultation(found));
-        if (found?.aiSummary) setAiSummaryDraft(found.aiSummary);
-        if (found?.advisorPrivateNotes) setNotesDraft(found.advisorPrivateNotes);
-        else if (found?.summaryNotes) setNotesDraft(found.summaryNotes);
-        else setError('Consultation not found');
+        if (found) {
+          setConsultationData(shapeConsultation(found));
+          if (found?.aiSummary) setAiSummaryDraft(found.aiSummary);
+          if (found?.advisorPrivateNotes) setNotesDraft(found.advisorPrivateNotes);
+          else if (found?.summaryNotes) setNotesDraft(found.summaryNotes);
+          setError(null);
+        } else {
+          // Keep fallback/local state without showing an error banner
+          setError(null);
+        }
       })
       .catch(err => {
         console.error('Load consultation details failed', err);
@@ -138,7 +148,21 @@ export default function AdvisorConsultationDetailsPage() {
     }
     return s;
   };
-  const statusClass = ['completed','cancelled','missed','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : 'approved';
+  const scheduledEndRef = () => {
+    const endIso = consultationData?.end_datetime;
+    const startIso = consultationData?.start_datetime;
+    const durMin = Number(consultationData?.duration || consultationData?.duration_minutes || 0) || 0;
+    if (endIso) return new Date(endIso);
+    if (startIso && durMin > 0) {
+      const s = new Date(startIso);
+      return new Date(s.getTime() + durMin * 60000);
+    }
+    const start = getStartDate(consultationData);
+    if (start && durMin > 0) return new Date(start.getTime() + durMin * 60000);
+    return null;
+  };
+  const endPassedNotStarted = (() => { const e = scheduledEndRef(); return e && Date.now() > e.getTime() && !consultationData?.actual_start_datetime; })();
+  const statusClass = ['completed','cancelled','missed','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : (endPassedNotStarted ? 'missed' : 'approved');
   const inSession = statusClass === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
   const statusLabel = inSession ? 'In Session' : (statusClass.charAt(0).toUpperCase() + statusClass.slice(1));
   const isCompletedLike = ['completed','cancelled','missed'].includes(statusClass);
@@ -148,6 +172,37 @@ export default function AdvisorConsultationDetailsPage() {
   const backTab = location.state?.tab || location.state?.source || (fromHistory ? 'history' : null);
   const showActions = (statusClass === 'approved' && !isCompletedLike && !fromHistory);
 
+  const scheduledEnd = () => {
+    const endIso = consultationData?.end_datetime;
+    const startIso = consultationData?.start_datetime;
+    const durMin = Number(consultationData?.duration || consultationData?.duration_minutes || 0) || 0;
+    if (endIso) return new Date(endIso);
+    if (startIso && durMin > 0) {
+      const s = new Date(startIso);
+      return new Date(s.getTime() + durMin * 60000);
+    }
+    const start = getStartDate(consultationData);
+    if (start && durMin > 0) return new Date(start.getTime() + durMin * 60000);
+    return null;
+  };
+
+  useEffect(() => {
+    const status = String(statusClass || '').toLowerCase();
+    if (['completed','cancelled','missed'].includes(status)) { setCountdownText(''); return; }
+    const tick = () => {
+      const end = scheduledEnd();
+      if (!end) { setCountdownText(''); return; }
+      const diff = end.getTime() - Date.now();
+      if (diff <= 0) { setCountdownText(''); return; }
+      const mins = Math.floor(diff / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setCountdownText(`${mins}:${String(secs).padStart(2, '0')}`);
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [statusClass, consultationData?.start_datetime, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, consultationData?.date, consultationData?.time]);
+
   const handleStart = () => {
     // Mark consultation as started to record actual start time
     try {
@@ -155,9 +210,19 @@ export default function AdvisorConsultationDetailsPage() {
       fetch(`${base}/api/consultations/${consultationData.id}/started`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+      }).then(async (r) => {
+        if (r.ok) {
+          const nowIso = new Date().toISOString();
+          setConsultationData(prev => ({ ...prev, actual_start_datetime: nowIso }));
+          setError(null);
+        }
       }).catch(()=>{});
     } catch (_) {}
     console.log("Consultation started:", consultationData.id);
+  };
+
+  const handleEnd = () => {
+    setAdvisorDecisionOpen(true);
   };
 
   const handleNavigation = (page) => {
@@ -321,6 +386,9 @@ export default function AdvisorConsultationDetailsPage() {
                     <div className="consultation-badges">
                       <span className={`status-badge ${statusClass}`}>{statusLabel}</span>
                       <span className={`mode-badge ${modeClass}`}>{modeClass === 'in-person' ? <><BsGeoAlt /> <span>In-Person</span></> : <><BsBoxArrowUpRight style={{display:'none'}}/> <span>Online</span></>}</span>
+                      {countdownText && (
+                        <span className="status-badge insession" title="Time left">{countdownText}</span>
+                      )}
                     </div>
                   </div>
 
@@ -423,21 +491,30 @@ export default function AdvisorConsultationDetailsPage() {
               </div>
 
               <div className="consultation-details-right">
-                {/* Actions: show Start/Cancel for upcoming approved consultations */}
+                {/* Actions: Start/Cancel before session; End/Cancel during session */}
                 {showActions && (
                   isDesktop ? (
                     <section className="consultation-details-section actions-section">
                       <h2 className="section-title"><BsCalendarEvent className="section-icon"/> Actions</h2>
                       <div className="section-content">
                         <div className="action-buttons">
-                          <button
-                            className="action-btn join-meeting"
-                            onClick={handleStart}
-                            disabled={!canStart}
-                            title={canStart ? 'Start the consultation' : 'Available 5 minutes before start time'}
-                          >
-                            <BsPlayCircle /> Start
-                          </button>
+                          {!inSession ? (
+                            <button
+                              className="action-btn join-meeting"
+                              onClick={handleStart}
+                              disabled={!canStart || endPassedNotStarted}
+                              title={canStart ? 'Start the consultation' : 'Available 5 minutes before start time'}
+                            >
+                              <BsPlayCircle /> Start
+                            </button>
+                          ) : (
+                            <button
+                              className="action-btn cancel-consultation"
+                              onClick={handleEnd}
+                            >
+                              <BsXCircle /> End
+                            </button>
+                          )}
                           <button
                             className="action-btn cancel-consultation"
                             onClick={() => setShowCancelModal(true)}
@@ -462,14 +539,23 @@ export default function AdvisorConsultationDetailsPage() {
                         </CollapsibleTrigger>
                         <CollapsibleContent className="section-content">
                           <div className="action-buttons">
-                            <button
-                              className="action-btn join-meeting"
-                              onClick={handleStart}
-                              disabled={!canStart}
-                              title={canStart ? 'Start the consultation' : 'Available 5 minutes before start time'}
-                            >
-                              <BsPlayCircle /> Start
-                            </button>
+                            {!inSession ? (
+                              <button
+                                className="action-btn join-meeting"
+                                onClick={handleStart}
+                                disabled={!canStart || endPassedNotStarted}
+                                title={canStart ? 'Start the consultation' : 'Available 5 minutes before start time'}
+                              >
+                                <BsPlayCircle /> Start
+                              </button>
+                            ) : (
+                              <button
+                                className="action-btn cancel-consultation"
+                                onClick={handleEnd}
+                              >
+                                <BsXCircle /> End
+                              </button>
+                            )}
                             <button
                               className="action-btn cancel-consultation"
                               onClick={() => setShowCancelModal(true)}
@@ -532,18 +618,83 @@ export default function AdvisorConsultationDetailsPage() {
       <CancelConsultationModal
         isOpen={showCancelModal}
         onClose={()=>!isCancelling && setShowCancelModal(false)}
-        onConfirm={(reason)=>{
+        onConfirm={async (reason)=>{
           setIsCancelling(true);
-          setTimeout(()=>{
-            setIsCancelling(false);
-            setShowCancelModal(false);
-            navigate(backTab ? `/advisor-dashboard/consultations?tab=${backTab}` : '/advisor-dashboard/consultations');
-          }, 800);
+          try {
+            const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            await fetch(`${base}/api/consultations/${consultationData.id}/status`, {
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'cancelled', reason })
+            });
+            setConsultationData(prev => ({ ...prev, status: 'cancelled', actual_end_datetime: new Date().toISOString() }));
+          } catch (_) {}
+          setIsCancelling(false);
+          setShowCancelModal(false);
+          navigate(backTab ? `/advisor-dashboard/consultations?tab=${backTab}` : '/advisor-dashboard/consultations');
         }}
         consultation={consultationData}
         isCancelling={isCancelling}
         variant="admin"
       />
+
+      {advisorDecisionOpen && (
+        <div style={{position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:10020}}>
+          <div style={{background:'#111827', color:'#fff', padding:20, borderRadius:12, width:'90%', maxWidth:460, boxShadow:'0 10px 30px rgba(0,0,0,0.4)'}}>
+            <h3 style={{margin:'0 0 8px 0', fontSize:18}}>End consultation: mark outcome</h3>
+            <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>Choose how to finalize.</p>
+            {!showCancelForm && (
+              <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
+                <button onClick={async ()=>{
+                  setAdvisorDecisionOpen(false);
+                  try {
+                    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                    await fetch(`${base}/api/consultations/${consultationData.id}/status`, {
+                      method: 'PATCH',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify({ status: 'completed' })
+                    });
+                  } catch (_) {}
+                  const nowIso = new Date().toISOString();
+                  setConsultationData(prev => ({ ...prev, status: 'completed', actual_end_datetime: nowIso }));
+                }} style={{padding:'8px 12px', borderRadius:8, background:'#10b981', color:'#fff', border:'1px solid #34d399'}}>Mark completed</button>
+                <button onClick={()=> setShowCancelForm(true)} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>Mark cancelled</button>
+                <button onClick={()=> setAdvisorDecisionOpen(false)} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Resume</button>
+              </div>
+            )}
+            {showCancelForm && (
+              <div style={{display:'flex', flexDirection:'column', gap:12}}>
+                <div style={{display:'flex', gap:8}}>
+                  <select value={cancelReason} onChange={(e)=> setCancelReason(e.target.value)} style={{flex:1, padding:'8px', borderRadius:8, border:'1px solid #4b5563', background:'#0b1220', color:'#fff'}}>
+                    <option value="no_show">No show</option>
+                    <option value="student_cancelled">Student cancelled</option>
+                    <option value="advisor_cancelled">Advisor cancelled</option>
+                    <option value="technical_issue">Technical issue</option>
+                    <option value="other">Other</option>
+                  </select>
+                  <input type="text" value={cancelNotes} onChange={(e)=> setCancelNotes(e.target.value)} placeholder="Add notes (optional)" style={{flex:1, padding:'8px 10px', borderRadius:8, border:'1px solid #4b5563', background:'#0b1220', color:'#fff'}} />
+                </div>
+                <div style={{display:'flex', gap:8, justifyContent:'flex-end'}}>
+                  <button onClick={()=> setShowCancelForm(false)} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Back</button>
+                  <button onClick={async ()=>{
+                    setAdvisorDecisionOpen(false);
+                    try {
+                      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                      await fetch(`${base}/api/consultations/${consultationData.id}/status`, {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ status: 'cancelled', reason: cancelReason, notes: cancelNotes })
+                      });
+                    } catch (_) {}
+                    const nowIso = new Date().toISOString();
+                    setConsultationData(prev => ({ ...prev, status: 'cancelled', actual_end_datetime: nowIso }));
+                  }} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>Confirm cancelled</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -30,13 +30,21 @@ export default function AdminConsultationCard({ consultation, onClick }) {
     return String(name || '').split(' ').filter(Boolean).map(s => s[0]).join('').slice(0, 2).toUpperCase();
   };
 
+  const toDateUtc = (val) => {
+    const s = String(val || '');
+    const base = s.includes('T') ? s : s.replace(' ', 'T');
+    const withSec = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(base) ? `${base}:00` : base;
+    const hasTz = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
+    const d = new Date(hasTz ? s : `${withSec}Z`);
+    return d;
+  };
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
+    return new Intl.DateTimeFormat('en-PH', {
+      timeZone: 'Asia/Manila',
       month: 'short',
       day: 'numeric',
       year: 'numeric'
-    });
+    }).format(toDateUtc(dateString));
   };
 
   const getDisplayDate = (c) => {

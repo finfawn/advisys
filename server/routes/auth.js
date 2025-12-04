@@ -55,7 +55,8 @@ function makeToken(user) {
     full_name: user.full_name,
   };
   const secret = process.env.JWT_SECRET || 'dev-secret';
-  return jwt.sign(payload, secret, { expiresIn: '7d' });
+  // Set expiration to 20 minutes for enhanced security
+  return jwt.sign(payload, secret, { expiresIn: '20m' });
 }
 
 function buildDeactivatedResponse() {

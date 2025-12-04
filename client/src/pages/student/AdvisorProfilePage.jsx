@@ -23,7 +23,8 @@ export default function AdvisorProfilePage() {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     const u = url.trim();
     if (!u) return null;
-    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
+    if (/^blob:/i.test(u) || /^data:/i.test(u)) return null;
+    if (/^https?:\/\//i.test(u)) return u;
     if (u.startsWith('/')) return `${base}${u}`;
     return `${base}/${u.replace(/^\/*/, '')}`;
   };
@@ -72,6 +73,32 @@ export default function AdvisorProfilePage() {
         try {
           const pad = (n) => String(n).padStart(2, '0');
           const fmtDate = (d) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          const parseServerDatetime = (val) => {
+            if (!val) return null;
+            const s = String(val);
+            if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+              const d = new Date(s);
+              return isNaN(d.getTime()) ? null : d;
+            }
+            const base = s.includes('T') ? s : s.replace(' ', 'T');
+            const withSec = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(base) ? `${base}:00` : base;
+            const d = new Date(`${withSec}Z`);
+            return isNaN(d.getTime()) ? null : d;
+          };
+          const toYMDPH = (d) => {
+            const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit' }).formatToParts(d);
+            const get = (t) => parts.find(p => p.type === t)?.value || '';
+            return `${get('year')}-${get('month')}-${get('day')}`;
+          };
+          const weekdayIndexPH = (d) => {
+            const w = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'long' }).format(d).toLowerCase();
+            return ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'].indexOf(w);
+          };
+          const addDaysYmdPH = (ymd, days) => {
+            const t = new Date(`${ymd}T00:00:00+08:00`);
+            t.setDate(t.getDate() + days);
+            return toYMDPH(t);
+          };
           const today = new Date();
           const future = new Date();
           future.setDate(today.getDate() + 60);
@@ -99,7 +126,7 @@ export default function AdvisorProfilePage() {
             if (availableSlots.length > 0) {
               const now = new Date();
               const futureSlots = availableSlots
-                .map(s => ({ ...s, start: new Date(s.start_datetime), end: new Date(s.end_datetime) }))
+                .map(s => ({ ...s, start: parseServerDatetime(s.start_datetime), end: parseServerDatetime(s.end_datetime) }))
                 .filter(s => s.start > now)
                 .sort((a, b) => a.start - b.start);
               if (futureSlots.length > 0) {
@@ -132,19 +159,18 @@ export default function AdvisorProfilePage() {
               }
             }
             // Compute this week's boundaries (local)
-            const startOfWeek = new Date();
-            startOfWeek.setHours(0,0,0,0);
-            startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay()); // Sunday
-            const endOfWeek = new Date(startOfWeek);
-            endOfWeek.setDate(startOfWeek.getDate() + 6);
-            endOfWeek.setHours(23,59,59,999);
+            const todayYmdPH = toYMDPH(new Date());
+            const idx = weekdayIndexPH(new Date());
+            const startWeekYmdPH = addDaysYmdPH(todayYmdPH, -idx);
+            const endWeekYmdPH = addDaysYmdPH(startWeekYmdPH, 6);
 
             // Overlay slot-derived ranges for this week only
             const ranges = {};
             for (const s of availableSlots) {
-              const start = new Date(s.start_datetime);
-              const end = new Date(s.end_datetime);
-              if (start < startOfWeek || start > endOfWeek) continue;
+              const start = parseServerDatetime(s.start_datetime);
+              const end = parseServerDatetime(s.end_datetime);
+              const slotYmdPH = toYMDPH(start);
+              if (slotYmdPH < startWeekYmdPH || slotYmdPH > endWeekYmdPH) continue;
               const weekdayPH = new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', weekday: 'long' }).format(start).toLowerCase();
               const key = dayKeys.includes(weekdayPH) ? weekdayPH : dayKeys[start.getDay()];
               const curr = ranges[key] || { earliest: start, latest: end };

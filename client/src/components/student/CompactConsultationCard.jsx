@@ -4,14 +4,14 @@ import "./CompactConsultationCard.css";
 
 function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
   const formatParts = () => {
-    const source = consultation?.start_datetime || consultation?.date;
-    const date = new Date(source);
+    const src = String(consultation?.start_datetime || consultation?.date || '').trim();
+    const cleaned = src.replace(' ', 'T');
+    const d = new Date(`${cleaned}Z`);
     const parts = new Intl.DateTimeFormat('en-PH', {
-      timeZone: 'Asia/Manila',
       weekday: 'short',
       month: 'short',
       day: 'numeric',
-    }).formatToParts(date);
+    }).formatToParts(isNaN(d.getTime()) ? new Date() : d);
     return {
       dow: parts.find(p => p.type === 'weekday')?.value || '',
       dom: parts.find(p => p.type === 'day')?.value || '',
@@ -154,4 +154,3 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
 }
 
 export default CompactConsultationCard;
-

@@ -33,14 +33,28 @@ router.get('/', async (req, res) => {
 
       let displayTimeRange = null;
       if (availableSlots.length > 0) {
-        const earliestStart = moment.tz(availableSlots[0].start_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila');
-        const latestEnd = moment.tz(availableSlots[availableSlots.length - 1].end_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila');
-        displayTimeRange = `${earliestStart.format('h:mm A')}–${latestEnd.format('h:mm A')}`;
+        const fmt12 = (val) => {
+          let d = null;
+          if (val instanceof Date) d = val;
+          else {
+            const s = String(val || '').trim();
+            if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) d = new Date(s);
+            else {
+              const cleaned = s.replace(' ', 'T');
+              d = new Date(`${cleaned}Z`);
+            }
+          }
+          if (!d || isNaN(d.getTime())) return '';
+          return new Intl.DateTimeFormat('en-PH', { timeZone: 'Asia/Manila', hour: 'numeric', minute: '2-digit', hour12: true }).format(d);
+        };
+        const earliestStart = fmt12(availableSlots[0].start_datetime);
+        const latestEnd = fmt12(availableSlots[availableSlots.length - 1].end_datetime);
+        displayTimeRange = `${earliestStart}–${latestEnd}`;
       }
 
       // Fetch consultation modes from advisor_slots, considering only future slots
       const [slotModes] = await pool.query(
-        'SELECT DISTINCT mode FROM advisor_slots WHERE advisor_user_id = ? AND end_datetime >= NOW()',
+        'SELECT DISTINCT mode FROM advisor_slots WHERE advisor_user_id = ? AND end_datetime >= UTC_TIMESTAMP()',
         [row.id]
       );
       let courses = [];
@@ -208,18 +222,17 @@ router.get('/:id/slots', async (req, res) => {
     const advisorId = req.params.id;
     const { date, month, start, end } = req.query;
 
-    // Cleanup: delete any slots whose end time has passed (for this advisor)
+    // Cleanup: delete any slots whose end time has passed (UTC) for this advisor
     // This ensures past-time slots disappear immediately, even on the current day.
     try {
       await pool.query(
         `DELETE FROM advisor_slots
          WHERE advisor_user_id = ?
-           AND end_datetime <= NOW()`,
+           AND end_datetime <= UTC_TIMESTAMP()`,
         [advisorId]
       );
     } catch (cleanupErr) {
       console.error('Advisor slots cleanup error', cleanupErr);
-      // Non-fatal: continue to fetch remaining slots
     }
 
     // Helper to pad numbers
@@ -229,37 +242,39 @@ router.get('/:id/slots', async (req, res) => {
     let params = [];
 
     if (date) {
-      // Single day (exclude past days)
+      // Single Manila day mapped to UTC boundaries
+      const startPH = moment.tz(date, 'YYYY-MM-DD', 'Asia/Manila').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
+      const nextPH = moment.tz(date, 'YYYY-MM-DD', 'Asia/Manila').add(1, 'day').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
       query = `SELECT id, start_datetime, end_datetime, mode, room, status
                FROM advisor_slots
-               WHERE advisor_user_id = ? AND DATE(start_datetime) = ? AND DATE(start_datetime) >= CURDATE()
+               WHERE advisor_user_id = ? AND start_datetime >= ? AND start_datetime < ?
                ORDER BY start_datetime ASC`;
-      params = [advisorId, date];
+      params = [advisorId, startPH, nextPH];
     } else if (month) {
-      // Month range (inclusive)
+      // Manila month range (inclusive)
       const [yStr, mStr] = month.split('-');
       const year = Number(yStr);
       const monthIdx = Number(mStr) - 1; // 0-based
       if (Number.isNaN(year) || Number.isNaN(monthIdx) || monthIdx < 0 || monthIdx > 11) {
         return res.status(400).json({ error: 'Invalid month format. Expected YYYY-MM' });
       }
-      const monthStart = `${year}-${pad(monthIdx + 1)}-01`;
       const lastDay = new Date(year, monthIdx + 1, 0).getDate();
-      const monthEnd = `${year}-${pad(monthIdx + 1)}-${pad(lastDay)}`;
-      // Exclude past days within the requested month
+      const monthStartPH = moment.tz({ year, month: monthIdx, day: 1 }, 'Asia/Manila').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
+      const monthEndPH = moment.tz({ year, month: monthIdx, day: lastDay }, 'Asia/Manila').add(1, 'day').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
       query = `SELECT id, start_datetime, end_datetime, mode, room, status
                FROM advisor_slots
-               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ? AND DATE(start_datetime) >= CURDATE()
+               WHERE advisor_user_id = ? AND start_datetime >= ? AND start_datetime < ?
                ORDER BY start_datetime ASC`;
-      params = [advisorId, monthStart, monthEnd];
+      params = [advisorId, monthStartPH, monthEndPH];
     } else if (start && end) {
-      // Arbitrary inclusive range
-      // Exclude past days within the requested range
+      // Arbitrary Manila range
+      const startPH = moment.tz(start, 'YYYY-MM-DD', 'Asia/Manila').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
+      const endPHNext = moment.tz(end, 'YYYY-MM-DD', 'Asia/Manila').add(1, 'day').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
       query = `SELECT id, start_datetime, end_datetime, mode, room, status
                FROM advisor_slots
-               WHERE advisor_user_id = ? AND DATE(start_datetime) BETWEEN ? AND ? AND DATE(start_datetime) >= CURDATE()
+               WHERE advisor_user_id = ? AND start_datetime >= ? AND start_datetime < ?
                ORDER BY start_datetime ASC`;
-      params = [advisorId, start, end];
+      params = [advisorId, startPH, endPHNext];
     } else {
       return res.status(400).json({ error: 'Missing required query param: date (YYYY-MM-DD) or month (YYYY-MM) or start/end (YYYY-MM-DD)' });
     }
@@ -286,35 +301,37 @@ router.post('/:id/slots', async (req, res) => {
 
     await conn.beginTransaction();
     const created = [];
-    // Helper: parse local ISO (YYYY-MM-DDTHH:mm[:ss]) as Asia/Manila wall time
-    // When client sends local time without timezone, Node parses using server timezone.
-    // To keep advisor intent, treat it explicitly as Asia/Manila (+08:00).
+    // Helper: parse incoming datetime; if no timezone provided, treat as Manila local
     const parseManilaLocal = (val) => {
       if (!val) return null;
       if (val instanceof Date) return val;
       if (typeof val === 'string') {
         const s = val.trim();
-        // If timezone offset or Z is present, respect it
         if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
           const d = new Date(s);
           return isNaN(d.getTime()) ? null : d;
         }
-        // Otherwise, assume Asia/Manila local time and append +08:00
-        const withSeconds = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s) ? `${s}:00` : s;
-        const d = new Date(`${withSeconds}+08:00`);
+        const m = s.replace('T', ' ').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) {
+          const [_, y, mo, d2, hh, mm, ss] = m;
+          return new Date(`${y}-${mo}-${d2}T${hh}:${mm}:${ss || '00'}+08:00`);
+        }
+        // ISO without timezone: treat as Manila local explicitly
+        const isoNoTz = s.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)$/);
+        const d = isoNoTz ? new Date(`${s}+08:00`) : new Date(s);
         return isNaN(d.getTime()) ? null : d;
       }
       const d = new Date(val);
       return isNaN(d.getTime()) ? null : d;
     };
-    // Helper: format Date as MySQL DATETIME string in Asia/Manila wall time
-    const formatManilaMySQL = (d) => {
-      const parts = new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
-        hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-      }).formatToParts(d);
-      const get = (t) => parts.find(p => p.type === t)?.value || '';
-      return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
+    const formatUTCMySQL = (d) => {
+      const year = d.getUTCFullYear();
+      const month = String(d.getUTCMonth() + 1).padStart(2, '0');
+      const day = String(d.getUTCDate()).padStart(2, '0');
+      const hour = String(d.getUTCHours()).padStart(2, '0');
+      const minute = String(d.getUTCMinutes()).padStart(2, '0');
+      const second = String(d.getUTCSeconds()).padStart(2, '0');
+      return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
     };
 
     for (const s of slots) {
@@ -330,6 +347,10 @@ router.post('/:id/slots', async (req, res) => {
         await conn.rollback();
         return res.status(400).json({ error: 'Invalid datetime format in slot payload' });
       }
+      if (end.getTime() <= start.getTime()) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'End time must be after start time' });
+      }
       // Guard: disallow creating slots for past days (date-only comparison)
       const today = new Date();
       const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
@@ -340,8 +361,8 @@ router.post('/:id/slots', async (req, res) => {
       }
       const mode = normalizeMode(s.mode);
       const room = s.room || null;
-      const startStr = formatManilaMySQL(start);
-      const endStr = formatManilaMySQL(end);
+      const startStr = formatUTCMySQL(start);
+      const endStr = formatUTCMySQL(end);
       const [result] = await conn.query(
         'INSERT INTO advisor_slots (advisor_user_id, start_datetime, end_datetime, mode, room) VALUES (?,?,?,?,?)',
         [advisorId, startStr, endStr, mode, room]
@@ -375,7 +396,7 @@ router.patch('/:id/slots/:slotId', async (req, res) => {
     if (!existing) return res.status(404).json({ error: 'Slot not found' });
 
     const { start_datetime, end_datetime, mode, room } = req.body || {};
-    // Helper: parse local ISO as Asia/Manila wall time
+    // Helper: parse incoming datetime; treat no-tz as Manila local
     const parseManilaLocal = (val) => {
       if (!val) return null;
       if (val instanceof Date) return val;
@@ -385,8 +406,13 @@ router.patch('/:id/slots/:slotId', async (req, res) => {
           const d = new Date(s);
           return isNaN(d.getTime()) ? null : d;
         }
-        const withSeconds = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(s) ? `${s}:00` : s;
-        const d = new Date(`${withSeconds}+08:00`);
+        const m = s.replace('T', ' ').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/);
+        if (m) {
+          const [_, y, mo, d2, hh, mm, ss] = m;
+          return new Date(`${y}-${mo}-${d2}T${hh}:${mm}:${ss || '00'}+08:00`);
+        }
+        const isoNoTz = s.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2})?)$/);
+        const d = isoNoTz ? new Date(`${s}+08:00`) : new Date(s);
         return isNaN(d.getTime()) ? null : d;
       }
       const d = new Date(val);
@@ -397,6 +423,9 @@ router.patch('/:id/slots/:slotId', async (req, res) => {
     const newEnd = end_datetime ? parseManilaLocal(end_datetime) : new Date(existing.end_datetime);
     if (isNaN(newStart.getTime()) || isNaN(newEnd.getTime())) {
       return res.status(400).json({ error: 'Invalid datetime format in payload' });
+    }
+    if (newEnd.getTime() <= newStart.getTime()) {
+      return res.status(400).json({ error: 'End time must be after start time' });
     }
     // Guard: disallow updating slot to a past day
     const today = new Date();
@@ -409,8 +438,20 @@ router.patch('/:id/slots/:slotId', async (req, res) => {
     const newMode = mode ? normalizeMode(mode) : existing.mode;
     const newRoom = typeof room !== 'undefined' ? (room || null) : existing.room;
 
-    const startStr = formatManilaMySQL(newStart);
-    const endStr = formatManilaMySQL(newEnd);
+    const yS = newStart.getUTCFullYear();
+    const mS = String(newStart.getUTCMonth() + 1).padStart(2, '0');
+    const dS = String(newStart.getUTCDate()).padStart(2, '0');
+    const hS = String(newStart.getUTCHours()).padStart(2, '0');
+    const minS = String(newStart.getUTCMinutes()).padStart(2, '0');
+    const secS = String(newStart.getUTCSeconds()).padStart(2, '0');
+    const yE = newEnd.getUTCFullYear();
+    const mE = String(newEnd.getUTCMonth() + 1).padStart(2, '0');
+    const dE = String(newEnd.getUTCDate()).padStart(2, '0');
+    const hE = String(newEnd.getUTCHours()).padStart(2, '0');
+    const minE = String(newEnd.getUTCMinutes()).padStart(2, '0');
+    const secE = String(newEnd.getUTCSeconds()).padStart(2, '0');
+    const startStr = `${yS}-${mS}-${dS} ${hS}:${minS}:${secS}`;
+    const endStr = `${yE}-${mE}-${dE} ${hE}:${minE}:${secE}`;
     const [result] = await pool.query(
       `UPDATE advisor_slots SET start_datetime = ?, end_datetime = ?, mode = ?, room = ?
        WHERE id = ? AND advisor_user_id = ?`,
@@ -455,7 +496,13 @@ router.delete('/:id/slots', async (req, res) => {
     const advisorId = req.params.id;
     const { date } = req.query;
     if (!date) return res.status(400).json({ error: 'Missing required query param: date (YYYY-MM-DD)' });
-    const [result] = await pool.query('DELETE FROM advisor_slots WHERE advisor_user_id = ? AND DATE(start_datetime) = ?', [advisorId, date]);
+    const start = moment.tz(date, 'YYYY-MM-DD', 'Asia/Manila').startOf('day').format('YYYY-MM-DD HH:mm:ss');
+    const next = moment.tz(date, 'YYYY-MM-DD', 'Asia/Manila').add(1, 'day').startOf('day').format('YYYY-MM-DD HH:mm:ss');
+    // Delete any slot that overlaps the Manila day: (start < next) AND (end > start)
+    const [result] = await pool.query(
+      'DELETE FROM advisor_slots WHERE advisor_user_id = ? AND start_datetime < ? AND end_datetime > ?',
+      [advisorId, next, start]
+    );
     res.json({ success: true, deleted: result.affectedRows });
   } catch (err) {
     console.error('Advisor slots bulk delete error', err);

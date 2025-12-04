@@ -148,14 +148,34 @@ export default function ConsultationSlotModal({
   const [durationPreset, setDurationPreset] = useState("30");
   const [customMinutes, setCustomMinutes] = useState(30);
   const [selectedModes, setSelectedModes] = useState(() => {
-    if (editEvent?.mode) return [editEvent.mode];
+    if (editEvent) {
+      const sameTime = Array.isArray(existingEvents) ? existingEvents.filter((ev) => {
+        if (ev.type !== "available") return false;
+        try {
+          return ev.start?.getTime?.() === editEvent.start?.getTime?.() && ev.end?.getTime?.() === editEvent.end?.getTime?.();
+        } catch (_) { return false; }
+      }) : [];
+      const modes = sameTime.map((ev) => String(ev.mode || "").toLowerCase());
+      if (modes.length) return modes;
+      if (editEvent.mode) return [editEvent.mode];
+    }
     try {
       const prefs = JSON.parse(localStorage.getItem("advisorSlotPrefs") || "{}");
       if (Array.isArray(prefs.modes) && prefs.modes.length) return prefs.modes;
     } catch {}
     return ["online"];
   });
-  const [room, setRoom] = useState(editEvent?.room || "");
+  const [room, setRoom] = useState(() => {
+    if (editEvent) {
+      const sameTime = Array.isArray(existingEvents) ? existingEvents.find((ev) => {
+        if (ev.type !== "available") return false;
+        try { return ev.start?.getTime?.() === editEvent.start?.getTime?.() && ev.end?.getTime?.() === editEvent.end?.getTime?.(); } catch (_) { return false; }
+      }) : null;
+      const r = editEvent?.room || sameTime?.room || "";
+      return r;
+    }
+    return "";
+  });
   const [error, setError] = useState("");
   const [conflictMessage, setConflictMessage] = useState("");
   const [leftoverNote, setLeftoverNote] = useState("");
@@ -342,7 +362,12 @@ export default function ConsultationSlotModal({
       const e = new Date(year, month, day, slot.endHH, slot.endMM);
       const conflict = existingEvents.some((ev) => {
         if (ev.type !== "available") return false;
-        if (editEvent && ev.id === editEvent.id) return false;
+        if (editEvent) {
+          try {
+            const sameRange = ev.start?.getTime?.() === editEvent.start?.getTime?.() && ev.end?.getTime?.() === editEvent.end?.getTime?.();
+            if (sameRange) return false; // exclude all slots in the original range (both modes)
+          } catch (_) {}
+        }
         return s < ev.end && e > ev.start;
       });
       if (conflict) {
@@ -463,7 +488,12 @@ export default function ConsultationSlotModal({
     if (Array.isArray(existingEvents) && existingEvents.length > 0) {
       const conflict = occurrences.find((p) => existingEvents.some((ev) => {
         if (ev.type !== "available") return false;
-        if (editEvent && ev.id === editEvent.id) return false; // exclude current being edited
+        if (editEvent) {
+          try {
+            const sameRange = ev.start?.getTime?.() === editEvent.start?.getTime?.() && ev.end?.getTime?.() === editEvent.end?.getTime?.();
+            if (sameRange) return false; // exclude both mode entries in original range
+          } catch (_) {}
+        }
         return p.start < ev.end && p.end > ev.start;
       }));
       if (conflict) {

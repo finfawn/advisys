@@ -10,6 +10,7 @@ import AdvisorConsultationCard from "../../components/advisor/my_consultation/Ad
 import DeclineConsultationModal from "../../components/advisor/DeclineConsultationModal";
 import { toast } from "../../components/hooks/use-toast";
 import { Button } from "../../lightswind/button";
+import { Skeleton } from "../../lightswind/skeleton";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import "./AdvisorDashboard.css";
 import "./AdvisorConsultations.css";
@@ -143,6 +144,7 @@ export default function AdvisorConsultations() {
 
   // Load consultations from backend and categorize
   const [allConsultations, setAllConsultations] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [historyView, setHistoryView] = useState('consultations');
   const [historyTermId, setHistoryTermId] = useState('current');
   const [counterparts, setCounterparts] = useState([]);
@@ -150,6 +152,7 @@ export default function AdvisorConsultations() {
   useEffect(() => {
     const fetchConsultations = async () => {
       try {
+        setIsLoading(true);
         const storedUser = localStorage.getItem('advisys_user');
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const advisorId = parsed?.id || 1;
@@ -161,6 +164,8 @@ export default function AdvisorConsultations() {
         setAllConsultations(shaped);
       } catch (err) {
         console.error('Failed to load consultations', err);
+      } finally {
+        setIsLoading(false);
       }
     };
     fetchConsultations();
@@ -246,6 +251,9 @@ export default function AdvisorConsultations() {
   const [upcomingFilter, setUpcomingFilter] = useState('all');
   const [requestFilter, setRequestFilter] = useState('all');
   const [historyFilter, setHistoryFilter] = useState('all');
+  const [upcomingSort, setUpcomingSort] = useState('asc');
+  const [requestSort, setRequestSort] = useState('asc');
+  const [historySort, setHistorySort] = useState('desc');
 
   const [historyData, setHistoryData] = useState([]);
   useEffect(() => {
@@ -269,20 +277,29 @@ export default function AdvisorConsultations() {
   const requestsCount = requestCards.length;
   
   // Filter functions
-  const filteredUpcoming = upcomingCards.filter(c => {
-    if (upcomingFilter === 'all') return true;
-    return c.mode === upcomingFilter;
-  });
+  const filteredUpcoming = useMemo(() => {
+    const base = upcomingFilter === 'all' ? upcomingCards : upcomingCards.filter(c => c.mode === upcomingFilter);
+    const getDate = (c) => new Date(c._start || c.start_datetime || c.date);
+    const asc = (a, b) => getDate(a) - getDate(b);
+    const desc = (a, b) => getDate(b) - getDate(a);
+    return [...base].sort(upcomingSort === 'asc' ? asc : desc);
+  }, [upcomingCards, upcomingFilter, upcomingSort]);
   
-  const filteredRequests = requestCards.filter(c => {
-    if (requestFilter === 'all') return true;
-    return c.mode === requestFilter;
-  });
+  const filteredRequests = useMemo(() => {
+    const base = requestFilter === 'all' ? requestCards : requestCards.filter(c => c.mode === requestFilter);
+    const getDate = (c) => new Date(c.start_datetime || c.date);
+    const asc = (a, b) => getDate(a) - getDate(b);
+    const desc = (a, b) => getDate(b) - getDate(a);
+    return [...base].sort(requestSort === 'asc' ? asc : desc);
+  }, [requestCards, requestFilter, requestSort]);
   
-  const filteredHistory = historyData.filter(c => {
-    if (historyFilter === 'all') return true;
-    return c.mode === historyFilter;
-  });
+  const filteredHistory = useMemo(() => {
+    const baseList = historyFilter === 'all' ? historyData : historyData.filter(c => c.mode === historyFilter);
+    const getDate = (c) => new Date(c.end_datetime || c.actual_end_datetime || c.start_datetime || c.date);
+    const asc = (a, b) => getDate(a) - getDate(b);
+    const desc = (a, b) => getDate(b) - getDate(a);
+    return [...baseList].sort(historySort === 'asc' ? asc : desc);
+  }, [historyData, historyFilter, historySort]);
   
 
   const handleApprove = async (c) => {
@@ -523,7 +540,7 @@ export default function AdvisorConsultations() {
 
         <main className="advisor-dash-main relative">
           <ProfileCompletionBanner />
-          <div className="consultations-container">
+          <div className="consultations-container advisor-my-consultations">
             <div className="consultations-header">
               <h1 className="consultations-title">My Consultations</h1>
               <p className="consultations-subtitle">Manage your student consultation sessions</p>
@@ -571,37 +588,75 @@ export default function AdvisorConsultations() {
                           <SelectItem value="in-person">In-Person</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Select value={upcomingSort} onValueChange={setUpcomingSort}>
+                        <SelectTrigger className="filter-dropdown">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="asc">Date Asc</SelectItem>
+                          <SelectItem value="desc">Date Desc</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <span className="section-count">{filteredUpcoming.length} upcoming</span>
                     </div>
                   </div>
                   
-                  <div className="consultations-grid">
-                    {filteredUpcoming.map(c => (
-                      <AdvisorConsultationCard
-                        key={c.id}
-                        consultation={c}
-                        onMarkMissed={handleMarkMissed}
-                        onActionClick={(cons) => handleActionClick(cons, 'upcoming')}
-                      />
-                    ))}
-                    {filteredUpcoming.length === 0 && (
-                      <div className="no-consultations">
-                        <BsCalendar className="no-consultations-icon" />
-                        <h3>No upcoming consultations</h3>
-                        <p>
-                          You don’t have any upcoming sessions scheduled. When students book with you,
-                          their sessions will appear here.
-                        </p>
-                        <Button 
-                          variant="primary" 
-                          onClick={() => navigate('/advisor-dashboard/availability')}
-                          className="add-consultation-btn"
-                        >
-                          Manage Availability
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  {isLoading ? (
+                    <div className="consultations-grid">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className="rounded-lg border bg-white p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
+                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
+                          </div>
+                          <Skeleton className="h-5 w-3/4" shimmer />
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
+                            <Skeleton className="h-4 w-40" shimmer />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                            <div className="flex-1 space-y-1">
+                              <Skeleton className="h-4 w-48" shimmer />
+                              <Skeleton className="h-3 w-40" shimmer />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
+                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="consultations-grid">
+                      {filteredUpcoming.map(c => (
+                        <AdvisorConsultationCard
+                          key={c.id}
+                          consultation={c}
+                          onMarkMissed={handleMarkMissed}
+                          onActionClick={(cons) => handleActionClick(cons, 'upcoming')}
+                        />
+                      ))}
+                      {filteredUpcoming.length === 0 && (
+                        <div className="no-consultations">
+                          <BsCalendar className="no-consultations-icon" />
+                          <h3>No upcoming consultations</h3>
+                          <p>
+                            You don’t have any upcoming sessions scheduled. When students book with you,
+                            their sessions will appear here.
+                          </p>
+                          <Button 
+                            variant="primary" 
+                            onClick={() => navigate('/advisor-dashboard/availability')}
+                            className="add-consultation-btn"
+                          >
+                            Manage Availability
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </section>
               )}
 
@@ -620,37 +675,75 @@ export default function AdvisorConsultations() {
                           <SelectItem value="in-person">In-Person</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Select value={requestSort} onValueChange={setRequestSort}>
+                        <SelectTrigger className="filter-dropdown">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="asc">Date Asc</SelectItem>
+                          <SelectItem value="desc">Date Desc</SelectItem>
+                        </SelectContent>
+                      </Select>
                       <span className="section-count">{filteredRequests.length} requests</span>
                     </div>
                   </div>
                   
-                  <div className="consultations-grid">
-                    {filteredRequests.map(c => (
-                      <AdvisorConsultationCard
-                        key={c.id}
-                        consultation={c}
-                        onApprove={handleApprove}
-                        onDecline={handleDecline}
-                        onActionClick={(cons) => handleActionClick(cons, 'requests')}
-                      />
-                    ))}
-                    {filteredRequests.length === 0 && (
-                      <div className="no-consultations">
-                        <BsClockHistory className="no-consultations-icon" />
-                        <h3>No consultation requests</h3>
-                        <p>
-                          You currently have no pending or declined consultation requests from students.
-                        </p>
-                        <Button 
-                          variant="primary" 
-                          onClick={() => navigate('/advisor-dashboard/availability')}
-                          className="add-consultation-btn"
-                        >
-                          Manage Availability
-                        </Button>
-                      </div>
-                    )}
-                  </div>
+                  {isLoading ? (
+                    <div className="consultations-grid">
+                      {Array.from({ length: 3 }).map((_, idx) => (
+                        <div key={idx} className="rounded-lg border bg-white p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
+                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
+                          </div>
+                          <Skeleton className="h-5 w-3/4" shimmer />
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
+                            <Skeleton className="h-4 w-40" shimmer />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                            <div className="flex-1 space-y-1">
+                              <Skeleton className="h-4 w-48" shimmer />
+                              <Skeleton className="h-3 w-40" shimmer />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
+                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="consultations-grid">
+                      {filteredRequests.map(c => (
+                        <AdvisorConsultationCard
+                          key={c.id}
+                          consultation={c}
+                          onApprove={handleApprove}
+                          onDecline={handleDecline}
+                          onActionClick={(cons) => handleActionClick(cons, 'requests')}
+                        />
+                      ))}
+                      {filteredRequests.length === 0 && (
+                        <div className="no-consultations">
+                          <BsClockHistory className="no-consultations-icon" />
+                          <h3>No consultation requests</h3>
+                          <p>
+                            You currently have no pending or declined consultation requests from students.
+                          </p>
+                          <Button 
+                            variant="primary" 
+                            onClick={() => navigate('/advisor-dashboard/availability')}
+                            className="add-consultation-btn"
+                          >
+                            Manage Availability
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   
                 </section>
@@ -688,50 +781,100 @@ export default function AdvisorConsultations() {
                           <SelectItem value="in-person">In-Person</SelectItem>
                         </SelectContent>
                       </Select>
+                      <Select value={historySort} onValueChange={setHistorySort}>
+                        <SelectTrigger className="filter-dropdown">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="asc">Date Asc</SelectItem>
+                          <SelectItem value="desc">Date Desc</SelectItem>
+                        </SelectContent>
+                      </Select>
                       
                       <span className="section-count">{filteredHistory.length} past sessions</span>
                     </div>
                   </div>
                   
-                  {historyView === 'consultations' ? (
+                  {isLoading ? (
                     <div className="consultations-grid">
-                      {filteredHistory.map((consultation) => (
-                        <AdvisorConsultationCard
-                          key={consultation.id}
-                          consultation={consultation}
-                          onActionClick={(cons) => handleActionClick(cons, 'history')}
-                        />
-                      ))}
-                      {filteredHistory.length === 0 && (
-                        <div className="no-history">
-                          <BsListCheck className="no-history-icon" />
-                          <h3>No consultation history</h3>
-                          <p>You haven’t completed any consultation sessions yet.</p>
-                        </div>
+                      {historyView === 'consultations' ? (
+                        Array.from({ length: 3 }).map((_, idx) => (
+                          <div key={idx} className="rounded-lg border bg-white p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Skeleton className="h-6 w-28 rounded-md" shimmer />
+                              <Skeleton className="h-6 w-24 rounded-full" shimmer />
+                            </div>
+                            <Skeleton className="h-5 w-3/4" shimmer />
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-4 w-4 rounded-md" shimmer />
+                              <Skeleton className="h-4 w-40" shimmer />
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                              <div className="flex-1 space-y-1">
+                                <Skeleton className="h-4 w-48" shimmer />
+                                <Skeleton className="h-3 w-40" shimmer />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                              <Skeleton className="h-9 w-32 rounded-md" shimmer />
+                              <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                            </div>
+                          </div>
+                        ))
+                      ) : (
+                        Array.from({ length: 5 }).map((_, idx) => (
+                          <div key={idx} className="p-4 bg-white rounded-lg border flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                            <div className="flex-1 space-y-1">
+                              <Skeleton className="h-4 w-40" shimmer />
+                              <Skeleton className="h-3 w-56" shimmer />
+                            </div>
+                          </div>
+                        ))
                       )}
                     </div>
                   ) : (
-                    <div className="consultations-grid">
-                      {counterparts.map(cp => (
-                        <div key={cp.id} className="p-4 bg-white rounded-lg border cursor-pointer flex items-center gap-3" onClick={()=>navigate(`/advisor-dashboard/history/thread/${cp.id}`)}>
-                          <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
-                            {cp.avatar_url ? (<img src={cp.avatar_url} alt="" className="w-full h-full object-cover" />) : null}
+                    historyView === 'consultations' ? (
+                      <div className="consultations-grid">
+                        {filteredHistory.map((consultation) => (
+                          <AdvisorConsultationCard
+                            key={consultation.id}
+                            consultation={consultation}
+                            onActionClick={(cons) => handleActionClick(cons, 'history')}
+                          />
+                        ))}
+                        {filteredHistory.length === 0 && (
+                          <div className="no-history">
+                            <BsListCheck className="no-history-icon" />
+                            <h3>No consultation history</h3>
+                            <p>You haven’t completed any consultation sessions yet.</p>
                           </div>
-                          <div className="flex-1">
-                          <div className="font-semibold">{cp.name}</div>
-                          <div className="text-xs text-gray-600">{cp.program ? `${cp.program}` : ''}{cp.year_level ? ` • Year ${cp.year_level}` : ''}</div>
-                          <div className="text-xs text-gray-500 mt-1">{cp.count} consultations • Last {cp.last_date ? new Date(cp.last_date).toLocaleDateString() : ''}</div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="consultations-grid">
+                        {counterparts.map(cp => (
+                          <div key={cp.id} className="p-4 bg-white rounded-lg border cursor-pointer flex items-center gap-3" onClick={()=>navigate(`/advisor-dashboard/history/thread/${cp.id}`)}>
+                            <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
+                              {cp.avatar_url ? (<img src={cp.avatar_url} alt="" className="w-full h-full object-cover" />) : null}
+                            </div>
+                            <div className="flex-1">
+                            <div className="font-semibold">{cp.name}</div>
+                            <div className="text-xs text-gray-600">{cp.program ? `${cp.program}` : ''}{cp.year_level ? ` • Year ${cp.year_level}` : ''}</div>
+                            <div className="text-xs text-gray-500 mt-1">{cp.count} consultations • Last {cp.last_date ? new Date(cp.last_date).toLocaleDateString() : ''}</div>
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                      {counterparts.length === 0 && (
-                        <div className="no-history">
-                          <BsListCheck className="no-history-icon" />
-                          <h3>No students found</h3>
-                          <p>No consultations with students in this selection.</p>
-                        </div>
-                      )}
-                    </div>
+                        ))}
+                        {counterparts.length === 0 && (
+                          <div className="no-history">
+                            <BsListCheck className="no-history-icon" />
+                            <h3>No students found</h3>
+                            <p>No consultations with students in this selection.</p>
+                          </div>
+                        )}
+                      </div>
+                    )
                   )}
 
                   

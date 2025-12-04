@@ -23,15 +23,29 @@ function fmtRange(start, end) {
 }
 
 // Format a Date object into 12-hour time string
-function formatTimeFromDate(dt) {
-  if (!(dt instanceof Date)) return '';
-  const fmt = new Intl.DateTimeFormat('en-PH', {
+function formatTimeStr(val) {
+  let d = null;
+  if (val instanceof Date) {
+    d = val;
+  } else {
+    const s = String(val || '').trim();
+    if (!s) return '';
+    if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+      const dd = new Date(s);
+      if (!isNaN(dd.getTime())) d = dd;
+    } else {
+      const cleaned = s.replace(' ', 'T');
+      const dd = new Date(`${cleaned}Z`);
+      if (!isNaN(dd.getTime())) d = dd;
+    }
+  }
+  if (!d || isNaN(d.getTime())) return '';
+  return new Intl.DateTimeFormat('en-PH', {
     timeZone: 'Asia/Manila',
     hour: 'numeric',
     minute: '2-digit',
     hour12: true,
-  });
-  return fmt.format(dt);
+  }).format(d);
 }
 
 // GET /api/availability/today
@@ -40,38 +54,41 @@ router.get('/today', async (req, res) => {
   const pool = getPool();
   try {
     // Determine PH dow label for UI
-    const nowPH = moment.tz(Date.now(), 'Asia/Manila').toDate();
-    const dow = getDowKey(nowPH);
+    const dow = getDowKey(new Date());
 
+    const startPHUtc = moment.tz(moment().format('YYYY-MM-DD'), 'Asia/Manila').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
+    const nextPHUtc = moment.tz(moment().format('YYYY-MM-DD'), 'Asia/Manila').add(1, 'day').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
     const [rows] = await pool.query(
-      `SELECT s.advisor_user_id AS id, u.full_name, ap.title, ap.department,
+      `SELECT s.advisor_user_id AS id, u.full_name, ap.title, ap.department, ap.avatar_url,
               s.start_datetime, s.end_datetime, s.mode
        FROM advisor_slots s
        JOIN users u ON u.id = s.advisor_user_id
        JOIN advisor_profiles ap ON ap.user_id = u.id
        WHERE u.role = 'advisor' AND u.status = 'active'
          AND s.status = 'available'
-         AND DATE(s.start_datetime) = CURDATE()
-       ORDER BY s.advisor_user_id ASC, s.start_datetime ASC`
+         AND s.start_datetime >= ? AND s.start_datetime < ?
+       ORDER BY s.advisor_user_id ASC, s.start_datetime ASC`,
+      [startPHUtc, nextPHUtc]
     );
 
     // Aggregate earliest/latest slot per advisor and combined mode flags
     const byAdvisor = new Map();
     for (const r of rows) {
-      const start = moment.tz(r.start_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
-      const end = moment.tz(r.end_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
+      const startKey = r.start_datetime;
+      const endKey = r.end_datetime;
       const curr = byAdvisor.get(r.id) || {
         id: r.id,
         name: r.full_name,
         title: r.title,
         department: r.department,
-        earliest: start,
-        latest: end,
+        avatar: r.avatar_url || null,
+        earliest: startKey,
+        latest: endKey,
         hasOnline: false,
         hasInPerson: false,
       };
-      if (start < curr.earliest) curr.earliest = start;
-      if (end > curr.latest) curr.latest = end;
+      if (String(startKey).localeCompare(String(curr.earliest)) < 0) curr.earliest = startKey;
+      if (String(endKey).localeCompare(String(curr.latest)) > 0) curr.latest = endKey;
       const modeVal = (r.mode || '').toLowerCase();
       if (modeVal === 'face_to_face' || modeVal === 'in_person') curr.hasInPerson = true;
       else if (modeVal === 'hybrid') { curr.hasOnline = true; curr.hasInPerson = true; }
@@ -81,8 +98,29 @@ router.get('/today', async (req, res) => {
 
     // Sort by earliest start and cap to 4 advisors
     const capped = Array.from(byAdvisor.values())
-      .sort((a, b) => (a.earliest?.getTime?.() || 0) - (b.earliest?.getTime?.() || 0))
+      .sort((a, b) => String(a.earliest).localeCompare(String(b.earliest)))
       .slice(0, 4);
+
+    // Fetch courses taught for these advisors
+    let coursesByAdvisor = new Map();
+    try {
+      const ids = capped.map(a => a.id);
+      if (ids.length > 0) {
+        const placeholders = ids.map(() => '?').join(',');
+        const [cRows] = await pool.query(
+          `SELECT advisor_user_id, subject_code, subject_name, course_name
+           FROM advisor_courses
+           WHERE advisor_user_id IN (${placeholders})`, ids
+        );
+        for (const r of cRows) {
+          const list = coursesByAdvisor.get(r.advisor_user_id) || [];
+          list.push({ subject_code: r.subject_code, name: r.subject_name || r.course_name });
+          coursesByAdvisor.set(r.advisor_user_id, list);
+        }
+      }
+    } catch (e) {
+      coursesByAdvisor = new Map();
+    }
 
     const result = capped.map(a => {
       const modeStr = a.hasOnline && a.hasInPerson
@@ -93,8 +131,10 @@ router.get('/today', async (req, res) => {
         name: a.name,
         title: a.title,
         department: a.department,
+        avatar: a.avatar,
+        coursesTaught: coursesByAdvisor.get(a.id) || [],
         schedule: dow.charAt(0).toUpperCase() + dow.slice(1),
-        time: `${formatTimeFromDate(a.earliest)} – ${formatTimeFromDate(a.latest)}`,
+        time: `${formatTimeStr(a.earliest)} – ${formatTimeStr(a.latest)}`,
         mode: modeStr,
       };
     });
@@ -125,58 +165,46 @@ router.get('/calendar', async (req, res) => {
     try {
       await pool.query(
         `DELETE FROM advisor_slots
-         WHERE end_datetime <= NOW()`
+         WHERE end_datetime <= UTC_TIMESTAMP()`
       );
     } catch (cleanupErr) {
       console.error('Availability calendar cleanup error', cleanupErr);
       // Non-fatal: continue building calendar
     }
 
-const moment = require('moment-timezone');
 
 // Load advisor slots for the month, only active advisors and available slots, excluding past days
+    const monthStartPHUtc = moment.tz({ year, month: monthIdx, day: 1 }, 'Asia/Manila').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
+    const monthEndNextPHUtc = moment.tz({ year, month: monthIdx, day: lastDay }, 'Asia/Manila').add(1, 'day').startOf('day').utc().format('YYYY-MM-DD HH:mm:ss');
     const [rows] = await pool.query(
       `SELECT s.advisor_user_id AS id, u.full_name, s.start_datetime, s.end_datetime, s.mode, s.status
        FROM advisor_slots s
        JOIN users u ON u.id = s.advisor_user_id
        WHERE u.role = 'advisor' AND u.status = 'active'
          AND s.status = 'available'
-         AND DATE(s.start_datetime) BETWEEN ? AND ?
-         AND DATE(s.start_datetime) >= CURDATE()
+         AND s.start_datetime >= ? AND s.start_datetime < ?
        ORDER BY s.advisor_user_id ASC, s.start_datetime ASC`,
-      [monthStartKey, monthEndKey]
+      [monthStartPHUtc, monthEndNextPHUtc]
     );
 
     // Group by date and advisor; compute earliest/latest slot per day and combined mode
     const byDateAdvisor = new Map();
     for (const r of rows) {
-      // Interpret the naive DATETIME from the database as Asia/Manila time
-      const start = moment.tz(r.start_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
-      const end = moment.tz(r.end_datetime, 'YYYY-MM-DD HH:mm:ss', 'Asia/Manila').toDate();
-      // Build date key using Asia/Manila to keep grouping consistent with PH timezone
-      const parts = new Intl.DateTimeFormat('en-PH', {
-        timeZone: 'Asia/Manila',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).formatToParts(start);
-      const y = parts.find((p) => p.type === 'year')?.value || String(start.getFullYear());
-      const m = parts.find((p) => p.type === 'month')?.value || String(start.getMonth() + 1).padStart(2, '0');
-      const d = parts.find((p) => p.type === 'day')?.value || String(start.getDate()).padStart(2, '0');
-      const dateKey = `${y}-${m}-${d}`;
+      // Derive date key in Asia/Manila based on stored UTC datetime
+      const dateKey = moment.tz(r.start_datetime, 'UTC').tz('Asia/Manila').format('YYYY-MM-DD');
       const mapKey = `${dateKey}:${r.id}`;
       const curr = byDateAdvisor.get(mapKey) || {
         dateKey,
         id: r.id,
         name: r.full_name,
-        earliest: start,
-        latest: end,
+        earliest: r.start_datetime,
+        latest: r.end_datetime,
         hasOnline: false,
         hasInPerson: false,
       };
-      // Update earliest/latest
-      if (start < curr.earliest) curr.earliest = start;
-      if (end > curr.latest) curr.latest = end;
+      // Update earliest/latest using naive string compare
+      if (String(r.start_datetime).localeCompare(String(curr.earliest)) < 0) curr.earliest = r.start_datetime;
+      if (String(r.end_datetime).localeCompare(String(curr.latest)) > 0) curr.latest = r.end_datetime;
       // Normalize mode flags
       const modeVal = (r.mode || '').toLowerCase();
       if (modeVal === 'face_to_face' || modeVal === 'in_person') curr.hasInPerson = true;
@@ -189,7 +217,7 @@ const moment = require('moment-timezone');
     const result = {};
     for (const entry of byDateAdvisor.values()) {
       const mode = entry.hasOnline ? 'Online' : 'In-person';
-      const slotsLabel = `${formatTimeFromDate(entry.earliest)} – ${formatTimeFromDate(entry.latest)}`;
+      const slotsLabel = `${formatTimeStr(entry.earliest)} – ${formatTimeStr(entry.latest)}`;
       if (!result[entry.dateKey]) result[entry.dateKey] = [];
       result[entry.dateKey].push({
         id: entry.id,

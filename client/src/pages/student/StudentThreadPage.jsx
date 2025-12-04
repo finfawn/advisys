@@ -1,6 +1,5 @@
 import React, { useEffect, useMemo, useState, useCallback } from "react";
 import jsPDF from "jspdf";
-import logoLarge from "../../../public/logo-large.png";
 import { useParams, Link } from "react-router-dom";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
@@ -115,11 +114,10 @@ export default function StudentThreadPage() {
     const maxWidth = pageWidth - margin * 2;
     let y = margin;
 
-    // Add AdviSys logo
-    const imgWidth = 100;
-    const imgHeight = 20;
-    doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
-    y += imgHeight + 10; // Adjust y position after logo
+    doc.setFontSize(14);
+    doc.setFont(undefined, 'bold');
+    doc.text('AdviSys', pageWidth - margin, y, { align: 'right' });
+    y += lineHeight;
 
     const title = 'Consultation Thread';
     doc.setFontSize(16);
@@ -139,8 +137,14 @@ export default function StudentThreadPage() {
       doc.text(`Term: ${selectedTerm.year_label} ${selectedTerm.semester_label} Semester`, margin, y);
       y += lineHeight;
     } else if (termId === 'current') {
-      doc.text('Term: Current Term', margin, y);
-      y += lineHeight;
+      const current = terms.find(t => Number(t.is_current) === 1);
+      if (current) {
+        doc.text(`Term: ${current.year_label} ${current.semester_label} Semester`, margin, y);
+        y += lineHeight;
+      } else {
+        doc.text('Term: Current Term', margin, y);
+        y += lineHeight;
+      }
     } else if (termId === 'all') {
       doc.text('Term: All Terms', margin, y);
       y += lineHeight;
@@ -152,8 +156,10 @@ export default function StudentThreadPage() {
       if (y > doc.internal.pageSize.height - margin * 2) {
         doc.addPage();
         y = margin;
-        doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
-        y += imgHeight + 10;
+        doc.setFontSize(14);
+        doc.setFont(undefined, 'bold');
+        doc.text('AdviSys', pageWidth - margin, y, { align: 'right' });
+        y += lineHeight;
       }
 
       doc.setFontSize(12);

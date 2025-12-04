@@ -1,7 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout, PaginatedGridLayout, CallControls } from '@stream-io/video-react-sdk';
+import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout, PaginatedGridLayout, useCallStateHooks, ToggleAudioPublishingButton, ToggleVideoPublishingButton, ScreenShareButton } from '@stream-io/video-react-sdk';
 import { StreamChat } from 'stream-chat';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
+import { BsTelephoneX, BsChatDots, BsClock } from 'react-icons/bs';
 
 import './StreamMeetCall.css';
 
@@ -57,6 +58,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [cancelNotes, setCancelNotes] = useState('');
   const endedForAllRef = useRef(false);
   const [showCancelForm, setShowCancelForm] = useState(false);
+  const [minuteWarnOpen, setMinuteWarnOpen] = useState(false);
+  const minuteWarnShownRef = useRef(false);
 
   // Generate a stable call ID based on consultation ID
   const callId = `advisys-${consultationData?.id || roomName}`;
@@ -182,18 +185,42 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API_BASE_URL, callId, callType, displayName, consultationData?.id]);
 
+  const { useParticipants } = useCallStateHooks ? useCallStateHooks() : { useParticipants: null };
+  const participants = useParticipants ? useParticipants() : [];
+
   useEffect(() => {
+    const status = String(consultationData?.status || '').toLowerCase();
     const end = scheduledEnd();
-    if (!inMeeting || !end) return;
-    const delay = end.getTime() - Date.now();
-    if (delay <= 0) return;
-    const timer = setTimeout(async () => {
-      try { if (isAdvisor) { endedForAllRef.current = true; await call?.endCall?.(); } } catch (_) {}
-      try { await call?.leave?.(); } catch (_) {}
-      handleLeave();
-    }, delay);
-    return () => clearTimeout(timer);
-  }, [inMeeting, joinedAt, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, call, isAdvisor]);
+    if (!inMeeting || !end || status === 'completed' || status === 'cancelled' || status === 'canceled' || status === 'missed') { setCountdownText(''); return; }
+    const tick = () => {
+      const diff = end.getTime() - Date.now();
+      if (diff <= 0) {
+        if (!endActionGuardRef.current) {
+          endActionGuardRef.current = true;
+          (async () => {
+            try { if (isAdvisor) { await call?.endCall?.(); } } catch (_) {}
+            try { await call?.leave?.(); } catch (_) {}
+            endedForAllRef.current = true;
+            handleLeave();
+            setTimeout(()=>{ endActionGuardRef.current = false; }, 1200);
+          })();
+        }
+        setCountdownText('Ended');
+      } else {
+        const mins = Math.floor(diff / 60000);
+        const secs = Math.floor((diff % 60000) / 1000);
+        setCountdownText(`${mins}:${String(secs).padStart(2, '0')}`);
+        if (diff <= 60000 && diff > 0 && !minuteWarnShownRef.current) {
+          minuteWarnShownRef.current = true;
+          setMinuteWarnOpen(true);
+          setTimeout(()=> setMinuteWarnOpen(false), 15000);
+        }
+      }
+    };
+    tick();
+    const t = setInterval(tick, 1000);
+    return () => clearInterval(t);
+  }, [inMeeting, joinedAt, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, isAdvisor, call, participants?.length, consultationData?.status]);
 
   useEffect(() => {
     if (!inMeeting || rejoinSeed === 0) return;
@@ -203,11 +230,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     })();
   }, [rejoinSeed, inMeeting, call]);
 
-  useEffect(() => {
-    if (!inMeeting) return;
-    const t = setInterval(() => setCountdownText((s) => s), 1000);
-    return () => clearInterval(t);
-  }, [inMeeting]);
+  // countdown is handled in the main timer effect above
 
   // Auto-scroll chat to newest message when opened or updated
   useEffect(() => {
@@ -233,25 +256,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consultationData?.id]);
 
-  useEffect(() => {
-    const t = setInterval(() => {
-      const end = scheduledEnd();
-      const now = new Date();
-      if (end) {
-        const diff = end.getTime() - now.getTime();
-        if (diff > 0) {
-          const mins = Math.ceil(diff / 60000);
-          setCountdownText(`Ends in ${mins} min${mins !== 1 ? 's' : ''}`);
-        } else {
-          setCountdownText('Ended');
-        }
-      } else {
-        setCountdownText('');
-      }
-    }, 15000);
-    return () => clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [joinedAt, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes]);
+  
 
   async function startCombinedAudioCapture() {
     try {
@@ -498,26 +503,21 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           <StreamVideo client={client}>
             <StreamCall call={call}>
               <StreamTheme>
-                <div className="smc-topbar">
-                  <div className="smc-topbar-left">
-                    <div className="smc-title">Stream Video Calling</div>
-                  </div>
-                  <div className="smc-topbar-right">
-                    <div className="smc-pill">{joinedAt ? `${Math.max(0, Math.floor((Date.now()-joinedAt.getTime())/1000))}s` : '—'}</div>
-                    {countdownText && <div className="smc-pill smc-pill-secondary">{countdownText}</div>}
-                  </div>
-                </div>
                 {isGridLayout ? (
                   <PaginatedGridLayout />
                 ) : (
                   <SpeakerLayout participantsBarPosition="bottom" />
                 )}
-                <CallControls />
-                <div className="smc-footer-actions">
-                  <button className="str-video__call-controls__button" onClick={handleHangup}>Leave</button>
-                  {isAdvisor && (
-                    <button className="str-video__call-controls__button" onClick={()=> setEndOptionsOpen(true)}>End for all</button>
-                  )}
+                <div className="smc-controls">
+                  <ToggleAudioPublishingButton />
+                  <ToggleVideoPublishingButton />
+                  <ScreenShareButton />
+                  <button className="smc-chat-toggle" onClick={()=> setChatOpen(o=>!o)} title="Chat">
+                    <BsChatDots />
+                  </button>
+                  <button className="smc-end-btn" onClick={()=> setEndOptionsOpen(true)} title="End call">
+                    <BsTelephoneX />
+                  </button>
                 </div>
               </StreamTheme>
             </StreamCall>
@@ -529,7 +529,12 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
       {/* Countdown overlay */}
       {inMeeting && countdownText && (
-        <div className="smc-countdown">{countdownText}</div>
+        <div className="smc-countdown"><BsClock style={{marginRight:6}}/> {countdownText}</div>
+      )}
+
+      {/* One-minute warning */}
+      {inMeeting && minuteWarnOpen && (
+        <div className="smc-minute-warn" role="alert">Only 1 minute left</div>
       )}
 
       {/* Breathing red dot while recording */}
@@ -566,25 +571,24 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
             <h3 style={{margin:'0 0 8px 0', fontSize:18}}>Choose how to exit</h3>
             <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>Leave the call locally or end it for everyone.</p>
             <div className="smc-modal-actions">
-              <button onClick={async ()=>{
+              <button onClick={()=>{
                 if (endActionGuardRef.current) return; endActionGuardRef.current = true;
-                console.log('[END_FLOW] leave-call');
                 setEndOptionsOpen(false);
-                try { await call?.leave?.(); } catch (_) {}
-                handleLeave();
-                setTimeout(()=>{ endActionGuardRef.current = false; }, 800);
+                try { handleHangup(); } finally {
+                  setTimeout(()=>{ endActionGuardRef.current = false; }, 800);
+                }
               }} style={{padding:'8px 12px', borderRadius:8, background:'#6b7280', color:'#fff', border:'1px solid #9ca3af'}}>Leave call</button>
-              <button onClick={async ()=>{
-                if (endActionGuardRef.current) return; endActionGuardRef.current = true;
-                console.log('[END_FLOW] end-for-all');
-                setEndOptionsOpen(false);
-                // End the call for everyone using Stream's global termination
-                try { await call?.endCall?.(); } catch (_) {}
-                // advisor decides status in the next modal; do not auto-patch here
-                try { await call?.leave?.(); } catch (_) {}
-                handleLeave();
-                setTimeout(()=>{ endActionGuardRef.current = false; }, 1200);
-              }} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>End for all</button>
+              {isAdvisor && (
+                <button onClick={async ()=>{
+                  if (endActionGuardRef.current) return; endActionGuardRef.current = true;
+                  console.log('[END_FLOW] end-for-all');
+                  setEndOptionsOpen(false);
+                  try { await call?.endCall?.(); } catch (_) {}
+                  try { await call?.leave?.(); } catch (_) {}
+                  handleLeave();
+                  setTimeout(()=>{ endActionGuardRef.current = false; }, 1200);
+                }} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>End for all</button>
+              )}
               <button onClick={()=> setEndOptionsOpen(false)} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Cancel</button>
             </div>
           </div>
@@ -652,6 +656,46 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
             )}
           </div>
         </div>
+      )}
+
+      {/* Chat panel */}
+      {chatOpen && (
+        <>
+          <div className="smc-chat-backdrop" onClick={()=> setChatOpen(false)} />
+          <div className="smc-chat-panel" role="dialog" aria-label="Chat">
+            <div className="smc-chat-header">
+              <div style={{display:'flex', alignItems:'center', gap:8}}>
+                <BsChatDots />
+                <span>Chat</span>
+              </div>
+              <button className="smc-btn" onClick={()=> setChatOpen(false)}>Close</button>
+            </div>
+            <div className="smc-chat-list" ref={chatListRef}>
+              {(chatMessages || []).map((m)=>{
+                const me = String(m?.user?.id || '') === String(selfId);
+                return (
+                  <div key={m.id || Math.random()} className={`smc-chat-item ${me ? 'me' : 'other'}`}>
+                    <div className="meta">{m?.user?.name || m?.user?.id || 'User'} • {new Date(m?.created_at || Date.now()).toLocaleTimeString()}</div>
+                    <div className="text">{m?.text || ''}</div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="smc-chat-input">
+              <input value={chatInput} onChange={(e)=> setChatInput(e.target.value)} placeholder="Type a message" />
+              <button disabled={sendingChat} onClick={async ()=>{
+                try {
+                  if (!chatChannel || !chatInput.trim()) return;
+                  setSendingChat(true);
+                  await chatChannel.sendMessage({ text: chatInput.trim() });
+                  setChatInput('');
+                } finally {
+                  setSendingChat(false);
+                }
+              }}>Send</button>
+            </div>
+          </div>
+        </>
       )}
 
       {/* Student early leave prompt */}

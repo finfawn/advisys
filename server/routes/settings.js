@@ -126,24 +126,20 @@ router.get('/users/:userId/notifications', async (req, res) => {
     const userId = Number(req.params.userId);
     await ensureNotificationsMutedColumn(pool);
     const [[row]] = await pool.query(
-      `SELECT user_id, email_notifications, consultation_reminders, new_request_notifications, notifications_muted
+      `SELECT user_id, email_notifications, notifications_muted
        FROM notification_settings WHERE user_id = ?`,
       [userId]
     );
     if (!row) {
       return res.json({
         userId,
-        emailNotifications: true,
-        consultationReminders: true,
-        newRequestNotifications: true,
+        emailNotifications: false,
         notificationsMuted: false,
       });
     }
     return res.json({
       userId: row.user_id,
       emailNotifications: !!row.email_notifications,
-      consultationReminders: !!row.consultation_reminders,
-      newRequestNotifications: !!row.new_request_notifications,
       notificationsMuted: !!row.notifications_muted,
     });
   } catch (err) {
@@ -158,20 +154,20 @@ router.patch('/users/:userId/notifications', async (req, res) => {
   try {
     const userId = Number(req.params.userId);
     await ensureNotificationsMutedColumn(pool);
-    const { emailNotifications, consultationReminders, newRequestNotifications, notificationsMuted } = req.body || {};
+    const { emailNotifications, notificationsMuted } = req.body || {};
     const [[exists]] = await pool.query('SELECT user_id FROM notification_settings WHERE user_id = ?', [userId]);
     if (exists) {
       await pool.query(
         `UPDATE notification_settings
-         SET email_notifications = ?, consultation_reminders = ?, new_request_notifications = ?, notifications_muted = ?
+         SET email_notifications = ?, notifications_muted = ?
          WHERE user_id = ?`,
-        [emailNotifications ? 1 : 0, consultationReminders ? 1 : 0, newRequestNotifications ? 1 : 0, notificationsMuted ? 1 : 0, userId]
+        [emailNotifications ? 1 : 0, notificationsMuted ? 1 : 0, userId]
       );
     } else {
       await pool.query(
-        `INSERT INTO notification_settings (user_id, email_notifications, consultation_reminders, new_request_notifications, notifications_muted)
-         VALUES (?,?,?,?,?)`,
-        [userId, emailNotifications ? 1 : 0, consultationReminders ? 1 : 0, newRequestNotifications ? 1 : 0, notificationsMuted ? 1 : 0]
+        `INSERT INTO notification_settings (user_id, email_notifications, notifications_muted)
+         VALUES (?,?,?)`,
+        [userId, emailNotifications ? 1 : 0, notificationsMuted ? 1 : 0]
       );
     }
     res.json({ success: true });

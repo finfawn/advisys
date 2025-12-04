@@ -15,8 +15,7 @@ test('getNotificationSettings returns safe defaults without DB', async () => {
   const s = await svc.getNotificationSettings(1);
   expect(s).toMatchObject({
     email_notifications: false,
-    consultation_reminders: true,
-    new_request_notifications: true,
+    notifications_muted: false,
   });
 });
 

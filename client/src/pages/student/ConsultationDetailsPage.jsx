@@ -89,24 +89,34 @@ export default function ConsultationDetailsPage() {
     const facultyId = c?.advisor?.id ?? c?.faculty?.id ?? c?.advisor_user_id ?? null;
     const faculty = { id: facultyId, name, title, department, avatar: resolveAssetUrl(avatarRaw) };
 
-    // Derive readable date/time if server provided datetimes
+    // Derive readable date/time by treating DB strings as UTC and converting to viewer local
     const startRaw = c?.start_datetime || c?.start || null;
     const endRaw = c?.end_datetime || c?.end || null;
     let date = c?.date || null;
     let time = c?.time || null;
+    const toLocalDate = (s) => {
+      const trimmed = String(s || '').trim();
+      if (!trimmed) return null;
+      const cleaned = trimmed.replace(' ', 'T');
+      const d = new Date(`${cleaned}Z`);
+      return isNaN(d.getTime()) ? null : d;
+    };
     try {
       if (!date && startRaw) {
-        const d = new Date(startRaw);
-        if (!isNaN(d.getTime())) {
-          date = d.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const d = toLocalDate(startRaw);
+        if (d) {
+          const yyyy = d.getFullYear();
+          const mm = String(d.getMonth() + 1).padStart(2, '0');
+          const dd = String(d.getDate()).padStart(2, '0');
+          date = `${yyyy}-${mm}-${dd}`;
         }
       }
       if (!time && startRaw && endRaw) {
-        const s = new Date(startRaw);
-        const e = new Date(endRaw);
-        if (!isNaN(s.getTime()) && !isNaN(e.getTime())) {
-          const fmt = (d) => d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
-          time = `${fmt(s)} - ${fmt(e)}`;
+        const s = toLocalDate(startRaw);
+        const e = toLocalDate(endRaw);
+        if (s && e) {
+          const fmt = (d) => d.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true });
+          time = `${fmt(s)} – ${fmt(e)}`;
         }
       }
     } catch (_) {}

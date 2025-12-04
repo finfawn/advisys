@@ -18,18 +18,21 @@ export default function AdvisorAvailability() {
   const leftRef = useRef(null);
   const [inspectorHeight, setInspectorHeight] = useState(null);
   const [openCreateSignal, setOpenCreateSignal] = useState(0);
+  const [refreshSignal, setRefreshSignal] = useState(0);
   const [view, setView] = useState("month");
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [editEvent, setEditEvent] = useState(null);
   const [deleteOpen, setDeleteOpen] = useState(false);
-  const [pendingDeleteEvent, setPendingDeleteEvent] = useState(null);
+  const [pendingDeleteEvents, setPendingDeleteEvents] = useState([]);
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   // Undo toast state (like student pages)
-  const [undoToast, setUndoToast] = useState({ open: false, items: [], timeoutId: null, message: '' });
+  const [undoToast, setUndoToast] = useState({ open: false, items: [], timeoutId: null, message: '', onFinalize: null });
 
-  // Helper: serialize Date to local ISO without timezone (YYYY-MM-DDTHH:mm:ss)
-  const pad2 = (n) => String(n).padStart(2, '0');
-  const toLocalIso = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}`;
+  // Helper: serialize Date to UTC ISO (YYYY-MM-DDTHH:mm:ssZ) for storage
+  const toUtcIso = (d) => {
+    const iso = new Date(d).toISOString();
+    return iso.replace(/\.\d{3}Z$/, 'Z');
+  };
   // Format helpers: always render times in Asia/Manila to match advisor intent
   const formatTimePH = (date) => new Intl.DateTimeFormat('en-PH', {
     timeZone: 'Asia/Manila',
@@ -46,6 +49,18 @@ export default function AdvisorAvailability() {
     const hourStr = parts.find((p) => p.type === 'hour')?.value || '0';
     return Number(hourStr);
   };
+  const parseServerDatetime = (val) => {
+    if (!val) return null;
+    const s = String(val);
+    if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const base = s.includes('T') ? s : s.replace(' ', 'T');
+    const withSec = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(base) ? `${base}:00` : base;
+    const d = new Date(`${withSec}Z`);
+    return isNaN(d.getTime()) ? null : d;
+  };
 
   const formatManilaDateYYYYMMDD = (date) => {
     const parts = new Intl.DateTimeFormat('en-CA', {
@@ -58,67 +73,78 @@ export default function AdvisorAvailability() {
     return `${get('year')}-${get('month')}-${get('day')}`;
   };
 
-  const showUndoToast = (items, message) => {
-    // Clear previous timer if any
+  const formatManilaMySQL = (date) => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    }).formatToParts(new Date(date));
+    const get = (t) => parts.find((p) => p.type === t)?.value || '';
+    return `${get('year')}-${get('month')}-${get('day')} ${get('hour')}:${get('minute')}:${get('second')}`;
+  };
+
+  const showUndoToast = (items, message, onFinalize, action = 'delete') => {
     if (undoToast.timeoutId) {
       clearTimeout(undoToast.timeoutId);
     }
     const tid = setTimeout(() => {
-      setUndoToast((s) => ({ ...s, open: false, items: [], timeoutId: null, message: '' }));
+      try { typeof onFinalize === 'function' && onFinalize(); } catch (_) {}
+      setUndoToast((s) => ({ ...s, open: false, items: [], timeoutId: null, message: '', onFinalize: null, action: null }));
     }, 5000);
-    setUndoToast({ open: true, items, timeoutId: tid, message });
+    setUndoToast({ open: true, items, timeoutId: tid, message, onFinalize: typeof onFinalize === 'function' ? onFinalize : null, action });
   };
 
   const handleUndoDelete = () => {
     if (undoToast.timeoutId) clearTimeout(undoToast.timeoutId);
     if (undoToast.items && undoToast.items.length) {
-      // Re-create deleted slots in backend and update local state with new ids
-      (async () => {
-        try {
-          const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-          const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
-          const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
-          const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-          const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots`, {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
-            },
-            body: JSON.stringify({
-              slots: undoToast.items.map((p) => ({
-                start: toLocalIso(p.start),
-                end: toLocalIso(p.end),
-                mode: p.mode,
-                room: p.room || null,
-              }))
-            }),
-          });
-          if (resp.ok) {
-            const created = await resp.json();
-            setEvents((prev) => ([
-              ...prev,
-              ...created.map((s) => ({
-                id: s.id,
-                title: 'Available',
-                start: new Date(String(s.start_datetime).replace(' ', 'T')),
-                end: new Date(String(s.end_datetime).replace(' ', 'T')),
-                type: 'available',
-                mode: s.mode,
-                room: s.room || "",
-              }))
-            ]));
-          } else {
-            // Fallback: restore only locally
+      if (undoToast.action === 'recreate') {
+        (async () => {
+          try {
+            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+            const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+            const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+            const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+            const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+              },
+              body: JSON.stringify({
+                slots: undoToast.items.map((p) => ({
+                  start: toUtcIso(p.start),
+                  end: toUtcIso(p.end),
+                  mode: p.mode,
+                  room: p.room || null,
+                }))
+              }),
+            });
+            if (resp.ok) {
+              const created = await resp.json();
+              setEvents((prev) => ([
+                ...prev,
+                ...created.map((s) => ({
+                  id: s.id,
+                  title: 'Available',
+                  start: parseServerDatetime(s.start_datetime),
+                  end: parseServerDatetime(s.end_datetime),
+                  type: 'available',
+                  mode: s.mode,
+                  room: s.room || "",
+                }))
+              ]));
+            } else {
+              setEvents((prev) => [...prev, ...undoToast.items]);
+            }
+          } catch (err) {
+            console.error('Undo delete (fallback local)', err);
             setEvents((prev) => [...prev, ...undoToast.items]);
           }
-        } catch (err) {
-          console.error('Undo delete (fallback local)', err);
-          setEvents((prev) => [...prev, ...undoToast.items]);
-        }
-      })();
+        })();
+      } else {
+        setEvents((prev) => [...prev, ...undoToast.items]);
+      }
     }
-    setUndoToast({ open: false, items: [], timeoutId: null, message: '' });
+    setUndoToast({ open: false, items: [], timeoutId: null, message: '', onFinalize: null, action: null });
   };
   // Start with no events; dots appear only for real created slots
   const [events, setEvents] = useState([]);
@@ -188,40 +214,104 @@ export default function AdvisorAvailability() {
     if (!a || !b) return false;
     return a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   };
+  const handleDeleteAllSlotsImmediate = async () => {
+    if (!selectedDate) return;
+    const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+    const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    const formattedDate = formatManilaDateYYYYMMDD(selectedDate);
+    const toDelete = events.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
+    setEvents((prev) => prev.filter((ev) => !(ev.type === 'available' && isSameDay(ev.start, selectedDate))));
+    setDeleteAllOpen(false);
+    showUndoToast(toDelete, `All slots for ${formattedDate} deleted.`, async () => {
+      try {
+        await Promise.all(
+          toDelete.map((ev) => (
+            fetch(`${baseUrl}/api/advisors/${advisorId}/slots/${ev.id}`, {
+              method: 'DELETE',
+              headers: {
+                ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+              },
+            }).catch((e) => console.error('Finalize delete slot failed', e))
+          ))
+        );
+        setRefreshSignal((s) => s + 1);
+      } catch (err) {
+        console.error('Bulk finalize delete error', err);
+      }
+    }, 'delete');
+  };
 
   const slotsForSelected = useMemo(() => {
+    const isTaken = (ev) => {
+      const s = ev || {};
+      return !!(s.is_taken || s.taken || s.booked || s.consultation_id || s.consultationId);
+    };
     const base = events.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
-    // If selected date is today, hide slots whose end time has already passed
-    const today = new Date();
-    const isSelectedToday = selectedDate &&
-      selectedDate.getFullYear() === today.getFullYear() &&
-      selectedDate.getMonth() === today.getMonth() &&
-      selectedDate.getDate() === today.getDate();
-    if (!isSelectedToday) return base;
     return base.filter((ev) => {
       try {
         const end = new Date(ev.end);
-        return end.getTime() > Date.now();
+        const isPast = end.getTime() <= Date.now();
+        return !isPast && !isTaken(ev);
       } catch (_) {
-        return true;
+        return !isTaken(ev);
       }
     });
   }, [events, selectedDate]);
 
   // Group slots into morning/afternoon/evening buckets
   const groupedSlots = useMemo(() => {
-    const groups = { morning: [], afternoon: [], evening: [] };
+    const byBucket = { morning: [], afternoon: [], evening: [] };
     for (const slot of slotsForSelected) {
       const hour = getPHHour24(slot.start);
-      if (hour < 12) {
-        groups.morning.push(slot);
-      } else if (hour < 16) {
-        groups.afternoon.push(slot);
-      } else {
-        groups.evening.push(slot);
-      }
+      const bucket = hour < 12 ? 'morning' : (hour < 16 ? 'afternoon' : 'evening');
+      byBucket[bucket].push(slot);
     }
-    return groups;
+    function mergeByTime(arr) {
+      const keyOf = (s) => {
+        try {
+          const a = new Date(s.start).getTime();
+          const b = new Date(s.end).getTime();
+          return `${a}-${b}`;
+        } catch (_) {
+          return `${String(s.start)}-${String(s.end)}`;
+        }
+      };
+      const map = new Map();
+      for (const s of arr) {
+        const k = keyOf(s);
+        const m = String(s.mode || '').toLowerCase();
+        const isOnline = m === 'online';
+        const isInPerson = m === 'face_to_face' || m === 'in_person' || m === 'in-person';
+        const existing = map.get(k);
+        if (!existing) {
+          map.set(k, {
+            id: s.id,
+            start: s.start,
+            end: s.end,
+            type: s.type,
+            combined: true,
+            hasOnline: isOnline,
+            hasInPerson: isInPerson,
+            onlineSlot: isOnline ? s : null,
+            inPersonSlot: isInPerson ? s : null,
+            room: isInPerson ? (s.room || '') : '',
+          });
+        } else {
+          existing.hasOnline = existing.hasOnline || isOnline;
+          existing.hasInPerson = existing.hasInPerson || isInPerson;
+          if (isOnline) existing.onlineSlot = s;
+          if (isInPerson) { existing.inPersonSlot = s; if (s.room) existing.room = s.room; }
+        }
+      }
+      return Array.from(map.values());
+    }
+    return {
+      morning: mergeByTime(byBucket.morning),
+      afternoon: mergeByTime(byBucket.afternoon),
+      evening: mergeByTime(byBucket.evening),
+    };
   }, [slotsForSelected]);
 
   const counts = {
@@ -241,38 +331,30 @@ export default function AdvisorAvailability() {
 
   const handleDeleteAllSlots = async () => {
     if (!selectedDate) return;
-
-    const formattedDate = formatManilaDateYYYYMMDD(selectedDate);
     const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
     const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-
-    if (!advisorId) {
-      console.error('Advisor ID not found.');
-      return;
-    }
-
-    try {
-      const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots?date=${formattedDate}`, {
-        method: 'DELETE',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
-        },
-      });
-
-      if (resp.ok) {
-        // Remove deleted slots from local state
-        setEvents((prev) => prev.filter((ev) => !isSameDay(ev.start, selectedDate)));
-        setDeleteAllOpen(false);
-        showUndoToast([], `All slots for ${formattedDate} deleted.`);
-      } else {
-        console.error('Failed to delete all slots.', await resp.json());
+    const formattedDate = formatManilaDateYYYYMMDD(selectedDate);
+    const toDelete = events.filter((ev) => ev.type === 'available' && isSameDay(ev.start, selectedDate));
+    setEvents((prev) => prev.filter((ev) => !(ev.type === 'available' && isSameDay(ev.start, selectedDate))));
+    setDeleteAllOpen(false);
+    showUndoToast(toDelete, `All slots for ${formattedDate} deleted.`, async () => {
+      try {
+        await Promise.all(
+          toDelete.map((ev) => (
+            fetch(`${baseUrl}/api/advisors/${advisorId}/slots/${ev.id}`, {
+              method: 'DELETE',
+              headers: {
+                ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+              },
+            }).catch((e) => console.error('Finalize delete slot failed', e))
+          ))
+        );
+      } catch (err) {
+        console.error('Bulk finalize delete error', err);
       }
-    } catch (err) {
-      console.error('Error deleting all slots:', err);
-    }
+    }, 'delete');
   };
 
   const handleNavigation = (page) => {
@@ -396,6 +478,7 @@ export default function AdvisorAvailability() {
                 onViewChange={(v) => setView(v)}
                 editEvent={editEvent}
                 onRequestModalClose={() => setEditEvent(null)}
+                refreshSignal={refreshSignal}
               />
             </div>
 
@@ -488,22 +571,39 @@ export default function AdvisorAvailability() {
                               </div>
                             ) : (
                               (activeSection === 'morning' ? groupedSlots.morning : activeSection === 'afternoon' ? groupedSlots.afternoon : groupedSlots.evening).map((slot) => (
-                                <div key={slot.id} className="slot-card">
+                                <div key={`${slot.id}-${new Date(slot.start).getTime()}`} className="slot-card">
                                   <div className="slot-info">
                                     <div className="slot-time">{formatTimePH(slot.start)} – {formatTimePH(slot.end)}</div>
-                                    <div className="slot-mode">Mode: {slot.mode === 'face_to_face' ? 'In-person' : (slot.mode === 'hybrid' ? 'Both' : 'Online')}</div>
+                                    <div className="slot-mode">Mode: {`${slot.hasOnline ? 'Online' : ''}${slot.hasOnline && slot.hasInPerson ? '/' : ''}${slot.hasInPerson ? 'In-person' : ''}`}</div>
                                     {(() => {
-                                      const m = String(slot.mode || '').toLowerCase();
                                       const r = String(slot.room || '').trim();
-                                      const isInPerson = m === 'face_to_face' || m === 'in_person' || m === 'hybrid';
-                                      return isInPerson && r ? (
+                                      return slot.hasInPerson && r ? (
                                         <div className="slot-room">Room: {r}</div>
                                       ) : null;
                                     })()}
                                   </div>
-                                  <div className="slot-actions">
-                                    <Button variant="outline" size="sm" onClick={() => setEditEvent(slot)}>Edit</Button>
-                                    <Button variant="destructive" size="sm" onClick={() => { setPendingDeleteEvent(slot); setDeleteOpen(true); }}>Delete</Button>
+                                  <div className="slot-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={() => setEditEvent(slot.onlineSlot || slot.inPersonSlot)}
+                                    >
+                                      Edit
+                                    </Button>
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                                      onClick={() => {
+                                        const delList = [slot.onlineSlot, slot.inPersonSlot].filter(Boolean);
+                                        if (delList.length) {
+                                          setPendingDeleteEvents(delList);
+                                          setDeleteOpen(true);
+                                        }
+                                      }}
+                                    >
+                                      Delete
+                                    </Button>
                                   </div>
                                 </div>
                               ))
@@ -522,15 +622,15 @@ export default function AdvisorAvailability() {
           <AlertDialog open={deleteOpen} onOpenChange={setDeleteOpen}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle className="leading-none text-center">Delete Slot</AlertDialogTitle>
+                <AlertDialogTitle className="leading-none text-center">Delete</AlertDialogTitle>
                 <AlertDialogDescription className="text-center">
-                  {pendingDeleteEvent ? `Delete the slot from ${formatTimePH(pendingDeleteEvent.start)} to ${formatTimePH(pendingDeleteEvent.end)}?` : 'Delete this slot?'}
+                  {pendingDeleteEvents && pendingDeleteEvents.length ? `Delete ${pendingDeleteEvents.length > 1 ? 'these slots' : 'this slot'} from ${formatTimePH(pendingDeleteEvents[0].start)} to ${formatTimePH(pendingDeleteEvents[0].end)}?` : 'Delete?'}
                 </AlertDialogDescription>
               </AlertDialogHeader>
               <AlertDialogFooter className="sm:items-center sm:justify-between">
                 <AlertDialogCancel 
                   onClick={() => {
-                    setPendingDeleteEvent(null);
+                    setPendingDeleteEvents([]);
                     setDeleteOpen(false);
                   }}
                 >
@@ -538,28 +638,35 @@ export default function AdvisorAvailability() {
                 </AlertDialogCancel>
                 <AlertDialogAction 
                   className="w-full sm:w-auto"
-                  onClick={async () => {
-                    if (pendingDeleteEvent) {
-                      try {
-                        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-                        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
-                        const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
-                        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-                        const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots/${pendingDeleteEvent.id}`, {
-                          method: 'DELETE',
-                          headers: {
-                            ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
-                          }
-                        });
-                        if (!resp.ok) throw new Error('Failed to delete slot');
-                      } catch (err) {
-                        console.error('Delete slot error; proceeding to update UI', err);
-                      }
-                      const deleted = [pendingDeleteEvent];
-                      setEvents((prev) => prev.filter((ev) => ev.id !== pendingDeleteEvent.id));
-                      showUndoToast(deleted, `Slot deleted`);
+                  onClick={() => {
+                    if (pendingDeleteEvents && pendingDeleteEvents.length) {
+                      const deleted = [...pendingDeleteEvents];
+                      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                      const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+                      const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
+                      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+                      setEvents((prev) => prev.filter((ev) => !deleted.some(d => d.id === ev.id)));
+                      showUndoToast(deleted, `Slot${deleted.length > 1 ? 's' : ''} deleted`, async () => {
+                        try {
+                          await Promise.all(
+                            deleted.map(async (ev) => {
+                              const resp = await fetch(`${baseUrl}/api/advisors/${advisorId}/slots/${ev.id}`, {
+                                method: 'DELETE',
+                                headers: {
+                                  ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+                                }
+                              });
+                              if (!resp.ok) {
+                                console.error('Finalize delete failed for slot', ev.id);
+                              }
+                            })
+                          );
+                        } catch (err) {
+                          console.error('Finalize single delete error', err);
+                        }
+                      });
                     }
-                    setPendingDeleteEvent(null);
+                    setPendingDeleteEvents([]);
                     setDeleteOpen(false);
                   }}
                 >
@@ -582,7 +689,7 @@ export default function AdvisorAvailability() {
                 <AlertDialogCancel>Cancel</AlertDialogCancel>
                 <AlertDialogAction 
                   className="w-full sm:w-auto"
-                  onClick={handleDeleteAllSlots}
+                  onClick={handleDeleteAllSlotsImmediate}
                 >
                   Reset Day
                 </AlertDialogAction>

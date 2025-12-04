@@ -1,5 +1,5 @@
 import React from "react";
-import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle } from "react-icons/bs";
+import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsClock } from "react-icons/bs";
 import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
 import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
@@ -7,15 +7,16 @@ import "./ConsultationCard.css";
 
 function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule, onMarkMissed }) {
   const formatDate = (dateStringOrIso) => {
-    const source = consultation?.start_datetime || dateStringOrIso;
-    const date = new Date(source);
-    const fmt = new Intl.DateTimeFormat('en-PH', {
-      timeZone: 'Asia/Manila',
+    const src = String(consultation?.start_datetime || dateStringOrIso || '').trim();
+    if (!src) return '';
+    const cleaned = src.replace(' ', 'T');
+    const d = new Date(`${cleaned}Z`);
+    if (isNaN(d.getTime())) return '';
+    return new Intl.DateTimeFormat('en-PH', {
       weekday: 'short',
       month: 'short',
       day: 'numeric',
-    });
-    return fmt.format(date);
+    }).format(d);
   };
 
   const getStatusInfo = () => {

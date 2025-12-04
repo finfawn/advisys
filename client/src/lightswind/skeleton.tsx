@@ -87,35 +87,29 @@ function Skeleton({
 // Template Card Skeleton component for reuse
 function TemplateCardSkeleton() {
   return (
-    <div className="rounded-lg border   bg-card overflow-hidden shadow-sm">
+    <div className="advisor-card">
+      <div className="advisor-card-header">
+        <Skeleton className="h-6 w-1/2" shimmer />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-5 w-16 rounded-md" shimmer />
+          <Skeleton className="h-5 w-20 rounded-md" shimmer />
+        </div>
+      </div>
+
       <div className="space-y-3">
-        {/* Image placeholder */}
-        <Skeleton className="h-48 w-full rounded-t-lg rounded-b-none" shimmer />
-        
-        {/* Content area */}
-        <div className="p-4 space-y-3">
-          {/* Title */}
-          <Skeleton className="h-6 w-3/4" shimmer />
-          
-          {/* Description */}
-          <div className="space-y-2">
-            <Skeleton className="h-4 w-full" shimmer />
-            <Skeleton className="h-4 w-5/6" shimmer />
-          </div>
-          
-          {/* Tags */}
-          <div className="flex flex-wrap gap-2 pt-2">
-            <Skeleton className="h-5 w-16 rounded-full" shimmer />
-            <Skeleton className="h-5 w-20 rounded-full" shimmer />
-            <Skeleton className="h-5 w-14 rounded-full" shimmer />
-          </div>
-          
-          {/* Price and button */}
-          <div className="flex justify-between items-center pt-3">
-            <Skeleton className="h-6 w-20" shimmer />
-            <Skeleton className="h-9 w-28 rounded-md" shimmer />
+        <Skeleton className="h-5 w-3/4" shimmer />
+        <div className="flex items-center gap-3">
+          <Skeleton className="w-10 h-10 rounded-full" shimmer />
+          <div className="flex-1 space-y-1">
+            <Skeleton className="h-4 w-48" shimmer />
+            <Skeleton className="h-3 w-40" shimmer />
           </div>
         </div>
+      </div>
+
+      <div className="advisor-card-actions">
+        <Skeleton className="h-9 w-32 rounded-md" shimmer />
+        <Skeleton className="h-9 w-24 rounded-md" shimmer />
       </div>
     </div>
   );

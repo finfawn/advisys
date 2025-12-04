@@ -160,7 +160,6 @@
     grid-template-columns: repeat(4, 1fr);
     gap: 24px;
     margin-bottom: 32px;
-    padding-bottom: 3rem;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;

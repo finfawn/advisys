@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
 import jsPDF from "jspdf";
-import logoLarge from "/logo-large.png";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "../../../lightswind/drawer";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
@@ -200,11 +199,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
       })();
       let y = margin;
 
-      // Add AdviSys logo
-      const imgWidth = 100; // Adjust as needed
-      const imgHeight = 20; // Adjust as needed (assuming 5:1 aspect ratio for logo)
-      doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
-      y += imgHeight + 10; // Adjust y position after logo
+      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('AdviSys', pageWidth - margin, y, { align: 'right' }); y += lineGap;
       doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title, margin, y); y += lineGap;
       doc.setFont('helvetica','normal'); doc.setFontSize(11);
       if (termLabel) { doc.text(termLabel, margin, y); y += lineGap; }

@@ -8,7 +8,6 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import { Card, CardContent } from "../../lightswind/card";
 import { BsDownload, BsCameraVideo, BsGeoAlt } from "react-icons/bs";
 import jsPDF from "jspdf";
-import logoLarge from "../../../public/logo-large.png";
 
 export default function AdvisorThreadPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -89,18 +88,22 @@ export default function AdvisorThreadPage() {
     const studentLabel = studentMeta?.name ? `Student: ${studentMeta.name}` : '';
     const title = 'Consultation Thread';
 
-    // Add AdviSys logo
-    const imgWidth = 100; // Adjust as needed
-    const imgHeight = 100; // Adjust as needed
-    doc.addImage(logoLarge, 'PNG', pageWidth - margin - imgWidth, margin, imgWidth, imgHeight);
-    y += imgHeight + 10; // Adjust y position after logo
+    doc.setFontSize(14); doc.setFont(undefined, 'bold'); doc.text('AdviSys', pageWidth - margin, y, { align: 'right' }); y += lineHeight;
 
     doc.setFontSize(16); doc.setFont(undefined, 'bold'); doc.text(title, margin, y); y += lineHeight;
     doc.setFontSize(11); doc.setFont(undefined, 'normal');
     if (advisorLabel) { doc.text(advisorLabel, margin, y); y += lineHeight; }
     if (studentLabel) { doc.text(studentLabel, margin, y); y += lineHeight; }
 
-    const termLabel = termId === 'all' ? 'All Terms' : (termId === 'current' ? 'Current Term' : (terms.find(t=>String(t.id)===String(termId))?.year_label + ' • ' + terms.find(t=>String(t.id)===String(termId))?.semester_label + ' Semester'));
+    const termLabel = (() => {
+      if (termId === 'all') return 'All Terms';
+      if (termId === 'current') {
+        const cur = terms.find(t => Number(t.is_current) === 1);
+        return cur ? `${cur.year_label} • ${cur.semester_label} Semester` : 'Current Term';
+      }
+      const t = terms.find(t => String(t.id) === String(termId));
+      return t ? `${t.year_label} • ${t.semester_label} Semester` : 'Current Term';
+    })();
     doc.setFontSize(10); doc.text(`Term: ${termLabel || 'Current'}`, margin, y); y += lineHeight;
     const wrapText = (text, maxWidth) => {
       const words = String(text||'').split(/\s+/);

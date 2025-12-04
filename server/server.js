@@ -123,6 +123,18 @@ if (!SKIP_STARTUP_DB_ENSURE) (async () => {
   }
 })();
 
+// Ensure avatar_url columns can store long URLs (e.g., signed GCS URLs)
+if (!SKIP_STARTUP_DB_ENSURE) (async () => {
+  try {
+    const pool = getPool();
+    await pool.query('ALTER TABLE student_profiles MODIFY avatar_url VARCHAR(2048) NULL');
+    await pool.query('ALTER TABLE advisor_profiles MODIFY avatar_url VARCHAR(2048) NULL');
+    console.log('[DB] Ensured avatar_url columns length');
+  } catch (e) {
+    console.warn('[DB] Could not ensure avatar_url columns length:', e?.message || e);
+  }
+})();
+
 // Auto-migrate database on server start (optional)
 let autoMigrate = null;
 try {
@@ -241,20 +253,9 @@ async function runConsultationReminderJob() {
     // Helper to read reminder setting safely; defaults to true if table/row missing
     async function getConsultationRemindersEnabled(userId) {
       try {
-        const [[row]] = await pool.query(
-          `SELECT consultation_reminders FROM notification_settings WHERE user_id = ?`,
-          [userId]
-        );
-        if (!row || row.consultation_reminders === undefined || row.consultation_reminders === null) {
-          return true;
-        }
-        return !!row.consultation_reminders;
+        const s = await getNotificationSettings(userId);
+        return !s.notifications_muted;
       } catch (err) {
-        // Gracefully handle missing table or other read errors by enabling reminders by default
-        if (err && (err.code === 'ER_NO_SUCH_TABLE' || err.errno === 1146)) {
-          return true;
-        }
-        console.warn('Reminder settings read error for user', userId, err?.message || err);
         return true;
       }
     }
@@ -437,7 +438,7 @@ app.get('/api/consultations/missed/run', async (req, res) => {
 });
 
 // --- Advisor Slots Cleanup Job ---
-// Periodically deletes expired advisor availability slots (end_datetime <= NOW())
+// Periodically deletes expired advisor availability slots (end_datetime <= UTC_TIMESTAMP())
 // so past-time slots are removed from the database without requiring a fetch-trigger.
 const SLOTS_CLEANUP_POLL_MS = Number(process.env.SLOTS_CLEANUP_POLL_MS || 60_000); // 1 minute
 let slotsCleanupRunning = false;
@@ -449,7 +450,7 @@ async function runAdvisorSlotsCleanupJob() {
   try {
     await pool.query(
       `DELETE FROM advisor_slots
-       WHERE end_datetime <= NOW()`
+       WHERE end_datetime <= UTC_TIMESTAMP()`
     );
   } catch (err) {
     console.error('Advisor slots cleanup job error', err);

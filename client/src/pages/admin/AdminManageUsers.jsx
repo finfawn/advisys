@@ -756,59 +756,50 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       setUploadError("No valid rows found in CSV.");
       return;
     }
-    const idStart = Date.now();
-    if (uploadRole === "students") {
-      let id = idStart;
-      const toAdd = uploadRows.map((cols) => {
-        // Expect: First Name, Last Name, Email, Year, Program
-        const [first = "", last = "", email = "", year = "", program = ""] = cols;
-        return {
-          id: id++,
-          name: `${first} ${last}`.trim(),
-          email,
-          year: year || "1st Year",
-          program: program || "BSIT",
-          active: true,
-        };
-      });
-      setStudentsData((prev) => [...prev, ...toAdd]);
-      setActiveTab("students");
-    } else {
-      let id = idStart;
-      const toAdd = uploadRows.map((cols) => {
-        // Expect: First Name, Last Name, Email, Department, Max Daily, Default Duration, Online, InPerson, Subjects
-        const [first = "", last = "", email = "", department = "", maxDaily = "10", defDur = "30", online = "true", inperson = "true", subjects = ""] = cols;
-        const parsedSubjects = String(subjects || "")
-          .split(";")
-          .map(s => s.trim())
-          .filter(Boolean)
-          .map(pair => {
-            const [code = "", name = ""] = pair.split("|");
-            return { code: code.trim(), name: name.trim() };
-          })
-          .filter(s => s.code && s.name);
-        return {
-          id: id++,
-          name: `${first} ${last}`.trim(),
-          email,
-          department: department || "CIT",
-          active: true,
-          _settings: {
-            maxDailyConsultations: Number(maxDaily || 10),
-            defaultConsultationDuration: Number(defDur || 30),
-            onlineEnabled: /^true$/i.test(String(online)),
-            inPersonEnabled: /^true$/i.test(String(inperson)),
-            subjects: parsedSubjects,
+    (async () => {
+      try {
+        const token = localStorage.getItem('advisys_token');
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const role = uploadRole === 'students' ? 'students' : 'advisors';
+        const rows = uploadRows.map((cols) => {
+          if (role === 'students') {
+            const [first = '', last = '', email = '', year = '', program = ''] = cols;
+            return { firstName: first, lastName: last, email, year, program };
+          } else {
+            const [first = '', last = '', email = '', department = '', maxDaily = '10', defDur = '30', online = 'true', inperson = 'true', subjects = ''] = cols;
+            return { firstName: first, lastName: last, email, department, maxDaily, defaultDuration: defDur, online, inPerson: inperson, subjects };
           }
-        };
-      });
-      setAdvisorData((prev) => [...prev, ...toAdd]);
-      setActiveTab("advisors");
-    }
-    setUploadOpen(false);
-    setUploadFile(null);
-    setUploadRows([]);
-    setUploadError(null);
+        });
+        const res = await fetch(`${base}/api/users/bulk-create`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ role, rows }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data?.error || 'Upload failed');
+        try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Users added', description: `${data.createdCount} created, ${data.failedCount} failed` }); } catch {}
+        // Reload lists
+        const [sRes, aRes] = await Promise.all([
+          fetch(`${base}/api/users?role=student`),
+          fetch(`${base}/api/users?role=advisor`),
+        ]);
+        const sData = await sRes.json();
+        const aData = await aRes.json();
+        if (Array.isArray(sData)) setStudentsData(sData);
+        if (Array.isArray(aData)) setAdvisorData(aData);
+        setActiveTab(uploadRole === 'students' ? 'students' : 'advisors');
+        setUploadOpen(false);
+        setUploadFile(null);
+        setUploadRows([]);
+        setUploadError(null);
+      } catch (err) {
+        console.error('Bulk upload failed', err);
+        setUploadError(err?.message || 'Bulk upload failed');
+      }
+    })();
   };
 
   const handleHistory = (item) => {
@@ -1192,30 +1183,22 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
     }
     setViewOpen(false);
     try {
-      const timeout = setTimeout(async()=>{
-        try {
-          const res = await fetch(`${apiBase}/api/users/${user.id}`, { method: 'DELETE' });
-          if (!res.ok) {
-            const text = await res.text();
-            throw new Error(text || 'Delete failed');
-          }
-          setPendingAction(null);
-          setUndoTimeout(null);
-        } catch (err) {
-          if (activeTab === 'students') {
-            setStudentsData(prev => [user, ...prev]);
-          } else {
-            setAdvisorData(prev => [user, ...prev]);
-          }
-          try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Delete failed', description: err?.message || 'Error' }); } catch {}
-        } finally {
-          setPendingAction(null);
-          setUndoTimeout(null);
-        }
-      }, 5000);
-      setPendingAction({ user, previousState: null, actionType: 'deleted', tab: activeTab, _deleteTimer: timeout });
-      setUndoTimeout(timeout);
-    } catch {}
+      const res = await fetch(`${apiBase}/api/users/${user.id}`, { method: 'DELETE' });
+      const data = await res.json().catch(()=>({}));
+      if (!res.ok) throw new Error(data?.error || 'Delete failed');
+      setPendingAction(null);
+      setUndoTimeout(null);
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'User deleted' }); } catch {}
+    } catch (err) {
+      if (activeTab === 'students') {
+        setStudentsData(prev => [user, ...prev]);
+      } else {
+        setAdvisorData(prev => [user, ...prev]);
+      }
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Delete failed', description: err?.message || 'Error' }); } catch {}
+      setPendingAction(null);
+      setUndoTimeout(null);
+    }
   };
 
   // Determine which list to render (respect term member filter)
@@ -1932,8 +1915,8 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Password
               </label>
-              <div className="flex gap-2">
-                <div className="relative flex-1">
+              <div className="password-field-wrapper">
+                <div className="password-input-container">
                   <Input
                     type={showPassword ? "text" : "password"}
                     value={editForm.password}
@@ -1945,7 +1928,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                   />
                   <button
                     type="button"
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700 transition-colors"
+                    className="password-toggle-btn"
                     onClick={() => setShowPassword(!showPassword)}
                   >
                     {showPassword ? (
@@ -1999,23 +1982,12 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                     setEditForm({ ...editForm, password });
                     setShowPassword(true);
                   }}
-                  className="whitespace-nowrap"
+                  className="generate-password-btn"
                 >
                   Generate
                 </Button>
               </div>
-              <p className="text-xs text-gray-500 mt-1">
-                Current:{" "}
-                <span className="font-mono font-semibold">
-                  {showPassword ? viewUser?.password : "••••••••"}
-                </span>
-                {editForm.password &&
-                  editForm.password !== viewUser?.password && (
-                    <span className="text-blue-600 ml-2">
-                      • Will be changed on save
-                    </span>
-                  )}
-              </p>
+              
             </div>
 
             {/* Student-Specific Fields */}

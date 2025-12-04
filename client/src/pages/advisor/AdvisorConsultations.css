@@ -70,10 +70,14 @@
 
 /* Layout and Tabs (re-instated minimal styles) */
 .consultations-container { padding: 0; overflow: visible !important; }
+.consultations-container.advisor-my-consultations { padding-left: 12px; padding-right: 12px; box-sizing: border-box; overflow-x: hidden; }
+@media (max-width: 768px) {
+  .consultations-container.advisor-my-consultations { padding-left: 12px !important; padding-right: 12px !important; padding-bottom:12px !important; }
+}
 
 /* Apply extra bottom padding only on desktop screens */
 @media (min-width: 1024px) {
-  .consultations-container { padding-bottom: 50px; }
+  .consultations-container.advisor-my-consultations { padding-bottom: 10px; }
 }
 .consultations-header { margin-bottom: 2rem; }
 .consultations-title { font-size: 2rem; font-weight: 700; color: #1f2937; margin: 0 0 0.5rem 0; }
@@ -88,33 +92,45 @@
 .tab-content { min-height: 400px; }
 
 .consultations-section { margin-bottom: 2rem; }
+.advisor-my-consultations .consultations-section { margin-bottom: 2rem; padding: 0 12px 15px 12px !important; }
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .section-title { font-size: 1.2rem; font-weight: 700; color: #1f2937; margin: 0; }
 .section-controls { display: flex; align-items: center; gap: 10px; }
 .filter-dropdown { min-width: 140px; }
 .section-count { font-size: 0.9rem; color: #6b7280; }
 
-.consultations-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-/* Ensure cards in grid align heights similar to student page */
-.consultations-grid > * { height: 100%; }
+.advisor-my-consultations .consultations-grid { display: grid; grid-template-columns: repeat(3, 1fr); align-items: stretch; gap: 0.75rem; margin-bottom: 1.2rem; }
+.advisor-my-consultations .consultations-grid > * { height: 100%; min-width: 0; }
 
-/* Match student grid behavior */
-@media (min-width: 1201px) {
-  .consultations-grid { grid-template-columns: repeat(4, 1fr); gap: 0.875rem; }
+@media (min-width: 1536px) {
+  .advisor-my-consultations .consultations-grid { grid-template-columns: repeat(4, 1fr); gap: 0.875rem; }
 }
-@media (max-width: 1200px) and (min-width: 901px) {
-  .consultations-grid { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+@media (max-width: 1200px) {
+  .advisor-my-consultations .consultations-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
 }
-@media (max-width: 900px) and (min-width: 640px) {
-  .consultations-grid { grid-template-columns: repeat(2, 1fr); gap: 1rem; }
+@media (max-width: 900px) {
+  .advisor-my-consultations .consultations-grid { grid-template-columns: 1fr; gap: 1rem; }
 }
 @media (max-width: 639px) {
-  .consultations-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .advisor-my-consultations .consultations-grid { grid-template-columns: 1fr; gap: 1rem; }
 }
 
-/* Undo Notification */
+@media (max-width: 1024px) {
+  .advisor-my-consultations .consultations-tabs { flex-direction: column; gap: 4px; }
+  .advisor-my-consultations .section-header { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 8px; }
+  .advisor-my-consultations .section-controls { justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 6px; }
+  .advisor-my-consultations .filter-dropdown { flex: 1 1 48%; min-width: 0; }
+}
+@media (max-width: 640px) {
+  .advisor-my-consultations .filter-dropdown { flex: 1 1 100%; min-width: 0; width: 100%; }
+}
+
 .undo-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; border-radius: 8px; padding: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 300px; max-width: 500px; }
 .undo-content { display: flex; align-items: center; gap: 12px; padding: 12px 16px; }
 .undo-message { flex: 1; font-size: 0.95rem; }
 .undo-btn { background: transparent; border: 1px solid #e5e7eb; color: #ffffff; padding: 6px 10px; border-radius: 6px; cursor: pointer; }
 .undo-btn:hover { background: rgba(255,255,255,0.1); }
+@media (max-width: 768px) {
+  .consultations-title { font-size: 1.5rem; }
+  .consultations-subtitle { font-size: 0.95rem; }
+}

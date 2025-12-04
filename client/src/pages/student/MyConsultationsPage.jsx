@@ -21,6 +21,9 @@ export default function MyConsultationsPage() {
   const [upcomingFilter, setUpcomingFilter] = useState("all");
   const [requestFilter, setRequestFilter] = useState("all");
   const [historyFilter, setHistoryFilter] = useState("all");
+  const [upcomingSort, setUpcomingSort] = useState("asc");
+  const [requestSort, setRequestSort] = useState("asc");
+  const [historySort, setHistorySort] = useState("desc");
   const [historyView, setHistoryView] = useState('consultations');
   const [historyTermId, setHistoryTermId] = useState('current');
   const [terms, setTerms] = useState([]);
@@ -60,10 +63,48 @@ export default function MyConsultationsPage() {
   // Normalize asset URLs (http/https/blob unchanged; relative prefixed with API base)
   const resolveAssetUrl = (u) => {
     if (!u) return null;
-    const s = String(u);
-    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+    const s = String(u).trim();
+    if (!s) return null;
+    if (/^blob:/i.test(s) || /^data:/i.test(s)) return null;
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
     if (s.startsWith('/')) return `${base}${s}`;
     return `${base}/${s}`;
+  };
+
+  // Parse UTC or timezone-aware strings into Date; fallback for naive strings
+  const toLocalDate = (s) => {
+    const trimmed = String(s || '').trim();
+    if (!trimmed) return null;
+    if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(trimmed)) {
+      const d = new Date(trimmed);
+      return isNaN(d.getTime()) ? null : d;
+    }
+    const cleaned = trimmed.replace(' ', 'T');
+    const d = new Date(`${cleaned}Z`);
+    return isNaN(d.getTime()) ? null : d;
+  };
+
+  const parseDbDatetime = (s) => {
+    if (!s) return null;
+    try {
+      if (typeof s === 'string') {
+        const sTrim = s.trim();
+        const dateOnly = /^\d{4}-\d{2}-\d{2}$/.test(sTrim);
+        if (dateOnly) {
+          const d = new Date(`${sTrim}T00:00:00+08:00`);
+          return isNaN(d.getTime()) ? null : d;
+        }
+        const hasTZ = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(sTrim);
+        const cleaned = sTrim.replace(' ', 'T');
+        const src = hasTZ ? cleaned : `${cleaned}+08:00`;
+        const d = new Date(src);
+        return isNaN(d.getTime()) ? null : d;
+      }
+      const d = new Date(s);
+      return isNaN(d.getTime()) ? null : d;
+    } catch {
+      return null;
+    }
   };
 
   // Heuristic: search nested objects for reason fields if list payload hides them
@@ -107,16 +148,24 @@ export default function MyConsultationsPage() {
     const endDT = c?.end_datetime ?? c?.actual_end_datetime ?? c?.end_time ?? c?.endTime ?? null;
     let date = c?.date;
     let time = c?.time;
-    if (!date || !time) {
-      const d = startDT ? new Date(startDT) : null;
-      if (d && !isNaN(d)) {
-        const yyyy = d.getFullYear();
-        const mm = String(d.getMonth() + 1).padStart(2, '0');
-        const dd = String(d.getDate()).padStart(2, '0');
-        const hh = String(d.getHours()).padStart(2, '0');
-        const mi = String(d.getMinutes()).padStart(2, '0');
-        date = date || `${yyyy}-${mm}-${dd}`;
-        time = time || `${hh}:${mi}`;
+    const toParts = (s) => {
+      if (!s || typeof s !== 'string') return null;
+      const t = s.trim().replace('T', ' ');
+      const m = t.match(/^(\d{4})-(\d{2})-(\d{2})(?: (\d{2}):(\d{2})(?::(\d{2}))?)?/);
+      if (!m) return null;
+      const [_, y, mo, d, hh='00', mm='00', ss='00'] = m;
+      return { y: Number(y), mo: Number(mo), d: Number(d), hh: Number(hh), mm: Number(mm), ss: Number(ss) };
+    };
+    if (!date && startDT) {
+      const p = toParts(startDT);
+      if (p) date = `${String(p.y).padStart(4,'0')}-${String(p.mo).padStart(2,'0')}-${String(p.d).padStart(2,'0')}`;
+    }
+    if (!time && startDT && endDT) {
+      const s = toLocalDate(startDT);
+      const e = toLocalDate(endDT);
+      if (s && e) {
+        const fmt = (d) => d.toLocaleTimeString('en-PH', { hour: 'numeric', minute: '2-digit', hour12: true });
+        time = `${fmt(s)} – ${fmt(e)}`;
       }
     }
 
@@ -304,6 +353,17 @@ export default function MyConsultationsPage() {
     return () => { clearInterval(intervalId); document.removeEventListener('visibilitychange', visHandler); };
   }, [activeTab]);
 
+  useEffect(() => {
+    const handler = (evt) => {
+      const data = evt?.data || {};
+      if (data && data.type === 'advisys-call-ended') {
+        reloadConsultations();
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler);
+  }, []);
+
   // Load academic terms for history filtering
   useEffect(() => {
     (async () => {
@@ -317,9 +377,9 @@ export default function MyConsultationsPage() {
           return String(b?.start_date||'').localeCompare(String(a?.start_date||''));
         });
         setTerms(sorted);
-      } catch (_) {
-        // Silently handle errors - terms will remain empty if fetch fails
-      }
+  } catch {
+      void 0;
+  }
     })();
   }, []);
 
@@ -333,9 +393,9 @@ export default function MyConsultationsPage() {
       if (tabParam && validTabs.includes(tabParam)) {
         setActiveTab(tabParam);
       }
-    } catch (error) {
-      // No-op: keep default tab if URL parsing fails
-    }
+  } catch {
+      void 0;
+  }
   }, [location.search, location.hash]);
 
 
@@ -343,7 +403,7 @@ export default function MyConsultationsPage() {
   const { upcomingConsultations, requestConsultations, historyConsultations } = useMemo(() => {
     const now = new Date();
     const normalized = allConsultations.map(c => {
-      const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
+      const start = c.start_datetime ? toLocalDate(c.start_datetime) : (c.date ? toLocalDate(c.date) : null);
       const durationMin = c.duration || c.duration_minutes || 30;
       const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
       const inGrace = start ? now < (start.getTime() + graceMs) : false;
@@ -429,15 +489,21 @@ export default function MyConsultationsPage() {
 
   // Filter upcoming consultations
   const filteredUpcoming = useMemo(() => {
-    if (upcomingFilter === "all") return upcomingConsultations;
-    return upcomingConsultations.filter(consultation => consultation.mode === upcomingFilter);
-  }, [upcomingConsultations, upcomingFilter]);
+    const base = upcomingFilter === "all" ? upcomingConsultations : upcomingConsultations.filter(consultation => consultation.mode === upcomingFilter);
+    const getDate = (c) => new Date(c._start || c.start_datetime || c.date);
+    const asc = (a, b) => getDate(a) - getDate(b);
+    const desc = (a, b) => getDate(b) - getDate(a);
+    return [...base].sort(upcomingSort === 'asc' ? asc : desc);
+  }, [upcomingConsultations, upcomingFilter, upcomingSort]);
 
   // Filter request consultations
   const filteredRequests = useMemo(() => {
-    if (requestFilter === "all") return requestConsultationsState;
-    return requestConsultationsState.filter(consultation => consultation.mode === requestFilter);
-  }, [requestConsultationsState, requestFilter]);
+    const base = requestFilter === "all" ? requestConsultationsState : requestConsultationsState.filter(consultation => consultation.mode === requestFilter);
+    const getDate = (c) => new Date(c.start_datetime || c.date);
+    const asc = (a, b) => getDate(a) - getDate(b);
+    const desc = (a, b) => getDate(b) - getDate(a);
+    return [...base].sort(requestSort === 'asc' ? asc : desc);
+  }, [requestConsultationsState, requestFilter, requestSort]);
 
   // Filter history consultations by mode and term
   const filteredHistory = useMemo(() => {
@@ -494,12 +560,14 @@ export default function MyConsultationsPage() {
     });
     // If no items had parseable dates, return byMode to avoid empty due to unknown format
     const cleaned = (parsedAny ? within : byMode).filter(c => ['completed','cancelled','canceled','missed'].includes(String(c.status||'').toLowerCase()));
-    // If nothing after term filter, fall back to all terms so history is visible by default
-    if (cleaned.length === 0 && historyTermId !== 'all') {
-      return byMode.filter(c => ['completed','cancelled','canceled','missed'].includes(String(c.status||'').toLowerCase()));
-    }
-    return cleaned;
-  }, [consultationHistory, allConsultations, historyFilter, historyTermId, terms]);
+    const base = (cleaned.length === 0 && historyTermId !== 'all')
+      ? byMode.filter(c => ['completed','cancelled','canceled','missed'].includes(String(c.status||'').toLowerCase()))
+      : cleaned;
+    const getDate = (c) => new Date(c.end_datetime || c.actual_end_datetime || c.start_datetime || c.date);
+    const asc = (a, b) => getDate(a) - getDate(b);
+    const desc = (a, b) => getDate(b) - getDate(a);
+    return [...base].sort(historySort === 'asc' ? asc : desc);
+  }, [consultationHistory, allConsultations, historyFilter, historyTermId, terms, historySort]);
 
   // Delete functions with undo functionality
   // const handleDeleteHistoryItem = (consultation) => {
@@ -860,24 +928,63 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Upcoming Consultations</h2>
                   <div className="section-controls">
-                    <Select value={upcomingFilter} onValueChange={setUpcomingFilter}>
-                      <SelectTrigger className="filter-dropdown">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="in-person">In-Person</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <span className="section-count">{filteredUpcoming.length} upcoming</span>
+                  <Select value={upcomingFilter} onValueChange={setUpcomingFilter}>
+                    <SelectTrigger className="filter-dropdown">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="in-person">In-Person</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={upcomingSort} onValueChange={setUpcomingSort}>
+                    <SelectTrigger className="filter-dropdown">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Date Asc</SelectItem>
+                      <SelectItem value="desc">Date Desc</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="section-count">{filteredUpcoming.length} upcoming</span>
                   </div>
                 </div>
                 {isLoading ? (
                   <div className="consultations-grid">
                     {Array.from({ length: 3 }).map((_, idx) => (
-                      <TemplateCardSkeleton key={idx} />
+                      <Card key={idx} className="advisor-card">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
+                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
+                          </div>
+                          <Skeleton className="h-5 w-3/4" shimmer />
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
+                            <Skeleton className="h-4 w-40" shimmer />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                            <div className="flex-1 space-y-1">
+                              <Skeleton className="h-4 w-48" shimmer />
+                              <Skeleton className="h-3 w-40" shimmer />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
+                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
+                    <Card className="add-consultation-card-new">
+                      <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
+                        <Skeleton className="w-16 h-16 rounded-full" shimmer />
+                        <Skeleton className="h-5 w-40" shimmer />
+                        <Skeleton className="h-4 w-56" shimmer />
+                      </CardContent>
+                    </Card>
                   </div>
                 ) : (
                   <div className="consultations-grid">
@@ -913,23 +1020,55 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Consultation Requests</h2>
                   <div className="section-controls">
-                    <Select value={requestFilter} onValueChange={setRequestFilter}>
-                      <SelectTrigger className="filter-dropdown">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="in-person">In-Person</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <span className="section-count">{filteredRequests.length} requests</span>
+                  <Select value={requestFilter} onValueChange={setRequestFilter}>
+                    <SelectTrigger className="filter-dropdown">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="in-person">In-Person</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={requestSort} onValueChange={setRequestSort}>
+                    <SelectTrigger className="filter-dropdown">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Date Asc</SelectItem>
+                      <SelectItem value="desc">Date Desc</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="section-count">{filteredRequests.length} requests</span>
                   </div>
                 </div>
                 {isLoading ? (
                   <div className="consultations-grid">
                     {Array.from({ length: 3 }).map((_, idx) => (
-                      <TemplateCardSkeleton key={idx} />
+                      <Card key={idx} className="advisor-card">
+                        <CardContent className="p-4 space-y-3">
+                          <div className="flex items-center justify-between">
+                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
+                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
+                          </div>
+                          <Skeleton className="h-5 w-3/4" shimmer />
+                          <div className="flex items-center gap-2">
+                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
+                            <Skeleton className="h-4 w-40" shimmer />
+                          </div>
+                          <div className="flex items-center gap-3">
+                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                            <div className="flex-1 space-y-1">
+                              <Skeleton className="h-4 w-48" shimmer />
+                              <Skeleton className="h-3 w-40" shimmer />
+                            </div>
+                          </div>
+                          <div className="flex gap-2 pt-2">
+                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
+                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                          </div>
+                        </CardContent>
+                      </Card>
                     ))}
                   </div>
                 ) : (
@@ -972,42 +1111,86 @@ export default function MyConsultationsPage() {
                 <div className="section-header">
                   <h2 className="section-title">Consultation History</h2>
                   <div className="section-controls">
-                    <Select value={historyView} onValueChange={setHistoryView}>
-                      <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="consultations">View by Consultations</SelectItem>
-                        <SelectItem value="by-advisors">View by Advisors</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    <Select value={historyTermId} onValueChange={setHistoryTermId}>
-                      <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="current">Current Term</SelectItem>
-                        <SelectItem value="all">All Terms</SelectItem>
-                        {terms.map(t => (
-                          <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                    <Select value={historyFilter} onValueChange={setHistoryFilter}>
-                      <SelectTrigger className="filter-dropdown">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="all">All</SelectItem>
-                        <SelectItem value="online">Online</SelectItem>
-                        <SelectItem value="in-person">In-Person</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    
-                    <span className="section-count">{filteredHistory.length} past sessions</span>
+                  <Select value={historyView} onValueChange={setHistoryView}>
+                    <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="consultations">View by Consultations</SelectItem>
+                      <SelectItem value="by-advisors">View by Advisors</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={historyTermId} onValueChange={setHistoryTermId}>
+                    <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="current">Current Term</SelectItem>
+                      <SelectItem value="all">All Terms</SelectItem>
+                      {terms.map(t => (
+                        <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Select value={historyFilter} onValueChange={setHistoryFilter}>
+                    <SelectTrigger className="filter-dropdown">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="in-person">In-Person</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={historySort} onValueChange={setHistorySort}>
+                    <SelectTrigger className="filter-dropdown">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="asc">Date Asc</SelectItem>
+                      <SelectItem value="desc">Date Desc</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="section-count">{filteredHistory.length} past sessions</span>
                   </div>
                 </div>
                 {isLoading ? (
                   <div className="consultations-grid">
-                    {Array.from({ length: 3 }).map((_, idx) => (
-                      <TemplateCardSkeleton key={idx} />
-                    ))}
+                    {historyView === 'consultations' ? (
+                      Array.from({ length: 3 }).map((_, idx) => (
+                        <Card key={idx} className="advisor-card">
+                          <CardContent className="p-4 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <Skeleton className="h-6 w-28 rounded-md" shimmer />
+                              <Skeleton className="h-6 w-24 rounded-full" shimmer />
+                            </div>
+                            <Skeleton className="h-5 w-3/4" shimmer />
+                            <div className="flex items-center gap-2">
+                              <Skeleton className="h-4 w-4 rounded-md" shimmer />
+                              <Skeleton className="h-4 w-40" shimmer />
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                              <div className="flex-1 space-y-1">
+                                <Skeleton className="h-4 w-48" shimmer />
+                                <Skeleton className="h-3 w-40" shimmer />
+                              </div>
+                            </div>
+                            <div className="flex gap-2 pt-2">
+                              <Skeleton className="h-9 w-32 rounded-md" shimmer />
+                              <Skeleton className="h-9 w-24 rounded-md" shimmer />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    ) : (
+                      Array.from({ length: 5 }).map((_, idx) => (
+                        <div key={idx} className="p-4 bg-white rounded-lg border flex items-center gap-3">
+                          <Skeleton className="w-10 h-10 rounded-full" shimmer />
+                          <div className="flex-1 space-y-1">
+                            <Skeleton className="h-4 w-40" shimmer />
+                            <Skeleton className="h-3 w-56" shimmer />
+                          </div>
+                          <Skeleton className="h-4 w-4 rounded-md" shimmer />
+                        </div>
+                      ))
+                    )}
                   </div>
                 ) : (
                   historyView === 'consultations' ? (

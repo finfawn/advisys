@@ -49,4 +49,37 @@ async function summarizeConsultation(transcript, topic, advisorName, studentName
   }
 }
 
-module.exports = { summarizeConsultation };
+function buildOptimizePrompt(description, title) {
+  const desc = String(description || '').trim();
+  const t = String(title || '').trim();
+  return `You improve short consultation requests. Rewrite the description clearly, politely, and specifically, capped at 300 characters. Propose a concise title (<= 64 chars) that fits academic advising. Output JSON only: {"title":"...","description":"..."}. Input title: "${t}". Input description: "${desc}".`;
+}
+
+async function optimizeBookingText(description, title) {
+  const { AI_SUMMARY_ENABLED, AI_SUMMARY_API_KEY, AI_SUMMARY_MODEL } = process.env;
+  if (String(AI_SUMMARY_ENABLED).toLowerCase() !== 'true') return null;
+  if (!AI_SUMMARY_API_KEY) return null;
+  const prompt = buildOptimizePrompt(description, title);
+  const genAI = new (await import('@google/generative-ai')).GoogleGenerativeAI(AI_SUMMARY_API_KEY);
+  const model = genAI.getGenerativeModel({ model: normalizeModelName(AI_SUMMARY_MODEL || 'gemini-2.5-flash') });
+  try {
+    const result = await model.generateContent(prompt);
+    const text = result?.response?.text?.() || '';
+    try {
+      const firstBrace = text.indexOf('{');
+      const lastBrace = text.lastIndexOf('}');
+      const jsonStr = firstBrace >= 0 && lastBrace > firstBrace ? text.slice(firstBrace, lastBrace + 1) : text;
+      const parsed = JSON.parse(jsonStr);
+      const outTitle = String(parsed?.title || title || '').trim();
+      const outDesc = String(parsed?.description || description || '').trim();
+      return { title: outTitle, description: outDesc };
+    } catch (_) {
+      return { title: title || '', description: description || '' };
+    }
+  } catch (e) {
+    console.error('AI Optimize Error:', e);
+    return null;
+  }
+}
+
+module.exports = { summarizeConsultation, optimizeBookingText };

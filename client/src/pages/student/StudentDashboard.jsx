@@ -139,15 +139,72 @@ export default function StudentDashboard() {
       try {
         setLoadingAvailability(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-        // Available Today
-        const resToday = await fetch(`${base}/api/availability/today`);
+        // Fetch both endpoints
+        const [resToday, resCal] = await Promise.all([
+          fetch(`${base}/api/availability/today`),
+          (()=>{ const y=today.getFullYear(); const m0=today.getMonth(); const pad=(n)=>String(n).padStart(2,'0'); const ym=`${y}-${pad(m0+1)}`; return fetch(`${base}/api/availability/calendar?month=${ym}`); })()
+        ]);
         const dataToday = await resToday.json();
-        setAvailableToday(Array.isArray(dataToday) ? dataToday : []);
-
-        // Calendar availability for current month
-        const y = today.getFullYear();
-        const m0 = today.getMonth();
-        await loadCalendarForMonth(y, m0);
+        const dataCal = await resCal.json();
+        const calObj = typeof dataCal === 'object' && dataCal !== null ? dataCal : {};
+        setAvailabilityData(calObj);
+        let todayList = Array.isArray(dataToday) ? dataToday : [];
+        if (todayList.length === 0) {
+          const pad = (n) => String(n).padStart(2, '0');
+          const y = today.getFullYear();
+          const m = pad(today.getMonth() + 1);
+          const d = pad(today.getDate());
+          const keys = Object.keys(calObj || {});
+          const matchKeys = keys.filter(k => {
+            if (!k || typeof k !== 'string') return false;
+            const km = String(k).slice(0, 10);
+            if (km === `${y}-${m}-${d}`) return true;
+            try {
+              const dt = new Date(`${km}T00:00:00Z`);
+              return dt.getUTCFullYear() === y && pad(dt.getUTCMonth()+1) === m && pad(dt.getUTCDate()) === d;
+            } catch { return false; }
+          });
+          let calList = [];
+          for (const mk of matchKeys) {
+            const arr = Array.isArray(calObj[mk]) ? calObj[mk] : [];
+            calList = calList.concat(arr);
+          }
+          todayList = calList.map(a => ({
+            id: a.id,
+            name: a.name,
+            title: a.title,
+            mode: a.mode,
+            time: a.slots || a.time || '',
+            schedule: 'Available today'
+          }));
+        }
+        // Enrich each advisor with profile details (avatar, courses)
+        const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const resolveAssetUrl = (u) => {
+          if (!u) return null;
+          const s = String(u);
+          if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
+          if (s.startsWith('/')) return `${apiBase}${s}`;
+          return `${apiBase}/${s}`;
+        };
+        const enriched = await Promise.all((todayList || []).map(async (a) => {
+          try {
+            if (!a.id) return { ...a };
+            const res = await fetch(`${apiBase}/api/advisors/${a.id}`);
+            const d = await res.json();
+            const courses = Array.isArray(d?.coursesTaught) ? d.coursesTaught.map(c => ({ subject_code: c.code || c.subject_code, name: c.name })) : [];
+            return {
+              ...a,
+              title: d?.title ?? a.title,
+              avatar: resolveAssetUrl(d?.avatar) || null,
+              coursesTaught: courses,
+              mode: a.mode,
+            };
+          } catch {
+            return { ...a };
+          }
+        }));
+        setAvailableToday(enriched);
       } catch (err) {
         console.error('Failed to load availability', err);
       } finally {
@@ -179,17 +236,25 @@ export default function StudentDashboard() {
   }, [allConsultations]);
 
   const topTopic = useMemo(() => {
-    const counts = {};
+    const by = new Map();
     allConsultations
       .filter(c => c.status === 'completed')
       .forEach(c => {
-        const t = c.topic;
-        if (!t) return;
-        counts[t] = (counts[t] || 0) + 1;
+        const cat = String(c.category || '').trim();
+        const title = String(c.topic || '').trim();
+        const label = cat || title;
+        if (!label) return;
+        const k = label.toLowerCase();
+        const cur = by.get(k);
+        if (cur) by.set(k, { label: cur.label, count: cur.count + 1 });
+        else by.set(k, { label, count: 1 });
       });
-    const entries = Object.entries(counts);
-    if (!entries.length) return ['No Topic', 0];
-    return entries.reduce((a, b) => counts[a[0]] > counts[b[0]] ? a : b);
+    if (by.size === 0) return ['No Topic', 0];
+    let best = null;
+    for (const v of by.values()) {
+      if (!best || v.count > best.count) best = v;
+    }
+    return [best.label, best.count];
   }, [allConsultations]);
 
   // Stats derived from actual DB consultations
@@ -501,6 +566,8 @@ export default function StudentDashboard() {
                         schedule={adv.schedule}
                         time={adv.time}
                         mode={adv.mode}
+                        avatar={adv.avatar}
+                        coursesTaught={adv.coursesTaught}
                         onBookClick={() => console.log('Book consultation clicked')}
                         onNavigateToConsultations={() => handleNavigation('consultations')}
                       />
