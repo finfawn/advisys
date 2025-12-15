@@ -128,6 +128,34 @@ button:focus-visible {
 .advisor-dash-wrap a, .advisor-dash-wrap button,
 .student-dash-wrap a, .student-dash-wrap button { cursor: pointer; }
 
+/* Mid-width and high-zoom responsiveness: collapse layouts to single column */
+@media (min-width: 768px) and (max-width: 1366px) {
+  .dash-body,
+  .dash-body.collapsed,
+  .student-dash-body,
+  .student-dash-body.collapsed,
+  .advisor-dash-body,
+  .advisor-dash-body.collapsed,
+  .admin-dash-body,
+  .admin-dash-body.collapsed {
+    grid-template-columns: 1fr !important;
+    gap: 0 !important;
+  }
+  .dash-main,
+  .student-dash-main,
+  .advisor-dash-main,
+  .admin-dash-main {
+    padding: 18px !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+  }
+  /* Force Tailwind xl:block sidebars to hide at mid widths for better stacking */
+  .advisor-dash-wrap .xl\:block { display: none !important; }
+  .advisor-dash-wrap .xl\:hidden { display: block !important; }
+  .admin-dash-wrap .xl\:block { display: none !important; }
+  .admin-dash-wrap .xl\:hidden { display: block !important; }
+}
+
 /* Global improved dropdown styling for all select elements */
 select:not(.line-form .form-select):not(.info-input) {
     padding-right: 32px !important;

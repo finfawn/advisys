@@ -27,14 +27,20 @@
   overflow-x: hidden !important;
 }
 
+.student-thread-main {
+  padding-right: 0 !important;
+  padding-left: 0 !important;
+}
+
+.student-thread.consultations-container {
+  padding-left: 24px !important;
+  padding-right: 24px !important;
+  box-sizing: border-box;
+}
+
 /* Place vertical scrollbar at the viewport edge on small screens */
 @media (max-width: 768px) {
   /* Scrollbar at edge */
-  .student-thread-main {
-    padding-right: 0 !important;
-    padding-left: 0 !important;
-  }
-  /* Symmetric content padding inside */
   .student-thread.consultations-container {
     padding-left: 16px !important;
     padding-right: 16px !important;

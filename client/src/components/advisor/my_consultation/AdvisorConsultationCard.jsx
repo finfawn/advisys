@@ -77,8 +77,11 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
     if (consultation.status === 'pending') {
       return 'Approve';
     }
-    if (consultation.status === 'completed' || consultation.status === 'missed' || consultation.status === 'cancelled' || consultation.status === 'expired' || consultation.status === 'declined') {
+    if (consultation.status === 'completed' || consultation.status === 'declined') {
       return 'View Details';
+    }
+    if (consultation.status === 'cancelled' || consultation.status === 'missed' || consultation.status === 'expired') {
+      return 'Reschedule';
     }
     if (consultation.status === 'approved') {
       return consultation.mode === 'online' ? 'Start' : 'Details';
@@ -274,8 +277,8 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
 
       {consultation.status === 'missed' && (
         <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
-            View Details
+          <Button size="sm" variant="ghost" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={() => onActionClick?.(consultation)}>
+            Reschedule
             <BsChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </CardFooter>
@@ -283,7 +286,12 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
 
       {consultation.status !== 'completed' && consultation.status !== 'missed' && shouldShowSingleAction() && (
         <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
+          <Button
+            size="sm"
+            variant="ghost"
+            className={`flex-1 ${String(consultation.status).toLowerCase() === 'cancelled' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
+            onClick={handlePrimaryClick}
+          >
             {getActionButtonText()}
             <BsChevronRight className="w-4 h-4 ml-1" />
           </Button>
@@ -309,15 +317,15 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
       {consultation.status === 'declined' && (
         <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={() => onActionClick?.(consultation)}>
-            Review
+            Reschedule
           </Button>
         </CardFooter>
       )}
 
       {consultation.status === 'expired' && (
         <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1" onClick={() => onActionClick?.(consultation)}>
-            Details
+          <Button size="sm" variant="ghost" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={() => onActionClick?.(consultation)}>
+            Reschedule
             <BsChevronRight className="w-4 h-4 ml-1" />
           </Button>
         </CardFooter>

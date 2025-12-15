@@ -8,7 +8,7 @@ function AdminSidebar({ collapsed, onToggle, onNavigate }) {
     { key: "admin-dashboard", label: "Dashboard", Icon: HomeIcon },
     { key: "admin-manage-students", label: "Manage Students", Icon: UsersIcon },
     { key: "admin-manage-advisors", label: "Manage Advisors", Icon: UsersIcon },
-    { key: "admin-department-settings", label: "Settings", Icon: Cog6ToothIcon },
+    { key: "admin-department-settings", label: "Academic Settings", Icon: Cog6ToothIcon },
     { key: "admin-logout", label: "Logout", Icon: ArrowRightOnRectangleIcon, isLogout: true },
   ];
 

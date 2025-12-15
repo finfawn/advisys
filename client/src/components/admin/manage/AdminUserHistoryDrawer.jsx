@@ -1,22 +1,75 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useCallback } from "react";
 import jsPDF from "jspdf";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "../../../lightswind/drawer";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
 import { BsChevronRight } from "react-icons/bs";
+import { toast } from "../../../components/hooks/use-toast";
 import AdminConsultationCard from "./AdminConsultationCard";
 
-export default function AdminUserHistoryDrawer({ open, user, consultations = [], onClose, onDelete, terms = [], selectedTermId, onTermChange }) {
+export default function AdminUserHistoryDrawer({ open, user, consultations = [], onClose, terms = [], selectedTermId, onTermChange }) {
   const [selected, setSelected] = useState(null);
   const [view, setView] = useState('all');
+  const [advisorFilter, setAdvisorFilter] = useState('all');
+  const [modeFilter, setModeFilter] = useState('all'); // all | online | in-person
+  const [timeFilter, setTimeFilter] = useState('all'); // all | this_week | this_month | last_7 | last_30
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const defaultFilters = useMemo(() => ({ advisor: 'all', mode: 'all', time: 'all', statuses: [] }), []);
+  const [tabFilters, setTabFilters] = useState({
+    all: { ...defaultFilters },
+    upcoming: { ...defaultFilters },
+    requests: { ...defaultFilters },
+    history: { ...defaultFilters },
+  });
+  const handleAdvisorChange = useCallback((v) => {
+    setAdvisorFilter(v);
+    setTabFilters((prev) => ({ ...prev, [view]: { ...prev[view], advisor: v } }));
+  }, [view]);
+  const handleModeChange = useCallback((v) => {
+    setModeFilter(v);
+    setTabFilters((prev) => ({ ...prev, [view]: { ...prev[view], mode: v } }));
+  }, [view]);
+  const handleTimeChange = useCallback((v) => {
+    setTimeFilter(v);
+    setTabFilters((prev) => ({ ...prev, [view]: { ...prev[view], time: v } }));
+  }, [view]);
+  const clearAllFilters = useCallback(() => {
+    setAdvisorFilter('all');
+    setModeFilter('all');
+    setTimeFilter('all');
+    setSelectedStatuses([]);
+    setStatusMenuOpen(false);
+  }, []);
 
   // Reset view to 'all' when drawer opens
   React.useEffect(() => {
     if (open) {
       setView('all');
       setSelected(null);
+      setAdvisorFilter('all');
+      setModeFilter('all');
+      setTimeFilter('all');
+      setSelectedStatuses([]);
+      setStatusMenuOpen(false);
+      setTabFilters({
+        all: { ...defaultFilters },
+        upcoming: { ...defaultFilters },
+        requests: { ...defaultFilters },
+        history: { ...defaultFilters },
+      });
     }
-  }, [open]);
+  }, [open, defaultFilters]);
+  React.useEffect(() => {
+    const tf = tabFilters[view];
+    if (tf) {
+      setAdvisorFilter(tf.advisor);
+      setModeFilter(tf.mode);
+      setTimeFilter(tf.time);
+      setSelectedStatuses(tf.statuses || []);
+      setStatusMenuOpen(false);
+    }
+  }, [view, tabFilters]);
   const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', {
@@ -38,18 +91,18 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
   const getDisplayTime = (c) => {
     const t = c?.time;
     if (t) {
-      try {
-        const [hh, mm] = String(t).split(':');
-        const d = new Date(); d.setHours(Number(hh)||0, Number(mm)||0, 0, 0);
-        return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
-      } catch (_) {}
+      const parts = String(t).split(':');
+      const hh = Number(parts[0] || 0);
+      const mm = Number(parts[1] || 0);
+      const d = new Date(); d.setHours(hh, mm, 0, 0);
+      return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     }
     const v = c?.date || c?.scheduled_at || c?.scheduledAt || c?.start_time || c?.startTime || c?.datetime;
     const d = v ? new Date(v) : null;
     if (d && !isNaN(d)) return d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
     return '';
   };
-  const getInitials = (name) => String(name||'').split(' ').filter(Boolean).map(s=>s[0]).join('').slice(0,2).toUpperCase();
+  
 
   const renderDetailsView = () => (
     <div className="space-y-2">
@@ -110,7 +163,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
     
     return (
       <div className="space-y-3">
-        {visibleConsultations.map((consultation) => (
+        {filteredConsultations.map((consultation) => (
           <AdminConsultationCard
             key={consultation.id}
             consultation={consultation}
@@ -165,46 +218,140 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
     const v = c?.start_datetime || c?.scheduled_at || c?.scheduledAt || c?.start_time || c?.startTime || c?.datetime || (c?.date && c?.time ? `${c.date} ${c.time}` : c?.date);
     const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null;
   };
-  const isUpcoming = (c) => {
+  const isUpcoming = useCallback((c) => {
     const s = String(c?.status||'').toLowerCase();
     if (s !== 'approved') return false;
     const d = getStartDate(c); if (!d) return false; return d.getTime() >= Date.now();
-  };
-  const isRequest = (c) => {
+  }, []);
+  const isRequest = useCallback((c) => {
     const s = String(c?.status||'').toLowerCase();
     return s === 'pending' || s === 'declined' || s === 'expired';
-  };
-  const isHistory = (c) => {
+  }, []);
+  const isHistory = useCallback((c) => {
     const s = String(c?.status||'').toLowerCase();
     return s === 'completed' || s === 'cancelled' || s === 'canceled' || s === 'missed';
-  };
+  }, []);
   const visibleConsultations = useMemo(()=>{
     if (!Array.isArray(consultations)) return [];
     if (view === 'upcoming') return consultations.filter(isUpcoming);
     if (view === 'requests') return consultations.filter(isRequest);
     if (view === 'history') return consultations.filter(isHistory);
     return consultations;
-  }, [consultations, view]);
+  }, [consultations, view, isUpcoming, isRequest, isHistory]);
+
+  const partyPresence = useMemo(() => {
+    let studentCount = 0; let facultyCount = 0;
+    (consultations || []).forEach(c => {
+      if (c?.student?.name || c?.student_name || c?.studentName) studentCount += 1;
+      if (c?.faculty?.name || c?.advisor_name || c?.advisorName) facultyCount += 1;
+    });
+    return { studentCount, facultyCount };
+  }, [consultations]);
+  const useStudents = partyPresence.studentCount >= partyPresence.facultyCount;
+  const partyLabel = useStudents ? 'Student' : 'Advisor';
+  const allPartyLabel = useStudents ? 'All Students' : 'All Advisors';
+  const extractParty = useCallback((c) => {
+    if (useStudents) {
+      const id = String(c?.student?.id || c?.student_id || c?.studentId || '').trim();
+      const name = String(c?.student?.name || c?.student_name || c?.studentName || '').trim();
+      return { id, name };
+    }
+    const id = String(c?.faculty?.id || c?.advisor_id || c?.advisorId || '').trim();
+    const name = String(c?.faculty?.name || c?.advisor_name || c?.advisorName || '').trim();
+    return { id, name };
+  }, [useStudents]);
+  const advisorOptions = useMemo(() => {
+    const map = new Map();
+    (consultations || []).forEach((c) => {
+      const { id, name } = extractParty(c);
+      if (id || name) {
+        const key = id || name;
+        if (!map.has(key)) map.set(key, { id, name: name || (id ? `${partyLabel} ${id}` : partyLabel) });
+      }
+    });
+    return [ { id: 'all', name: allPartyLabel }, ...Array.from(map.values()) ];
+  }, [consultations, extractParty, partyLabel, allPartyLabel]);
+
+  const isWithinTimeFilter = useCallback((d) => {
+    if (!d || isNaN(d)) return false;
+    const now = new Date();
+    const startOfWeek = (() => {
+      const s = new Date(now); const day = s.getDay(); const diff = (day === 0 ? -6 : 1) - day; s.setDate(s.getDate() + diff); s.setHours(0,0,0,0); return s;
+    })();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    startOfMonth.setHours(0,0,0,0);
+    const daysAgo = (n) => { const s = new Date(now); s.setDate(s.getDate() - n); s.setHours(0,0,0,0); return s; };
+    switch (timeFilter) {
+      case 'this_week':
+        return d >= startOfWeek;
+      case 'this_month':
+        return d >= startOfMonth;
+      case 'last_7':
+        return d >= daysAgo(7);
+      case 'last_30':
+        return d >= daysAgo(30);
+      default:
+        return true;
+    }
+  }, [timeFilter]);
+
+  const filteredConsultations = useMemo(() => {
+    let arr = visibleConsultations;
+    if (advisorFilter !== 'all') {
+      arr = arr.filter((c) => {
+        const { id, name } = extractParty(c);
+        const key = advisorFilter;
+        return key && (id === key || name === key);
+      });
+    }
+    if (modeFilter !== 'all') {
+      arr = arr.filter((c) => String(c?.mode || '').toLowerCase() === (modeFilter === 'online' ? 'online' : 'in-person'));
+    }
+    if (timeFilter !== 'all') {
+      arr = arr.filter((c) => {
+        const d = getStartDate(c);
+        return isWithinTimeFilter(d);
+      });
+    }
+    if (selectedStatuses.length > 0) {
+      const set = new Set(selectedStatuses.map(s=>String(s).toLowerCase()));
+      arr = arr.filter((c) => {
+        const s = String(c?.status||'').toLowerCase();
+        const canonical = s === 'canceled' ? 'cancelled' : s;
+        return set.has(canonical);
+      });
+    }
+    return arr;
+  }, [visibleConsultations, advisorFilter, modeFilter, timeFilter, isWithinTimeFilter, selectedStatuses, extractParty]);
 
   const exportToPdf = () => {
     try {
       const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-      const margin = 48; const lineGap = 16; const rowGap = 10; const pageWidth = doc.internal.pageSize.getWidth(); const pageHeight = doc.internal.pageSize.getHeight(); const usable = pageWidth - margin * 2;
-      const title = 'Consultation Records';
+      const margin = 48; const lineGap = 16; const footerGap = 28;
+      const pageWidth = doc.internal.pageSize.getWidth(); const usable = pageWidth - margin * 2;
+      const docTitle = 'Consultation Records';
       const who = user?.name ? `Name: ${user.name}` : '';
       const termLabel = (()=>{
         const t = (terms||[]).find(x=>String(x.id)===String(selectedTermId));
         if (!t) return '';
         return `Academic Term: ${t.semester_label} Semester • S.Y. ${t.year_label}`;
       })();
-      let y = margin;
+      const timeLabels = { all:'All Time', this_week:'This Week', this_month:'This Month', last_7:'Last 7 Days', last_30:'Last 30 Days' };
+      const tabLabels = { all:'All', upcoming:'Upcoming', requests:'Requests', history:'History' };
+      const resolveAdvisorLabel = () => {
+        if (advisorFilter === 'all') return allPartyLabel;
+        const found = (advisorOptions||[]).find(o => String(o.id)===String(advisorFilter) || String(o.name)===String(advisorFilter));
+        return found?.name || String(advisorFilter);
+      };
+      const filtersSummary = [
+        { label: 'Tab', value: tabLabels[view] || 'All' },
+        { label: partyLabel, value: resolveAdvisorLabel() },
+        { label: 'Mode', value: modeFilter==='all' ? 'All Modes' : (modeFilter==='online'?'Online':'In-Person') },
+        { label: 'Time', value: timeLabels[timeFilter] || 'All Time' },
+        { label: 'Status', value: (selectedStatuses.length>0? selectedStatuses.map(s=> s==='canceled'?'Cancelled': s.charAt(0).toUpperCase()+s.slice(1)).join(', ') : 'All Statuses') }
+      ];
 
-      doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('AdviSys', pageWidth - margin, y, { align: 'right' }); y += lineGap;
-      doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title, margin, y); y += lineGap;
-      doc.setFont('helvetica','normal'); doc.setFontSize(11);
-      if (termLabel) { doc.text(termLabel, margin, y); y += lineGap; }
-      if (who) { doc.text(who, margin, y); y += lineGap; }
-      y += 6;
+      let y = margin;
       const wrapText = (text, maxWidth) => {
         const words = String(text||'').split(/\s+/);
         const lines = []; let line = '';
@@ -212,31 +359,70 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         if (line) lines.push(line);
         return lines;
       };
-      const ensurePage = (heightNeeded) => { const pageH = doc.internal.pageSize.getHeight(); if (y + heightNeeded + margin > pageH) { doc.addPage(); y = margin; } };
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const drawFooter = (pageNum, pageCount) => {
+        const footerY = pageHeight - margin + 8;
+        doc.setFont('helvetica','normal'); doc.setFontSize(9);
+        doc.text(`Page ${pageNum} of ${pageCount}`, pageWidth - margin, footerY, { align: 'right' });
+        doc.text('AdviSys', margin, footerY);
+      };
+      const drawHeader = () => {
+        doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('AdviSys', pageWidth - margin, y, { align: 'right' }); y += lineGap;
+        doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(docTitle, margin, y); y += lineGap;
+        doc.setFont('helvetica','normal'); doc.setFontSize(11);
+        if (termLabel) { doc.text(termLabel, margin, y); y += lineGap; }
+        if (who) { doc.text(who, margin, y); y += lineGap; }
+      };
+      const ensurePage = (heightNeeded, drawRepeatHeader = true) => {
+        if (y + heightNeeded + margin + footerGap > pageHeight) {
+          const currentPage = doc.getNumberOfPages();
+          // draw footer for current page before adding a new one
+          drawFooter(currentPage, currentPage);
+          doc.addPage();
+          y = margin;
+          if (drawRepeatHeader) drawHeader();
+        }
+      };
+
+      // Header
+      drawHeader();
+      // Filters section
+      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Selected Filters', margin, y); y += lineGap;
+      doc.setFont('helvetica','normal'); doc.setFontSize(10);
+      filtersSummary.forEach(({label, value}) => {
+        const lines = wrapText(String(value), usable - doc.getTextWidth(label + ': ') - 10);
+        const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7);
+        ensurePage(needed);
+        doc.setFont('helvetica','bold'); doc.text(label + ':', margin, y);
+        doc.setFont('helvetica','normal');
+        let currentX = margin + doc.getTextWidth(label + ': ') + 5;
+        lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; });
+        y += lineGap * 0.2;
+      });
+      y += lineGap * 0.5;
+
+      const addDetail = (label, value, isBold = false) => {
+        if (!value) return;
+        doc.setFontSize(10);
+        const labelW = doc.getTextWidth(label + ': ');
+        const lines = wrapText(String(value), usable - labelW - 10);
+        const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7);
+        ensurePage(needed, false);
+        doc.setFont('helvetica', 'bold'); doc.text(label + ':', margin, y);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        let currentX = margin + labelW + 5;
+        lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; });
+        y += lineGap * 0.2;
+      };
 
       const drawConsultation = (c, idx) => {
-        ensurePage(lineGap * 8); // Estimate space for a consultation block
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text(`Consultation ${idx + 1}`, margin, y);
+        // Title for block
+        doc.setFontSize(12); doc.setFont('helvetica', 'bold');
+        const blockTitle = `Consultation ${idx + 1}`;
+        ensurePage(lineGap * 1.5, false);
+        doc.text(blockTitle, margin, y);
         y += lineGap;
-
-        const addDetail = (label, value, isBold = false) => {
-          if (!value) return;
-          doc.setFontSize(10);
-          doc.setFont('helvetica', 'bold');
-          doc.text(label + ':', margin, y);
-          doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-          const textLines = wrapText(value, usable - doc.getTextWidth(label + ': ') - 10);
-          let currentX = margin + doc.getTextWidth(label + ': ') + 5;
-          textLines.forEach(line => {
-            doc.text(line, currentX, y);
-            y += lineGap * 0.8; // Smaller line gap for wrapped text
-            currentX = margin + doc.getTextWidth(label + ': ') + 5; // Align subsequent lines
-          });
-          y += lineGap * 0.2; // Add a small gap after each detail
-        };
-
+        // Details
         const dateStr = getDisplayDate(c);
         const timeStr = getDisplayTime(c);
         const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
@@ -244,17 +430,16 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         const adv = c?.faculty?.name || '';
         const topic = c?.topic || '-';
         const loc = c?.location || '';
-        let summary = c?.summaryNotes || c?.aiSummary || '';
-        let sNotes = c?.studentPrivateNotes || '';
-        let aNotes = c?.advisorPrivateNotes || '';
-        let cancelReason = c?.cancel_reason || '';
+        const summary = c?.summaryNotes || c?.aiSummary || '';
+        const sNotes = c?.studentPrivateNotes || '';
+        const aNotes = c?.advisorPrivateNotes || '';
+        const cancelReason = c?.cancel_reason || '';
 
         addDetail('Topic', topic, true);
         addDetail('Date/Time', `${dateStr} • ${timeStr}`);
         addDetail('Mode', modeStr);
         addDetail('Status', statusStr);
         if (adv) addDetail('Advisor', adv);
-
         const state = String(c.status || '').toLowerCase();
         if (state === 'missed') {
           addDetail('Location', 'Not available');
@@ -273,9 +458,18 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
           if (sNotes) addDetail('Student Notes', sNotes);
           if (aNotes) addDetail('Advisor Notes', aNotes);
         }
-        y += lineGap * 2; // Space between consultations
+        y += lineGap * 1.5;
       };
-      visibleConsultations.forEach((c, idx) => drawConsultation(c, idx));
+
+      filteredConsultations.forEach((c, idx) => drawConsultation(c, idx));
+
+      // Footer on all pages with total count
+      const totalPages = doc.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        drawFooter(i, totalPages);
+      }
+
       const fullName = String(user?.name || 'User').trim();
       const parts = fullName.split(/\s+/);
       const first = parts[0] || 'User';
@@ -285,8 +479,12 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
       const sy = t ? `SY-${t.year_label}` : `SY-${new Date().getFullYear()}`;
       const fileName = `${(last||'').replace(/\s+/g,'-')}-${first}-Consultations-${sem.replace(/\s+/g,'-')}-${sy}.pdf`;
       doc.save(fileName);
-    } catch (e) {
-      try { alert('Failed to export PDF'); } catch {}
+    } catch (err) {
+      console.error('Failed to export PDF', err);
+      toast.destructive({
+        title: 'Export failed',
+        description: 'Unable to export consultation history to PDF.'
+      });
     }
   };
 
@@ -321,8 +519,8 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
     });
     return counts;
   }, [consultations]);
-  const upcomingCount = useMemo(()=>consultations.filter(isUpcoming).length,[consultations]);
-  const requestsCount = useMemo(()=>consultations.filter(isRequest).length,[consultations]);
+  const upcomingCount = useMemo(()=>consultations.filter(isUpcoming).length,[consultations, isUpcoming]);
+  const requestsCount = useMemo(()=>consultations.filter(isRequest).length,[consultations, isRequest]);
 
   return (
     <Drawer open={open} onOpenChange={(v) => {
@@ -332,7 +530,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
       }
     }}>
       <DrawerContent className="max-w-3xl p-0 h-[80vh] flex flex-col overflow-hidden relative">
-        <DrawerHeader className="sticky top-0 bg-white z-10 border-b border-gray-200">
+        <DrawerHeader className="sticky top-0 bg-white z-10 border-b border-gray-200 px-3">
           <div className="flex items-start justify-between w-full">
             <div>
               <DrawerTitle>Consultation History</DrawerTitle>
@@ -353,7 +551,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
               )}
             </div>
           </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 flex-wrap relative pr-2">
             {[
               {k:'all', label:'All'},
               {k:'upcoming', label:`Upcoming (${upcomingCount})`},
@@ -366,7 +564,77 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
                 className={`px-3 py-1.5 rounded-full text-xs border ${view===tab.k?'bg-gray-900 text-white border-gray-900':'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
               >{tab.label}</button>
             ))}
-            <div className="flex-1"></div>
+            <div className="flex-1 min-w-[120px]"></div>
+            <div className="relative">
+              <button
+                className={`px-3 py-1.5 rounded-md border text-xs ${statusMenuOpen?'bg-gray-900 text-white border-gray-900':'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}`}
+                onClick={()=>setStatusMenuOpen(v=>!v)}
+              >Status</button>
+              {statusMenuOpen && (
+                <div className="absolute right-0 mt-2 w-52 bg-white border border-gray-200 rounded-md shadow-sm p-2 z-20">
+                  {[
+                    {k:'approved', label:'Approved'},
+                    {k:'pending', label:'Pending'},
+                    {k:'declined', label:'Declined'},
+                    {k:'expired', label:'Expired'},
+                    {k:'completed', label:'Completed'},
+                    {k:'cancelled', label:'Cancelled'},
+                    {k:'missed', label:'Missed'},
+                  ].map(opt=>{
+                    const checked = selectedStatuses.includes(opt.k);
+                    return (
+                      <label key={opt.k} className="flex items-center gap-2 px-1 py-1 text-xs">
+                        <input
+                          type="checkbox"
+                          checked={checked}
+                          onChange={()=>{
+                            setSelectedStatuses(prev=>{
+                              const set = new Set(prev);
+                              if (set.has(opt.k)) set.delete(opt.k); else set.add(opt.k);
+                              const nextArr = Array.from(set);
+                              setTabFilters(prevTF => ({ ...prevTF, [view]: { ...prevTF[view], statuses: nextArr } }));
+                              return nextArr;
+                            });
+                          }}
+                        />
+                        <span>{opt.label}</span>
+                      </label>
+                    );
+                  })}
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-100"
+                      onClick={()=>{
+                        setSelectedStatuses([]);
+                        setTabFilters(prevTF => ({ ...prevTF, [view]: { ...prevTF[view], statuses: [] } }));
+                      }}
+                    >Clear</button>
+                    <button
+                      className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-100"
+                      onClick={()=>setStatusMenuOpen(false)}
+                    >Done</button>
+                  </div>
+                </div>
+              )}
+            </div>
+            <select className="border rounded px-2 py-1 text-xs" value={advisorFilter} onChange={(e)=>handleAdvisorChange(e.target.value)}>
+              {advisorOptions.map(opt => (
+                <option key={opt.id || opt.name} value={opt.id || opt.name}>{opt.name}</option>
+              ))}
+            </select>
+            <select className="border rounded px-2 py-1 text-xs" value={modeFilter} onChange={(e)=>handleModeChange(e.target.value)}>
+              <option value="all">All Modes</option>
+              <option value="online">Online</option>
+              <option value="in-person">In-Person</option>
+            </select>
+            <select className="border rounded px-2 py-1 text-xs" value={timeFilter} onChange={(e)=>handleTimeChange(e.target.value)}>
+              <option value="all">All Time</option>
+              <option value="this_week">This Week</option>
+              <option value="this_month">This Month</option>
+              <option value="last_7">Last 7 Days</option>
+              <option value="last_30">Last 30 Days</option>
+            </select>
+            <Button size="sm" variant="outline" onClick={clearAllFilters}>Clear Filters</Button>
             <Button size="sm" variant="outline" onClick={exportToPdf}>Export PDF</Button>
           </div>
         </DrawerHeader>

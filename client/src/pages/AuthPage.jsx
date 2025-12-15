@@ -90,9 +90,16 @@ function AuthPage({ embedded = false }) {
         }
         localStorage.setItem("advisys_token", data.token);
         localStorage.setItem("advisys_user", JSON.stringify(data.user));
-        if (data.user.role === "student") navigate("/student-dashboard");
-        else if (data.user.role === "advisor") navigate("/advisor-dashboard");
-        else if (data.user.role === "admin") navigate("/admin-dashboard");
+        const mustChangePassword = data?.user && Object.prototype.hasOwnProperty.call(data.user, "must_change_password")
+          ? Boolean(data.user.must_change_password)
+          : false;
+        if (data.user.role === "student") {
+          if (mustChangePassword) navigate("/student-dashboard/settings", { state: { forcePasswordChange: true } });
+          else navigate("/student-dashboard");
+        } else if (data.user.role === "advisor") {
+          if (mustChangePassword) navigate("/advisor-dashboard/profile", { state: { forcePasswordChange: true } });
+          else navigate("/advisor-dashboard");
+        } else if (data.user.role === "admin") navigate("/admin-dashboard");
         else navigate("/");
       } else {
         const payload = {
@@ -270,7 +277,7 @@ function AuthPage({ embedded = false }) {
               <button
                 type="button"
                 aria-label={showPw ? "Hide password" : "Show password"}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 bg-transparent border-0 p-0 m-0 text-gray-400 hover:text-gray-600 opacity-40 hover:opacity-70 focus:outline-none"
                 onClick={() => setShowPw(v => !v)}
               >
                 {showPw ? (

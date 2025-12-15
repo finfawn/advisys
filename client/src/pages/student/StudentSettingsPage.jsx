@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { 
   BsPersonCircle, BsBell, BsShield, BsGear, 
@@ -20,6 +20,7 @@ import { toast } from "../../components/hooks/use-toast";
 export default function StudentSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
 
@@ -56,6 +57,8 @@ export default function StudentSettingsPage() {
   const [programOptions, setProgramOptions] = useState([]);
   const [showChangePw, setShowChangePw] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [passwordChangedLabel, setPasswordChangedLabel] = useState("");
+  const [showTempPasswordNotice, setShowTempPasswordNotice] = useState(false);
 
   const ordinal = (n) => {
     const s = ["th", "st", "nd", "rd"], v = n % 100;
@@ -74,6 +77,47 @@ export default function StudentSettingsPage() {
   };
 
   useEffect(() => {
+    const state = location && location.state;
+    if (state && state.forcePasswordChange) {
+      setShowTempPasswordNotice(true);
+      const nextState = { ...state };
+      delete nextState.forcePasswordChange;
+      navigate(location.pathname, { replace: true, state: nextState });
+      return;
+    }
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("advisys_user") : null;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const hasFlag = parsed && Object.prototype.hasOwnProperty.call(parsed, "must_change_password");
+        const must = hasFlag ? Boolean(parsed.must_change_password) : false;
+        if (must) setShowTempPasswordNotice(true);
+      }
+    } catch { 0; }
+  }, [location, navigate]);
+
+  useEffect(() => {
+    const describePasswordChanged = (raw) => {
+      if (!raw) return "";
+      const d = new Date(raw);
+      if (Number.isNaN(d.getTime())) return "Password change date unavailable";
+      const now = new Date();
+      const diffMs = now.getTime() - d.getTime();
+      if (diffMs <= 0) return "Last changed today";
+      const diffDays = Math.floor(diffMs / 86400000);
+      if (diffDays === 0) return "Last changed today";
+      if (diffDays === 1) return "Last changed yesterday";
+      if (diffDays < 30) return `Last changed ${diffDays} days ago`;
+      const diffMonths = Math.floor(diffDays / 30);
+      if (diffMonths < 12) {
+        const plural = diffMonths === 1 ? "" : "s";
+        return `Last changed ${diffMonths} month${plural} ago`;
+      }
+      const diffYears = Math.floor(diffMonths / 12);
+      const pluralY = diffYears === 1 ? "" : "s";
+      return `Last changed ${diffYears} year${pluralY} ago`;
+    };
+
     const fetchProfile = async () => {
       if (!token) return; // if missing, user will be redirected by other flows
       try {
@@ -96,6 +140,7 @@ export default function StudentSettingsPage() {
         };
         setStudentData(mapped);
         setEditData(mapped);
+        setPasswordChangedLabel(describePasswordChanged(data.password_changed_at));
 
         // Load notification settings (email + master mute)
         try {
@@ -114,7 +159,7 @@ export default function StudentSettingsPage() {
               try {
                 localStorage.setItem(`advisys_email_notifications_${userId}`, String(!!ns.emailNotifications));
                 localStorage.setItem(`advisys_notifications_muted_${userId}`, String(!!ns.notificationsMuted));
-              } catch (err) { console.error(err); }
+            } catch { 0; }
             }
           }
         } catch (err) { console.error(err); }
@@ -129,7 +174,7 @@ export default function StudentSettingsPage() {
         const res = await fetch(`${apiBase}/api/programs`);
         const list = await res.json();
         setProgramOptions(Array.isArray(list) ? list : []);
-      } catch (err) { console.error(err); }
+      } catch { 0; }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -164,9 +209,11 @@ export default function StudentSettingsPage() {
     ) {
       URL.revokeObjectURL(studentData.profilePicture);
     }
-    // Simple validation for required dropdowns
     if (!String(editData.program || '').trim()) {
-      alert('Please select a program');
+      toast.warning({
+        title: 'Select a program',
+        description: 'Please select a program'
+      });
       return;
     }
     try {
@@ -192,7 +239,10 @@ export default function StudentSettingsPage() {
       setStudentData({ ...editData });
       setIsEditing(false);
     } catch (err) {
-      alert(err.message || String(err));
+      toast.destructive({
+        title: 'Save failed',
+        description: err?.message || 'Failed to save profile'
+      });
     }
   };
 
@@ -268,14 +318,18 @@ export default function StudentSettingsPage() {
   const handleFileUpload = (event) => {
     const file = event.target.files[0];
     if (!file) return;
-    // Validate file type
     if (!file.type.startsWith('image/')) {
-      alert('Please select an image file');
+      toast.warning({
+        title: 'Invalid file',
+        description: 'Please select an image file'
+      });
       return;
     }
-    // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
-      alert('File size must be less than 5MB');
+      toast.warning({
+        title: 'File too large',
+        description: 'File size must be less than 5MB'
+      });
       return;
     }
     const headers = token ? { Authorization: `Bearer ${token}` } : {};
@@ -299,7 +353,7 @@ export default function StudentSettingsPage() {
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
             body: JSON.stringify({ avatar_url: fullUrl })
           });
-        } catch (_) {}
+        } catch { 0; }
         try {
           const pRes = await fetch(`${apiBase}/api/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
           if (pRes.ok) {
@@ -371,7 +425,7 @@ export default function StudentSettingsPage() {
   ];
 
   return (
-    <div className="dash-wrap">
+    <div className="dash-wrap student-settings-wrap">
       <TopNavbar />
 
       {/* Hamburger Menu Overlay - Mobile & Tablet */}
@@ -693,7 +747,7 @@ export default function StudentSettingsPage() {
                       <div className="security-item">
                         <div className="security-info">
                           <h4 className="security-title">Password</h4>
-                          <p className="security-description">Last changed 3 months ago</p>
+                          <p className="security-description">{passwordChangedLabel || "Password change date unavailable"}</p>
                         </div>
                         <Button variant="outline" onClick={handleChangePassword}>
                           Change Password
@@ -715,6 +769,31 @@ export default function StudentSettingsPage() {
         </main>
       </div>
       <ChangePasswordDialog open={showChangePw} onClose={()=>setShowChangePw(false)} />
+      <AlertDialog open={showTempPasswordNotice} onOpenChange={(open)=>{ if (!open) setShowTempPasswordNotice(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="leading-none text-center">Update Your Temporary Password</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              You are currently using a temporary password. For your security, please create a new password before continuing to use AdviSys.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:items-center sm:justify-between">
+            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">
+              Later
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="min-w-[140px]"
+              onClick={() => {
+                setShowTempPasswordNotice(false);
+                setActiveSection("security");
+                setShowChangePw(true);
+              }}
+            >
+              Change Password
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={showDeleteModal} onOpenChange={(open)=>{ if (!open) setShowDeleteModal(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -739,6 +818,3 @@ export default function StudentSettingsPage() {
     </div>
   );
 }
-  const handleDeleteAccount = () => {
-    setShowDeleteModal(true);
-  };

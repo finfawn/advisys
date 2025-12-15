@@ -308,14 +308,36 @@ export default function OnlineConsultationDetailsPage() {
 
   const handleConfirmCancel = (reason) => {
     setIsCancelling(true);
-    // In a real app, this would make an API call with the reason
-    setTimeout(() => {
-      console.log('Consultation cancelled:', consultationData.id, 'Reason:', reason);
-      setShowCancelModal(false);
-      setIsCancelling(false);
-      navigate('/student-dashboard/consultations');
-    }, 1000);
+    const token = localStorage.getItem('advisys_token');
+    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    (async () => {
+      try {
+        const r = await fetch(`${base}/api/consultations/${consultationData.id}/status`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ status: 'cancelled', cancelReason: reason }),
+        });
+        const data = await r.json().catch(() => ({}));
+        if (!r.ok || data?.error) throw new Error(data?.error || `HTTP ${r.status}`);
+        setShowCancelModal(false);
+        navigate('/student-dashboard/consultations');
+      } catch (err) {
+        console.error('Cancel consultation failed', err);
+      } finally {
+        setIsCancelling(false);
+      }
+    })();
   };
+
+  useEffect(() => {
+    const status = String(consultationData?.status || '').toLowerCase();
+    if (status === 'expired' || status === 'missed') {
+      navigate('/student-dashboard/consultations', { state: { triggerRescheduleById: consultationData.id } });
+    }
+  }, [consultationData?.status]);
 
   const handleSaveNotes = async () => {
     const token = localStorage.getItem('advisys_token');

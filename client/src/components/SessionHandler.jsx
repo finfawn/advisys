@@ -15,9 +15,11 @@ export default function SessionHandler() {
   const navigate = useNavigate();
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   const isLogoutProcessing = useRef(false);
+  const idleTimer = useRef(null);
+  const idleMs = (Number(import.meta.env.VITE_SESSION_IDLE_MINUTES || 20) || 20) * 60 * 1000;
   
   useEffect(() => {
-    let timer;
+    let tokenTimer;
 
     // Define handleLogout inside useEffect to avoid closure/dependency issues
     const handleLogout = (isExpiry) => {
@@ -36,7 +38,11 @@ export default function SessionHandler() {
       }
     };
     
-    // 1. Check token expiry logic
+    const resetIdle = () => {
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      idleTimer.current = setTimeout(() => handleLogout(true), idleMs);
+    };
+
     const checkToken = () => {
 
       const token = localStorage.getItem('advisys_token');
@@ -48,19 +54,15 @@ export default function SessionHandler() {
         if (parts.length !== 3) return;
         
         const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')));
-        const exp = payload.exp * 1000; // convert to ms
+        const exp = payload.exp * 1000;
         const now = Date.now();
 
         // console.log("Session check:", { now, exp, diff: exp - now });
 
-        if (now >= exp) {
-          handleLogout(true);
-        } else {
+        if (now >= exp) handleLogout(true);
+        else {
           const delay = exp - now;
-          // Ensure delay is positive and reasonable (e.g. < 24 days)
-          if (delay > 0 && delay < 2147483647) {
-             timer = setTimeout(() => handleLogout(true), delay);
-          }
+          if (delay > 0 && delay < 2147483647) tokenTimer = setTimeout(() => handleLogout(true), delay);
         }
       } catch (e) {
         console.error("SessionHandler: Token parse error", e);
@@ -68,30 +70,31 @@ export default function SessionHandler() {
     };
 
     checkToken();
+    resetIdle();
 
-    // 2. Intercept fetch
+    // 2. Intercept fetch to detect auth failures (do not reset idle on network)
     const originalFetch = window.fetch;
     window.fetch = async (...args) => {
-      try {
-        const response = await originalFetch(...args);
-        if (response.status === 401) {
-          // Ignore 401s from login/verify endpoints to avoid loops
-          const url = args[0] instanceof Request ? args[0].url : String(args[0]);
-          if (!url.includes('/auth/login') && !url.includes('/auth/verify')) {
-             handleLogout(false); // Don't need to verify token again, server said no
-          }
+      const response = await originalFetch(...args);
+      if (response.status === 401) {
+        const url = args[0] instanceof Request ? args[0].url : String(args[0]);
+        if (!url.includes('/auth/login') && !url.includes('/auth/verify')) {
+           handleLogout(false);
         }
-        return response;
-      } catch (err) {
-        throw err;
       }
+      return response;
     };
+
+    const events = ['mousemove','mousedown','keydown','touchstart','scroll'];
+    events.forEach((ev) => window.addEventListener(ev, resetIdle, { passive: true }));
 
     return () => {
       window.fetch = originalFetch;
-      if (timer) clearTimeout(timer);
+      if (tokenTimer) clearTimeout(tokenTimer);
+      if (idleTimer.current) clearTimeout(idleTimer.current);
+      events.forEach((ev) => window.removeEventListener(ev, resetIdle));
     };
-  }, [navigate]);
+  }, [navigate, idleMs]);
 
   const handleConfirmLogout = () => {
     setShowExpiredModal(false);

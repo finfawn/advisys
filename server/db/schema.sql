@@ -14,6 +14,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `status` ENUM('active','inactive') NOT NULL DEFAULT 'active',
   `email_verified` TINYINT(1) NOT NULL DEFAULT 0,
   `email_verified_at` DATETIME NULL,
+  `must_change_password` TINYINT(1) NOT NULL DEFAULT 0,
+  `password_changed_at` DATETIME NULL,
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)

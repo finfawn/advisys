@@ -13,6 +13,45 @@ function formatYear(yearLevel) {
   return `${n}${suffix} Year`;
 }
 
+const _invalidPlaceholders = new Set(['-', '--', '---', 'n/a', 'na', 'none', 'null', 'undefined']);
+function _isValidName(s) {
+  const t = String(s || '').trim();
+  if (!t || _invalidPlaceholders.has(t.toLowerCase())) return false;
+  if (!/^[A-Za-z\s.'-]+$/.test(t)) return false;
+  const letters = (t.match(/[A-Za-z]/g) || []).length;
+  if (letters < 2) return false;
+  if (t.length > 100) return false;
+  return true;
+}
+function _isValidEmail(s) {
+  const t = String(s || '').trim().toLowerCase();
+  if (!t || _invalidPlaceholders.has(t)) return false;
+  if (t.length > 255) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+function _cleanOptionalText(s, maxLen = 255) {
+  const t = String(s || '').trim();
+  if (!t || _invalidPlaceholders.has(t.toLowerCase())) return null;
+  return t.length > maxLen ? t.slice(0, maxLen) : t;
+}
+function _isValidPassword(s) {
+  const t = String(s || '').trim();
+  if (t.length < 6) return false;
+  if (t.length > 255) return false;
+  return true;
+}
+function _normalizeYearLevel(input) {
+  const raw = String(input || '').trim();
+  if (!raw) return 1;
+  const parsed = parseInt(raw, 10);
+  if (Number.isFinite(parsed) && parsed >= 1 && parsed <= 10) return parsed;
+  if (raw.includes('1')) return 1;
+  if (raw.includes('2')) return 2;
+  if (raw.includes('3')) return 3;
+  if (raw.includes('4')) return 4;
+  return 1;
+}
+
 let ensureDeactivateTableLock = null;
 async function ensureUserDeactivationEvents(pool) {
   if (ensureDeactivateTableLock) return ensureDeactivateTableLock;
@@ -61,7 +100,7 @@ router.get('/', async (req, res) => {
     await ensureUserDeactivationEvents(pool);
     if (role === 'admin') {
       const [rows] = await pool.query(
-        `SELECT u.id, u.full_name AS name, u.email, u.role, u.status
+        `SELECT u.id, u.full_name AS name, u.email, u.role, u.status, u.password_changed_at
          FROM users u
          WHERE LOWER(u.role) IN ('admin','administrator','superadmin')
          ORDER BY u.id ASC`
@@ -72,12 +111,13 @@ router.get('/', async (req, res) => {
         email: r.email,
         role: 'admin',
         active: r.status === 'active',
+        passwordChangedAt: r.password_changed_at || null,
       }));
       return res.json(data);
     }
     if (role === 'student') {
       const [rows] = await pool.query(
-        `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
+        `SELECT u.id, u.full_name AS name, u.email, u.role, u.status, u.password_changed_at,
                 sp.program, sp.year_level, sp.avatar_url,
                 (
                   SELECT e.reason
@@ -109,13 +149,14 @@ router.get('/', async (req, res) => {
         avatar_url: r.avatar_url || null,
         deactivationReason: r.last_reason || null,
         deactivationOther: r.last_other || null,
+        passwordChangedAt: r.password_changed_at || null,
       }));
       return res.json(data);
     }
 
     if (role === 'advisor') {
       const [rows] = await pool.query(
-        `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
+        `SELECT u.id, u.full_name AS name, u.email, u.role, u.status, u.password_changed_at,
                 ap.department, ap.title, ap.avatar_url,
                 (
                   SELECT e.reason
@@ -147,13 +188,14 @@ router.get('/', async (req, res) => {
         avatar_url: r.avatar_url || null,
         deactivationReason: r.last_reason || null,
         deactivationOther: r.last_other || null,
+        passwordChangedAt: r.password_changed_at || null,
       }));
       return res.json(data);
     }
 
     // Return both students and advisors if no role filter
     const [studentRows] = await pool.query(
-      `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
+      `SELECT u.id, u.full_name AS name, u.email, u.role, u.status, u.password_changed_at,
               sp.program, sp.year_level, sp.avatar_url,
               (
                 SELECT e.reason
@@ -175,7 +217,7 @@ router.get('/', async (req, res) => {
        ORDER BY u.id ASC`
     );
     const [advisorRows] = await pool.query(
-      `SELECT u.id, u.full_name AS name, u.email, u.role, u.status,
+      `SELECT u.id, u.full_name AS name, u.email, u.role, u.status, u.password_changed_at,
               ap.department, ap.title, ap.avatar_url
        FROM users u
        LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
@@ -194,6 +236,7 @@ router.get('/', async (req, res) => {
       avatar_url: r.avatar_url || null,
       deactivationReason: r.last_reason || null,
       deactivationOther: r.last_other || null,
+      passwordChangedAt: r.password_changed_at || null,
     }));
     const advisors = advisorRows.map(r => ({
       id: r.id,
@@ -204,6 +247,7 @@ router.get('/', async (req, res) => {
       department: r.department || null,
       title: r.title || null,
       avatar_url: r.avatar_url || null,
+      passwordChangedAt: r.password_changed_at || null,
     }));
 
     res.json({ students, advisors });
@@ -240,15 +284,27 @@ router.patch('/:id', async (req, res) => {
     const roleToUse = role || existingRole;
 
     // Update users table
-    const fields = [];
-    const values = [];
-    if (typeof full_name === 'string') { fields.push('full_name = ?'); values.push(full_name); }
-    if (typeof email === 'string') { fields.push('email = ?'); values.push(email); }
+  const fields = [];
+  const values = [];
+  if (typeof full_name === 'string') {
+    const nameNorm = String(full_name).replace(/\s+/g,' ').trim();
+    if (!_isValidName(nameNorm)) { return res.status(400).json({ error: 'Invalid full_name' }); }
+    fields.push('full_name = ?'); values.push(nameNorm);
+  }
+  if (typeof email === 'string') {
+    const emailNorm = String(email).trim().toLowerCase();
+    if (!_isValidEmail(emailNorm)) { return res.status(400).json({ error: 'Invalid email' }); }
+    fields.push('email = ?'); values.push(emailNorm);
+  }
     if (typeof status === 'string') { fields.push('status = ?'); values.push(status === 'active' ? 'active' : 'inactive'); }
     if (typeof password === 'string' && password.length > 0) {
+      if (!_isValidPassword(password)) {
+        return res.status(400).json({ error: 'Invalid password' });
+      }
       const hashed = await bcrypt.hash(password, 10);
       fields.push('password_hash = ?');
       values.push(hashed);
+      fields.push('password_changed_at = NOW()');
     }
     if (fields.length) {
       values.push(userId);
@@ -259,8 +315,8 @@ router.patch('/:id', async (req, res) => {
     if (roleToUse === 'student') {
       const sFields = [];
       const sValues = [];
-      if (typeof program === 'string') { sFields.push('program = ?'); sValues.push(program); }
-      if (typeof year_level !== 'undefined') { sFields.push('year_level = ?'); sValues.push(Number(year_level) || 1); }
+      if (typeof program === 'string') { sFields.push('program = ?'); sValues.push(_cleanOptionalText(program)); }
+      if (typeof year_level !== 'undefined') { sFields.push('year_level = ?'); sValues.push(_normalizeYearLevel(year_level)); }
       if (typeof avatar_url !== 'undefined') { sFields.push('avatar_url = ?'); sValues.push(avatar_url || null); }
       if (sFields.length) {
         sValues.push(userId);
@@ -270,8 +326,8 @@ router.patch('/:id', async (req, res) => {
     if (roleToUse === 'advisor') {
       const aFields = [];
       const aValues = [];
-      if (typeof department === 'string') { aFields.push('department = ?'); aValues.push(department); }
-      if (typeof title === 'string') { aFields.push('title = ?'); aValues.push(title); }
+      if (typeof department === 'string') { aFields.push('department = ?'); aValues.push(_cleanOptionalText(department)); }
+      if (typeof title === 'string') { aFields.push('title = ?'); aValues.push(_cleanOptionalText(title)); }
       if (typeof avatar_url !== 'undefined') { aFields.push('avatar_url = ?'); aValues.push(avatar_url || null); }
       if (aFields.length) {
         aValues.push(userId);
@@ -282,6 +338,9 @@ router.patch('/:id', async (req, res) => {
     res.json({ id: Number(userId), success: true });
   } catch (err) {
     console.error('Failed to update user:', err);
+    if (err && err.code === 'ER_DUP_ENTRY') {
+      return res.status(400).json({ error: 'Email already in use by another account' });
+    }
     res.status(500).json({ error: 'Failed to update user' });
   }
 });
@@ -299,10 +358,10 @@ router.delete('/:id', async (req, res) => {
     }
 
     // Delete from dependent tables first to be safe
-    await pool.query('DELETE FROM student_profiles WHERE user_id = ?', [userId]);
-    await pool.query('DELETE FROM advisor_profiles WHERE user_id = ?', [userId]);
-    await pool.query('DELETE FROM consultations WHERE student_id = ? OR advisor_id = ?', [userId, userId]);
-    await pool.query('DELETE FROM notifications WHERE user_id = ?', [userId]);
+    try { await pool.query('DELETE FROM student_profiles WHERE user_id = ?', [userId]); } catch (_) {}
+    try { await pool.query('DELETE FROM advisor_profiles WHERE user_id = ?', [userId]); } catch (_) {}
+    try { await pool.query('DELETE FROM consultations WHERE student_user_id = ? OR advisor_user_id = ?', [userId, userId]); } catch (_) {}
+    try { await pool.query('DELETE FROM notifications WHERE user_id = ?', [userId]); } catch (_) {}
 
     // Now delete the user
     const [result] = await pool.query('DELETE FROM users WHERE id = ?', [userId]);
@@ -311,6 +370,116 @@ router.delete('/:id', async (req, res) => {
   } catch (err) {
     console.error('Failed to delete user:', err);
     res.status(500).json({ error: 'Failed to delete user' });
+  }
+});
+
+// Create a single user (admin only)
+// POST /api/users
+router.post('/', authMiddleware, async (req, res) => {
+  const pool = getPool();
+  const actor = req.user || {};
+  if (String(actor.role) !== 'admin') {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  const {
+    role,
+    firstName,
+    lastName,
+    email,
+    program,
+    year,
+    yearLevel,
+    year_level,
+    department,
+    title,
+  } = req.body || {};
+  const sysRole = (String(role || '').toLowerCase() === 'advisor') ? 'advisor' : 'student';
+  const first = String(firstName || '').trim();
+  const last = String(lastName || '').trim();
+  const emailNorm = String(email || '').trim().toLowerCase();
+  if (!_isValidName(first)) {
+    return res.status(400).json({ error: 'Invalid firstName' });
+  }
+  if (!_isValidName(last)) {
+    return res.status(400).json({ error: 'Invalid lastName' });
+  }
+  if (!_isValidEmail(emailNorm)) {
+    return res.status(400).json({ error: 'Invalid email' });
+  }
+  const genTempPassword = () => {
+    const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789!@#$%';
+    const bytes = crypto.randomBytes(12);
+    let out = '';
+    for (let i = 0; i < bytes.length; i++) out += alphabet[bytes[i] % alphabet.length];
+    return out;
+  };
+  const APP_BASE_URL = (process.env.APP_BASE_URL || 'http://localhost:5173').replace(/\/$/, '');
+  const conn = await pool.getConnection();
+  try {
+    await conn.beginTransaction();
+    const [existing] = await conn.query('SELECT id FROM users WHERE email = ? LIMIT 1', [emailNorm]);
+    if (existing.length) {
+      await conn.rollback();
+      return res.status(409).json({ error: 'Email already registered' });
+    }
+    const temp = genTempPassword();
+    const hash = await bcrypt.hash(temp, 10);
+    const full_name = `${first} ${last}`.replace(/\s+/g,' ').trim();
+    const [resUser] = await conn.query(
+      'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
+      [sysRole, emailNorm, hash, full_name, 'active']
+    );
+    const userId = resUser.insertId;
+    try {
+      await conn.query('UPDATE users SET email_verified = 1, email_verified_at = NOW(), must_change_password = 1 WHERE id = ?', [userId]);
+    } catch (_) {
+      try {
+        await conn.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [userId]);
+      } catch (_) {}
+    }
+    if (sysRole === 'student') {
+      const yrLevel = _normalizeYearLevel(year || yearLevel || year_level);
+      const programClean = _cleanOptionalText(program);
+      await conn.query('INSERT INTO student_profiles (user_id, program, year_level) VALUES (?,?,?)', [userId, programClean, yrLevel]);
+      try {
+        const [[t]] = await conn.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
+        if (t && t.id) {
+          await conn.query(
+            `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
+             VALUES (?,?,?,?,?,?)`,
+            [t.id, userId, 'student', 'enrolled', program || null, String(yrLevel)]
+          );
+        }
+      } catch (_) {}
+    } else {
+      const titleClean = _cleanOptionalText(title);
+      const deptClean = _cleanOptionalText(department);
+      await conn.query('INSERT INTO advisor_profiles (user_id, title, department, bio, status) VALUES (?,?,?,?,?)', [userId, titleClean, deptClean, null, 'available']);
+      try {
+        await conn.query('INSERT IGNORE INTO advisor_modes (advisor_user_id, online_enabled, in_person_enabled) VALUES (?,?,?)', [userId, 1, 1]);
+      } catch (_) {}
+    }
+    await conn.commit();
+
+    const subject = 'Your AdviSys account credentials';
+    const loginUrl = `${APP_BASE_URL}/login`;
+    const html = `
+      <p>Hello ${full_name},</p>
+      <p>Your account has been created on AdviSys.</p>
+      <p><strong>Email:</strong> ${emailNorm}<br/><strong>Password:</strong> ${temp}</p>
+      <p>Sign in at <a href="${loginUrl}">${loginUrl}</a> and make sure to change this password after logging in.</p>
+    `;
+    try { await sendEmail({ to: emailNorm, subject, html }); } catch (_) {}
+
+    return res.json({ id: userId, role: sysRole, email: emailNorm, full_name });
+  } catch (err) {
+    try { await conn.rollback(); } catch (_) {}
+    console.error('Create user failed:', err);
+    const message = err?.message || String(err);
+    const code = err?.code || undefined;
+    return res.status(500).json({ error: 'Create user failed', reason: message, code });
+  } finally {
+    try { conn.release(); } catch (_) {}
   }
 });
 
@@ -324,15 +493,15 @@ router.post('/admin', authMiddleware, async (req, res) => {
     return res.status(403).json({ error: 'Forbidden' });
   }
   const { firstName, lastName, email, password } = req.body || {};
-  if (!firstName || !lastName || !email || !password) {
-    return res.status(400).json({ error: 'firstName, lastName, email, password required' });
+  if (!_isValidName(firstName) || !_isValidName(lastName) || !_isValidEmail(email) || !_isValidPassword(password)) {
+    return res.status(400).json({ error: 'Invalid input' });
   }
   try {
     const emailNorm = String(email).trim().toLowerCase();
     const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [emailNorm]);
     if (existing.length) return res.status(409).json({ error: 'Email already registered' });
     const password_hash = await bcrypt.hash(String(password), 10);
-    const full_name = `${String(firstName).trim()} ${String(lastName).trim()}`.trim();
+    const full_name = `${String(firstName).trim()} ${String(lastName).trim()}`.replace(/\s+/g,' ').trim();
     const [resUser] = await pool.query(
       'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
       ['admin', emailNorm, password_hash, full_name, 'active']
@@ -370,7 +539,8 @@ router.patch('/:id/status', async (req, res) => {
     }
 
     // Also update advisor_profiles status if present (no-op for non-advisors)
-    await pool.query('UPDATE advisor_profiles SET status = ? WHERE user_id = ?', [newStatus === 'active' ? 'available' : 'inactive', userId]);
+    const advisorProfileStatus = newStatus === 'active' ? 'available' : 'unavailable';
+    await pool.query('UPDATE advisor_profiles SET status = ? WHERE user_id = ?', [advisorProfileStatus, userId]);
 
     // Check if user is a student
     const [[userCheck]] = await pool.query('SELECT role FROM users WHERE id = ?', [userId]);
@@ -466,15 +636,17 @@ router.post('/bulk-create', authMiddleware, async (req, res) => {
     await conn.beginTransaction();
     for (const r of rows) {
       try {
-        const first = String(r.firstName || r.first_name || '').trim();
-        const last = String(r.lastName || r.last_name || '').trim();
+        const firstRaw = String(r.firstName || r.first_name || '').trim();
+        const lastRaw = String(r.lastName || r.last_name || '').trim();
         const email = String(r.email || '').trim().toLowerCase();
-        if (!first || !last || !email) { failed.push({ email, error: 'Missing name/email' }); continue; }
+        if (!_isValidName(firstRaw)) { failed.push({ email, error: 'Invalid firstName' }); continue; }
+        if (!_isValidName(lastRaw)) { failed.push({ email, error: 'Invalid lastName' }); continue; }
+        if (!_isValidEmail(email)) { failed.push({ email, error: 'Invalid email' }); continue; }
         const [existing] = await conn.query('SELECT id FROM users WHERE email = ? LIMIT 1', [email]);
         if (existing.length) { failed.push({ email, error: 'Email exists' }); continue; }
         const temp = genTempPassword();
         const hash = await bcrypt.hash(temp, 10);
-        const full_name = `${first} ${last}`.trim();
+        const full_name = `${firstRaw} ${lastRaw}`.replace(/\s+/g,' ').trim();
         const sysRole = roleKey === 'students' ? 'student' : 'advisor';
         const [resUser] = await conn.query(
           'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
@@ -482,12 +654,15 @@ router.post('/bulk-create', authMiddleware, async (req, res) => {
         );
         const userId = resUser.insertId;
         try {
-          await conn.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [userId]);
-        } catch (_) {}
+          await conn.query('UPDATE users SET email_verified = 1, email_verified_at = NOW(), must_change_password = 1 WHERE id = ?', [userId]);
+        } catch (_) {
+          try {
+            await conn.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [userId]);
+          } catch (_) {}
+        }
         if (sysRole === 'student') {
-          const program = r.program || r.Program || null;
-          const year = String(r.year || r.Year || '').trim();
-          const yearLevel = (/^\d/.test(year) ? Number(year) : (year.includes('1') ? 1 : year.includes('2') ? 2 : year.includes('3') ? 3 : year.includes('4') ? 4 : 1));
+          const program = _cleanOptionalText(r.program || r.Program || null);
+          const yearLevel = _normalizeYearLevel(r.year || r.Year || '');
           await conn.query('INSERT INTO student_profiles (user_id, program, year_level) VALUES (?,?,?)', [userId, program || null, yearLevel]);
           try {
             const [[t]] = await conn.query('SELECT id FROM academic_terms WHERE is_current = 1 LIMIT 1');
@@ -500,9 +675,11 @@ router.post('/bulk-create', authMiddleware, async (req, res) => {
             }
           } catch (_) {}
         } else {
-          const department = r.department || r.Department || null;
-          const title = r.title || r.Title || null;
-          await conn.query('INSERT INTO advisor_profiles (user_id, title, department, bio, status) VALUES (?,?,?,?,?)', [userId, title || null, department || null, null, 'available']);
+          const department = _cleanOptionalText(r.department || r.Department || null);
+          const title = _cleanOptionalText(r.title || r.Title || null);
+          const bioRaw = r.bio || r.Bio || null;
+          const bioClean = _cleanOptionalText(bioRaw, 2000);
+          await conn.query('INSERT INTO advisor_profiles (user_id, title, department, bio, status) VALUES (?,?,?,?,?)', [userId, title || null, department || null, bioClean || null, 'available']);
           try {
             const onlineEnabled = String(r.online || r.Online || 'true').toLowerCase() === 'true' ? 1 : 0;
             const inPersonEnabled = String(r.inPerson || r.InPerson || 'true').toLowerCase() === 'true' ? 1 : 0;
@@ -510,12 +687,42 @@ router.post('/bulk-create', authMiddleware, async (req, res) => {
           } catch (_) {}
           try {
             const subjects = r.subjects || r.Subjects || '';
-            const list = String(subjects).split(';').map(s=>s.trim()).filter(Boolean).map(pair => {
-              const [code='', name=''] = pair.split('|');
-              return { code: code.trim(), name: name.trim() };
-            }).filter(x=>x.code || x.name);
+            const list = String(subjects)
+              .split(';')
+              .map(s => s.trim())
+              .filter(Boolean)
+              .map(pair => {
+                const [code = '', name = ''] = pair.split('|');
+                return { code: code.trim(), name: name.trim() };
+              })
+              .filter(x => x.code && x.name);
             for (const s of list) {
-              await conn.query('INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)', [userId, s.name || s.code, s.code || null, s.name || null]);
+              await conn.query(
+                'INSERT INTO advisor_courses (advisor_user_id, course_name, subject_code, subject_name) VALUES (?,?,?,?)',
+                [userId, s.name || s.code, s.code, s.name]
+              );
+            }
+          } catch (_) {}
+          // Optional categories -> advisor_topics
+          try {
+            const categories = r.categories || r.Categories || '';
+            const topics = String(categories).split(';').map(s=>s.trim()).filter(Boolean);
+            for (const topic of topics) {
+              const v = _cleanOptionalText(topic);
+              if (v) {
+                await conn.query('INSERT INTO advisor_topics (advisor_user_id, topic) VALUES (?, ?)', [userId, v]);
+              }
+            }
+          } catch (_) {}
+          // Optional guidelines -> advisor_guidelines
+          try {
+            const guidelines = r.guidelines || r.Guidelines || '';
+            const gl = String(guidelines).split(';').map(s=>s.trim()).filter(Boolean);
+            for (const g of gl) {
+              const v = _cleanOptionalText(g);
+              if (v) {
+                await conn.query('INSERT INTO advisor_guidelines (advisor_user_id, guideline_text) VALUES (?, ?)', [userId, v]);
+              }
             }
           } catch (_) {}
         }
@@ -525,8 +732,8 @@ router.post('/bulk-create', authMiddleware, async (req, res) => {
         const html = `
           <p>Hello ${full_name},</p>
           <p>Your account has been created on AdviSys.</p>
-          <p><strong>Email:</strong> ${email}<br/><strong>Temporary password:</strong> ${temp}</p>
-          <p>Sign in at <a href="${loginUrl}">${loginUrl}</a> and please change your password after logging in.</p>
+          <p><strong>Email:</strong> ${email}<br/><strong>Password:</strong> ${temp}</p>
+          <p>Sign in at <a href="${loginUrl}">${loginUrl}</a> and make sure to change this password after logging in.</p>
         `;
         try { await sendEmail({ to: email, subject, html }); } catch (_) {}
       } catch (e) {
@@ -561,7 +768,7 @@ router.post('/bulk-deactivate', async (req, res) => {
 
     // Update statuses
     await pool.query(`UPDATE users SET status = 'inactive' WHERE id IN (${ids.map(()=>'?').join(',')})`, ids);
-    await pool.query(`UPDATE advisor_profiles SET status = 'inactive' WHERE user_id IN (${ids.map(()=>'?').join(',')})`, ids);
+    await pool.query(`UPDATE advisor_profiles SET status = 'unavailable' WHERE user_id IN (${ids.map(()=>'?').join(',')})`, ids);
 
     // Audit rows
     const auditValues = ids.map(id => [id, term || null, reasonNorm, reasonNorm==='other' ? (otherReason || null) : null]);

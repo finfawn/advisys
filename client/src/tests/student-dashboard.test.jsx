@@ -40,7 +40,7 @@ describe('Student Dashboard', () => {
 
   it('shows Upcoming Consultations section', async () => {
     render(wrap(<StudentDashboard />));
-    expect(await screen.findByText(/Upcoming Consultations/i)).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Upcoming Consultations/i })).toBeInTheDocument();
   });
 
   it('shows Available Today with CTA', async () => {

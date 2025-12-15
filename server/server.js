@@ -7,6 +7,7 @@ const { getPool } = require('./db/pool');
 const bcrypt = require('bcrypt');
 
 const app = express();
+const isTest = String(process.env.NODE_ENV || '').toLowerCase() === 'test';
 
 const corsOrigins = (process.env.CORS_ORIGINS || process.env.APP_BASE_URL || '')
   .split(',')
@@ -65,7 +66,7 @@ mount('/api', './routes/ai_debug');
 mount('/api/stream', './routes/stream');
 mount('/api/diag', './routes/diagnostics');
 
-const SKIP_STARTUP_DB_ENSURE = String(process.env.SKIP_STARTUP_DB_ENSURE || 'false').toLowerCase() === 'true';
+const SKIP_STARTUP_DB_ENSURE = isTest || String(process.env.SKIP_STARTUP_DB_ENSURE || 'false').toLowerCase() === 'true';
 
 // Ensure critical auxiliary tables exist early to avoid race conditions
 if (!SKIP_STARTUP_DB_ENSURE) (async () => {
@@ -460,17 +461,21 @@ async function runAdvisorSlotsCleanupJob() {
 }
 
 // Kick off periodic advisor slots cleanup job
-setInterval(runAdvisorSlotsCleanupJob, SLOTS_CLEANUP_POLL_MS);
+if (!isTest) {
+  setInterval(runAdvisorSlotsCleanupJob, SLOTS_CLEANUP_POLL_MS);
+}
 
 const PORT = process.env.PORT || 8080;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Server started on port ${PORT}`);
-  setImmediate(() => {
-    if (autoMigrate) {
-      autoMigrate().catch((err) => console.error('Auto-migrate startup error:', err));
-    }
-    const shouldSeedAdmin = String(process.env.SEED_ADMIN_ON_START || '').toLowerCase() === 'true';
-    const shouldResetAdmin = String(process.env.SEED_ADMIN_RESET || '').toLowerCase() === 'true';
+if (require.main === module) {
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server started on port ${PORT}`);
+    if (!isTest) {
+      setImmediate(() => {
+        if (autoMigrate) {
+          autoMigrate().catch((err) => console.error('Auto-migrate startup error:', err));
+        }
+        const shouldSeedAdmin = String(process.env.SEED_ADMIN_ON_START || '').toLowerCase() === 'true';
+        const shouldResetAdmin = String(process.env.SEED_ADMIN_RESET || '').toLowerCase() === 'true';
         if (shouldSeedAdmin) {
           const pool = getPool();
           (async () => {
@@ -491,7 +496,7 @@ app.listen(PORT, '0.0.0.0', () => {
                   ]);
                   await pool.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [existing.id]);
                   console.log(`[admin] Updated existing user to admin: ${email}`);
-                  console.log(`[admin] Temporary password: ${plainPassword}`);
+                  console.log(`[admin] Initial password: ${plainPassword}`);
                 } else {
                   console.log(`[admin] Admin exists; no changes: ${email}`);
                 }
@@ -503,13 +508,17 @@ app.listen(PORT, '0.0.0.0', () => {
                 );
                 await pool.query('UPDATE users SET email_verified = 1, email_verified_at = NOW() WHERE id = ?', [resUser.insertId]);
                 console.log(`[admin] Created admin user: ${email} (id=${resUser.insertId})`);
-                console.log(`[admin] Temporary password: ${plainPassword}`);
+                console.log(`[admin] Initial password: ${plainPassword}`);
               }
             } catch (e) {
               console.error('[admin] Seeding failed:', e?.message || e);
             }
           })();
         }
+      });
+    }
   });
-});
+}
+
+module.exports = app;
 

@@ -15,6 +15,8 @@ import {
   SelectLabel,
   SelectSeparator,
 } from "../../lightswind/select";
+import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
+import { Checkbox } from "../../lightswind/checkbox";
 
 export default function AdvisorListPage() {
   // Normalize asset URLs (absolute, blob, or server-relative)
@@ -31,7 +33,14 @@ export default function AdvisorListPage() {
   const [filter, setFilter] = useState("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [showAll, setShowAll] = useState(false);
+  const [viewportHeight, setViewportHeight] = useState(
+    typeof window !== "undefined" ? window.innerHeight : 0
+  );
+  const [showLoadMore, setShowLoadMore] = useState(false);
   const navigate = useNavigate();
+  const [selectedModes, setSelectedModes] = useState([]);
+  const [selectedExpertise, setSelectedExpertise] = useState([]);
+  const [selectedSubjects, setSelectedSubjects] = useState([]);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') {
@@ -51,11 +60,30 @@ export default function AdvisorListPage() {
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const res = await fetch(`${base}/api/advisors`);
         const data = await res.json();
-        // Shape avatars to full URLs for card rendering
         const shaped = Array.isArray(data)
-          ? data.map(a => ({ ...a, avatar: resolveAssetUrl(a.avatar) }))
+          ? data
+              .filter(a => String(a?.userStatus || 'active') === 'active' && String(a?.profileStatus || '') !== 'inactive')
+              .map(a => ({ ...a, avatar: resolveAssetUrl(a.avatar) }))
           : [];
         setAllAdvisors(shaped);
+        try {
+          const enriched = await Promise.allSettled(
+            shaped.map(async (a) => {
+              const r = await fetch(`${base}/api/advisors/${a.id}`);
+              if (!r.ok) return a;
+              const d = await r.json();
+              return {
+                ...a,
+                topicsCanHelpWith: Array.isArray(d.topicsCanHelpWith) ? d.topicsCanHelpWith : (a.topicsCanHelpWith || []),
+                coursesTaught: Array.isArray(d.coursesTaught) ? d.coursesTaught : (a.coursesTaught || []),
+              };
+            })
+          );
+          const merged = enriched.map((x, i) => (x.status === 'fulfilled' ? x.value : shaped[i]));
+          setAllAdvisors(merged);
+        } catch {
+          void 0;
+        }
       } catch (err) {
         console.error('Failed to load advisors', err);
       } finally {
@@ -64,6 +92,56 @@ export default function AdvisorListPage() {
     };
     fetchAdvisors();
   }, []);
+
+  // Extract expertise/topics strictly from DB field
+  const extractCategories = (a) => {
+    const raw = a?.topicsCanHelpWith;
+    if (!Array.isArray(raw)) return [];
+    return raw
+      .map((t) => (typeof t === 'string' ? t.trim() : String(t || '').trim()))
+      .filter((t) => !!t);
+  };
+
+  const extractCourseCodes = (a) => {
+    const raw = a?.coursesTaught || [];
+    if (!Array.isArray(raw)) return [];
+    const CODE_RE = /^[A-Z]{2,}\d{2,}$/;
+    const EXTRACT_ANY_RE = /([A-Z]{2,})[- ]?(\d{2,})/i;
+    const normalize = (s) => s.toUpperCase().replace(/[-\s]+/g, '');
+    const pickField = (obj) => {
+      const candidate = obj?.subject_code ?? obj?.code ?? obj?.course_code ?? obj?.courseCode ?? obj?.name ?? obj?.title ?? '';
+      return String(candidate || '').trim();
+    };
+    return raw
+      .map((c) => {
+        if (typeof c === 'string') {
+          const s = c.trim();
+          const m = s.toUpperCase().match(EXTRACT_ANY_RE);
+          return m ? normalize(`${m[1]}${m[2]}`) : normalize(s);
+        }
+        const s = pickField(c);
+        const m = s.toUpperCase().match(EXTRACT_ANY_RE);
+        return m ? normalize(`${m[1]}${m[2]}`) : normalize(s);
+      })
+      .filter((s) => CODE_RE.test(s));
+  };
+
+  // Distinct expertise options across advisors
+  const expertiseOptions = useMemo(() => {
+    const set = new Set();
+    (allAdvisors || []).forEach((a) => {
+      extractCategories(a).forEach((c) => set.add(c));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [allAdvisors]);
+
+  const subjectOptions = useMemo(() => {
+    const set = new Set();
+    (allAdvisors || []).forEach((a) => {
+      extractCourseCodes(a).forEach((c) => set.add(c));
+    });
+    return Array.from(set).sort((a, b) => a.localeCompare(b));
+  }, [allAdvisors]);
 
   // Load student consultations to derive previous advisors (completed consultations)
   const [studentConsultations, setStudentConsultations] = useState([]);
@@ -98,18 +176,54 @@ export default function AdvisorListPage() {
 
   // Filter advisors based on selected filter
   const filteredAdvisors = useMemo(() => {
-    if (filter === "all") return allAdvisors;
+    let list = allAdvisors || [];
     if (filter.startsWith("mode:")) {
       const modeKey = filter.split(":")[1];
-      if (modeKey === "online") {
-        return (allAdvisors || []).filter((a) => (a.mode || "").includes("Online"));
-      }
-      if (modeKey === "in_person") {
-        return (allAdvisors || []).filter((a) => (a.mode || "").includes("In-person"));
-      }
+      if (modeKey === "online") list = list.filter((a) => (a.mode || "").includes("Online"));
+      else if (modeKey === "in_person") list = list.filter((a) => (a.mode || "").includes("In-person"));
     }
-    return allAdvisors;
-  }, [filter, allAdvisors]);
+    if (filter.startsWith("expertise:")) {
+      const raw = filter.slice("expertise:".length);
+      const selected = decodeURIComponent(raw).toLowerCase();
+      list = list.filter((a) => {
+        const cats = extractCategories(a).map((c) => c.toLowerCase());
+        return cats.includes(selected);
+      });
+    }
+    if (filter.startsWith("subject:")) {
+      const raw = filter.slice("subject:".length);
+      const selected = decodeURIComponent(raw).toLowerCase();
+      list = list.filter((a) => {
+        const codes = extractCourseCodes(a).map((c) => c.toLowerCase());
+        return codes.includes(selected);
+      });
+    }
+    if (selectedModes.length) {
+      list = list.filter((a) => {
+        const m = String(a.mode || "");
+        const hasOnline = m.includes("Online");
+        const hasInPerson = m.includes("In-person");
+        return (selectedModes.includes("online") && hasOnline) || (selectedModes.includes("in_person") && hasInPerson);
+      });
+    }
+    if (selectedExpertise.length) {
+      const sel = selectedExpertise.map((s) => s.toLowerCase());
+      list = list.filter((a) => {
+        const cats = extractCategories(a).map((c) => c.toLowerCase());
+        return sel.some((s) => cats.includes(s));
+      });
+    }
+    if (selectedSubjects.length) {
+      const sel = selectedSubjects.map((s) => s.toLowerCase());
+      list = list.filter((a) => {
+        const codes = extractCourseCodes(a).map((c) => c.toLowerCase());
+        return sel.some((s) => codes.includes(s));
+      });
+    }
+    const keyFor = (a) => String(a?.id ?? a?.email ?? a?.name ?? Math.random());
+    const deduped = Array.from(new Map((list || []).map((a) => [keyFor(a), a])).values());
+    return deduped;
+  }, [filter, allAdvisors, selectedModes, selectedExpertise, selectedSubjects]);
 
 
   // Pagination logic
@@ -118,28 +232,78 @@ export default function AdvisorListPage() {
   const endIndex = showAll ? filteredAdvisors.length : startIndex + itemsPerPage;
   const displayedAdvisors = filteredAdvisors.slice(0, endIndex);
 
-  const handleSelectChange = (value) => {
-    setFilter(value);
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    let resizeTimeout = null;
+    const handleResize = () => {
+      const nextHeight = window.innerHeight || document.documentElement.clientHeight || 0;
+      if (resizeTimeout) {
+        window.clearTimeout(resizeTimeout);
+      }
+      resizeTimeout = window.setTimeout(() => {
+        setViewportHeight(nextHeight);
+      }, 150);
+    };
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      if (resizeTimeout) {
+        window.clearTimeout(resizeTimeout);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isLoadingAdvisors) return;
+    if (!filteredAdvisors.length) {
+      if (showLoadMore) {
+        setShowLoadMore(false);
+      }
+      return;
+    }
+    const doc = document.documentElement;
+    const contentHeight = Math.max(doc.scrollHeight, doc.offsetHeight);
+    if (contentHeight <= viewportHeight && endIndex < filteredAdvisors.length) {
+      setCurrentPage((prev) => prev + 1);
+      return;
+    }
+    const hasMore = endIndex < filteredAdvisors.length;
+    const shouldShow = hasMore && contentHeight > viewportHeight;
+    if (showLoadMore !== shouldShow) {
+      setShowLoadMore(shouldShow);
+    }
+  }, [isLoadingAdvisors, filteredAdvisors.length, endIndex, viewportHeight, showLoadMore]);
+
+  const clearFilters = () => {
+    setFilter("all");
+    setSelectedModes([]);
+    setSelectedExpertise([]);
+    setSelectedSubjects([]);
     setCurrentPage(1);
     setShowAll(false);
   };
 
-  const filterLabel = useMemo(() => {
-    if (filter === "all") return "All Faculty";
-    if (filter.startsWith("mode:")) {
-      const key = filter.split(":")[1];
-      if (key === "online") return "Online";
-      if (key === "in_person") return "In-person";
-      return "Mode";
-    }
-    return "All Faculty";
-  }, [filter]);
+  
 
   const handleLoadMore = () => {
     if (endIndex >= filteredAdvisors.length) {
       setShowAll(true);
     } else {
+      const doc = document.documentElement;
+      const startScroll = window.scrollY || doc.scrollTop || 0;
+      const currentViewportHeight = viewportHeight || window.innerHeight || doc.clientHeight || 0;
       setCurrentPage(prev => prev + 1);
+      window.requestAnimationFrame(() => {
+        const targetScroll = Math.max(
+          startScroll,
+          Math.max(doc.scrollHeight, doc.offsetHeight) - currentViewportHeight
+        );
+        window.scrollTo({
+          top: targetScroll,
+          behavior: "smooth",
+        });
+      });
     }
   };
 
@@ -222,7 +386,7 @@ export default function AdvisorListPage() {
   }, [studentConsultations, allAdvisors]);
 
   return (
-    <div className="dash-wrap">
+    <div className="dash-wrap advisor-list-wrap">
       <TopNavbar />
 
       {/* Body */}
@@ -277,21 +441,79 @@ export default function AdvisorListPage() {
               <div className="section-header">
                 <h2 className="section-title">All Faculty</h2>
                 
-                <div className="section-controls">
-                  {/* Filter Dropdown (Lightswind Select) */}
-                  <Select value={filter} onValueChange={handleSelectChange}>
-                    <SelectTrigger className="filter-dropdown">
-                      <span>{filterLabel}</span>
-                    </SelectTrigger>
-                    <SelectContent align="end">
-                      <SelectItem value="all">All Faculty</SelectItem>
-                      <SelectSeparator />
-                      <SelectLabel>Mode</SelectLabel>
-                      <SelectItem value="mode:online">Online</SelectItem>
-                      <SelectItem value="mode:in_person">In-person</SelectItem>
-                    </SelectContent>
-                  </Select>
-                  
+                <div className="section-controls relative">
+                  <Collapsible>
+                    <CollapsibleTrigger className="px-3 py-2 rounded-md border border-gray-300 bg-white text-sm flex items-center gap-2">
+                      <span>Filter</span>
+                      <span className="ml-auto text-xs text-gray-500">
+                        {(selectedModes.length + selectedExpertise.length + selectedSubjects.length) || 0} selected
+                      </span>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="lw-collapsible-content">
+                      <div className="filter-popover">
+                        <div className="px-1 py-1">
+                          <div className="grid md:grid-cols-[220px_1fr] gap-4">
+                          <div>
+                            <h4 className="font-semibold text-sm mb-2">Mode</h4>
+                            <div className="flex flex-col gap-2">
+                                <label className="inline-flex items-center gap-2 text-sm filter-option"><Checkbox checked={selectedModes.includes('online')} onCheckedChange={(checked) => {
+                                  setSelectedModes((prev) => checked ? (prev.includes('online') ? prev : [...prev, 'online']) : prev.filter((k) => k !== 'online'));
+                                  setCurrentPage(1);
+                                  setShowAll(false);
+                                }} /> <span className="filter-label-text">Online</span></label>
+                                <label className="inline-flex items-center gap-2 text-sm filter-option"><Checkbox checked={selectedModes.includes('in_person')} onCheckedChange={(checked) => {
+                                  setSelectedModes((prev) => checked ? (prev.includes('in_person') ? prev : [...prev, 'in_person']) : prev.filter((k) => k !== 'in_person'));
+                                  setCurrentPage(1);
+                                  setShowAll(false);
+                                }} /> <span className="filter-label-text">In-person</span></label>
+                              </div>
+                          </div>
+                          {(expertiseOptions.length > 0 || subjectOptions.length > 0) && (
+                            <div>
+                              {expertiseOptions.length > 0 && (
+                                <>
+                              <h4 className="font-semibold text-sm mb-2">Topics</h4>
+                                  <div className="filter-list">
+                                    {expertiseOptions.map((opt) => (
+                                      <label key={opt} className="inline-flex items-center gap-2 text-sm filter-option">
+                                    <Checkbox checked={selectedExpertise.includes(opt)} onCheckedChange={(checked) => {
+                                      setSelectedExpertise((prev) => checked ? (prev.includes(opt) ? prev : [...prev, opt]) : prev.filter((x) => x !== opt));
+                                      setCurrentPage(1);
+                                      setShowAll(false);
+                                    }} />
+                                        <span className="filter-label-text">{opt}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                              {subjectOptions.length > 0 && (
+                                <>
+                                  <h4 className="font-semibold text-sm mt-4 mb-2">Subject Codes</h4>
+                                  <div className="filter-list">
+                                    {subjectOptions.map((code) => (
+                                      <label key={code} className="inline-flex items-center gap-2 text-sm filter-option">
+                                        <Checkbox checked={selectedSubjects.includes(code)} onCheckedChange={(checked) => {
+                                          setSelectedSubjects((prev) => checked ? (prev.includes(code) ? prev : [...prev, code]) : prev.filter((x) => x !== code));
+                                          setCurrentPage(1);
+                                          setShowAll(false);
+                                        }} />
+                                        <span className="filter-label-text">{code}</span>
+                                      </label>
+                                    ))}
+                                  </div>
+                                </>
+                              )}
+                            </div>
+                          )}
+                          </div>
+                          <div className="mt-3 flex gap-2">
+                          <button onClick={clearFilters} className="px-2 py-1 text-xs rounded-md border border-gray-300 bg-white hover:bg-gray-100">Clear</button>
+                          </div>
+                        </div>
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                   <span className="section-count">{filteredAdvisors.length} total</span>
                 </div>
               </div>
@@ -323,11 +545,10 @@ export default function AdvisorListPage() {
                     ))}
                   </div>
                   
-                  {/* Load More Button */}
-                  {!showAll && endIndex < filteredAdvisors.length && (
+                  {!showAll && endIndex < filteredAdvisors.length && showLoadMore && (
                     <div className="load-more-section">
-                      <Button 
-                        variant="outline-primary" 
+                      <Button
+                        variant="default"
                         className="load-more-btn"
                         onClick={handleLoadMore}
                       >

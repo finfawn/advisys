@@ -8,7 +8,7 @@ import "react-day-picker/dist/style.css";
 import { toast } from "../hooks/use-toast";
 import "./ConsultationModal.css";
 
-function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations, modeType = 'create', initialData = null, consultationId = null, onSubmitSuccess }) {
+function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations, modeType = 'create', initialData = null, consultationId = null, onSubmitSuccess, allowDetailsEdit = true, autoApproveOnReschedule = false }) {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [formData, setFormData] = useState({
@@ -171,7 +171,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   // Reset form when modal opens/closes
   useEffect(() => {
     if (isOpen) {
-      setCurrentStep(1);
+      setCurrentStep(allowDetailsEdit ? 1 : 2);
 
       // Prefill when editing
       if (modeType === 'edit' && initialData) {
@@ -390,7 +390,10 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
         res = await fetch(`${base}/api/consultations/${consultationId}`, {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload),
+          body: JSON.stringify({
+            ...payload,
+            approve_immediately: autoApproveOnReschedule ? true : false
+          }),
         });
       } else {
         // Create new consultation
@@ -441,7 +444,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
 
   // Step 1 validation - require title and description, category is optional
-  const isStep1Valid = !!formData.title.trim() && !!formData.description.trim();
+  const isStep1Valid = allowDetailsEdit ? (!!formData.title.trim() && !!formData.description.trim()) : true;
   const isStep2Valid = selectedSlot;
 
   // Make progress fill align with step numbers (0%, 50%, 100%)
@@ -529,6 +532,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 autoCorrect="off"
                 spellCheck={false}
                 required
+                disabled={!allowDetailsEdit}
               />
             </div>
 
@@ -544,7 +548,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                   type="button"
                   className={`optimize-btn ${isOptimizing ? 'loading' : ''}`}
                   onClick={handleOptimize}
-                  disabled={!formData.description.trim() || isOptimizing}
+                  disabled={!formData.description.trim() || isOptimizing || !allowDetailsEdit}
                 >
                   {isOptimizing ? 'Optimizing…' : 'Optimize with AI'}
                 </button>
@@ -561,6 +565,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 autoComplete="off"
                 autoCorrect="off"
                 spellCheck={false}
+                disabled={!allowDetailsEdit}
               />
               {formData.description.length > MAX_DESCRIPTION_LENGTH * 0.9 && (
                 <div className="character-warning">
@@ -596,26 +601,26 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
 
           <div className="form-section">
             <label className="form-label">Mode</label>
-            <div className="mode-toggle">
-              <button
-                type="button"
-                className={`mode-option ${formData.mode === 'in-person' ? 'selected' : ''} ${!availableModes.inPerson ? 'disabled' : ''}`}
-                disabled={!availableModes.inPerson}
-                onClick={() => handleModeToggle('in-person')}
-              >
-                <FaMapMarkerAlt />
-                <span>In-Person</span>
-              </button>
-              <button
-                type="button"
-                className={`mode-option ${formData.mode === 'online' ? 'selected' : ''} ${!availableModes.online ? 'disabled' : ''}`}
-                disabled={!availableModes.online}
-                onClick={() => handleModeToggle('online')}
-              >
-                <FaLaptop />
-                <span>Online</span>
-              </button>
-            </div>
+              <div className="mode-toggle">
+                <button
+                  type="button"
+                  className={`mode-option ${formData.mode === 'in-person' ? 'selected' : ''} ${!availableModes.inPerson ? 'disabled' : ''}`}
+                  disabled={!availableModes.inPerson || !allowDetailsEdit}
+                  onClick={() => handleModeToggle('in-person')}
+                >
+                  <FaMapMarkerAlt />
+                  <span>In-Person</span>
+                </button>
+                <button
+                  type="button"
+                  className={`mode-option ${formData.mode === 'online' ? 'selected' : ''} ${!availableModes.online ? 'disabled' : ''}`}
+                  disabled={!availableModes.online || !allowDetailsEdit}
+                  onClick={() => handleModeToggle('online')}
+                >
+                  <FaLaptop />
+                  <span>Online</span>
+                </button>
+              </div>
           </div>
 
             {/* Location is display-only; for in-person, show room from selected slot only */}
@@ -625,8 +630,8 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
           {/* Step 2 */}
           <div className={`step-panel ${currentStep === 2 ? 'active' : ''}`}>
             <div className="date-time-section">
-              <Row>
-                <Col md={6}>
+              <Row className="date-time-row">
+                <Col md={6} className="calendar-col">
                   <h3 className="section-title">Select Date</h3>
                   <div className="lw-daypicker-wrapper">
                     <DayPicker
@@ -640,7 +645,7 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                     />
                   </div>
                 </Col>
-                <Col md={6}>
+                <Col md={6} className="slots-col">
                   <h3 className="section-title">Available Time Slots</h3>
                   <div className="d-flex flex-column gap-3">
                     {isLoadingSlots ? (

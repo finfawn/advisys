@@ -14,6 +14,7 @@ import { Skeleton } from "../../lightswind/skeleton";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import "./AdvisorDashboard.css";
 import "./AdvisorConsultations.css";
+import ConsultationModal from "../../components/student/ConsultationModal";
 
 export default function AdvisorConsultations() {
   // API config (module-wide inside component)
@@ -88,6 +89,8 @@ export default function AdvisorConsultations() {
   const [declinedUndoTimeout, setDeclinedUndoTimeout] = useState(null);
   const navigate = useNavigate();
   const location = useLocation();
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [consultationToReschedule, setConsultationToReschedule] = useState(null);
 
   const toggleSidebar = () => setCollapsed(v => !v);
 
@@ -401,12 +404,32 @@ export default function AdvisorConsultations() {
         state.source = 'history';
       }
     }
+    const statusLc = String(c.status || '').toLowerCase();
+    if (statusLc === 'declined' || statusLc === 'cancelled' || statusLc === 'canceled' || statusLc === 'missed' || statusLc === 'expired') {
+      setConsultationToReschedule(c);
+      setShowRescheduleModal(true);
+      return;
+    }
     if (c.mode === 'online') {
       navigate(`/advisor-dashboard/consultations/online/${c.id}`, { state });
     } else {
       navigate(`/advisor-dashboard/consultations/${c.id}`, { state });
     }
   };
+
+  useEffect(() => {
+    try {
+      const trigId = location?.state?.triggerRescheduleById || location?.state?.triggerReschedule?.consultationId;
+      if (trigId) {
+        const target = allConsultations.find(c => Number(c.id) === Number(trigId));
+        if (target) {
+          setConsultationToReschedule(target);
+          setShowRescheduleModal(true);
+        }
+        navigate(location.pathname, { replace: true, state: { ...location.state, triggerRescheduleById: undefined, triggerReschedule: undefined } });
+      }
+    } catch (_) {}
+  }, [location?.state, allConsultations]);
 
   const handleDeleteHistory = (consultation) => {
     // Clear any existing undo timeout
@@ -484,6 +507,20 @@ export default function AdvisorConsultations() {
 
   const handleCloseDeleteModal = () => {
     setShowDeleteModal(false);
+  };
+
+  const handleCloseRescheduleModal = () => {
+    setShowRescheduleModal(false);
+    setConsultationToReschedule(null);
+  };
+
+  const handleRescheduleSuccess = async () => {
+    try {
+      toast.success({ title: 'Rescheduled', description: 'Consultation updated. Awaiting approval.' });
+      setShowRescheduleModal(false);
+      setConsultationToReschedule(null);
+      await reloadConsultations();
+    } catch (_) {}
   };
 
   return (
@@ -896,6 +933,27 @@ export default function AdvisorConsultations() {
         isDeclining={isDeclining}
         variant="admin"
       />
+
+      {consultationToReschedule && (
+        <ConsultationModal
+          isOpen={showRescheduleModal}
+          onClose={handleCloseRescheduleModal}
+          faculty={(function(){
+            try {
+              const raw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+              const u = raw ? JSON.parse(raw) : null;
+              return { id: u?.id || null, name: u?.full_name || 'Advisor', title: u?.title || '', avatar: u?.avatar_url || null };
+            } catch(_) { return { id: null, name: 'Advisor' }; }
+          })()}
+          modeType="edit"
+          initialData={consultationToReschedule}
+          consultationId={consultationToReschedule.id}
+          allowDetailsEdit={false}
+          autoApproveOnReschedule={true}
+          onSubmitSuccess={handleRescheduleSuccess}
+          onNavigateToConsultations={() => navigate('/advisor-dashboard/consultations')}
+        />
+      )}
     </div>
   );
 }

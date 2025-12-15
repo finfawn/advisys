@@ -2,6 +2,10 @@ import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { BsBell, BsCheck, BsX, BsCalendar, BsClock, BsPersonCircle, BsCheckCircle, BsXCircle, BsExclamationTriangle, BsCameraVideo, BsGeoAlt, BsDownload, BsTrash } from "react-icons/bs";
+import { useNotifications } from "../contexts/NotificationContext";
+import { toast } from "./hooks/use-toast";
+import "./NotificationModal.css";
+import SummaryEditActionModal from "./SummaryEditActionModal";
 
 const getNotificationIcon = (iconName, className) => {
   switch (iconName) {
@@ -21,10 +25,6 @@ const getNotificationIcon = (iconName, className) => {
     default: return null;
   }
 };
-
-import { useNotifications } from "../contexts/NotificationContext";
-import "./NotificationModal.css";
-import SummaryEditActionModal from "./SummaryEditActionModal";
 
 function NotificationModal({ isOpen, onClose, userType = "student" }) {
   const modalRef = useRef(null);
@@ -114,7 +114,10 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       deleteNotification(notification.id);
     } catch (e) {
       console.error('Summary edit action failed:', e);
-      alert(e?.message || 'Action failed. Please try again.');
+      toast.destructive({
+        title: 'Action failed',
+        description: e?.message || 'Action failed. Please try again.'
+      });
     } finally {
       setActionResolving(false);
     }

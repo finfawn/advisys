@@ -4,6 +4,27 @@ import { Button } from "../../../lightswind/button";
 import { Badge } from "../../../lightswind/badge";
 import { TableRow, TableCell } from "../../../lightswind/table";
 
+const describePasswordChanged = (raw) => {
+  if (!raw) return "";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "Password change date unavailable";
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  if (diffMs <= 0) return "Last changed today";
+  const diffDays = Math.floor(diffMs / 86400000);
+  if (diffDays === 0) return "Last changed today";
+  if (diffDays === 1) return "Last changed yesterday";
+  if (diffDays < 30) return `Last changed ${diffDays} days ago`;
+  const diffMonths = Math.floor(diffDays / 30);
+  if (diffMonths < 12) {
+    const plural = diffMonths === 1 ? "" : "s";
+    return `Last changed ${diffMonths} month${plural} ago`;
+  }
+  const diffYears = Math.floor(diffMonths / 12);
+  const pluralY = diffYears === 1 ? "" : "s";
+  return `Last changed ${diffYears} year${pluralY} ago`;
+};
+
 export default function AdminManageUserRow({
   item,
   isStudent,
@@ -49,41 +70,51 @@ export default function AdminManageUserRow({
           <div className="text-sm">{item.year}</div>
         </TableCell>
       )}
-      <TableCell className="w-[120px] py-1">
-        <div className="flex items-center" style={{ minHeight: 22 }}>
-          <Badge
-            variant={item.active ? "success" : "outline"}
-            withDot
-            dotColor={item.active ? "#16a34a" : "#9ca3af"}
-          >
-            {item.active ? "Active" : "Inactive"}
-          </Badge>
-          {(() => {
-            if (!item.active && (item.deactivationReason || item.deactivationOther)) {
-              return (
-                <span
-                  className="ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs max-w-[120px] truncate"
-                  title={item.deactivationReason === 'other' ? (item.deactivationOther || 'Other') : (item.deactivationReason || '')}
-                >
-                  {item.deactivationReason === 'other'
-                    ? (item.deactivationOther || 'Other')
-                    : ((item.deactivationReason || '').charAt(0).toUpperCase() + (item.deactivationReason || '').slice(1))}
-                </span>
-              );
-            } else if (showTermStatus && isStudent && item.active && isMember && termStatus !== undefined && String(termStatus || '').toLowerCase() === 'enrolled') {
-              return (
-                <span 
-                  className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag opacity-100`}
-                >
-                  {(() => {
-                    const s = String(termStatus || 'enrolled');
-                    return s.charAt(0).toUpperCase() + s.slice(1);
-                  })()}
-                </span>
-              );
-            }
-            return null;
-          })()}
+      <TableCell className="w-[180px] py-1">
+        <div className="flex flex-col gap-0.5" style={{ minHeight: 22 }}>
+          <div className="flex items-center">
+            <Badge
+              variant={item.active ? "success" : "outline"}
+              withDot
+              dotColor={item.active ? "#16a34a" : "#9ca3af"}
+            >
+              {item.active ? "Active" : "Inactive"}
+            </Badge>
+            {(() => {
+              if (!item.active && (item.deactivationReason || item.deactivationOther)) {
+                return (
+                  <span
+                    className="ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs max-w-[120px] truncate"
+                    title={item.deactivationReason === 'other' ? (item.deactivationOther || 'Other') : (item.deactivationReason || '')}
+                  >
+                    {item.deactivationReason === 'other'
+                      ? (item.deactivationOther || 'Other')
+                      : ((item.deactivationReason || '').charAt(0).toUpperCase() + (item.deactivationReason || '').slice(1))}
+                  </span>
+                );
+              } else if (showTermStatus && isStudent && item.active && isMember && termStatus !== undefined && String(termStatus || '').toLowerCase() === 'enrolled') {
+                return (
+                  <span 
+                    className={`ml-2 inline-flex items-center rounded-md border px-2 py-1 text-xs transition-all duration-300 enrollment-tag opacity-100`}
+                  >
+                    {(() => {
+                      const s = String(termStatus || 'enrolled');
+                      return s.charAt(0).toUpperCase() + s.slice(1);
+                    })()}
+                  </span>
+                );
+              }
+              return null;
+            })()}
+          </div>
+          {item.passwordChangedAt && (
+            <div className="flex items-center gap-1 text-[11px] text-gray-500">
+              <BsClockHistory className="w-3 h-3" />
+              <span className="truncate" title={item.passwordChangedAt || ""}>
+                {describePasswordChanged(item.passwordChangedAt || null)}
+              </span>
+            </div>
+          )}
         </div>
       </TableCell>
       <TableCell className="w-[64px] text-right py-1">

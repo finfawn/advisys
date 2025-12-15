@@ -35,21 +35,22 @@
   }
 }
 
-/* Tablet and mid-width responsiveness: prevent main content from disappearing */
+/* Tablet and mid-width responsiveness: prevent main content from disappearing
+   (scoped only to the Student Settings layout) */
 @media (min-width: 768px) and (max-width: 1366px) {
-  .dash-wrap {
+  .student-settings-wrap {
     height: auto !important;
     min-height: 100vh !important;
     overflow: visible !important;
   }
-  .dash-body,
-  .dash-body.collapsed {
+  .student-settings-wrap .dash-body,
+  .student-settings-wrap .dash-body.collapsed {
     grid-template-columns: 1fr !important;
     height: auto !important;
     overflow: visible !important;
     gap: 0 !important;
   }
-  .dash-main {
+  .student-settings-wrap .dash-main {
     padding: 18px !important;
     padding-left: 18px !important;
     height: auto !important;

@@ -39,6 +39,14 @@ export default function AdminSettings() {
       toast.warning({ title: 'Incomplete', description: 'Fill in all fields' });
       return;
     }
+    if (!/\S+@\S+\.\S+/.test(adminEmail.trim())) {
+      toast.warning({ title: 'Invalid email', description: 'Enter a valid email address' });
+      return;
+    }
+    if (adminPass.trim().length < 6) {
+      toast.warning({ title: 'Weak password', description: 'Password must be at least 6 characters' });
+      return;
+    }
     try {
       setCreating(true);
       const res = await fetch(`${apiBase}/api/users/admin`, {

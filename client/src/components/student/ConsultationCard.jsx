@@ -264,9 +264,9 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         </CardFooter>
       )}
       
-      {(consultation.status === 'declined' || consultation.status === 'expired') && (
+      {(consultation.status === 'declined' || consultation.status === 'expired' || consultation.status === 'missed' || consultation.status === 'cancelled') && (
         <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={handleRescheduleConsultation}>
+          <Button size="sm" variant="ghost" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={handleRescheduleConsultation}>
             Reschedule
           </Button>
         </CardFooter>
@@ -281,23 +281,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         </CardFooter>
       )}
       
-      {consultation.status === 'cancelled' && (
-        <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1" onClick={onActionClick}>
-            View Details
-            <BsChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </CardFooter>
-      )}
-      
-      {consultation.status === 'missed' && (
-        <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1" onClick={onActionClick}>
-            View Details
-            <BsChevronRight className="w-4 h-4 ml-1" />
-          </Button>
-        </CardFooter>
-      )}
+      {/* completed still shows details; other statuses handled above */}
     </Card>
   );
 }

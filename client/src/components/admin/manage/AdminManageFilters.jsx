@@ -97,8 +97,8 @@ export default function AdminManageFilters({
                 <BsThreeDotsVertical className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuItem onClick={onUploadUsersOpen}>Upload Users</DropdownMenuItem>
+              <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={onUploadUsersOpen}>Bulk Upload Users</DropdownMenuItem>
               <DropdownMenuItem onClick={onExport}>Download CSV</DropdownMenuItem>
               {onExportMembers && termId !== 'all' && (
                 <DropdownMenuItem onClick={onExportMembers}>Export Term Members</DropdownMenuItem>
@@ -155,6 +155,7 @@ export default function AdminManageFilters({
           <SelectContent align="end">
             <SelectItem value="name-asc">Name A-Z</SelectItem>
             <SelectItem value="name-desc">Name Z-A</SelectItem>
+            <SelectItem value="recent">Recently created</SelectItem>
           </SelectContent>
         </Select>
         <Button variant="ghost" size="sm" className="h-7 px-2 text-[11px] md:h-8 md:text-xs" onClick={()=>{

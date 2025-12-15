@@ -1,6 +1,24 @@
-/* Base modal layout */
 .consultation-modal-dialog {
-  max-width: 820px;
+  width: min(100%, 640px);
+  max-width: 640px;
+  margin: 0 auto;
+}
+
+@media (max-width: 768px) {
+  .consultation-modal-dialog {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 12px;
+  }
+}
+
+@media (max-width: 480px) {
+  .consultation-modal .modal-body {
+    padding: 12px 14px;
+  }
+  .consultation-modal .modal-footer {
+    padding: 12px 14px;
+  }
 }
 
 .consultation-modal .modal-content {
@@ -12,10 +30,9 @@
 
 .consultation-modal .modal-header {
   padding: 16px 20px;
-  position: relative; /* anchor close button */
+  position: relative;
 }
 
-/* Position the Bootstrap close button at the top-right and reserve space */
 .consultation-modal .modal-header .btn-close {
   position: absolute;
   top: 10px;
@@ -24,11 +41,11 @@
 }
 
 .consultation-modal .modal-header > .w-100 {
-  padding-right: 56px; /* ensure header content doesn't sit under the X */
+  padding-right: 56px;
 }
 
 .consultation-modal .modal-header .progressbar {
-  margin-top: 6px; /* slight offset from top */
+  margin-top: 6px;
 }
 
 .consultation-modal .modal-body {
@@ -138,7 +155,7 @@
 }
 
 .consultation-modal .faculty-name {
-  font-size: 1.15rem;
+  font-size: clamp(1.05rem, 1.6vw, 1.15rem);
   font-weight: 700;
   color: #1f2937;
   margin: 0 0 4px 0;
@@ -146,14 +163,14 @@
 }
 
 .consultation-modal .faculty-title {
-  font-size: 0.95rem;
+  font-size: clamp(0.9rem, 1.4vw, 0.95rem);
   color: #4b5563;
   margin: 0 0 4px 0;
   font-weight: 500;
 }
 
 .consultation-modal .faculty-department {
-  font-size: 0.9rem;
+  font-size: clamp(0.85rem, 1.3vw, 0.9rem);
   color: #6b7280;
   margin: 0 0 4px 0;
 }
@@ -176,6 +193,7 @@
 .form-label {
   font-weight: 600;
   margin-bottom: 8px;
+  font-size: clamp(0.9rem, 1.1vw, 1rem);
 }
 
 .form-label-container {
@@ -227,6 +245,12 @@
   border: 1px solid #e5e7eb;
   border-radius: 10px;
   background: #fff;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+
+.mode-option span {
+  white-space: nowrap;
 }
 
 .mode-option.selected {
@@ -280,9 +304,49 @@
   margin-top: 10px;
 }
 
+.date-time-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.calendar-col {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.slots-col {
+  flex: 0 0 280px;
+  max-width: 280px;
+}
+@media (max-width: 768px) {
+  .date-time-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+  .slots-col {
+    flex: 1 1 auto;
+    max-width: none;
+  }
+}
+
+.calendar-col .section-title {
+  text-align: center;
+  width: 100%;
+}
+.lw-daypicker-wrapper {
+  display: flex;
+  justify-content: center;
+}
+
+.time-period {
+  margin-bottom: 12px;
+}
+
 .section-title {
   font-weight: 700;
-  font-size: 1.05rem;
+  font-size: clamp(1rem, 1.4vw, 1.05rem);
   margin-bottom: 8px;
 }
 
@@ -294,7 +358,7 @@
 
 .slots-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  grid-template-columns: 1fr;
   gap: 8px;
 }
 
@@ -310,6 +374,8 @@
   line-height: 1.2;
   min-height: 36px;
   white-space: nowrap;
+  width: 100%;
+  justify-content: flex-start;
 }
 
 .time-slot.selected {
@@ -351,7 +417,7 @@
 
 .summary-title {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: clamp(0.95rem, 1.3vw, 1rem);
   margin-bottom: 8px;
 }
 
@@ -542,6 +608,7 @@
   border-radius: 12px;
   padding: 10px;
   background: #fff;
+  overflow: hidden;
 }
 
 .lw-daypicker {
@@ -551,3 +618,7 @@
   --rdp-outline: 2px solid var(--rdp-accent-color);
   --rdp-weekday-color: #6b7280;
 }
+
+.lw-daypicker .rdp-months { display: flex; justify-content: center; width: 100%; }
+.lw-daypicker .rdp-month { width: 100%; }
+.lw-daypicker .rdp-table { width: 100%; }

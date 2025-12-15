@@ -984,6 +984,7 @@ router.patch('/consultations/:id', async (req, res) => {
     const startIso = body.start_datetime;
     const endIso = body.end_datetime;
     const slotId = body.slot_id || null;
+    const approveImmediately = Boolean(body.approve_immediately) || String(body.reschedule_actor || '').toLowerCase() === 'advisor';
 
     // Compute duration if datetime provided
     let startDate = null;
@@ -1024,8 +1025,12 @@ router.patch('/consultations/:id', async (req, res) => {
     if (location !== undefined) { fields.push('location = ?'); values.push(location || null); }
     if (notes !== undefined) { fields.push('student_notes = ?'); values.push(notes || null); }
 
-    // On reschedule/edit, reset status to pending
-    fields.push('status = ?'); values.push('pending');
+    // On reschedule/edit, set status based on actor
+    if (approveImmediately) {
+      fields.push('status = ?'); values.push('approved');
+    } else {
+      fields.push('status = ?'); values.push('pending');
+    }
     // Clear decline/cancel reasons on edit
     fields.push('decline_reason = ?'); values.push(null);
     fields.push('cancel_reason = ?'); values.push(null);
@@ -1058,7 +1063,7 @@ router.patch('/consultations/:id', async (req, res) => {
 
     await conn.commit();
 
-    // Notify advisor about rescheduled request
+    // Notify parties about rescheduled update
     try {
       const [[c]] = await pool.query(
         `SELECT c.*, s.full_name AS student_name, a.full_name AS advisor_name
@@ -1072,16 +1077,24 @@ router.patch('/consultations/:id', async (req, res) => {
         const end = new Date(c.end_datetime);
         const date = formatDate(start);
         const time = formatTimeRange(start, end);
-        const title = `${c.student_name} rescheduled a consultation`;
-        const message = `${c.student_name} requested '${c.topic}' on ${date} at ${time}.`;
+        const actorIsAdvisor = approveImmediately;
+        const title = actorIsAdvisor ? `Consultation rescheduled by advisor` : `${c.student_name} rescheduled a consultation`;
+        const message = actorIsAdvisor 
+          ? `${c.advisor_name} updated '${c.topic}' to ${date} at ${time}.`
+          : `${c.student_name} requested '${c.topic}' on ${date} at ${time}.`;
         const changes = [];
         if (body.start_datetime && body.end_datetime) changes.push('time');
         if (body.location !== undefined) changes.push('location');
         if (body.mode !== undefined) changes.push('mode');
         const data = { consultation_id: c.id, changed: changes, date, time, location: c.location || null, mode: c.mode || null };
+        // Notify advisor
         await notify(pool, c.advisor_user_id, 'consultation_rescheduled', title, message, data);
-        // Also notify student for visibility of confirmed changes
-        await notify(pool, c.student_user_id, 'consultation_rescheduled', 'Consultation updated', `Your consultation '${c.topic}' was updated to ${date} at ${time}.`, data);
+        // Notify student with actor-aware message
+        const studentTitle = actorIsAdvisor ? 'Consultation updated' : 'Consultation request updated';
+        const studentMsg = actorIsAdvisor 
+          ? `${c.advisor_name} updated your consultation '${c.topic}' to ${date} at ${time}.`
+          : `Your consultation '${c.topic}' was updated to ${date} at ${time}.`;
+        await notify(pool, c.student_user_id, 'consultation_rescheduled', studentTitle, studentMsg, data);
       }
     } catch (err) {
       console.error('Reschedule notification error', err);

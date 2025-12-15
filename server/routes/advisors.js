@@ -15,10 +15,12 @@ router.get('/', async (req, res) => {
   const pool = getPool();
   try {
     const [rows] = await pool.query(
-      `SELECT u.id, u.full_name, ap.title, ap.department, ap.status, ap.avatar_url, ap.office_location
+      `SELECT u.id, u.full_name, u.email, u.status AS user_status, ap.title, ap.department, ap.status AS profile_status, ap.avatar_url, ap.office_location
        FROM users u
        LEFT JOIN advisor_profiles ap ON ap.user_id = u.id
-       WHERE u.role = 'advisor' AND u.status = 'active'`
+       WHERE u.role = 'advisor'
+         AND u.status = 'active'
+         AND (ap.status IS NULL OR ap.status <> 'inactive')`
     );
     const result = [];
     for (const row of rows) {
@@ -80,14 +82,16 @@ router.get('/', async (req, res) => {
       result.push({
         id: row.id,
         name: row.full_name,
+        email: row.email,
+        userStatus: row.user_status,
+        profileStatus: row.profile_status,
         title: row.title,
         department: row.department,
-        status: 'Available', // UI-friendly
+        status: 'Available',
         schedule: scheduleDays,
         time: timeRange,
         mode: modeStr,
         coursesTaught: courses,
-        // Include avatar so clients can show profile pictures in advisor cards
         avatar: row.avatar_url || null,
         officeLocation: row.office_location || null,
       });

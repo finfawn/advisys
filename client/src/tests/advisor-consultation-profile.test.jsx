@@ -53,7 +53,10 @@ describe('Advisor Consultation Profile Editing', () => {
     fireEvent.change(nameInput, { target: { value: 'Intro to Programming' } });
     fireEvent.change(codeInput, { target: { value: 'CS101' } });
     fireEvent.click(screen.getByRole('button', { name: /Add course/i }));
+    // Name input should reflect the added row
     expect(await screen.findByDisplayValue(/Intro to Programming/i)).toBeInTheDocument();
-    expect(await screen.findByDisplayValue(/CS101/i)).toBeInTheDocument();
+    // Code input can be one of multiple textboxes; ensure at least one matches
+    const codeInputs = await screen.findAllByDisplayValue(/CS101/i);
+    expect(codeInputs.length).toBeGreaterThan(0);
   });
 });

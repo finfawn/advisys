@@ -27,6 +27,8 @@ export default function AdvisorAvailability() {
   const [deleteAllOpen, setDeleteAllOpen] = useState(false);
   // Undo toast state (like student pages)
   const [undoToast, setUndoToast] = useState({ open: false, items: [], timeoutId: null, message: '', onFinalize: null });
+  const [consultationProfileReady, setConsultationProfileReady] = useState(true);
+  const [consultationPromptOpen, setConsultationPromptOpen] = useState(false);
 
   // Helper: serialize Date to UTC ISO (YYYY-MM-DDTHH:mm:ssZ) for storage
   const toUtcIso = (d) => {
@@ -146,6 +148,33 @@ export default function AdvisorAvailability() {
     }
     setUndoToast({ open: false, items: [], timeoutId: null, message: '', onFinalize: null, action: null });
   };
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id;
+        const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+        if (!advisorId) return;
+        const res = await fetch(`${baseUrl}/api/advisors/${advisorId}`, {
+          headers: {
+            ...(storedToken ? { Authorization: `Bearer ${storedToken}` } : {}),
+          },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        const topics = Array.isArray(data.topicsCanHelpWith) ? data.topicsCanHelpWith : [];
+        const courses = Array.isArray(data.coursesTaught) ? data.coursesTaught : [];
+        const hasTopicsOrCourses = topics.length > 0 || courses.length > 0;
+        if (!hasTopicsOrCourses) {
+          setConsultationProfileReady(false);
+          setConsultationPromptOpen(true);
+        }
+      } catch (_) {}
+    })();
+  }, []);
   // Start with no events; dots appear only for real created slots
   const [events, setEvents] = useState([]);
   const [activeSection, setActiveSection] = useState('morning');
@@ -493,9 +522,19 @@ export default function AdvisorAvailability() {
                       <Button 
                         variant="default" 
                         size="sm" 
-                        onClick={() => setOpenCreateSignal((s) => s + 1)}
+                        onClick={() => {
+                          if (!consultationProfileReady) {
+                            setConsultationPromptOpen(true);
+                            return;
+                          }
+                          setOpenCreateSignal((s) => s + 1);
+                        }}
                         disabled={isPastSelectedDay}
-                        title={isPastSelectedDay ? 'Past day — creating slots is disabled' : undefined}
+                        title={
+                          !consultationProfileReady
+                            ? 'Add at least one topic or subject in your consultation profile first'
+                            : (isPastSelectedDay ? 'Past day — creating slots is disabled' : undefined)
+                        }
                       >
                         + Add Slot
                       </Button>
@@ -710,6 +749,30 @@ export default function AdvisorAvailability() {
           )}
         </main>
       </div>
+      <AlertDialog open={consultationPromptOpen} onOpenChange={(open)=>{ if (!open) setConsultationPromptOpen(open); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="leading-none text-center">Complete Your Consultation Profile</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              Before adding availability, add at least one consultation topic or subject in your profile.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:items-center sm:justify-between">
+            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">
+              Later
+            </AlertDialogCancel>
+            <AlertDialogAction
+              className="min-w-[160px]"
+              onClick={() => {
+                setConsultationPromptOpen(false);
+                navigate('/advisor-dashboard/settings', { state: { focusConsultation: true, autoEditConsultation: true } });
+              }}
+            >
+              Update Consultation Settings
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -29,7 +29,7 @@ async function ensureAdmin() {
       );
       console.log(`[admin] Created admin user: ${email} (id=${resUser.insertId})`);
     }
-    console.log(`[admin] Temporary password: ${plainPassword}`);
+    console.log(`[admin] Initial password: ${plainPassword}`);
     console.log('[admin] Please change this password after first login.');
     process.exit(0);
   } catch (err) {

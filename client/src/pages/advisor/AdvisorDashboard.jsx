@@ -20,6 +20,38 @@ export default function AdvisorDashboard() {
   const { collapsed, toggleSidebar } = useSidebar();  
   const navigate = useNavigate();
 
+  useEffect(() => {
+    (async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id;
+        if (!advisorId) return;
+
+        const onboardingKey = 'advisys_advisor_consultation_onboarded';
+        const already = typeof window !== 'undefined' ? localStorage.getItem(onboardingKey) : null;
+        if (already === 'true') return;
+
+        const res = await fetch(`${base}/api/advisors/${advisorId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const topics = Array.isArray(data.topicsCanHelpWith) ? data.topicsCanHelpWith : [];
+        const courses = Array.isArray(data.coursesTaught) ? data.coursesTaught : [];
+        const hasTopicsOrCourses = topics.length > 0 || courses.length > 0;
+
+        if (!hasTopicsOrCourses) {
+          navigate('/advisor-dashboard/settings', { replace: true, state: { focusConsultation: true, autoEditConsultation: true } });
+          return;
+        }
+
+        try {
+          localStorage.setItem(onboardingKey, 'true');
+        } catch (_) {}
+      } catch (_) {}
+    })();
+  }, [navigate]);
+
   // Onboarding: if advisor profile lacks consultation settings, redirect to settings on first login
   // useEffect(() => {
   //   const checkOnboarding = async () => {

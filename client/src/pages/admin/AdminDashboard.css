@@ -29,6 +29,7 @@
   grid-template-columns: 240px 1fr; /* sidebar + main */
   transition: grid-template-columns 240ms ease;
   position: relative;
+  min-height: 0;
 }
 
 .admin-dash-body.collapsed {
@@ -43,6 +44,7 @@
   gap: 12px;
   /* Account for sticky topbar height */
   height: calc(100vh - 64px);
+  min-height: 0;
   overflow-y: auto;
   box-sizing: border-box;
 }
@@ -137,8 +139,8 @@
   .admin-dash-main {
     padding: 18px;
     gap: 18px;
-    height: auto;
-    overflow-y: visible;
+    height: calc(100vh - 64px);
+    overflow-y: auto;
   }
 
   .admin-bento-grid {
@@ -153,7 +155,7 @@
 @media (min-width: 1181px) and (max-width: 1366px) {
   .admin-dash-body { grid-template-columns: 1fr; }
   .admin-dash-body.collapsed { grid-template-columns: 1fr; }
-  .admin-dash-main { padding: 20px; gap: 18px; height: auto; overflow-y: visible; }
+  .admin-dash-main { padding: 20px; gap: 18px; height: calc(100vh - 64px); overflow-y: auto; }
   .admin-bento-grid { grid-template-columns: 1fr; grid-template-rows: none; gap: 18px; }
 }
 

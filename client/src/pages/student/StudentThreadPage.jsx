@@ -7,7 +7,6 @@ import { useSidebar } from "../../contexts/SidebarContext";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import { Card, CardContent } from "../../lightswind/card";
 import { Button } from "../../lightswind/button";
-import ConsultationCard from "../../components/student/ConsultationCard";
 import { BsCameraVideo, BsGeoAlt, BsDownload, BsPerson, BsChevronLeft, BsChevronRight } from "react-icons/bs";
 import "./StudentThreadPage.css";
 
@@ -23,6 +22,10 @@ export default function StudentThreadPage() {
   const [studentId, setStudentId] = useState(null);
   const [thread, setThread] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [modeFilter, setModeFilter] = useState('all');
+  const [timeFilter, setTimeFilter] = useState('all');
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState([]);
 
   useEffect(() => {
     try {
@@ -69,10 +72,38 @@ export default function StudentThreadPage() {
 
   useEffect(() => { loadThread(); }, [studentId, termId, advisorId, loadThread]);
 
-  const historyThread = useMemo(() => {
-    const historyStatuses = new Set(['completed', 'cancelled', 'canceled', 'missed', 'expired']);
-    return (Array.isArray(thread) ? thread : []).filter((c) => historyStatuses.has(String(c?.status || '').toLowerCase()));
-  }, [thread]);
+  const getStartDate = React.useCallback((c) => {
+    const v = c?.start_datetime || (c?.date && c?.time ? `${c.date} ${c.time}` : c?.date);
+    const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null;
+  }, []);
+  const isWithinTimeFilter = React.useCallback((d) => {
+    if (!d || isNaN(d)) return false;
+    const now = new Date();
+    const startOfWeek = (() => { const s = new Date(now); const day = s.getDay(); const diff = (day === 0 ? -6 : 1) - day; s.setDate(s.getDate() + diff); s.setHours(0,0,0,0); return s; })();
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); startOfMonth.setHours(0,0,0,0);
+    const daysAgo = (n) => { const s = new Date(now); s.setDate(s.getDate() - n); s.setHours(0,0,0,0); return s; };
+    switch (timeFilter) {
+      case 'this_week': return d >= startOfWeek;
+      case 'this_month': return d >= startOfMonth;
+      case 'last_7': return d >= daysAgo(7);
+      case 'last_30': return d >= daysAgo(30);
+      default: return true;
+    }
+  }, [timeFilter]);
+  const filteredThread = useMemo(() => {
+    let arr = Array.isArray(thread) ? thread : [];
+    if (modeFilter !== 'all') {
+      arr = arr.filter((c) => String(c?.mode || '').toLowerCase() === (modeFilter === 'online' ? 'online' : 'in-person'));
+    }
+    if (timeFilter !== 'all') {
+      arr = arr.filter((c) => { const d = getStartDate(c); return isWithinTimeFilter(d); });
+    }
+    if (selectedStatuses.length > 0) {
+      const set = new Set(selectedStatuses.map(s=>String(s).toLowerCase()));
+      arr = arr.filter((c) => { const s = String(c?.status||'').toLowerCase(); const canonical = s === 'canceled' ? 'cancelled' : s; return set.has(canonical); });
+    }
+    return arr;
+  }, [thread, modeFilter, timeFilter, isWithinTimeFilter, selectedStatuses, getStartDate]);
 
   const advisorMeta = useMemo(() => {
     const first = thread[0];
@@ -84,120 +115,36 @@ export default function StudentThreadPage() {
     };
   }, [thread]);
 
-  const exportCsv = () => {
-    const headers = ['Date','Mode','Status','Topic','Summary'];
-    const rows = historyThread.map(c => {
-      const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila' });
-      const mode = c.mode;
-      const status = c.status;
-      const topic = c.category || c.topic || '';
-      const summary = c.summary_notes || c.ai_summary || '';
-      return [dateStr, mode, status, topic, String(summary).replace(/\r?\n/g,' ')];
-    });
-    const csv = [headers.join(','), ...rows.map(r => r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `Consultations_${advisorMeta?.name || 'Advisor'}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-  };
-
   const exportPdf = () => {
     const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const lineHeight = 16;
-    const margin = 40;
-    const pageWidth = 595;
-    const maxWidth = pageWidth - margin * 2;
+    const lineGap = 16; const margin = 40; const footerGap = 28;
+    const pageWidth = doc.internal.pageSize.getWidth(); const usable = pageWidth - margin * 2; const pageHeight = doc.internal.pageSize.getHeight();
     let y = margin;
-
-    doc.setFontSize(14);
-    doc.setFont(undefined, 'bold');
-    doc.text('AdviSys', pageWidth - margin, y, { align: 'right' });
-    y += lineHeight;
-
+    const advisorLabel = advisorMeta?.name ? `Advisor: ${advisorMeta.name}` : '';
     const title = 'Consultation Thread';
-    doc.setFontSize(16);
-    doc.setFont(undefined, 'bold');
-    doc.text(title, margin, y);
-    y += lineHeight;
-
-    if (advisorMeta) {
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'normal');
-      doc.text(`Advisor: ${advisorMeta.name}`, margin, y);
-      y += lineHeight;
-    }
-
-    const selectedTerm = terms.find(t => String(t.id) === termId);
-    if (selectedTerm) {
-      doc.text(`Term: ${selectedTerm.year_label} ${selectedTerm.semester_label} Semester`, margin, y);
-      y += lineHeight;
-    } else if (termId === 'current') {
-      const current = terms.find(t => Number(t.is_current) === 1);
-      if (current) {
-        doc.text(`Term: ${current.year_label} ${current.semester_label} Semester`, margin, y);
-        y += lineHeight;
-      } else {
-        doc.text('Term: Current Term', margin, y);
-        y += lineHeight;
-      }
-    } else if (termId === 'all') {
-      doc.text('Term: All Terms', margin, y);
-      y += lineHeight;
-    }
-
-    y += lineHeight; // Extra space before consultations
-
-    historyThread.forEach((consultation, index) => {
-      if (y > doc.internal.pageSize.height - margin * 2) {
-        doc.addPage();
-        y = margin;
-        doc.setFontSize(14);
-        doc.setFont(undefined, 'bold');
-        doc.text('AdviSys', pageWidth - margin, y, { align: 'right' });
-        y += lineHeight;
-      }
-
-      doc.setFontSize(12);
-      doc.setFont(undefined, 'bold');
-      doc.text(`Consultation #${index + 1}`, margin, y);
-      y += lineHeight;
-
-      doc.setFont(undefined, 'normal');
-      doc.text(`Date: ${new Date(consultation.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila' })}`, margin, y);
-      y += lineHeight;
-      doc.text(`Mode: ${consultation.mode}`, margin, y);
-      y += lineHeight;
-      doc.text(`Status: ${consultation.status}`, margin, y);
-      y += lineHeight;
-
-      switch (consultation.status) {
-        case 'missed':
-          doc.setFont(undefined, 'italic');
-          doc.text('Details: Not available for missed consultations.', margin, y);
-          y += lineHeight;
-          break;
-        case 'canceled':
-          doc.text(`Cancel Reason: ${consultation.cancel_reason || 'N/A'}`, margin, y);
-          y += lineHeight;
-          break;
-        case 'completed':
-          doc.text(`Topic: ${consultation.category || consultation.topic || 'N/A'}`, margin, y);
-          y += lineHeight;
-          doc.text(`Summary: ${consultation.summary_notes || consultation.ai_summary || 'N/A'}`, margin, y, { maxWidth: maxWidth });
-          y += doc.getTextDimensions(consultation.summary_notes || consultation.ai_summary || 'N/A', { maxWidth: maxWidth }).h + 5;
-          break;
-        default:
-          break;
-      }
-      y += lineHeight; // Space after each consultation
-    });
-
-    doc.save(`Consultations_${advisorMeta?.name || 'Advisor'}.pdf`);
+    const termLabel = (() => {
+      if (termId === 'all') return 'All Terms';
+      if (termId === 'current') { const cur = terms.find(t => Number(t.is_current) === 1); return cur ? `${cur.year_label} • ${cur.semester_label} Semester` : 'Current Term'; }
+      const t = terms.find(t => String(t.id) === String(termId));
+      return t ? `${t.year_label} • ${t.semester_label} Semester` : 'Current Term';
+    })();
+    const timeLabels = { all:'All Time', this_week:'This Week', this_month:'This Month', last_7:'Last 7 Days', last_30:'Last 30 Days' };
+    const filtersSummary = [
+      { label: 'Mode', value: modeFilter==='all' ? 'All Modes' : (modeFilter==='online'?'Online':'In-Person') },
+      { label: 'Time', value: timeLabels[timeFilter] || 'All Time' },
+      { label: 'Status', value: (selectedStatuses.length>0? selectedStatuses.map(s=> s==='canceled'?'Cancelled': s.charAt(0).toUpperCase()+s.slice(1)).join(', ') : 'All Statuses') },
+    ];
+    const wrapText = (text, maxWidth) => { const words = String(text||'').split(/\s+/); const lines = []; let line = ''; words.forEach(w=>{ const next = line ? line + ' ' + w : w; if (doc.getTextWidth(next) > maxWidth) { if (line) lines.push(line); line = w; } else { line = next; } }); if (line) lines.push(line); return lines; };
+    const drawFooter = (pageNum, pageCount) => { const footerY = pageHeight - margin + 8; doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text(`Page ${pageNum} of ${pageCount}`, pageWidth - margin, footerY, { align: 'right' }); doc.text('AdviSys', margin, footerY); };
+    const drawHeader = () => { doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('AdviSys', pageWidth - margin, y, { align: 'right' }); y += lineGap; doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title, margin, y); y += lineGap; doc.setFont('helvetica','normal'); doc.setFontSize(11); if (advisorLabel) { doc.text(advisorLabel, margin, y); y += lineGap; } if (termLabel) { doc.text(`Term: ${termLabel}`, margin, y); y += lineGap; } };
+    const ensurePage = (heightNeeded, drawRepeatHeader = true) => { if (y + heightNeeded + margin + footerGap > pageHeight) { const currentPage = doc.getNumberOfPages(); drawFooter(currentPage, currentPage); doc.addPage(); y = margin; if (drawRepeatHeader) drawHeader(); } };
+    drawHeader();
+    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Selected Filters', margin, y); y += lineGap; doc.setFont('helvetica','normal'); doc.setFontSize(10);
+    filtersSummary.forEach(({label, value}) => { const lines = wrapText(String(value), usable - doc.getTextWidth(label + ': ') - 10); const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7); ensurePage(needed); doc.setFont('helvetica','bold'); doc.text(label + ':', margin, y); doc.setFont('helvetica','normal'); let currentX = margin + doc.getTextWidth(label + ': ') + 5; lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; }); y += lineGap * 0.2; }); y += lineGap * 0.5;
+    const addDetail = (label, value, isBold = false) => { if (!value) return; doc.setFontSize(10); const labelW = doc.getTextWidth(label + ': '); const lines = wrapText(String(value), usable - labelW - 10); const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7); ensurePage(needed, false); doc.setFont('helvetica', 'bold'); doc.text(label + ':', margin, y); doc.setFont('helvetica', isBold ? 'bold' : 'normal'); let currentX = margin + labelW + 5; lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; }); y += lineGap * 0.2; };
+    filteredThread.forEach((c, idx) => { doc.setFontSize(12); doc.setFont('helvetica', 'bold'); const blockTitle = `Consultation ${idx + 1}`; ensurePage(lineGap * 1.5, false); doc.text(blockTitle, margin, y); y += lineGap; const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }); const modeStr = c.mode === 'online' ? 'Online' : 'In-Person'; const statusStr = String(c.status||'').charAt(0).toUpperCase() + String(c.status||'').slice(1); const topic = c.category || c.topic || '—'; const loc = c.location || ''; const summary = c.summary_notes || c.ai_summary || ''; const cancelReason = c.cancel_reason || ''; addDetail('Topic', topic, true); addDetail('Date/Time', dateStr); addDetail('Mode', modeStr); addDetail('Status', statusStr); const state = String(c.status||'').toLowerCase(); if (state === 'missed') { addDetail('Location', 'Not available'); addDetail('Summary', 'Not available'); } else if (state === 'cancelled' || state === 'canceled') { if (loc) addDetail('Location', loc); if (cancelReason) addDetail('Cancellation Reason', cancelReason); if (summary) addDetail('Summary', summary); } else { if (loc) addDetail('Location', loc); if (summary) addDetail('Summary', summary); } y += lineGap * 1.5; });
+    const totalPages = doc.getNumberOfPages(); for (let i = 1; i <= totalPages; i++) { doc.setPage(i); drawFooter(i, totalPages); }
+    const fname = `Consultations_${advisorMeta?.name || 'Advisor'}_${new Date().toISOString().slice(0,10)}.pdf`; doc.save(fname);
   };
 
   return (
@@ -232,7 +179,55 @@ export default function StudentThreadPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button variant="outline" onClick={exportCsv} disabled={!thread.length}><BsDownload className="w-4 h-4 mr-1" />Download CSV</Button>
+                  <div className="relative">
+                    <Button variant="outline" onClick={()=>setStatusMenuOpen(v=>!v)}>Status</Button>
+                    {statusMenuOpen && (
+                      <div className="absolute mt-2 w-52 bg-white border border-gray-200 rounded-md shadow-sm p-2 z-20">
+                        {[
+                          {k:'approved', label:'Approved'},
+                          {k:'pending', label:'Pending'},
+                          {k:'declined', label:'Declined'},
+                          {k:'expired', label:'Expired'},
+                          {k:'completed', label:'Completed'},
+                          {k:'cancelled', label:'Cancelled'},
+                          {k:'missed', label:'Missed'},
+                        ].map(opt=>{
+                          const checked = selectedStatuses.includes(opt.k);
+                          return (
+                            <label key={opt.k} className="flex items-center gap-2 px-1 py-1 text-xs">
+                              <input type="checkbox" checked={checked} onChange={()=>{
+                                setSelectedStatuses(prev=>{ const set = new Set(prev); if (set.has(opt.k)) set.delete(opt.k); else set.add(opt.k); return Array.from(set); });
+                              }} />
+                              <span>{opt.label}</span>
+                            </label>
+                          );
+                        })}
+                        <div className="mt-2 flex gap-2">
+                          <Button size="sm" variant="outline" onClick={()=>{ setSelectedStatuses([]); }}>Clear</Button>
+                          <Button size="sm" variant="outline" onClick={()=>setStatusMenuOpen(false)}>Done</Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                  <Select value={modeFilter} onValueChange={setModeFilter}>
+                    <SelectTrigger className="filter-dropdown"><SelectValue placeholder="Mode" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Modes</SelectItem>
+                      <SelectItem value="online">Online</SelectItem>
+                      <SelectItem value="in-person">In-Person</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={timeFilter} onValueChange={setTimeFilter}>
+                    <SelectTrigger className="filter-dropdown"><SelectValue placeholder="Time" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Time</SelectItem>
+                      <SelectItem value="this_week">This Week</SelectItem>
+                      <SelectItem value="this_month">This Month</SelectItem>
+                      <SelectItem value="last_7">Last 7 Days</SelectItem>
+                      <SelectItem value="last_30">Last 30 Days</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Button variant="outline" onClick={()=>{ setModeFilter('all'); setTimeFilter('all'); setSelectedStatuses([]); setStatusMenuOpen(false); }}>Clear Filters</Button>
                   <Button variant="outline" onClick={exportPdf} disabled={!thread.length}><BsDownload className="w-4 h-4 mr-1" />Download PDF</Button>
                 </div>
               </div>
@@ -260,17 +255,27 @@ export default function StudentThreadPage() {
 
             {loading ? (
               <div>Loading…</div>
-            ) : historyThread.length === 0 ? (
+            ) : filteredThread.length === 0 ? (
               <div className="text-sm text-gray-600">No consultations for this selection.</div>
             ) : (
               <div className="consultations-grid">
-                {historyThread.map((consultation) => (
-                  <ConsultationCard
-                    key={consultation.id}
-                    consultation={consultation}
-                    onActionClick={() => {}}
-                  />
-                ))}
+                {filteredThread.map((c) => {
+                  const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+                  return (
+                    <Card key={c.id} className="h-full">
+                      <CardContent className="p-4 space-y-2">
+                        <div className="text-sm font-semibold">{c.category || c.topic || 'No Topic'}</div>
+                        <div className="text-xs text-gray-600">{dateStr} • {c.mode === 'online' ? (<span className="inline-flex items-center gap-1"><BsCameraVideo />Online</span>) : (<span className="inline-flex items-center gap-1"><BsGeoAlt />In-Person</span>)} • {c.status}</div>
+                        {c.summary_notes && (
+                          <div className="text-sm mt-2"><span className="font-semibold">Summary: </span><span className="whitespace-pre-wrap">{c.summary_notes}</span></div>
+                        )}
+                        {!c.summary_notes && c.ai_summary && (
+                          <div className="text-sm mt-2"><span className="font-semibold">AI Summary: </span><span className="whitespace-pre-wrap">{c.ai_summary}</span></div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
               </div>
             )}
           </div>

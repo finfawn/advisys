@@ -35,6 +35,16 @@ export default function ChangePasswordDialog({ open, onClose }) {
       const data = await res.json();
       if (!res.ok || !data?.success) throw new Error(data?.error || "Failed to change password");
       toast.success({ title: "Password changed" });
+      try {
+        const stored = typeof window !== "undefined" ? localStorage.getItem("advisys_user") : null;
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (parsed && Object.prototype.hasOwnProperty.call(parsed, "must_change_password")) {
+            parsed.must_change_password = false;
+          }
+          localStorage.setItem("advisys_user", JSON.stringify(parsed));
+        }
+      } catch (_) {}
       onClose?.();
       setCurrent("");
       setNext("");

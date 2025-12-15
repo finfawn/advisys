@@ -129,6 +129,67 @@
   margin-bottom: 0;
 }
 
+.advisor-card-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.advisor-card-detail-label {
+  width: 96px;
+  flex-shrink: 0;
+  font-size: 0.68rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #6b7280;
+}
+
+.advisor-card-detail-value {
+  flex: 1;
+  min-width: 0;
+}
+
+.advisor-card-detail-value-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.advisor-card-mode-badge {
+  font-size: 0.75rem;
+  padding-inline: 8px;
+  padding-block: 3px;
+}
+
+@media (max-width: 1200px) {
+  .advisor-card-detail-row {
+    gap: 8px;
+  }
+}
+
+@media (max-width: 992px) {
+  .advisor-card-detail-row {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .advisor-card-detail-label {
+    width: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .advisor-card-detail-value-badges {
+    gap: 4px;
+  }
+
+  .advisor-card-mode-badge {
+    font-size: 0.7rem;
+    padding-inline: 6px;
+    padding-block: 2px;
+  }
+}
+
 /* Consultation Mode Display */
 .consultation-mode-display {
   display: inline-flex;
@@ -199,6 +260,22 @@
   flex-wrap: wrap;
   overflow: hidden;
   box-sizing: border-box;
+}
+
+/* Lightswind-based advisor card footer buttons */
+.advisor-card-new > div:last-child {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.advisor-card-new > div:last-child button {
+  flex: 1 1 0;
+  min-width: 0;
+  padding: 8px 10px;
+  font-size: 0.85rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .advisor-card-button {

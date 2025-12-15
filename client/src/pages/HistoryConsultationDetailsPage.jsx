@@ -18,6 +18,7 @@ import Sidebar from '../components/student/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
 import { useNotifications } from '../contexts/NotificationContext';
 import { ShineButton } from '../lightswind/shine-button';
+import { toast } from '../components/hooks/use-toast';
 import './student/ConsultationDetailsPage.css';
 
 const HistoryConsultationDetailsPage = () => {
@@ -229,7 +230,10 @@ const HistoryConsultationDetailsPage = () => {
       setEditReason('');
     } catch (e) {
       console.error('Submit edit request failed', e);
-      alert('Failed to request summary edit.');
+      toast.destructive({
+        title: 'Request failed',
+        description: 'Failed to request summary edit.'
+      });
     } finally {
       setEditRequestSubmitting(false);
     }
@@ -261,7 +265,10 @@ const HistoryConsultationDetailsPage = () => {
       setTimeout(()=>setSaveSummarySuccess(false), 2500);
     } catch (err) {
       console.error('Save history summary failed', err);
-      alert('Failed to save summary.');
+      toast.destructive({
+        title: 'Save failed',
+        description: 'Failed to save summary.'
+      });
     } finally {
       setSavingSummary(false);
     }
@@ -288,7 +295,10 @@ const HistoryConsultationDetailsPage = () => {
       setTimeout(()=>setSaveNotesSuccess(false), 2500);
     } catch (err) {
       console.error('Save private notes failed', err);
-      alert('Failed to save notes.');
+      toast.destructive({
+        title: 'Save failed',
+        description: 'Failed to save notes.'
+      });
     } finally {
       setSavingNotes(false);
     }

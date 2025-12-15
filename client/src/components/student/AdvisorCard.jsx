@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsPersonCircle, BsClock, BsEye, BsCameraVideo, BsGeoAlt, BsLaptop } from "react-icons/bs";
+import { BsPersonCircle, BsClock, BsEye, BsCameraVideo, BsGeoAlt, BsLaptop, BsCalendarCheck } from "react-icons/bs";
 import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
 import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
@@ -172,9 +172,9 @@ function AdvisorCard({
 
           <div className="mt-3 border-t pt-3 space-y-2">
             {time && (
-              <div className="flex items-start gap-3">
-                <div className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-gray-500">Availability</div>
-                <div>
+              <div className="advisor-card-detail-row">
+                <div className="advisor-card-detail-label">Availability</div>
+                <div className="advisor-card-detail-value">
                   <Badge variant="outline" size="sm" className="flex items-center gap-1 w-fit text-xs font-medium bg-blue-50 text-blue-700 border-blue-200">
                     <BsClock className="w-3 h-3" />
                     {time}
@@ -183,16 +183,16 @@ function AdvisorCard({
               </div>
             )}
 
-              <div className="flex items-start gap-3">
-                <div className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-gray-500">Mode</div>
-                <div className="flex gap-2">
+              <div className="advisor-card-detail-row advisor-card-detail-row-mode">
+                <div className="advisor-card-detail-label">Mode</div>
+                <div className="advisor-card-detail-value advisor-card-detail-value-badges">
                   {modeInfo.showSeparate ? (
                     <>
-                    <Badge variant="outline" size="sm" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200">
+                    <Badge variant="outline" size="sm" className="flex items-center gap-1 bg-blue-50 text-blue-700 border-blue-200 advisor-card-mode-badge">
                       <BsCameraVideo className="w-3 h-3" />
                       Online
                     </Badge>
-                    <Badge variant="outline" size="sm" className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200">
+                    <Badge variant="outline" size="sm" className="flex items-center gap-1 bg-amber-50 text-amber-700 border-amber-200 advisor-card-mode-badge">
                       <BsGeoAlt className="w-3 h-3" />
                       In-Person
                     </Badge>
@@ -201,7 +201,7 @@ function AdvisorCard({
                   <Badge 
                     variant="outline"
                     size="sm" 
-                    className={`flex items-center gap-1 w-fit ${modeInfo.class === 'online-mode' ? 'bg-blue-50 text-blue-700 border-blue-200' : modeInfo.class === 'inperson-mode' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
+                    className={`flex items-center gap-1 w-fit advisor-card-mode-badge ${modeInfo.class === 'online-mode' ? 'bg-blue-50 text-blue-700 border-blue-200' : modeInfo.class === 'inperson-mode' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-gray-50 text-gray-700 border-gray-200'}`}
                   >
                     {modeInfo.icons}
                     {modeInfo.text}
@@ -211,9 +211,9 @@ function AdvisorCard({
               </div>
 
             {!!facultyData.officeLocation && (
-              <div className="flex items-start gap-3">
-                <div className="w-24 shrink-0 text-[11px] uppercase tracking-wide text-gray-500">Location</div>
-                <div>
+              <div className="advisor-card-detail-row">
+                <div className="advisor-card-detail-label">Location</div>
+                <div className="advisor-card-detail-value">
                   <Badge variant="outline" size="sm" className="flex items-center gap-1 w-fit bg-gray-50 text-gray-700 border-gray-200">
                     <BsGeoAlt className="w-3 h-3" />
                     {facultyData.officeLocation}
@@ -239,7 +239,8 @@ function AdvisorCard({
             className="flex-1"
             onClick={handleBookClick}
           >
-            Book Consultation
+            <BsCalendarCheck className="w-4 h-4 mr-1" />
+            Consult
           </Button>
         </CardFooter>
       </Card>

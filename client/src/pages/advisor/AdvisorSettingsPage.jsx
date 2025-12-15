@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import { 
   BsPersonCircle, BsBell, BsShield, BsGear, BsBook,
@@ -20,6 +20,7 @@ import { toast } from "../../components/hooks/use-toast";
 export default function AdvisorSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
+  const location = useLocation();
 
   // Normalize avatar URLs coming from backend (relative) or previews (blob:)
   const resolveAssetUrl = (u) => {
@@ -111,6 +112,21 @@ export default function AdvisorSettingsPage() {
     });
   };
 
+  useEffect(() => {
+    const state = location && location.state;
+    if (state && state.focusConsultation) {
+      setActiveSection("consultation");
+      if (state.autoEditConsultation) {
+        setIsEditingConsult(true);
+        setEditConsultation(prev => ({ ...consultationData, ...prev }));
+      }
+      const nextState = { ...state };
+      delete nextState.focusConsultation;
+      delete nextState.autoEditConsultation;
+      navigate(location.pathname, { replace: true, state: nextState });
+    }
+  }, [location, navigate, consultationData]);
+
   const handleNavigation = (page) => {
     if (page === 'home') {
       navigate('/');
@@ -146,7 +162,10 @@ export default function AdvisorSettingsPage() {
     const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
     const fullName = `${(editData.firstName || '').trim()} ${(editData.lastName || '').trim()}`.trim();
     if (!String(editData.department || '').trim()) {
-      alert('Please select a department');
+      toast.warning({
+        title: 'Select a department',
+        description: 'Please select a department'
+      });
       return;
     }
     const body = {

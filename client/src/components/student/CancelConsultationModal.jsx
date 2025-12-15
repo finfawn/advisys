@@ -227,10 +227,14 @@ function CancelConsultationModal({ isOpen, onClose, onConfirm, consultation, isC
             Are you sure you want to cancel this consultation? This action cannot be undone.
           </p>
           <div className="confirmation-details">
-            <p><strong>Consultation:</strong> {consultation.topic}</p>
+            <p><strong>Consultation:</strong> {consultation?.topic || consultation?.title || "Consultation"}</p>
             <p><strong>Student:</strong> {getStudentName()}</p>
-            <p><strong>With:</strong> {consultation.faculty.name}</p>
-            <p><strong>Date:</strong> {formatDate(consultation.date)} at {consultation.time}</p>
+            <p><strong>With:</strong> {consultation?.faculty?.name || "Advisor"}</p>
+            <p>
+              <strong>Date:</strong>{" "}
+              {consultation?.date ? formatDate(consultation.date) : "—"}
+              {consultation?.time ? ` at ${consultation.time}` : ""}
+            </p>
             <p><strong>Reason:</strong> {reason === "other" ? customReason : reason}</p>
           </div>
         </div>

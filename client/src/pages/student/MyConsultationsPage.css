@@ -2,12 +2,12 @@
 
 /* Mobile: Add padding for fixed navbar and fix layout (scoped) */
 @media (max-width: 768px) {
-  .dash-wrap {
+  .student-my-consultations-wrap .dash-wrap {
     height: auto !important;
     min-height: 100vh !important;
   }
   
-  .dash-body {
+  .student-my-consultations-wrap .dash-body {
     padding-top: 56px;
     grid-template-columns: 1fr !important;
     display: block !important;
@@ -337,7 +337,7 @@
 /* Upcoming Consultations Grid (scoped) */
 .student-my-consultations .consultations-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(3, minmax(0, 1fr));
     align-items: stretch; /* ensure all cards in a row have equal height */
     gap: 0.875rem;
     margin-bottom: 1.5rem;
@@ -348,10 +348,17 @@
     height: 100%;
 }
 
+/* Extra wide desktops: allow four cards per row */
+@media (min-width: 1536px) {
+    .student-my-consultations .consultations-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+}
+
 /* Tablet-friendly Grid Layout */
 @media (max-width: 1200px) {
     .student-my-consultations .consultations-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 1rem;
     }
 }
@@ -360,6 +367,13 @@
     .student-my-consultations .consultations-grid {
         grid-template-columns: repeat(2, 1fr);
         gap: 1rem;
+    }
+}
+
+/* High zoom / medium-width laptops: use a single column to avoid clipped second column */
+@media (max-width: 1150px) {
+    .student-my-consultations .consultations-grid {
+        grid-template-columns: 1fr;
     }
 }
 
@@ -395,11 +409,11 @@
     }
 
     /* Apply mobile layout fixes to tablet widths too */
-    .dash-wrap {
+    .student-my-consultations-wrap .dash-wrap {
         height: auto !important;
         min-height: 100vh !important;
     }
-    .dash-body {
+    .student-my-consultations-wrap .dash-body {
         padding-top: 56px;
         grid-template-columns: 1fr !important;
         display: block !important;
@@ -415,6 +429,15 @@
         height: auto !important;
         padding-bottom: calc(env(safe-area-inset-bottom, 0px) + 16px) !important;
     }
+}
+
+/* Medium-width desktops where sidebar is hidden (between lg and xl):
+   collapse grid to a single column so content fills the width */
+@media (min-width: 1025px) and (max-width: 1279px) {
+  .student-my-consultations-wrap .dash-body,
+  .student-my-consultations-wrap .dash-body.collapsed {
+    grid-template-columns: 1fr !important;
+  }
 }
 
 @media (max-width: 639px) {

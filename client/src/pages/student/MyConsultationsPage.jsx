@@ -805,53 +805,40 @@ export default function MyConsultationsPage() {
     handleCloseRescheduleModal();
   };
 
-  const handleConfirmCancel = (reason) => {
-    // Optimistic cancel with undo toast
+  const handleConfirmCancel = async (reason) => {
     try {
       setIsCancelling(true);
       const item = consultationToCancel;
       if (!item) return;
-      // Optimistically mark as cancelled locally
+      const res = await fetch(`${base}/api/consultations/${item.id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeader },
+        body: JSON.stringify({ status: 'cancelled', cancelReason: reason })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data?.error) throw new Error(data?.error || 'Cancel failed');
       setAllConsultations(prev => prev.map(c => c.id === item.id ? { ...c, status: 'cancelled', cancelReason: reason } : c));
-      // Close modal immediately for lightweight feel
       setShowCancelModal(false);
       setConsultationToCancel(null);
-      setIsCancelling(false);
-
-      // Start undo countdown; persist after 5s
-      if (cancelUndoToast.timeoutId) {
-        clearTimeout(cancelUndoToast.timeoutId);
-      }
-      const timeoutId = setTimeout(async () => {
-        try {
-          const res = await fetch(`${base}/api/consultations/${item.id}/status`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', ...authHeader },
-            body: JSON.stringify({ status: 'cancelled', cancelReason: reason })
-          });
-          if (!res.ok) throw new Error('Cancel failed');
-        } catch (err) {
-          console.error('Cancel persist error', err);
-          // If persistence fails, revert local state
-          setAllConsultations(prev => prev.map(c => c.id === item.id ? { ...c, status: item.status } : c));
-        } finally {
-          setCancelUndoToast({ open: false, item: null, timeoutId: null, message: '' });
-          // Reload from server to ensure consistency
-          await reloadConsultations();
-        }
-      }, 5000);
-
-      setCancelUndoToast({
-        open: true,
-        item: { ...item },
-        timeoutId,
-        message: `Consultation "${item.topic}" cancelled`
-      });
+      await reloadConsultations();
     } catch (err) {
       console.error('Cancel error', err);
+    } finally {
       setIsCancelling(false);
+      setCancelUndoToast({ open: false, item: null, timeoutId: null, message: '' });
     }
   };
+
+  useEffect(() => {
+    const trigId = location?.state?.triggerRescheduleById || location?.state?.triggerReschedule?.consultationId;
+    if (trigId) {
+      const target = allConsultations.find(c => Number(c.id) === Number(trigId));
+      if (target) {
+        handleOpenReschedule(target);
+      }
+      navigate(location.pathname, { replace: true, state: { ...location.state, triggerRescheduleById: undefined, triggerReschedule: undefined } });
+    }
+  }, [location?.state, allConsultations]);
 
   const handleCloseCancelModal = () => {
     if (!isCancelling) {
@@ -873,7 +860,7 @@ export default function MyConsultationsPage() {
   };
 
   return (
-    <div className="dash-wrap">
+    <div className="dash-wrap student-my-consultations-wrap">
       <TopNavbar />
 
       {/* Body */}
@@ -1202,6 +1189,7 @@ export default function MyConsultationsPage() {
                               key={consultation.id}
                               consultation={consultation}
                               onActionClick={() => handleViewHistoryDetails(consultation)}
+                              onReschedule={handleOpenReschedule}
                             />
                           ))}
                         </div>

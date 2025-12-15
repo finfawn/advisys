@@ -512,7 +512,7 @@ export default function AdvisorProfilePage() {
                       onClick={handleBookConsultation}
                     >
                       <BsCalendarCheck />
-                      Book a Consultation
+                      Consult
                     </button>
                   </div>
                 </section>

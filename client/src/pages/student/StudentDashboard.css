@@ -76,7 +76,7 @@
   }
   
   /* Mobile Responsive */
-  @media (max-width: 768px) {
+  @media (max-width: 576px) {
     .dash-wrap {
       height: auto;
       min-height: 100vh;
@@ -1453,77 +1453,6 @@
     }
 }
 
-/* --- Tablet overrides (iPad Air/Pro portrait) for seamless transition --- */
-@media (min-width: 768px) and (max-width: 1180px) {
-  .student-dash-wrap {
-    height: auto;
-    min-height: 100vh;
-    overflow: visible;
-  }
-
-  .student-dash-body {
-    grid-template-columns: 1fr !important; /* collapse sidebar above main */
-    gap: 0;
-    height: auto;
-    overflow-x: hidden;
-    overflow-y: visible;
-  }
-
-  .student-dash-body.collapsed {
-    grid-template-columns: 1fr !important;
-  }
-
-  .student-dash-main {
-    padding: 18px; /* comfortable tablet spacing */
-    padding-left: 18px;
-    height: auto;
-    overflow-y: visible;
-  }
-
-  .student-dashboard-bento-grid {
-    height: auto;
-    padding-top: 0;
-    gap: 16px;
-  }
-
-  /* Ensure stats and activity grids stack to full width on tablets */
-  .bento-grid-stats,
-  .bento-grid-main,
-  .bento-grid-activity {
-    grid-template-columns: 1fr !important;
-    grid-auto-rows: auto;
-  }
-}
-
-/* --- Tablet-plus overrides (1181px–1366px) to remove right column gap --- */
-@media (min-width: 1181px) and (max-width: 1366px) {
-  .student-dash-body {
-    grid-template-columns: 1fr !important;
-    gap: 0;
-    height: auto;
-    overflow-x: hidden;
-    overflow-y: visible;
-  }
-
-  .student-dash-body.collapsed { grid-template-columns: 1fr !important; }
-
-  .student-dash-main {
-    padding: 20px;
-    padding-left: 20px;
-    height: auto;
-    overflow-y: visible;
-  }
-
-  .student-dashboard-bento-grid { height: auto; padding-top: 0; gap: 18px; }
-
-  .bento-grid-main,
-  .bento-grid-stats,
-  .bento-grid-activity {
-    grid-template-columns: 1fr !important;
-    grid-auto-rows: auto;
-  }
-}
-
 @media (max-width: 576px) {
     .modern-calendar-card {
         min-height: auto;
@@ -1896,7 +1825,7 @@
 /* === Student Desktop Layout (mirrors advisor) === */
 
 /* --- Mobile overrides to prevent tall columns and enforce single-column stats --- */
-@media (max-width: 768px) {
+@media (max-width: 576px) {
   /* Restrict desktop paddings and heights from affecting mobile */
   .student-dash-wrap {
     height: auto;

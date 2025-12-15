@@ -13,15 +13,50 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 
+const _invalidPlaceholders = new Set(['-', '--', '---', 'n/a', 'na', 'none', 'null', 'undefined']);
+function _isValidName(s) {
+  const t = String(s || '').trim();
+  if (!t || _invalidPlaceholders.has(t.toLowerCase())) return false;
+  if (!/^[A-Za-z\s.'-]+$/.test(t)) return false;
+  const letters = (t.match(/[A-Za-z]/g) || []).length;
+  if (letters < 2) return false;
+  if (t.length > 100) return false;
+  return true;
+}
+function _isValidEmail(s) {
+  const t = String(s || '').trim().toLowerCase();
+  if (!t || _invalidPlaceholders.has(t)) return false;
+  if (t.length > 255) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+}
+function _cleanOptionalText(s, maxLen = 255) {
+  const t = String(s || '').trim();
+  if (!t || _invalidPlaceholders.has(t.toLowerCase())) return null;
+  return t.length > maxLen ? t.slice(0, maxLen) : t;
+}
+
 // GET /api/profile/me
 router.get('/me', authMiddleware, async (req, res) => {
   const pool = getPool();
   const userId = req.user?.id;
   try {
-    const [uRows] = await pool.query('SELECT id, role, email, full_name FROM users WHERE id = ?', [userId]);
+    let uRows;
+    try {
+      [uRows] = await pool.query('SELECT id, role, email, full_name, password_changed_at FROM users WHERE id = ?', [userId]);
+    } catch (_) {
+      [uRows] = await pool.query('SELECT id, role, email, full_name FROM users WHERE id = ?', [userId]);
+    }
     if (!uRows.length) return res.status(404).json({ error: 'User not found' });
     const u = uRows[0];
-    const result = { id: u.id, role: u.role, email: u.email, full_name: u.full_name };
+    const result = {
+      id: u.id,
+      role: u.role,
+      email: u.email,
+      full_name: u.full_name,
+    };
+    if (Object.prototype.hasOwnProperty.call(u, 'password_changed_at')) {
+      result.password_changed_at = u.password_changed_at || null;
+    }
     if (u.role === 'student') {
       const [sRows] = await pool.query('SELECT program, year_level, avatar_url FROM student_profiles WHERE user_id = ?', [userId]);
       if (sRows.length) Object.assign(result, sRows[0]);
@@ -51,8 +86,16 @@ router.patch('/me', authMiddleware, async (req, res) => {
     if (fullName || body.email) {
       const fields = [];
       const values = [];
-      if (fullName) { fields.push('full_name = ?'); values.push(fullName); }
-      if (body.email) { fields.push('email = ?'); values.push(body.email); }
+      if (fullName) {
+        const nameNorm = String(fullName).replace(/\s+/g,' ').trim();
+        if (!_isValidName(nameNorm)) return res.status(400).json({ error: 'Invalid full_name' });
+        fields.push('full_name = ?'); values.push(nameNorm);
+      }
+      if (body.email) {
+        const emailNorm = String(body.email).trim().toLowerCase();
+        if (!_isValidEmail(emailNorm)) return res.status(400).json({ error: 'Invalid email' });
+        fields.push('email = ?'); values.push(emailNorm);
+      }
       if (fields.length) {
         values.push(userId);
         await pool.query(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`, values);
@@ -94,7 +137,7 @@ router.patch('/me', authMiddleware, async (req, res) => {
     if (role === 'student') {
       const fields = [];
       const values = [];
-      if (body.program !== undefined) { fields.push('program = ?'); values.push(body.program || null); }
+      if (body.program !== undefined) { fields.push('program = ?'); values.push(_cleanOptionalText(body.program)); }
       if (body.year_level !== undefined || body.yearLevel !== undefined) {
         const yr = body.year_level ?? body.yearLevel;
         fields.push('year_level = ?'); values.push(yr ? String(yr) : null);
@@ -106,7 +149,7 @@ router.patch('/me', authMiddleware, async (req, res) => {
         if (upd.affectedRows === 0) {
           const insertFields = ['user_id'];
           const insertValues = [userId];
-          if (body.program !== undefined) { insertFields.push('program'); insertValues.push(body.program || null); }
+          if (body.program !== undefined) { insertFields.push('program'); insertValues.push(_cleanOptionalText(body.program)); }
           if (body.year_level !== undefined || body.yearLevel !== undefined) { insertFields.push('year_level'); insertValues.push((body.year_level ?? body.yearLevel) ? String(body.year_level ?? body.yearLevel) : null); }
           if (body.avatar_url !== undefined) { insertFields.push('avatar_url'); insertValues.push(sanitizeAvatarUrl(body.avatar_url)); }
           await pool.query(`INSERT INTO student_profiles (${insertFields.join(', ')}) VALUES (${insertFields.map(() => '?').join(', ')})`, insertValues);
@@ -115,8 +158,8 @@ router.patch('/me', authMiddleware, async (req, res) => {
     } else if (role === 'advisor') {
       const fields = [];
       const values = [];
-      if (body.department !== undefined) { fields.push('department = ?'); values.push(body.department || null); }
-      if (body.title !== undefined) { fields.push('title = ?'); values.push(body.title || null); }
+      if (body.department !== undefined) { fields.push('department = ?'); values.push(_cleanOptionalText(body.department)); }
+      if (body.title !== undefined) { fields.push('title = ?'); values.push(_cleanOptionalText(body.title)); }
       if (body.avatar_url !== undefined) { fields.push('avatar_url = ?'); values.push(sanitizeAvatarUrl(body.avatar_url)); }
       if (body.office_location !== undefined || body.officeLocation !== undefined) {
         const ol = body.office_location ?? body.officeLocation;
@@ -136,8 +179,8 @@ router.patch('/me', authMiddleware, async (req, res) => {
         if (upd.affectedRows === 0) {
           const insertFields = ['user_id'];
           const insertValues = [userId];
-          if (body.department !== undefined) { insertFields.push('department'); insertValues.push(body.department || null); }
-          if (body.title !== undefined) { insertFields.push('title'); insertValues.push(body.title || null); }
+          if (body.department !== undefined) { insertFields.push('department'); insertValues.push(_cleanOptionalText(body.department)); }
+          if (body.title !== undefined) { insertFields.push('title'); insertValues.push(_cleanOptionalText(body.title)); }
           if (body.avatar_url !== undefined) { insertFields.push('avatar_url'); insertValues.push(sanitizeAvatarUrl(body.avatar_url)); }
           if (body.office_location !== undefined || body.officeLocation !== undefined) { insertFields.push('office_location'); insertValues.push((body.office_location ?? body.officeLocation) || null); }
           await pool.query(`INSERT INTO advisor_profiles (${insertFields.join(', ')}) VALUES (${insertFields.map(() => '?').join(', ')})`, insertValues);

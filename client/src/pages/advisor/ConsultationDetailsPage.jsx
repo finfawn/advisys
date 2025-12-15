@@ -631,7 +631,7 @@ export default function AdvisorConsultationDetailsPage() {
           } catch (_) {}
           setIsCancelling(false);
           setShowCancelModal(false);
-          navigate(backTab ? `/advisor-dashboard/consultations?tab=${backTab}` : '/advisor-dashboard/consultations');
+          navigate('/advisor-dashboard/consultations', { state: { triggerRescheduleById: consultationData.id } });
         }}
         consultation={consultationData}
         isCancelling={isCancelling}

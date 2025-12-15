@@ -11,6 +11,6 @@ export default defineConfig({
     setupFiles: './src/test/setup.js',
     include: ['src/**/*.test.{js,jsx,ts,tsx}'],
     exclude: ['**/node_modules/**', 'e2e/**/*'],
-    pool: 'forks',
+    pool: 'threads',
   },
 })

@@ -12,6 +12,7 @@ import AdminStatusBreakdownCard from "../../components/admin/dashboard/AdminStat
 import "./AdminDashboard.css";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../lightswind/dropdown-menu";
 import { Button } from "../../lightswind/button";
+import { toast } from "../../components/hooks/use-toast";
 
 // lazy imports for export utilities
 let html2canvasPromise = null;
@@ -36,7 +37,10 @@ async function captureNode(node) {
 async function exportChartsAsPDF(root) {
   const charts = Array.from(root.querySelectorAll('[data-export="chart"]'));
   if (!charts.length) {
-    alert("No charts found to export.");
+    toast.warning({
+      title: "Nothing to export",
+      description: "No charts found to export."
+    });
     return;
   }
   const { jsPDF } = await getExportLibs();
@@ -71,7 +75,10 @@ async function exportChartsAsPDF(root) {
 async function exportChartsAsPNGs(root) {
   const charts = Array.from(root.querySelectorAll('[data-export="chart"]'));
   if (!charts.length) {
-    alert("No charts found to export.");
+    toast.warning({
+      title: "Nothing to export",
+      description: "No charts found to export."
+    });
     return;
   }
   for (let i = 0; i < charts.length; i++) {

@@ -107,6 +107,44 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
   const [yearOptions, setYearOptions] = useState([]);
   const [adminProgramOptions, setAdminProgramOptions] = useState([]);
   const [adminYearLevelOptions, setAdminYearLevelOptions] = useState([]);
+  const TOPIC_OPTIONS = [
+    "Thesis / Capstone Guidance",
+    "Course Planning and Enrollment",
+    "Career Planning and Opportunities",
+    "Internship / OJT Support",
+    "Academic Performance Concerns",
+    "Time Management and Study Skills",
+    "Personal Concerns (Academic)",
+  ];
+  const SUBJECT_OPTIONS = [
+    { code: "CS101", name: "Intro to Programming" },
+    { code: "CS102", name: "Data Structures" },
+    { code: "CS201", name: "Database Systems" },
+    { code: "IT201", name: "Networking Basics" },
+    { code: "IT301", name: "Web Development" },
+  ];
+  const [advisorTopicPreset, setAdvisorTopicPreset] = useState("");
+  const [advisorTopicOther, setAdvisorTopicOther] = useState("");
+  const [advisorSubjectPreset, setAdvisorSubjectPreset] = useState("");
+  const [advisorSubjectOtherCode, setAdvisorSubjectOtherCode] = useState("");
+  const [advisorSubjectOtherName, setAdvisorSubjectOtherName] = useState("");
+
+  const showToast = async (type, title, description) => {
+    try {
+      const { toast } = await import("../../components/hooks/use-toast");
+      if (type === "success") {
+        toast.success({ title, description });
+      } else if (type === "warning") {
+        toast.warning({ title, description });
+      } else if (type === "destructive") {
+        toast.destructive({ title, description });
+      } else {
+        toast({ title, description });
+      }
+    } catch {
+      console.error(title, description);
+    }
+  };
 
   useEffect(() => {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -183,6 +221,10 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
     filteredList = [...filteredList].sort(
       (a, b) => Number(b.active) - Number(a.active),
     );
+  } else if (sortBy === "recent") {
+    filteredList = [...filteredList].sort(
+      (a, b) => Number(b.id || 0) - Number(a.id || 0),
+    );
   }
 
   const handleNavigation = (page) => {
@@ -240,7 +282,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
         setAdvisorData(prev => prev.map(u => selectedIds.includes(u.id) ? { ...u, active: false } : u));
       }
     } catch (err) {
-      alert(err.message || String(err));
+      await showToast('destructive', 'Bulk update failed', err.message || String(err));
     }
   };
 
@@ -325,7 +367,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       }
       try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Added to term', description: `${selectedIds.length} user(s) added and deactivated` }); } catch {}
     } catch (e) {
-      try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Error', description: e?.message || 'Failed to add to term' }); } catch { alert('Failed to add to term'); }
+      await showToast('destructive', 'Error', e?.message || 'Failed to add to term');
     }
   };
 
@@ -351,7 +393,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       await loadTermMembers();
       try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'Removed from term', description: `${selectedIds.length} user(s) removed` }); } catch {}
     } catch (e) {
-      try { const { toast } = await import('../../components/hooks/use-toast'); toast.destructive({ title: 'Error', description: e?.message || 'Failed to remove from term' }); } catch { alert('Failed to remove from term'); }
+      await showToast('destructive', 'Error', e?.message || 'Failed to remove from term');
     }
   };
 
@@ -543,7 +585,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
         );
       }
       setPendingAction(null);
-      alert('Failed to update user status. Please try again.');
+      await showToast('destructive', 'Update failed', 'Failed to update user status. Please try again.');
     }
   };
 
@@ -596,7 +638,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
           ),
         );
       }
-      alert('Failed to undo status change. Please try again.');
+      await showToast('destructive', 'Undo failed', 'Failed to undo status change. Please try again.');
     }
   };
 
@@ -623,59 +665,94 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
     setNewFirstName("");
     setNewLastName("");
     setNewEmail("");
-    setNewRole("student");
+    setNewRole(activeTab === 'students' ? 'student' : 'advisor');
     setNewYear("1st Year");
     setNewProgram("BSIT");
     setNewDepartment("CIT");
   };
 
-  const submitAddUser = () => {
-    // Validation
-    if (!newFirstName.trim() || !newLastName.trim()) {
-      alert("Please enter first and last name");
+  useEffect(() => {
+    if (addOpen) {
+      setNewRole(activeTab === 'students' ? 'student' : 'advisor');
+    }
+  }, [addOpen, activeTab]);
+
+  useEffect(() => {
+    if (uploadOpen) {
+      setUploadRole(activeTab === 'students' ? 'students' : 'advisors');
+    }
+  }, [uploadOpen, activeTab]);
+
+  const submitAddUser = async () => {
+    const invalids = new Set(['-', '--', '---', 'n/a', 'na', 'none', 'null', 'undefined']);
+    const first = newFirstName.trim();
+    const last = newLastName.trim();
+    const firstLetters = first.replace(/[^A-Za-z]/g, '').length;
+    const lastLetters = last.replace(/[^A-Za-z]/g, '').length;
+    const nameOk = first && last && !invalids.has(first.toLowerCase()) && !invalids.has(last.toLowerCase()) && /^[A-Za-z\s.'-]+$/.test(first) && /^[A-Za-z\s.'-]+$/.test(last) && firstLetters >= 2 && lastLetters >= 2;
+    if (!nameOk) {
+      await showToast('warning', 'Invalid name', 'Please enter a valid first and last name.');
       return;
     }
-    if (!newEmail.trim() || !/\S+@\S+\.\S+/.test(newEmail)) {
-      alert("Please enter a valid email");
+    const fullCandidate = `${first} ${last}`.replace(/\s+/g, ' ').trim().toLowerCase();
+    const existingList = activeTab === 'students' ? studentsData : advisorData;
+    const duplicateExists = Array.isArray(existingList) && existingList.some((u) => {
+      const baseName = String(
+        u.name ||
+        `${u.first_name || u.firstName || ''} ${u.last_name || u.lastName || ''}`
+      ).replace(/\s+/g, ' ').trim().toLowerCase();
+      return baseName && baseName === fullCandidate;
+    });
+    if (duplicateExists) {
+      await showToast('warning', 'Name already exists', 'A user with this full name already exists.');
       return;
     }
-
-    const fullName = `${newFirstName.trim()} ${newLastName.trim()}`;
-
-    if (newRole === "student") {
-      const id = studentsData.length
-        ? Math.max(...studentsData.map((s) => s.id)) + 1
-        : 1;
-      setStudentsData((prev) => [
-        ...prev,
-        {
-          id,
-          name: fullName,
-          year: newYear,
-          program: newProgram,
-          email: newEmail.trim(),
-          active: true,
-        },
-      ]);
-      setActiveTab("students");
-    } else {
-      const id = advisorData.length
-        ? Math.max(...advisorData.map((f) => f.id)) + 1
-        : 1;
-      setAdvisorData((prev) => [
-        ...prev,
-        {
-          id,
-          name: fullName,
-          department: newDepartment,
-          email: newEmail.trim(),
-          active: true,
-        },
-      ]);
-      setActiveTab("advisors");
+    const mail = newEmail.trim().toLowerCase();
+    const emailOk = mail && !invalids.has(mail) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(mail);
+    if (!emailOk) {
+      await showToast('warning', 'Invalid email', 'Please enter a valid email address.');
+      return;
     }
-    setAddOpen(false);
-    resetAddUserForm();
+    const role = activeTab === 'students' ? 'student' : 'advisor';
+    try {
+      const token = localStorage.getItem('advisys_token');
+      const cleanText = (s) => {
+        const t = String(s || '').trim();
+        const l = t.toLowerCase();
+        return (!t || invalids.has(l)) ? null : t;
+      };
+      const payload = role === 'student'
+        ? { role, firstName: first, lastName: last, email: mail, program: cleanText(newProgram), year: newYear }
+        : { role, firstName: first, lastName: last, email: mail, department: cleanText(newDepartment) };
+      const res = await fetch(`${apiBase}/api/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        const msg = data?.error ? `${data.error}${data?.reason ? ': ' + data.reason : ''}` : 'Failed to create user';
+        await showToast('destructive', 'Create user failed', msg);
+        return;
+      }
+      try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'User added', description: (data?.full_name || `${newFirstName} ${newLastName}`).trim() }); } catch {}
+      const [sRes, aRes] = await Promise.all([
+        fetch(`${apiBase}/api/users?role=student`),
+        fetch(`${apiBase}/api/users?role=advisor`),
+      ]);
+      const sData = await sRes.json();
+      const aData = await aRes.json();
+      if (Array.isArray(sData)) setStudentsData(sData);
+      if (Array.isArray(aData)) setAdvisorData(aData);
+      setActiveTab(role === 'student' ? 'students' : 'advisors');
+      setAddOpen(false);
+      resetAddUserForm();
+    } catch (err) {
+      await showToast('destructive', 'Create user failed', err?.message || 'Failed to create user');
+    }
   };
 
   // Upload Users (.csv only) — parse and stage rows
@@ -683,14 +760,14 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
   const getTemplateHeaders = () => {
     return uploadRole === "students"
       ? ["First Name","Last Name","Email","Year","Program"]
-      : ["First Name","Last Name","Email","Department","Max Daily","Default Duration","Online","InPerson","Subjects"];
+      : ["First Name","Last Name","Email","Department","Bio","Categories","Guidelines","Subjects"];
   };
 
   const downloadCSVTemplate = () => {
     const headers = getTemplateHeaders();
     const example = uploadRole === "students"
       ? ["Juan","Dela Cruz","juan@example.com","1st Year","BSIT"]
-      : ["Jane","Doe","jane@example.com","CIT","10","30","true","true","CS101|Intro to CS;IT201|Networking Basics"];
+      : ["Jane","Doe","jane@example.com","CIT","Computer Science faculty","Academic Advising;Career Planning","Arrive 10 minutes early;Bring student ID","CS101|Intro to CS;IT201|Networking Basics"];
     const csv = [headers.join(","), example.join(",")].join("\n");
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
     const url = URL.createObjectURL(blob);
@@ -708,7 +785,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
     if (lines.length === 0) return { headers: [], rows: [] };
     const headers = lines[0].split(",").map(h => h.trim().toLowerCase());
     const expectedStudents = ["first name","last name","email","year","program"];
-    const expectedAdvisors = ["first name","last name","email","department","max daily","default duration","online","inperson","subjects"];
+    const expectedAdvisors = ["first name","last name","email","department","bio","categories","guidelines","subjects"];
     const expected = uploadRole === "students" ? expectedStudents : expectedAdvisors;
     const ok = expected.every((h) => headers.includes(h));
     if (!ok) {
@@ -761,14 +838,58 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
         const token = localStorage.getItem('advisys_token');
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
         const role = uploadRole === 'students' ? 'students' : 'advisors';
-        const rows = uploadRows.map((cols) => {
+        const invalids = new Set(['-','--','---','n/a','na','none','null','undefined']);
+        const isValidName = (s) => {
+          const t = String(s || '').trim();
+          if (!t || invalids.has(t.toLowerCase())) return false;
+          if (!/^[A-Za-z\s.'-]+$/.test(t)) return false;
+          const letters = (t.match(/[A-Za-z]/g) || []).length;
+          return letters >= 2 && t.length <= 100;
+        };
+        const isValidEmail = (s) => {
+          const t = String(s || '').trim().toLowerCase();
+          if (!t || invalids.has(t)) return false;
+          return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(t);
+        };
+        const cleanText = (s) => {
+          const t = String(s || '').trim();
+          return (!t || invalids.has(t.toLowerCase())) ? null : t;
+        };
+        const rows = uploadRows.map((cols, idx) => {
           if (role === 'students') {
             const [first = '', last = '', email = '', year = '', program = ''] = cols;
-            return { firstName: first, lastName: last, email, year, program };
+            return { __row: idx + 2, firstName: first, lastName: last, email, year, program };
           } else {
-            const [first = '', last = '', email = '', department = '', maxDaily = '10', defDur = '30', online = 'true', inperson = 'true', subjects = ''] = cols;
-            return { firstName: first, lastName: last, email, department, maxDaily, defaultDuration: defDur, online, inPerson: inperson, subjects };
+            const [first = '', last = '', email = '', department = '', bio = '', categories = '', guidelines = '', subjects = ''] = cols;
+            return { __row: idx + 2, firstName: first, lastName: last, email, department, bio, categories, guidelines, subjects };
           }
+        });
+        // Client-side validation for CSV rows
+        const errors = [];
+        for (const r of rows) {
+          if (!isValidName(r.firstName)) errors.push(`Row ${r.__row}: invalid First Name`);
+          if (!isValidName(r.lastName)) errors.push(`Row ${r.__row}: invalid Last Name`);
+          if (!isValidEmail(r.email)) errors.push(`Row ${r.__row}: invalid Email`);
+        }
+        if (errors.length) {
+          setUploadError(`Validation failed. Please fix:\n- ${errors.join('\n- ')}`);
+          return;
+        }
+        const prepared = rows.map((r) => {
+          if (role === 'students') {
+            return { role: 'student', firstName: r.firstName, lastName: r.lastName, email: r.email, year: r.year, program: cleanText(r.program) };
+          }
+          return {
+            role: 'advisor',
+            firstName: r.firstName,
+            lastName: r.lastName,
+            email: r.email,
+            department: cleanText(r.department),
+            bio: cleanText(r.bio),
+            categories: cleanText(r.categories),
+            guidelines: cleanText(r.guidelines),
+            subjects: r.subjects
+          };
         });
         const res = await fetch(`${base}/api/users/bulk-create`, {
           method: 'POST',
@@ -776,7 +897,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
             'Content-Type': 'application/json',
             ...(token ? { Authorization: `Bearer ${token}` } : {}),
           },
-          body: JSON.stringify({ role, rows }),
+          body: JSON.stringify({ role, rows: prepared }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Upload failed');
@@ -1011,11 +1132,15 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
 
   const handleSaveProfile = async () => {
     if (!editForm.firstName.trim() || !editForm.lastName.trim()) {
-      alert("Please enter first and last name");
+      await showToast('warning', 'Missing name', 'Please enter first and last name.');
       return;
     }
     if (!editForm.email.trim() || !/\S+@\S+\.\S+/.test(editForm.email)) {
-      alert("Please enter a valid email");
+      await showToast('warning', 'Invalid email', 'Please enter a valid email address.');
+      return;
+    }
+    if (editForm.password && editForm.password.trim() && editForm.password.trim().length < 6) {
+      await showToast('warning', 'Weak password', 'Password must be at least 6 characters');
       return;
     }
 
@@ -1121,7 +1246,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       } catch {}
     } catch (err) {
       console.error('Failed to persist user changes', err);
-      alert('Saving failed on the server. The drawer remains open so you can retry.');
+      await showToast('destructive', 'Save failed', 'Saving failed on the server. The drawer remains open so you can retry.');
     }
   };
 
@@ -1165,14 +1290,14 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       setHistoryItems((prev) => prev.filter((c) => c.id !== consultation.id));
     } catch (err) {
       console.error('Delete consultation failed', err);
-      alert('Could not delete consultation. Please try again.');
+      await showToast('destructive', 'Delete failed', 'Could not delete consultation. Please try again.');
     }
   };
 
   const handleDeleteUserPermanent = async () => {
     if (!viewUser) return;
     if (editForm.active) {
-      alert('User must be inactive before permanent deletion.');
+      await showToast('warning', 'Cannot delete active user', 'User must be inactive before permanent deletion.');
       return;
     }
     const user = viewUser;
@@ -1189,6 +1314,8 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       setPendingAction(null);
       setUndoTimeout(null);
       try { const { toast } = await import('../../components/hooks/use-toast'); toast.success({ title: 'User deleted' }); } catch {}
+      await reloadActiveTab();
+      await loadTermMembers();
     } catch (err) {
       if (activeTab === 'students') {
         setStudentsData(prev => [user, ...prev]);
@@ -1375,11 +1502,17 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                     const curr = Array.isArray(d) ? d.find(x=>x.is_current) : null;
                     tId = curr?.id;
                   }
-                  if (!tId) return alert('Select a specific term to edit status');
+                  if (!tId) {
+                    await showToast('warning', 'Select a term', 'Select a specific term to edit status');
+                    return;
+                  }
                   const res = await fetch(`${base}/api/settings/academic/terms/${tId}/members/status`, { method:'PATCH', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ userId: item.id, status_in_term: newStatus }) });
                   if (!res.ok) throw new Error('Failed to update');
                   setMemberStatusMap(prev => new Map(prev.set(item.id, newStatus)));
-                } catch (_) { alert('Failed to update term status'); }
+                } catch (err) {
+                  console.error('Failed to update term status', err);
+                  await showToast('destructive', 'Update failed', 'Failed to update term status');
+                }
               }}
               showTermStatus={activeTab === 'students' && termFilter !== 'all'}
             />
@@ -1615,11 +1748,17 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                     const current = Array.isArray(data) ? data.find(t=>t.is_current) : null;
                     fromTerm = current?.id;
                   }
-                  if (!fromTerm || !promoteModal.toTermId) return alert('Select specific from/to terms');
+                  if (!fromTerm || !promoteModal.toTermId) {
+                    await showToast('warning', 'Select terms', 'Select specific from/to terms');
+                    return;
+                  }
                   const body = promoteModal.onlySelected ? { toTermId: Number(promoteModal.toTermId), userIds: selectedIds } : { toTermId: Number(promoteModal.toTermId), program: promoteModal.program || undefined, year: promoteModal.year || undefined };
                   await fetch(`${base}/api/settings/academic/terms/${fromTerm}/promote`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
                   setPromoteModal({ open:false, toTermId:'' });
-                }catch(e){ alert('Failed to advance'); }
+                }catch(e){
+                  console.error('Failed to advance students', e);
+                  await showToast('destructive', 'Advance failed', 'Failed to advance students');
+                }
               }}>Advance</Button>
             </div>
           </div>
@@ -1636,20 +1775,14 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-4">
-            {/* Role Selection */}
+            {/* Role is implied by the current tab */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 User Type
               </label>
-              <Select value={newRole} onValueChange={setNewRole}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select role" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="student">Student</SelectItem>
-                  <SelectItem value="advisor">Advisor</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-gray-50">
+                {activeTab === 'students' ? 'Student' : 'Advisor'}
+              </div>
             </div>
 
             {/* Name Fields */}
@@ -1692,7 +1825,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
             </div>
 
             {/* Conditional Fields for Students */}
-            {newRole === "student" && (
+            { (activeTab === 'students') && (
               <>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -1729,7 +1862,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
             )}
 
             {/* Conditional Fields for Advisors */}
-            {newRole === "advisor" && (
+            {(activeTab === 'advisors') && (
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Department
@@ -1749,8 +1882,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
               <p className="text-sm text-blue-800">
-                <strong>Note:</strong> A temporary password will be generated
-                and sent to the user's email address.
+                <strong>Note:</strong> A password will be generated and sent to the user's email address. They will be asked to change it after signing in.
               </p>
             </div>
           </div>
@@ -1769,28 +1901,22 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
         </DrawerContent>
       </Drawer>
 
-      {/* Upload Users Drawer */}
+      {/* Bulk Upload Users Drawer */}
       <Drawer open={uploadOpen} onOpenChange={setUploadOpen}>
         <DrawerContent className="max-w-xl p-0">
           <DrawerHeader>
-            <DrawerTitle>Upload Users</DrawerTitle>
+            <DrawerTitle>Bulk Upload Users</DrawerTitle>
             <DrawerDescription>
               Required file extension: <strong>.csv</strong>
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-4">
-            {/* Import Target Role */}
+            {/* Import target role is implied by the active tab */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Import for</label>
-              <Select value={uploadRole} onValueChange={setUploadRole}>
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="Select user type" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="students">Students</SelectItem>
-                  <SelectItem value="advisors">Advisors</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-gray-50">
+                {activeTab === 'students' ? 'Students' : 'Advisors'}
+              </div>
             </div>
             <div>
               <a href="#" className="text-sm text-blue-600" onClick={(e) => { e.preventDefault(); downloadCSVTemplate(); }}>
@@ -1802,7 +1928,19 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
               {uploadRole === "students" ? (
                 <p>First Name, Last Name, Email, Year, Program</p>
               ) : (
-                <p>First Name, Last Name, Email, Department</p>
+                <p>
+                  First Name, Last Name, Email, Department,
+                  Bio (optional), Categories (optional),
+                  Guidelines (optional), Subjects (optional)
+                </p>
+              )}
+              {uploadRole !== "students" && (
+                <div className="mt-2 space-y-1">
+                  <p>For multiple values use a semicolon (;) between items:</p>
+                  <p>Categories: Academic Advising;Career Planning</p>
+                  <p>Guidelines: Arrive 10 minutes early;Bring student ID</p>
+                  <p>Subjects: CS101|Intro to CS;IT201|Networking Basics</p>
+                </div>
               )}
             </div>
             <div>
@@ -1812,6 +1950,11 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                 onChange={(e) => handleUploadFileChange(e.target.files?.[0] || null)}
               />
             </div>
+            {uploadRows.length > 0 && (
+              <p className="text-sm text-gray-600">
+                {uploadRows.length} data row{uploadRows.length === 1 ? "" : "s"} detected (header and blank rows ignored).
+              </p>
+            )}
             {uploadError && (
               <p className="text-sm text-red-600">{uploadError}</p>
             )}
@@ -2044,7 +2187,68 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Categories (topics)</label>
-                  <Input type="text" placeholder="Comma-separated, e.g., Java, Networking, CSS" value={(editForm.consultTopics || []).join(', ')} onChange={(e)=>setEditForm({ ...editForm, consultTopics: e.target.value.split(',').map(s=>s.trim()).filter(Boolean) })} />
+                  <div className="flex flex-wrap gap-2 mb-2">
+                    {(editForm.consultTopics || []).map((topic, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs bg-blue-50 text-blue-700 border border-blue-300"
+                      >
+                        <span>{topic}</span>
+                        <button
+                          type="button"
+                          className="text-blue-700 hover:text-red-600"
+                          onClick={() => {
+                            const next = (editForm.consultTopics || []).filter((_, i) => i !== idx);
+                            setEditForm({ ...editForm, consultTopics: next });
+                          }}
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex flex-col md:flex-row gap-2">
+                    <Select
+                      value={advisorTopicPreset}
+                      onValueChange={(v) => {
+                        setAdvisorTopicPreset(v);
+                        if (v !== "other") setAdvisorTopicOther("");
+                      }}
+                    >
+                      <SelectTrigger className="w-full md:w-64">
+                        <SelectValue placeholder="Select topic" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {TOPIC_OPTIONS.map(opt => (
+                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        ))}
+                        <SelectItem value="other">Others</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    {advisorTopicPreset === "other" && (
+                      <Input
+                        className="flex-1"
+                        placeholder="Specify other topic"
+                        value={advisorTopicOther}
+                        onChange={(e)=>setAdvisorTopicOther(e.target.value)}
+                      />
+                    )}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        const picked = advisorTopicPreset === "other" ? advisorTopicOther.trim() : advisorTopicPreset;
+                        if (!picked) return;
+                        const existing = editForm.consultTopics || [];
+                        if (existing.includes(picked)) return;
+                        setEditForm({ ...editForm, consultTopics: [...existing, picked] });
+                        setAdvisorTopicPreset("");
+                        setAdvisorTopicOther("");
+                      }}
+                    >
+                      Add
+                    </Button>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Guidelines</label>
@@ -2060,7 +2264,85 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                         <Button variant="outline" onClick={()=>{ const next = [...(editForm.consultSubjects||[])]; next.splice(idx,1); setEditForm({ ...editForm, consultSubjects: next }); }}>Remove</Button>
                       </div>
                     ))}
-                    <Button variant="outline" onClick={()=>setEditForm({ ...editForm, consultSubjects: [ ...(editForm.consultSubjects || []), { code: '', name: '' } ] })}>Add Subject</Button>
+                    <div className="flex flex-col md:flex-row gap-2">
+                      <Select
+                        value={advisorSubjectPreset}
+                        onValueChange={(v) => {
+                          setAdvisorSubjectPreset(v);
+                          if (v !== "other") {
+                            setAdvisorSubjectOtherCode("");
+                            setAdvisorSubjectOtherName("");
+                          }
+                        }}
+                      >
+                        <SelectTrigger className="w-full md:w-64">
+                          <SelectValue placeholder="Select subject" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {SUBJECT_OPTIONS.map(opt => (
+                            <SelectItem key={opt.code} value={opt.code}>
+                              {opt.name} ({opt.code})
+                            </SelectItem>
+                          ))}
+                          <SelectItem value="other">Others (manual entry)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {advisorSubjectPreset === "other" && (
+                        <>
+                          <Input
+                            className="w-full md:w-40"
+                            placeholder="Code (e.g., CS101)"
+                            value={advisorSubjectOtherCode}
+                            onChange={(e)=>setAdvisorSubjectOtherCode(e.target.value)}
+                          />
+                          <Input
+                            className="flex-1"
+                            placeholder="Name (e.g., Intro to CS)"
+                            value={advisorSubjectOtherName}
+                            onChange={(e)=>setAdvisorSubjectOtherName(e.target.value)}
+                          />
+                        </>
+                      )}
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={async () => {
+                          const existing = editForm.consultSubjects || [];
+                          if (!advisorSubjectPreset) return;
+
+                          if (advisorSubjectPreset === "other") {
+                            const code = advisorSubjectOtherCode.trim();
+                            const name = advisorSubjectOtherName.trim();
+                            if (!code || !name) {
+                              await showToast('warning', 'Required', 'Please enter both subject code and name.');
+                              return;
+                            }
+                            const exists = existing.some(s => String(s.code || "").toLowerCase() === code.toLowerCase());
+                            if (exists) return;
+                            setEditForm({
+                              ...editForm,
+                              consultSubjects: [...existing, { code, name }],
+                            });
+                            setAdvisorSubjectPreset("");
+                            setAdvisorSubjectOtherCode("");
+                            setAdvisorSubjectOtherName("");
+                            return;
+                          }
+
+                          const opt = SUBJECT_OPTIONS.find(o => o.code === advisorSubjectPreset);
+                          if (!opt) return;
+                          const exists = existing.some(s => String(s.code || "").toLowerCase() === opt.code.toLowerCase());
+                          if (exists) return;
+                          setEditForm({
+                            ...editForm,
+                            consultSubjects: [...existing, { code: opt.code, name: opt.name }],
+                          });
+                          setAdvisorSubjectPreset("");
+                        }}
+                      >
+                        Add Subject
+                      </Button>
+                    </div>
                   </div>
                 </div>
               </div>
