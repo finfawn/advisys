@@ -749,8 +749,8 @@ export default function AdvisorAvailability() {
           )}
         </main>
       </div>
-      <AlertDialog open={consultationPromptOpen} onOpenChange={(open)=>{ if (!open) setConsultationPromptOpen(open); }}>
-        <AlertDialogContent>
+      <AlertDialog open={consultationPromptOpen} onOpenChange={()=>{}}>
+        <AlertDialogContent onPointerDownOutside={e=>e.preventDefault()} onEscapeKeyDown={e=>e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle className="leading-none text-center">Complete Your Consultation Profile</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
@@ -758,14 +758,11 @@ export default function AdvisorAvailability() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:items-center sm:justify-between">
-            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">
-              Later
-            </AlertDialogCancel>
             <AlertDialogAction
-              className="min-w-[160px]"
+              className="w-full"
               onClick={() => {
                 setConsultationPromptOpen(false);
-                navigate('/advisor-dashboard/settings', { state: { focusConsultation: true, autoEditConsultation: true } });
+                navigate('/advisor-dashboard/profile', { state: { focusConsultation: true, autoEditConsultation: true } });
               }}
             >
               Update Consultation Settings

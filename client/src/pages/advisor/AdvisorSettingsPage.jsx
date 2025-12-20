@@ -56,6 +56,7 @@ export default function AdvisorSettingsPage() {
   const [departmentOptions, setDepartmentOptions] = useState([]);
   const [showChangePw, setShowChangePw] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [showTempPasswordNotice, setShowTempPasswordNotice] = useState(false);
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
 
@@ -124,7 +125,28 @@ export default function AdvisorSettingsPage() {
       delete nextState.focusConsultation;
       delete nextState.autoEditConsultation;
       navigate(location.pathname, { replace: true, state: nextState });
+      return;
     }
+    if (state && state.forcePasswordChange) {
+      setShowTempPasswordNotice(true);
+      setActiveSection("security");
+      const nextState = { ...state };
+      delete nextState.forcePasswordChange;
+      navigate(location.pathname, { replace: true, state: nextState });
+      return;
+    }
+    try {
+      const stored = typeof window !== "undefined" ? localStorage.getItem("advisys_user") : null;
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const hasFlag = parsed && Object.prototype.hasOwnProperty.call(parsed, "must_change_password");
+        const must = hasFlag ? Boolean(parsed.must_change_password) : false;
+        if (must) {
+          setShowTempPasswordNotice(true);
+          setActiveSection("security");
+        }
+      }
+    } catch { 0; }
   }, [location, navigate, consultationData]);
 
   const handleNavigation = (page) => {
@@ -1187,6 +1209,28 @@ export default function AdvisorSettingsPage() {
         </main>
       </div>
       <ChangePasswordDialog open={showChangePw} onClose={()=>setShowChangePw(false)} />
+      <AlertDialog open={showTempPasswordNotice} onOpenChange={()=>{}}>
+        <AlertDialogContent onPointerDownOutside={e=>e.preventDefault()} onEscapeKeyDown={e=>e.preventDefault()}>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="leading-none text-center">Update Your Temporary Password</AlertDialogTitle>
+            <AlertDialogDescription className="text-center">
+              You are currently using a temporary password. For your security, please create a new password before continuing to use AdviSys.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="sm:items-center sm:justify-between">
+            <AlertDialogAction
+              className="w-full"
+              onClick={() => {
+                setShowTempPasswordNotice(false);
+                setActiveSection("security");
+                setShowChangePw(true);
+              }}
+            >
+              Change Password
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog open={showDeleteModal} onOpenChange={(open)=>{ if (!open) setShowDeleteModal(false); }}>
         <AlertDialogContent>
           <AlertDialogHeader>

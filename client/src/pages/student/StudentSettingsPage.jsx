@@ -80,6 +80,7 @@ export default function StudentSettingsPage() {
     const state = location && location.state;
     if (state && state.forcePasswordChange) {
       setShowTempPasswordNotice(true);
+      setActiveSection("security");
       const nextState = { ...state };
       delete nextState.forcePasswordChange;
       navigate(location.pathname, { replace: true, state: nextState });
@@ -91,7 +92,10 @@ export default function StudentSettingsPage() {
         const parsed = JSON.parse(stored);
         const hasFlag = parsed && Object.prototype.hasOwnProperty.call(parsed, "must_change_password");
         const must = hasFlag ? Boolean(parsed.must_change_password) : false;
-        if (must) setShowTempPasswordNotice(true);
+        if (must) {
+          setShowTempPasswordNotice(true);
+          setActiveSection("security");
+        }
       }
     } catch { 0; }
   }, [location, navigate]);
@@ -769,8 +773,8 @@ export default function StudentSettingsPage() {
         </main>
       </div>
       <ChangePasswordDialog open={showChangePw} onClose={()=>setShowChangePw(false)} />
-      <AlertDialog open={showTempPasswordNotice} onOpenChange={(open)=>{ if (!open) setShowTempPasswordNotice(open); }}>
-        <AlertDialogContent>
+      <AlertDialog open={showTempPasswordNotice} onOpenChange={()=>{}}>
+        <AlertDialogContent onPointerDownOutside={e=>e.preventDefault()} onEscapeKeyDown={e=>e.preventDefault()}>
           <AlertDialogHeader>
             <AlertDialogTitle className="leading-none text-center">Update Your Temporary Password</AlertDialogTitle>
             <AlertDialogDescription className="text-center">
@@ -778,11 +782,8 @@ export default function StudentSettingsPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter className="sm:items-center sm:justify-between">
-            <AlertDialogCancel className="min-w-[96px] mt-0 mr-auto">
-              Later
-            </AlertDialogCancel>
             <AlertDialogAction
-              className="min-w-[140px]"
+              className="w-full"
               onClick={() => {
                 setShowTempPasswordNotice(false);
                 setActiveSection("security");
