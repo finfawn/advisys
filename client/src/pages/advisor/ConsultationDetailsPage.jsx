@@ -30,6 +30,8 @@ export default function AdvisorConsultationDetailsPage() {
   const location = useLocation();
   const { collapsed, toggleSidebar } = useSidebar();
 
+  const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+
   const fallback = {
     id: Number(consultationId) || 2,
     date: "2025-10-08",
@@ -446,35 +448,34 @@ export default function AdvisorConsultationDetailsPage() {
                 </section>
 
                 {/* Consultation Summary (left column) with click-to-edit auto-save */}
-                <section className="consultation-details-section">
-                  <h2 className="section-title">
-                    <BsFileText className="section-icon" />
-                    Consultation Summary
-                  </h2>
-                  <div className="section-content">
-            {!isEditingSummary ? (
-              <p
-                className="summary-text"
-                onClick={()=>{ setIsEditingSummary(true); setAiSummaryDraft(consultationData.aiSummary || ''); }}
-              >
-                {consultationData.aiSummary || 'Click to add a consultation summary.'}
-              </p>
-            ) : (
-                      <textarea
-                        className="edit-request-textarea"
-                        value={aiSummaryDraft}
-                        onChange={(e) => setAiSummaryDraft(e.target.value)}
-                        onBlur={()=>{ setIsEditingSummary(false); handleSaveSummary(); }}
-                        onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
-                        placeholder="Revise or expand the consultation summary here"
-                        rows={6}
-                        autoFocus
-                      />
-                    )}
-                    {savingSummary && <span className="success-text">Saving...</span>}
-                    {saveSuccess && <span className="success-text">Summary saved.</span>}
-                  </div>
-                </section>
+                {AI_ENABLED && (
+                  <section className="consultation-details-section">
+                    <h2 className="section-title"><BsFileText className="section-icon" /> Consultation Summary</h2>
+                    <div className="section-content">
+                      {!isEditingSummary ? (
+                        <p
+                          className="summary-text"
+                          onClick={()=>{ setIsEditingSummary(true); setAiSummaryDraft(consultationData.aiSummary || ''); }}
+                        >
+                          {consultationData.aiSummary || 'Click to add a consultation summary.'}
+                        </p>
+                      ) : (
+                        <textarea
+                          className="edit-request-textarea"
+                          value={aiSummaryDraft}
+                          onChange={(e) => setAiSummaryDraft(e.target.value)}
+                          onBlur={()=>{ setIsEditingSummary(false); handleSaveSummary(); }}
+                          onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
+                          placeholder="Revise or expand the consultation summary here"
+                          rows={6}
+                          autoFocus
+                        />
+                      )}
+                      {savingSummary && <span className="success-text">Saving...</span>}
+                      {saveSuccess && <span className="success-text">Summary saved.</span>}
+                    </div>
+                  </section>
+                )}
 
                 <section className="consultation-details-section">
                   <h2 className="section-title"><BsListCheck className="section-icon"/> Preparation Guidelines</h2>

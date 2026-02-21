@@ -10,6 +10,8 @@ import { Button } from "../../lightswind/button";
 import { BsCameraVideo, BsGeoAlt, BsDownload, BsPerson, BsChevronLeft, BsChevronRight } from "react-icons/bs";
 import "./StudentThreadPage.css";
 
+const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+
 export default function StudentThreadPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const { advisorId } = useParams();
@@ -269,7 +271,7 @@ export default function StudentThreadPage() {
                         {c.summary_notes && (
                           <div className="text-sm mt-2"><span className="font-semibold">Summary: </span><span className="whitespace-pre-wrap">{c.summary_notes}</span></div>
                         )}
-                        {!c.summary_notes && c.ai_summary && (
+                        {AI_ENABLED && !c.summary_notes && c.ai_summary && (
                           <div className="text-sm mt-2"><span className="font-semibold">AI Summary: </span><span className="whitespace-pre-wrap">{c.ai_summary}</span></div>
                         )}
                       </CardContent>

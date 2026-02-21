@@ -41,6 +41,21 @@ const { getPool } = require('../db/pool');
 
 const router = express.Router();
 
+// Optional Supabase Storage client (prefer when configured)
+let supabase = null;
+let supabaseBucket = null;
+try {
+  const { createClient } = require('@supabase/supabase-js');
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_SERVICE_ROLE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  supabaseBucket = process.env.SUPABASE_BUCKET || 'advisys-uploads';
+  if (SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+    supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, { auth: { persistSession: false } });
+  }
+} catch (_) {
+  supabase = null;
+}
+
 
 // POST /api/uploads/avatar
 // FormData: { avatar: File }
@@ -92,7 +107,24 @@ router.post(
 
       const { GCS_BUCKET_NAME: GCS_ENV_BUCKET_NAME, GCP_STORAGE_KEY_PATH, CDN_BASE_URL, ALLOW_LOCAL_AVATAR_FALLBACK } = process.env;
       const GCS_BUCKET_NAME = String(GCS_ENV_BUCKET_NAME || '').trim();
-      if (storageClient && GCS_BUCKET_NAME) {
+      if (supabase && supabaseBucket) {
+        try {
+          const userId2 = req.user?.id || 'anon';
+          const ext2 = path.extname(req.file.originalname || '').toLowerCase();
+          const safeExt2 = ['.png', '.jpg', '.jpeg', '.gif', '.webp'].includes(ext2) ? ext2 : '.png';
+          const name2 = `avatar_${userId2}_${Date.now()}${safeExt2}`;
+          const objectKey = `avatars/${name2}`;
+          const { error: upErr } = await supabase
+            .storage
+            .from(supabaseBucket)
+            .upload(objectKey, req.file.buffer, { contentType: req.file.mimetype || 'image/png', upsert: false });
+          if (upErr) throw upErr;
+          const { data: pub } = supabase.storage.from(supabaseBucket).getPublicUrl(objectKey);
+          urlPath = pub?.publicUrl || null;
+        } catch (sbErr) {
+          console.error('Supabase upload failed:', sbErr);
+        }
+      } else if (storageClient && GCS_BUCKET_NAME) {
         try {
           const bucket = storageClient.bucket(GCS_BUCKET_NAME);
           const userId2 = req.user?.id || 'anon';

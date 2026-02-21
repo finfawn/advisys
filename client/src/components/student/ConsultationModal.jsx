@@ -8,6 +8,8 @@ import "react-day-picker/dist/style.css";
 import { toast } from "../hooks/use-toast";
 import "./ConsultationModal.css";
 
+const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || "false").toLowerCase() === "true";
+
 function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations, modeType = 'create', initialData = null, consultationId = null, onSubmitSuccess, allowDetailsEdit = true, autoApproveOnReschedule = false }) {
   const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
@@ -544,14 +546,16 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
                 <span className="character-count">
                   {formData.description.length}/{MAX_DESCRIPTION_LENGTH}
                 </span>
-                <button
-                  type="button"
-                  className={`optimize-btn ${isOptimizing ? 'loading' : ''}`}
-                  onClick={handleOptimize}
-                  disabled={!formData.description.trim() || isOptimizing || !allowDetailsEdit}
-                >
-                  {isOptimizing ? 'Optimizing…' : 'Optimize with AI'}
-                </button>
+                {AI_ENABLED && (
+                  <button
+                    type="button"
+                    className={`optimize-btn ${isOptimizing ? 'loading' : ''}`}
+                    onClick={handleOptimize}
+                    disabled={!formData.description.trim() || isOptimizing || !allowDetailsEdit}
+                  >
+                    {isOptimizing ? 'Optimizing…' : 'Optimize with AI'}
+                  </button>
+                )}
               </div>
               <Form.Control
                 as="textarea"

@@ -7,6 +7,8 @@ import { toast } from "./hooks/use-toast";
 import "./NotificationModal.css";
 import SummaryEditActionModal from "./SummaryEditActionModal";
 
+const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+
 const getNotificationIcon = (iconName, className) => {
   switch (iconName) {
     case "BsBell": return <BsBell className={className} />;
@@ -302,7 +304,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
 
   const getActionLabel = (notification) => {
     // For summary edit requests, advisors should be able to approve/decline
-    if (notification.type === 'consultation_summary_edit_requested' && userType === 'advisor') {
+    if (AI_ENABLED && notification.type === 'consultation_summary_edit_requested' && userType === 'advisor') {
       return 'Review';
     }
     const consultTypes = new Set([
@@ -583,6 +585,10 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
 
 
   const filteredNotifications = notifications.filter(notification => {
+    if (!AI_ENABLED) {
+      const t = String(notification.type || '').toLowerCase();
+      if (t.startsWith('consultation_summary_edit')) return false;
+    }
     if (activeTab === "all") return true;
     if (activeTab === "unread") return !notification.isRead;
     if (activeTab === "edit_requests") return notification.type === 'consultation_summary_edit_requested';
@@ -626,7 +632,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
           >
             Unread
           </button>
-          {userType === 'advisor' && (
+          {userType === 'advisor' && AI_ENABLED && (
             <button 
               className={`notification-tab ${activeTab === "edit_requests" ? "active" : ""}`}
               onClick={() => setActiveTab("edit_requests")}
@@ -699,7 +705,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
                     <div className="notification-time">
                       <span className="time-relative">{formatTimestamp(notification.timestamp)}</span>
                     </div>
-                    {notification.type === 'consultation_summary_edit_requested' && userType === 'advisor' ? (
+                    {AI_ENABLED && notification.type === 'consultation_summary_edit_requested' && userType === 'advisor' ? (
                       <div className="notification-actions">
                         <button
                           className={`notification-action ${actionResolving ? 'disabled' : ''}`}

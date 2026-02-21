@@ -25,6 +25,8 @@ import { ShineButton } from "../../lightswind/shine-button";
 import { Skeleton } from "../../lightswind/skeleton";
 import "./ConsultationDetailsPage.css";
 
+const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+
 export default function OnlineConsultationDetailsPage() {
   const { consultationId } = useParams();
   const navigate = useNavigate();
@@ -759,71 +761,72 @@ export default function OnlineConsultationDetailsPage() {
                   </div>
                 </section>
 
-                {/* Consultation Summary Section (view + request edit) */}
-                <section className="consultation-details-section">
-                  <h2 className="section-title">
-                    <BsFileText className="section-icon" />
-                    Consultation Summary
-                    <span className={`approval-badge ${editApproved ? 'approved' : 'required'}`}
-                      title={editApproved ? 'You have approval to edit this summary' : 'Approval required before editing'}>
-                      {editApproved ? 'Edit Approved' : 'Approval Required'}
-                    </span>
-                    {!editApproved && (
-                      <ShineButton
-                        label={requestingEdit ? 'Requesting...' : 'Request Edit'}
-                        onClick={handleRequestSummaryEdit}
-                        className="mobile-inline-only"
-                        size="sm"
-                      />
-                    )}
-                  </h2>
-                  <div className="section-content">
-                    {summaryLoading && !consultationData.aiSummary && (
-                      <div className="details-loading">Generating summary…</div>
-                    )}
-                    {!isEditingSummary ? (
-                      <p
-                        className="summary-text"
-                        onClick={()=>{
-                          if (editApproved) {
-                            setIsEditingSummary(true);
-                            setAiSummaryDraft(consultationData.aiSummary || displayedSummary || '');
-                          } else {
-                            setShowRequestPrompt(true);
-                          }
-                        }}
-                        title={editApproved ? 'Click to edit summary' : 'Request permission to edit'}
-                      >
-                        {displayedSummary}
-                      </p>
-                    ) : (
-                      <textarea
-                        className="edit-request-textarea"
-                        value={aiSummaryDraft}
-                        onChange={(e) => setAiSummaryDraft(e.target.value)}
-                        onBlur={()=>{ setIsEditingSummary(false); handleSaveSummary(); }}
-                        onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
-                        placeholder="Revise the consultation summary"
-                        rows={6}
-                        autoFocus
-                      />
-                    )}
-                    {savingSummary && <span className="success-text">Saving...</span>}
-                    {saveSummarySuccess && <span className="success-text">Summary saved.</span>}
-
-                    {!editApproved && showRequestPrompt && (
-                      <div className="edit-request-actions" style={{ marginTop: 12 }}>
+                {AI_ENABLED && (
+                  <section className="consultation-details-section">
+                    <h2 className="section-title">
+                      <BsFileText className="section-icon" />
+                      Consultation Summary
+                      <span className={`approval-badge ${editApproved ? 'approved' : 'required'}`}
+                        title={editApproved ? 'You have approval to edit this summary' : 'Approval required before editing'}>
+                        {editApproved ? 'Edit Approved' : 'Approval Required'}
+                      </span>
+                      {!editApproved && (
                         <ShineButton
                           label={requestingEdit ? 'Requesting...' : 'Request Edit'}
                           onClick={handleRequestSummaryEdit}
-                          className=""
-                          size="md"
+                          className="mobile-inline-only"
+                          size="sm"
                         />
-                        {requestSuccess && <span className="success-text">Request sent to advisor.</span>}
-                      </div>
-                    )}
-                  </div>
-                </section>
+                      )}
+                    </h2>
+                    <div className="section-content">
+                      {summaryLoading && !consultationData.aiSummary && (
+                        <div className="details-loading">Generating summary…</div>
+                      )}
+                      {!isEditingSummary ? (
+                        <p
+                          className="summary-text"
+                          onClick={()=>{
+                            if (editApproved) {
+                              setIsEditingSummary(true);
+                              setAiSummaryDraft(consultationData.aiSummary || displayedSummary || '');
+                            } else {
+                              setShowRequestPrompt(true);
+                            }
+                          }}
+                          title={editApproved ? 'Click to edit summary' : 'Request permission to edit'}
+                        >
+                          {displayedSummary}
+                        </p>
+                      ) : (
+                        <textarea
+                          className="edit-request-textarea"
+                          value={aiSummaryDraft}
+                          onChange={(e) => setAiSummaryDraft(e.target.value)}
+                          onBlur={()=>{ setIsEditingSummary(false); handleSaveSummary(); }}
+                          onKeyDown={(e)=>{ if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.currentTarget.blur(); } }}
+                          placeholder="Revise the consultation summary"
+                          rows={6}
+                          autoFocus
+                        />
+                      )}
+                      {savingSummary && <span className="success-text">Saving...</span>}
+                      {saveSummarySuccess && <span className="success-text">Summary saved.</span>}
+  
+                      {!editApproved && showRequestPrompt && (
+                        <div className="edit-request-actions" style={{ marginTop: 12 }}>
+                          <ShineButton
+                            label={requestingEdit ? 'Requesting...' : 'Request Edit'}
+                            onClick={handleRequestSummaryEdit}
+                            className=""
+                            size="md"
+                          />
+                          {requestSuccess && <span className="success-text">Request sent to advisor.</span>}
+                        </div>
+                      )}
+                    </div>
+                  </section>
+                )}
               </div>
 
               {/* Right Column */}

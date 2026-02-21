@@ -7,6 +7,7 @@ const { getPool } = require('./db/pool');
 const bcrypt = require('bcrypt');
 
 const app = express();
+const isServerless = Boolean(process.env.VERCEL) || String(process.env.SERVERLESS || 'false').toLowerCase() === 'true';
 const isTest = String(process.env.NODE_ENV || '').toLowerCase() === 'test';
 
 const corsOrigins = (process.env.CORS_ORIGINS || process.env.APP_BASE_URL || '')
@@ -351,8 +352,10 @@ async function runConsultationReminderJob() {
   }
 }
 
-// Kick off periodic job
-setInterval(runConsultationReminderJob, REMINDER_POLL_MS);
+// Kick off periodic job (skip in serverless runtimes)
+if (!isServerless) {
+  setInterval(runConsultationReminderJob, REMINDER_POLL_MS);
+}
 
 // --- Missed Consultation Background Job ---
 // Automatically marks consultations as 'missed' when their end time has passed
@@ -425,8 +428,10 @@ async function runMissedConsultationJob() {
   }
 }
 
-// Kick off periodic missed job
-setInterval(runMissedConsultationJob, MISSED_POLL_MS);
+// Kick off periodic missed job (skip in serverless runtimes)
+if (!isServerless) {
+  setInterval(runMissedConsultationJob, MISSED_POLL_MS);
+}
 
 // Manual trigger endpoint for missed job (useful for verification/tests)
 app.get('/api/consultations/missed/run', async (req, res) => {
