@@ -16,21 +16,12 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import ChangePasswordDialog from "../../components/common/ChangePasswordDialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 import { toast } from "../../components/hooks/use-toast";
+import InitialsAvatar from "../../components/common/InitialsAvatar";
 
 export default function AdvisorSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const location = useLocation();
-
-  // Normalize avatar URLs coming from backend (relative) or previews (blob:)
-  const resolveAssetUrl = (u) => {
-    if (!u) return null;
-    const s = String(u);
-    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-    if (s.startsWith('/')) return `${base}${s}`;
-    return `${base}/${s}`;
-  };
 
   // Mock advisor data
   const [advisorData, setAdvisorData] = useState({
@@ -170,14 +161,6 @@ export default function AdvisorSettingsPage() {
     setEditData({ ...advisorData });
   };
 
-  const isPersistableAvatarUrl = (u) => {
-    if (!u || typeof u !== 'string') return null;
-    const s = u.trim();
-    if (!s || s.startsWith('blob:') || s.startsWith('data:')) return null;
-    if (/https?:\/\/storage\.googleapis\.com\//i.test(s)) return s;
-    return null;
-  };
-
   const handleSave = () => {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
     const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -195,8 +178,6 @@ export default function AdvisorSettingsPage() {
       department: editData.department || null,
       title: editData.position || null,
     };
-    const avatarPersist = isPersistableAvatarUrl(editData.profilePicture);
-    if (avatarPersist) body.avatar_url = avatarPersist;
     fetch(`${base}/api/profile/me`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json', ...authHeader },
@@ -217,7 +198,6 @@ export default function AdvisorSettingsPage() {
             department: p.department || editData.department || '',
             position: p.title || editData.position || '',
             email: p.email || editData.email || '',
-            profilePicture: resolveAssetUrl(p.avatar_url) || editData.profilePicture || null,
           };
           if (
             advisorData.profilePicture &&
@@ -435,69 +415,7 @@ export default function AdvisorSettingsPage() {
 
   // No longer needed: previously used to parse textarea lines into arrays
 
-  const handleProfilePictureChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-      const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
-      const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
-
-      const form = new FormData();
-      form.append('avatar', file);
-
-      // Upload to backend and use returned URL for persistence
-      fetch(`${base}/api/uploads/avatar`, {
-        method: 'POST',
-        headers: { ...authHeader }, // Do not set Content-Type for FormData
-        body: form,
-      })
-        .then(async (res) => {
-          if (!res.ok) throw new Error('Upload failed');
-          const data = await res.json();
-          const uploadedPath = data?.url || null; // relative or absolute
-          const fullUrl = resolveAssetUrl(uploadedPath);
-          if (fullUrl) {
-            handleInputChange('profilePicture', fullUrl);
-            try {
-              await fetch(`${base}/api/profile/me`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json', ...authHeader },
-                body: JSON.stringify({ avatar_url: fullUrl })
-              });
-            } catch (_) {}
-            try {
-              const pRes = await fetch(`${base}/api/profile/me`, { headers: authHeader });
-              if (pRes.ok) {
-                const p = await pRes.json();
-                const name = String(p.full_name || '').split(' ');
-                const firstName = name[0] || '';
-                const lastName = name.slice(1).join(' ') || '';
-                const nextAdvisor = {
-                  ...editData,
-                  firstName,
-                  lastName,
-                  department: p.department || editData.department || '',
-                  position: p.title || editData.position || '',
-                  email: p.email || editData.email || '',
-                  profilePicture: resolveAssetUrl(p.avatar_url) || fullUrl,
-                };
-                setAdvisorData(nextAdvisor);
-                setEditData(nextAdvisor);
-              }
-            } catch (_) {}
-          } else {
-            // Fallback to local preview if upload response missing URL
-            const preview = URL.createObjectURL(file);
-            handleInputChange('profilePicture', preview);
-          }
-        })
-        .catch(() => {
-          // Fallback to local preview on error; won’t persist across refresh
-          const preview = URL.createObjectURL(file);
-          handleInputChange('profilePicture', preview);
-        });
-    }
-  };
+  const handleProfilePictureChange = () => {};
 
   useEffect(() => {
     const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -522,7 +440,6 @@ export default function AdvisorSettingsPage() {
           department: p.department || '',
           position: p.title || '',
           email: p.email || prev.email || '',
-          profilePicture: resolveAssetUrl(p.avatar_url) || null,
         }));
         setEditData(ed => ({
           ...ed,
@@ -794,15 +711,7 @@ export default function AdvisorSettingsPage() {
 
                     {/* Profile Picture */}
                     <div className="profile-picture-section">
-                      <div className="profile-picture-container">
-                        {displayData.profilePicture ? (
-                          <img src={displayData.profilePicture} alt="Profile" className="profile-picture" />
-                        ) : (
-                          <div className="profile-picture-placeholder">
-                            <BsPersonCircle />
-                          </div>
-                        )}
-                      </div>
+                      <div className="profile-picture-container"><InitialsAvatar name={`${displayData.firstName} ${displayData.lastName}`} size={80} className="profile-picture-placeholder" /></div>
                       <div className="profile-info">
                         <h3 className="profile-name">{`${displayData.firstName} ${displayData.lastName}`}</h3>
                         {displayData.position && (
@@ -812,20 +721,7 @@ export default function AdvisorSettingsPage() {
                           <p className="profile-meta">{displayData.department}</p>
                         )}
                       </div>
-                      {isEditing && (
-                        <div className="profile-picture-actions">
-                          <label htmlFor="profile-upload" className="upload-label">
-                            Change Photo
-                          </label>
-                          <input
-                            id="profile-upload"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleProfilePictureChange}
-                            style={{ display: 'none' }}
-                          />
-                        </div>
-                      )}
+                      
                     </div>
 
                     {/* Personal Information */}

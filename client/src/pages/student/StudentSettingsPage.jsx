@@ -1,10 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "react-bootstrap";
-import { 
-  BsPersonCircle, BsBell, BsShield, BsGear, 
-  BsCheck, BsX, BsPencil, BsSave, BsChevronDown
-} from "react-icons/bs";
+import { BsPersonCircle, BsBell, BsShield, BsGear, BsCheck, BsX, BsPencil, BsSave, BsChevronDown } from "react-icons/bs";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
@@ -16,6 +13,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import ChangePasswordDialog from "../../components/common/ChangePasswordDialog";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 import { toast } from "../../components/hooks/use-toast";
+import InitialsAvatar from "../../components/common/InitialsAvatar";
 
 export default function StudentSettingsPage() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -24,23 +22,13 @@ export default function StudentSettingsPage() {
   const apiBase = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
   const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
 
-  // Normalize avatar URLs coming from backend (relative) or previews (blob:)
-  const resolveAssetUrl = (u) => {
-    if (!u) return null;
-    const s = String(u);
-    if (s.startsWith('http://') || s.startsWith('https://') || s.startsWith('blob:')) return s;
-    if (s.startsWith('/')) return `${apiBase}${s}`;
-    return `${apiBase}/${s}`;
-  };
-
   // Mock student data
   const [studentData, setStudentData] = useState({
     firstName: "John Michael",
     lastName: "Santos",
     program: "Bachelor of Science in Computer Science",
     yearLevel: "3rd Year",
-    email: "john.santos@student.university.edu",
-    profilePicture: null
+    email: "john.santos@student.university.edu"
   });
 
   // Settings state
@@ -140,7 +128,6 @@ export default function StudentSettingsPage() {
           program: data.program || '',
           yearLevel: formatYearDisplay(data.year_level || '1'),
           email: data.email || '',
-          profilePicture: resolveAssetUrl(data.avatar_url) || null,
         };
         setStudentData(mapped);
         setEditData(mapped);
@@ -205,14 +192,6 @@ export default function StudentSettingsPage() {
   };
 
   const handleSave = async () => {
-    // Clean up the old profile picture URL if it's being replaced
-    if (
-      studentData.profilePicture &&
-      studentData.profilePicture.startsWith('blob:') &&
-      studentData.profilePicture !== editData.profilePicture
-    ) {
-      URL.revokeObjectURL(studentData.profilePicture);
-    }
     if (!String(editData.program || '').trim()) {
       toast.warning({
         title: 'Select a program',
@@ -221,7 +200,6 @@ export default function StudentSettingsPage() {
       return;
     }
     try {
-      const isCloudUrl = (u) => typeof u === 'string' && /https?:\/\/storage\.googleapis\.com\//i.test(u);
       const body = {
         firstName: String(editData.firstName || '').trim(),
         lastName: String(editData.lastName || '').trim(),
@@ -229,7 +207,6 @@ export default function StudentSettingsPage() {
         program: editData.program || null,
         yearLevel: parseYearLevel(editData.yearLevel),
       };
-      if (isCloudUrl(editData.profilePicture)) body.avatar_url = editData.profilePicture;
       const res = await fetch(`${apiBase}/api/profile/me`, {
         method: 'PATCH',
         headers: {
@@ -318,75 +295,7 @@ export default function StudentSettingsPage() {
     setShowDeleteModal(true);
   };
 
-  // Profile picture handlers: upload to backend and use returned URL
-  const handleFileUpload = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
-      toast.warning({
-        title: 'Invalid file',
-        description: 'Please select an image file'
-      });
-      return;
-    }
-    if (file.size > 5 * 1024 * 1024) {
-      toast.warning({
-        title: 'File too large',
-        description: 'File size must be less than 5MB'
-      });
-      return;
-    }
-    const headers = token ? { Authorization: `Bearer ${token}` } : {};
-    const form = new FormData();
-    form.append('avatar', file);
-    fetch(`${apiBase}/api/uploads/avatar`, {
-      method: 'POST',
-      headers,
-      body: form,
-    })
-      .then(async (res) => {
-        if (!res.ok) throw new Error('Upload failed');
-        const data = await res.json();
-        const uploadedPath = data?.url || null;
-        const fullUrl = resolveAssetUrl(uploadedPath);
-        setEditData(prev => ({ ...prev, profilePicture: fullUrl }));
-        setStudentData(prev => ({ ...prev, profilePicture: fullUrl }));
-        try {
-          await fetch(`${apiBase}/api/profile/me`, {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ avatar_url: fullUrl })
-          });
-        } catch { 0; }
-        try {
-          const pRes = await fetch(`${apiBase}/api/profile/me`, { headers: { Authorization: `Bearer ${token}` } });
-          if (pRes.ok) {
-            const p = await pRes.json();
-            const full = String(p.full_name || '').trim();
-            const parts = full.split(' ');
-            const firstName = parts.shift() || '';
-            const lastName = parts.join(' ');
-            const mapped = {
-              firstName,
-              lastName,
-              program: p.program || '',
-              yearLevel: formatYearDisplay(p.year_level || '1'),
-              email: p.email || '',
-              profilePicture: resolveAssetUrl(p.avatar_url) || fullUrl,
-            };
-            setStudentData(mapped);
-            setEditData(mapped);
-          }
-        } catch (_) {}
-      })
-      .catch(async (err) => {
-        console.error('Avatar upload failed', err);
-        try {
-          const { toast } = await import('../../components/hooks/use-toast');
-          toast.destructive({ title: 'Upload failed', description: 'Please retry or check bucket access.' });
-        } catch (_) {}
-      });
-  };
+  
 
 
   const settingsSections = [
@@ -569,32 +478,9 @@ export default function StudentSettingsPage() {
                     {/* Profile Summary Card */}
                     <div className="profile-picture-section">
                       <div className="profile-picture-container">
-                        {(isEditing ? editData.profilePicture : studentData.profilePicture) ? (
-                          <img
-                            src={isEditing ? editData.profilePicture : studentData.profilePicture}
-                            alt="Profile"
-                            className="profile-picture"
-                          />
-                        ) : (
-                          <div className="profile-picture-placeholder">
-                            <BsPersonCircle />
-                          </div>
-                        )}
+                        <InitialsAvatar name={`${studentData.firstName} ${studentData.lastName}`} size={80} className="profile-picture-placeholder" />
 
-                        {(
-                          <div className="profile-picture-actions">
-                            <label htmlFor="profile-upload" className="upload-label">
-                              Change Photo
-                            </label>
-                            <input
-                              id="profile-upload"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleFileUpload}
-                              style={{ display: 'none' }}
-                            />
-                          </div>
-                        )}
+                        
                       </div>
 
                       {/* Textual summary */}

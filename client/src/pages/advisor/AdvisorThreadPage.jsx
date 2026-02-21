@@ -8,6 +8,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import { Card, CardContent } from "../../lightswind/card";
 import { BsDownload, BsCameraVideo, BsGeoAlt } from "react-icons/bs";
 import jsPDF from "jspdf";
+import InitialsAvatar from "../../components/common/InitialsAvatar";
 
 const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
 
@@ -229,9 +230,7 @@ export default function AdvisorThreadPage() {
 
             {studentMeta && (
               <div className="mb-3 text-sm text-gray-600 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center">
-                  {studentMeta.avatar ? (<img src={studentMeta.avatar} alt="" className="w-full h-full object-cover" />) : null}
-                </div>
+                <InitialsAvatar name={studentMeta.name} size={40} />
                 <div>
                   <div className="font-medium text-gray-900">{studentMeta.name}</div>
                   <div className="text-xs text-gray-600">{studentMeta.program ? `${studentMeta.program}` : ''}{studentMeta.year ? ` • Year ${studentMeta.year}` : ''}</div>

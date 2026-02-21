@@ -1,11 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsPersonCircle, BsClock, BsEye, BsCameraVideo, BsGeoAlt, BsLaptop, BsCalendarCheck } from "react-icons/bs";
+import { BsClock, BsEye, BsCameraVideo, BsGeoAlt, BsLaptop, BsCalendarCheck } from "react-icons/bs";
 import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
 import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
 import ConsultationModal from "./ConsultationModal";
 import "./AdvisorCard.css";
+import InitialsAvatar from "../common/InitialsAvatar";
 
 function AdvisorCard({ 
   name = "Lorem Ipsum", 
@@ -134,13 +135,7 @@ function AdvisorCard({
       <Card hoverable className="advisor-card-new h-full flex flex-col">
         <CardHeader spacing="compact" className="pb-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-2xl flex-shrink-0">
-              {facultyData.avatar ? (
-                <img src={facultyData.avatar} alt={`${name}'s avatar`} className="w-full h-full rounded-full object-cover" />
-              ) : (
-                <BsPersonCircle />
-              )}
-            </div>
+            <InitialsAvatar name={name} size={48} className="flex-shrink-0" />
             <div className="flex-1 min-w-0">
               <div className="font-semibold text-gray-900 text-base truncate">{name}</div>
               <div className="text-sm text-gray-600 truncate">{title}</div>

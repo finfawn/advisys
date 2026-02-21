@@ -80,6 +80,7 @@ router.post(
   },
   async (req, res) => {
     try {
+      return res.status(410).json({ error: 'Avatar uploads are disabled' });
       if (!req.file) return res.status(400).json({ error: 'No file uploaded' });
 
       let urlPath = null;

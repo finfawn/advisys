@@ -7,8 +7,9 @@ import { useSidebar } from "../../contexts/SidebarContext";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import { Card, CardContent } from "../../lightswind/card";
 import { Button } from "../../lightswind/button";
-import { BsCameraVideo, BsGeoAlt, BsDownload, BsPerson, BsChevronLeft, BsChevronRight } from "react-icons/bs";
+import { BsCameraVideo, BsGeoAlt, BsDownload, BsChevronLeft, BsChevronRight } from "react-icons/bs";
 import "./StudentThreadPage.css";
+import InitialsAvatar from "../../components/common/InitialsAvatar";
 
 const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
 
@@ -238,13 +239,7 @@ export default function StudentThreadPage() {
             {advisorMeta && (
               <Card className="mb-6 border border-gray-200">
                 <CardContent className="p-4 flex items-center gap-4">
-                  <div className="w-16 h-16 rounded-full bg-gray-100 overflow-hidden flex items-center justify-center flex-shrink-0">
-                    {advisorMeta.avatar ? (
-                      <img src={advisorMeta.avatar} alt={advisorMeta.name} className="w-full h-full object-cover" />
-                    ) : (
-                      <BsPerson className="text-3xl text-gray-400" />
-                    )}
-                  </div>
+                  <InitialsAvatar name={advisorMeta.name} size={64} className="rounded-full flex-shrink-0" />
                   <div className="flex-1">
                     <h2 className="text-xl font-semibold text-gray-900">{advisorMeta.name}</h2>
                     {advisorMeta.title && (

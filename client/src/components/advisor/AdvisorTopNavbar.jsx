@@ -1,11 +1,12 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsBell, BsPersonCircle, BsChevronDown, BsGear, BsBoxArrowRight } from "react-icons/bs";
+import { BsBell, BsChevronDown, BsGear, BsBoxArrowRight } from "react-icons/bs";
 import Logo from "../../assets/logo.png";
 import NotificationModal from "../NotificationModal";
 import { useNotifications } from "../../contexts/NotificationContext";
 import "./AdvisorTopNavbar.css";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
+import InitialsAvatar from "../common/InitialsAvatar";
 
 function AdvisorTopNavbar() {
   const navigate = useNavigate();
@@ -16,18 +17,6 @@ function AdvisorTopNavbar() {
 
   // Advisor display name from local storage and refreshed via profile API
   const [advisorName, setAdvisorName] = useState("");
-  const [advisorAvatar, setAdvisorAvatar] = useState(null);
-
-  // Normalize asset URLs (absolute, blob, or server-relative)
-  const resolveAssetUrl = (url) => {
-    if (!url || typeof url !== 'string') return null;
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-    const u = url.trim();
-    if (!u) return null;
-    if (/^(https?:\/\/|blob:)/i.test(u)) return u;
-    if (u.startsWith('/')) return `${base}${u}`;
-    return `${base}/${u.replace(/^\/*/, '')}`;
-  };
 
   useEffect(() => {
     try {
@@ -35,7 +24,6 @@ function AdvisorTopNavbar() {
       if (raw) {
         const u = JSON.parse(raw);
         if (u?.full_name) setAdvisorName(u.full_name);
-        if (u?.avatar_url) setAdvisorAvatar(resolveAssetUrl(u.avatar_url));
       }
     } catch (_) {}
 
@@ -50,7 +38,6 @@ function AdvisorTopNavbar() {
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data?.full_name) setAdvisorName(data.full_name);
-        if (data?.avatar_url) setAdvisorAvatar(resolveAssetUrl(data.avatar_url));
       })
       .catch(() => {});
     return () => controller.abort();
@@ -125,13 +112,7 @@ function AdvisorTopNavbar() {
             aria-expanded={isDropdownOpen}
             aria-haspopup="true"
           >
-            <div className="avatar small overflow-hidden" aria-hidden>
-              {advisorAvatar ? (
-                <img src={advisorAvatar} alt="Advisor avatar" className="w-full h-full object-cover" />
-              ) : (
-                <BsPersonCircle />
-              )}
-            </div>
+            <InitialsAvatar name={advisorName || 'Advisor'} size={32} className="avatar small overflow-hidden" />
             <span className="user-name d-none d-md-inline">{advisorName || 'Advisor'}</span>
             <BsChevronDown className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
           </button>
@@ -140,13 +121,7 @@ function AdvisorTopNavbar() {
             <div className="user-dropdown-menu">
               <div className="dropdown-header">
                 <div className="dropdown-user-info">
-                  <div className="dropdown-avatar overflow-hidden">
-                    {advisorAvatar ? (
-                      <img src={advisorAvatar} alt="Advisor avatar" className="w-full h-full object-cover" />
-                    ) : (
-                      <BsPersonCircle />
-                    )}
-                  </div>
+                  <InitialsAvatar name={advisorName || 'Advisor'} size={40} className="dropdown-avatar overflow-hidden" />
                   <div className="dropdown-user-details">
                     <div className="dropdown-user-name">{advisorName || 'Advisor'}</div>
                     <div className="dropdown-user-role">Advisor</div>
