@@ -7,7 +7,6 @@ import { Button } from "../../lightswind/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import { Card, CardContent } from "../../lightswind/card";
 import { BsDownload, BsCameraVideo, BsGeoAlt } from "react-icons/bs";
-import jsPDF from "jspdf";
 import InitialsAvatar from "../../components/common/InitialsAvatar";
 
 const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
@@ -121,36 +120,50 @@ export default function AdvisorThreadPage() {
   }, [thread, modeFilter, timeFilter, isWithinTimeFilter, selectedStatuses, getStartDate]);
 
   const exportPdf = () => {
-    const doc = new jsPDF({ unit: 'pt', format: 'a4' });
-    const lineGap = 16; const margin = 40; const footerGap = 28;
-    const pageWidth = doc.internal.pageSize.getWidth(); const usable = pageWidth - margin * 2; const pageHeight = doc.internal.pageSize.getHeight();
-    let y = margin;
+    const lines = [];
     const advisorLabel = advisorName ? `Advisor: ${advisorName}` : '';
     const studentLabel = studentMeta?.name ? `Student: ${studentMeta.name}` : '';
-    const title = 'Consultation Thread';
     const termLabel = (() => {
       if (termId === 'all') return 'All Terms';
-      if (termId === 'current') { const cur = terms.find(t => Number(t.is_current) === 1); return cur ? `${cur.year_label} • ${cur.semester_label} Semester` : 'Current Term'; }
+      if (termId === 'current') {
+        const cur = terms.find(t => Number(t.is_current) === 1);
+        return cur ? `${cur.year_label} • ${cur.semester_label} Semester` : 'Current Term';
+      }
       const t = terms.find(t => String(t.id) === String(termId));
       return t ? `${t.year_label} • ${t.semester_label} Semester` : 'Current Term';
     })();
     const timeLabels = { all:'All Time', this_week:'This Week', this_month:'This Month', last_7:'Last 7 Days', last_30:'Last 30 Days' };
-    const filtersSummary = [
-      { label: 'Mode', value: modeFilter==='all' ? 'All Modes' : (modeFilter==='online'?'Online':'In-Person') },
-      { label: 'Time', value: timeLabels[timeFilter] || 'All Time' },
-      { label: 'Status', value: (selectedStatuses.length>0? selectedStatuses.map(s=> s==='canceled'?'Cancelled': s.charAt(0).toUpperCase()+s.slice(1)).join(', ') : 'All Statuses') },
-    ];
-    const wrapText = (text, maxWidth) => { const words = String(text||'').split(/\s+/); const lines = []; let line = ''; words.forEach(w=>{ const next = line ? line + ' ' + w : w; if (doc.getTextWidth(next) > maxWidth) { if (line) lines.push(line); line = w; } else { line = next; } }); if (line) lines.push(line); return lines; };
-    const drawFooter = (pageNum, pageCount) => { const footerY = pageHeight - margin + 8; doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.text(`Page ${pageNum} of ${pageCount}`, pageWidth - margin, footerY, { align: 'right' }); doc.text('AdviSys', margin, footerY); };
-    const drawHeader = () => { doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('AdviSys', pageWidth - margin, y, { align: 'right' }); y += lineGap; doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(title, margin, y); y += lineGap; doc.setFont('helvetica','normal'); doc.setFontSize(11); if (advisorLabel) { doc.text(advisorLabel, margin, y); y += lineGap; } if (studentLabel) { doc.text(studentLabel, margin, y); y += lineGap; } if (termLabel) { doc.text(`Term: ${termLabel}`, margin, y); y += lineGap; } };
-    const ensurePage = (heightNeeded, drawRepeatHeader = true) => { if (y + heightNeeded + margin + footerGap > pageHeight) { const currentPage = doc.getNumberOfPages(); drawFooter(currentPage, currentPage); doc.addPage(); y = margin; if (drawRepeatHeader) drawHeader(); } };
-    drawHeader();
-    doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Selected Filters', margin, y); y += lineGap; doc.setFont('helvetica','normal'); doc.setFontSize(10);
-    filtersSummary.forEach(({label, value}) => { const lines = wrapText(String(value), usable - doc.getTextWidth(label + ': ') - 10); const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7); ensurePage(needed); doc.setFont('helvetica','bold'); doc.text(label + ':', margin, y); doc.setFont('helvetica','normal'); let currentX = margin + doc.getTextWidth(label + ': ') + 5; lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; }); y += lineGap * 0.2; }); y += lineGap * 0.5;
-    const addDetail = (label, value, isBold = false) => { if (!value) return; doc.setFontSize(10); const labelW = doc.getTextWidth(label + ': '); const lines = wrapText(String(value), usable - labelW - 10); const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7); ensurePage(needed, false); doc.setFont('helvetica', 'bold'); doc.text(label + ':', margin, y); doc.setFont('helvetica', isBold ? 'bold' : 'normal'); let currentX = margin + labelW + 5; lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; }); y += lineGap * 0.2; };
-    filteredThread.forEach((c, idx) => { doc.setFontSize(12); doc.setFont('helvetica', 'bold'); const blockTitle = `Consultation ${idx + 1}`; ensurePage(lineGap * 1.5, false); doc.text(blockTitle, margin, y); y += lineGap; const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' }); const modeStr = c.mode === 'online' ? 'Online' : 'In-Person'; const statusStr = String(c.status||'').charAt(0).toUpperCase() + String(c.status||'').slice(1); const topic = c.category || c.topic || '—'; const loc = c.location || ''; const summary = c.summary_notes || c.ai_summary || ''; const cancelReason = c.cancel_reason || ''; addDetail('Topic', topic, true); addDetail('Date/Time', dateStr); addDetail('Mode', modeStr); addDetail('Status', statusStr); const state = String(c.status||'').toLowerCase(); if (state === 'missed') { addDetail('Location', 'Not available'); addDetail('Summary', 'Not available'); } else if (state === 'cancelled' || state === 'canceled') { if (loc) addDetail('Location', loc); if (cancelReason) addDetail('Cancellation Reason', cancelReason); if (summary) addDetail('Summary', summary); } else { if (loc) addDetail('Location', loc); if (summary) addDetail('Summary', summary); } y += lineGap * 1.5; });
-    const totalPages = doc.getNumberOfPages(); for (let i = 1; i <= totalPages; i++) { doc.setPage(i); drawFooter(i, totalPages); }
-    const fname = `Consultations_${advisorName || 'Advisor'}_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.pdf`; doc.save(fname);
+    lines.push('AdviSys – Consultation Thread');
+    if (advisorLabel) lines.push(advisorLabel);
+    if (studentLabel) lines.push(studentLabel);
+    if (termLabel) lines.push(`Term: ${termLabel}`);
+    lines.push(`Filters: Mode=${modeFilter}, Time=${timeLabels[timeFilter] || 'All Time'}, Status=${selectedStatuses.length ? selectedStatuses.join(', ') : 'All'}`);
+    lines.push('');
+    filteredThread.forEach((c, idx) => {
+      const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+      const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
+      const statusStr = String(c.status||'').charAt(0).toUpperCase() + String(c.status||'').slice(1);
+      const topic = c.category || c.topic || '—';
+      const loc = c.location || '';
+      const summary = c.summary_notes || c.ai_summary || '';
+      const cancelReason = c.cancel_reason || '';
+      lines.push(`Consultation ${idx + 1}`);
+      lines.push(`  Topic: ${topic}`);
+      lines.push(`  Date/Time: ${dateStr}`);
+      lines.push(`  Mode: ${modeStr}`);
+      lines.push(`  Status: ${statusStr}`);
+      if (loc) lines.push(`  Location: ${loc}`);
+      if (cancelReason) lines.push(`  Cancellation Reason: ${cancelReason}`);
+      if (summary) lines.push(`  Summary: ${summary}`);
+      lines.push('');
+    });
+    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `Consultations_${advisorName || 'Advisor'}_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
   };
 
   return (

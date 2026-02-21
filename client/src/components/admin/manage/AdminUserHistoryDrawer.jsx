@@ -1,5 +1,4 @@
 import React, { useMemo, useState, useCallback } from "react";
-import jsPDF from "jspdf";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle } from "../../../lightswind/drawer";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
@@ -326,103 +325,30 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
 
   const exportToPdf = () => {
     try {
-      const doc = new jsPDF({ orientation: 'p', unit: 'pt', format: 'a4' });
-      const margin = 48; const lineGap = 16; const footerGap = 28;
-      const pageWidth = doc.internal.pageSize.getWidth(); const usable = pageWidth - margin * 2;
-      const docTitle = 'Consultation Records';
+      const lines = [];
       const who = user?.name ? `Name: ${user.name}` : '';
-      const termLabel = (()=>{
-        const t = (terms||[]).find(x=>String(x.id)===String(selectedTermId));
+      const termLabel = (() => {
+        const t = (terms || []).find(x => String(x.id) === String(selectedTermId));
         if (!t) return '';
         return `Academic Term: ${t.semester_label} Semester • S.Y. ${t.year_label}`;
       })();
-      const timeLabels = { all:'All Time', this_week:'This Week', this_month:'This Month', last_7:'Last 7 Days', last_30:'Last 30 Days' };
-      const tabLabels = { all:'All', upcoming:'Upcoming', requests:'Requests', history:'History' };
+      const timeLabels = { all: 'All Time', this_week: 'This Week', this_month: 'This Month', last_7: 'Last 7 Days', last_30: 'Last 30 Days' };
+      const tabLabels = { all: 'All', upcoming: 'Upcoming', requests: 'Requests', history: 'History' };
       const resolveAdvisorLabel = () => {
         if (advisorFilter === 'all') return allPartyLabel;
-        const found = (advisorOptions||[]).find(o => String(o.id)===String(advisorFilter) || String(o.name)===String(advisorFilter));
+        const found = (advisorOptions || []).find(o => String(o.id) === String(advisorFilter) || String(o.name) === String(advisorFilter));
         return found?.name || String(advisorFilter);
       };
-      const filtersSummary = [
-        { label: 'Tab', value: tabLabels[view] || 'All' },
-        { label: partyLabel, value: resolveAdvisorLabel() },
-        { label: 'Mode', value: modeFilter==='all' ? 'All Modes' : (modeFilter==='online'?'Online':'In-Person') },
-        { label: 'Time', value: timeLabels[timeFilter] || 'All Time' },
-        { label: 'Status', value: (selectedStatuses.length>0? selectedStatuses.map(s=> s==='canceled'?'Cancelled': s.charAt(0).toUpperCase()+s.slice(1)).join(', ') : 'All Statuses') }
-      ];
-
-      let y = margin;
-      const wrapText = (text, maxWidth) => {
-        const words = String(text||'').split(/\s+/);
-        const lines = []; let line = '';
-        words.forEach(w=>{ const next = line ? line + ' ' + w : w; if (doc.getTextWidth(next) > maxWidth) { if (line) lines.push(line); line = w; } else { line = next; } });
-        if (line) lines.push(line);
-        return lines;
-      };
-      const pageHeight = doc.internal.pageSize.getHeight();
-      const drawFooter = (pageNum, pageCount) => {
-        const footerY = pageHeight - margin + 8;
-        doc.setFont('helvetica','normal'); doc.setFontSize(9);
-        doc.text(`Page ${pageNum} of ${pageCount}`, pageWidth - margin, footerY, { align: 'right' });
-        doc.text('AdviSys', margin, footerY);
-      };
-      const drawHeader = () => {
-        doc.setFont('helvetica','bold'); doc.setFontSize(14); doc.text('AdviSys', pageWidth - margin, y, { align: 'right' }); y += lineGap;
-        doc.setFont('helvetica','bold'); doc.setFontSize(16); doc.text(docTitle, margin, y); y += lineGap;
-        doc.setFont('helvetica','normal'); doc.setFontSize(11);
-        if (termLabel) { doc.text(termLabel, margin, y); y += lineGap; }
-        if (who) { doc.text(who, margin, y); y += lineGap; }
-      };
-      const ensurePage = (heightNeeded, drawRepeatHeader = true) => {
-        if (y + heightNeeded + margin + footerGap > pageHeight) {
-          const currentPage = doc.getNumberOfPages();
-          // draw footer for current page before adding a new one
-          drawFooter(currentPage, currentPage);
-          doc.addPage();
-          y = margin;
-          if (drawRepeatHeader) drawHeader();
-        }
-      };
-
-      // Header
-      drawHeader();
-      // Filters section
-      doc.setFont('helvetica','bold'); doc.setFontSize(12); doc.text('Selected Filters', margin, y); y += lineGap;
-      doc.setFont('helvetica','normal'); doc.setFontSize(10);
-      filtersSummary.forEach(({label, value}) => {
-        const lines = wrapText(String(value), usable - doc.getTextWidth(label + ': ') - 10);
-        const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7);
-        ensurePage(needed);
-        doc.setFont('helvetica','bold'); doc.text(label + ':', margin, y);
-        doc.setFont('helvetica','normal');
-        let currentX = margin + doc.getTextWidth(label + ': ') + 5;
-        lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; });
-        y += lineGap * 0.2;
-      });
-      y += lineGap * 0.5;
-
-      const addDetail = (label, value, isBold = false) => {
-        if (!value) return;
-        doc.setFontSize(10);
-        const labelW = doc.getTextWidth(label + ': ');
-        const lines = wrapText(String(value), usable - labelW - 10);
-        const needed = (lines.length * (lineGap*0.8)) + (lineGap*0.7);
-        ensurePage(needed, false);
-        doc.setFont('helvetica', 'bold'); doc.text(label + ':', margin, y);
-        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
-        let currentX = margin + labelW + 5;
-        lines.forEach(line => { doc.text(line, currentX, y); y += lineGap * 0.8; });
-        y += lineGap * 0.2;
-      };
-
-      const drawConsultation = (c, idx) => {
-        // Title for block
-        doc.setFontSize(12); doc.setFont('helvetica', 'bold');
-        const blockTitle = `Consultation ${idx + 1}`;
-        ensurePage(lineGap * 1.5, false);
-        doc.text(blockTitle, margin, y);
-        y += lineGap;
-        // Details
+      lines.push('AdviSys – Consultation Records');
+      if (termLabel) lines.push(termLabel);
+      if (who) lines.push(who);
+      lines.push(`Tab: ${tabLabels[view] || 'All'}`);
+      lines.push(`${partyLabel}: ${resolveAdvisorLabel()}`);
+      lines.push(`Mode: ${modeFilter === 'all' ? 'All Modes' : (modeFilter === 'online' ? 'Online' : 'In-Person')}`);
+      lines.push(`Time: ${timeLabels[timeFilter] || 'All Time'}`);
+      lines.push(`Status: ${selectedStatuses.length > 0 ? selectedStatuses.map(s => s === 'canceled' ? 'Cancelled' : s.charAt(0).toUpperCase() + s.slice(1)).join(', ') : 'All Statuses'}`);
+      lines.push('');
+      filteredConsultations.forEach((c, idx) => {
         const dateStr = getDisplayDate(c);
         const timeStr = getDisplayTime(c);
         const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
@@ -434,42 +360,19 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
         const sNotes = c?.studentPrivateNotes || '';
         const aNotes = c?.advisorPrivateNotes || '';
         const cancelReason = c?.cancel_reason || '';
-
-        addDetail('Topic', topic, true);
-        addDetail('Date/Time', `${dateStr} • ${timeStr}`);
-        addDetail('Mode', modeStr);
-        addDetail('Status', statusStr);
-        if (adv) addDetail('Advisor', adv);
-        const state = String(c.status || '').toLowerCase();
-        if (state === 'missed') {
-          addDetail('Location', 'Not available');
-          addDetail('Summary', 'Not available');
-          addDetail('Student Notes', 'Not available');
-          addDetail('Advisor Notes', 'Not available');
-        } else if (state === 'cancelled' || state === 'canceled') {
-          if (loc) addDetail('Location', loc);
-          if (cancelReason) addDetail('Cancellation Reason', cancelReason);
-          if (summary) addDetail('Summary', summary);
-          if (sNotes) addDetail('Student Notes', sNotes);
-          if (aNotes) addDetail('Advisor Notes', aNotes);
-        } else {
-          if (loc) addDetail('Location', loc);
-          if (summary) addDetail('Summary', summary);
-          if (sNotes) addDetail('Student Notes', sNotes);
-          if (aNotes) addDetail('Advisor Notes', aNotes);
-        }
-        y += lineGap * 1.5;
-      };
-
-      filteredConsultations.forEach((c, idx) => drawConsultation(c, idx));
-
-      // Footer on all pages with total count
-      const totalPages = doc.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        doc.setPage(i);
-        drawFooter(i, totalPages);
-      }
-
+        lines.push(`Consultation ${idx + 1}`);
+        lines.push(`  Topic: ${topic}`);
+        lines.push(`  Date/Time: ${dateStr} • ${timeStr}`);
+        lines.push(`  Mode: ${modeStr}`);
+        lines.push(`  Status: ${statusStr}`);
+        if (adv) lines.push(`  Advisor: ${adv}`);
+        if (loc) lines.push(`  Location: ${loc}`);
+        if (cancelReason) lines.push(`  Cancellation Reason: ${cancelReason}`);
+        if (summary) lines.push(`  Summary: ${summary}`);
+        if (sNotes) lines.push(`  Student Notes: ${sNotes}`);
+        if (aNotes) lines.push(`  Advisor Notes: ${aNotes}`);
+        lines.push('');
+      });
       const fullName = String(user?.name || 'User').trim();
       const parts = fullName.split(/\s+/);
       const first = parts[0] || 'User';
@@ -477,13 +380,19 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
       const t = (terms || []).find(x => String(x.id) === String(selectedTermId));
       const sem = t ? `${t.semester_label} Semester` : 'Current-Term';
       const sy = t ? `SY-${t.year_label}` : `SY-${new Date().getFullYear()}`;
-      const fileName = `${(last||'').replace(/\s+/g,'-')}-${first}-Consultations-${sem.replace(/\s+/g,'-')}-${sy}.pdf`;
-      doc.save(fileName);
+      const fileName = `${(last || '').replace(/\s+/g, '-')}-${first}-Consultations-${sem.replace(/\s+/g, '-')}-${sy}.txt`;
+      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = fileName;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
     } catch (err) {
-      console.error('Failed to export PDF', err);
+      console.error('Failed to export', err);
       toast.destructive({
         title: 'Export failed',
-        description: 'Unable to export consultation history to PDF.'
+        description: 'Unable to export consultation history.'
       });
     }
   };

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button } from '../../lightswind/button';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/react/24/outline';
+// using simple characters for chevrons to avoid icon package resolution issues
 import './CustomCalendar.css';
 
 const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onMonthChange }) => {
@@ -172,7 +172,7 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onM
             className="calendar-nav-btn"
             aria-label="Previous month"
           >
-            <ChevronLeftIcon className="w-5 h-5" />
+            <span className="w-5 h-5 flex items-center justify-center">&lsaquo;</span>
           </Button>
           <Button
             size="icon"
@@ -182,7 +182,7 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onM
             className="calendar-nav-btn"
             aria-label="Next month"
           >
-            <ChevronRightIcon className="w-5 h-5" />
+            <span className="w-5 h-5 flex items-center justify-center">&rsaquo;</span>
           </Button>
         </div>
       </div>
