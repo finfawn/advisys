@@ -14,8 +14,10 @@
       "use": "@vercel/node"
     }
   ],
-  "rewrites": [
-    { "source": "/api/(.*)", "destination": "/api/serverless.js" },
-    { "source": "/(.*)", "destination": "/" }
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/serverless.js" },
+    { "src": "/healthz", "dest": "/api/serverless.js" },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "/client/dist/index.html" }
   ]
 }
