@@ -9,6 +9,20 @@ const mysql = require('mysql2/promise');
   const DB_USER = process.env.DB_USER || 'root';
   const DB_PASSWORD = process.env.DB_PASSWORD || '';
   const DB_NAME = process.env.DB_NAME || 'advisys';
+  const enableSsl = String(process.env.DB_ENABLE_SSL || 'false').toLowerCase() === 'true';
+  let sslConfig = undefined;
+  if (enableSsl) {
+    sslConfig = { minVersion: 'TLSv1.2' };
+    const reject = String(process.env.DB_SSL_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'false';
+    sslConfig.rejectUnauthorized = reject;
+    if (process.env.DB_SSL_CA && process.env.DB_SSL_CA.trim()) {
+      sslConfig.ca = process.env.DB_SSL_CA;
+    } else if (process.env.DB_SSL_CA_PATH && fs.existsSync(process.env.DB_SSL_CA_PATH)) {
+      try {
+        sslConfig.ca = fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8');
+      } catch (_) {}
+    }
+  }
 
   const schemaPath = path.join(__dirname, 'schema.sql');
   const sql = fs.readFileSync(schemaPath, 'utf8');
@@ -23,6 +37,7 @@ const mysql = require('mysql2/promise');
       password: DB_PASSWORD,
       database: DB_NAME,
       multipleStatements: true,
+      ssl: sslConfig,
     });
     console.log('Connected. Applying tables to database...', DB_NAME);
     // Drop advisor_profiles to resolve legacy foreign key conflicts

@@ -16,6 +16,20 @@ let pool;
 
 function getPool() {
   if (!pool) {
+    const enableSsl = String(process.env.DB_ENABLE_SSL || 'false').toLowerCase() === 'true';
+    let sslConfig = null;
+    if (enableSsl) {
+      sslConfig = { minVersion: 'TLSv1.2' };
+      const reject = String(process.env.DB_SSL_REJECT_UNAUTHORIZED || 'true').toLowerCase() !== 'false';
+      sslConfig.rejectUnauthorized = reject;
+      if (process.env.DB_SSL_CA && process.env.DB_SSL_CA.trim()) {
+        sslConfig.ca = process.env.DB_SSL_CA;
+      } else if (process.env.DB_SSL_CA_PATH && fs.existsSync(process.env.DB_SSL_CA_PATH)) {
+        try {
+          sslConfig.ca = fs.readFileSync(process.env.DB_SSL_CA_PATH, 'utf8');
+        } catch (_) {}
+      }
+    }
     let instanceName = INSTANCE_CONNECTION_NAME;
     try {
       if (!instanceName && fs.existsSync(DB_SOCKET_PATH)) {
@@ -57,6 +71,7 @@ function getPool() {
       pool = mysql.createPool({
         ...baseConfig,
         socketPath: fullSocketPath,
+        ssl: sslConfig || undefined,
       });
       (async () => {
         try {
@@ -74,6 +89,7 @@ function getPool() {
               ...baseConfig,
               host: DB_HOST,
               port: Number(DB_PORT),
+              ssl: sslConfig || undefined,
             });
             console.warn('[DB] Cloud SQL socket unavailable; fell back to TCP', { host: DB_HOST, port: Number(DB_PORT) });
           }
@@ -84,6 +100,7 @@ function getPool() {
         ...baseConfig,
         host: DB_HOST,
         port: Number(DB_PORT),
+        ssl: sslConfig || undefined,
       });
     }
   }
