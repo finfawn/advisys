@@ -62,7 +62,9 @@ function AuthPage({ embedded = false }) {
     if (!validate()) return;
     setSubmitting(true);
     setServerError("");
-    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const base = import.meta.env.VITE_API_BASE_URL
+      || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+      || "http://localhost:8080";
     try {
       if (mode === "login") {
         const res = await fetch(`${base}/api/auth/login`, {
@@ -143,7 +145,9 @@ function AuthPage({ embedded = false }) {
 
 
   const onForgot = async () => {
-    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const base = import.meta.env.VITE_API_BASE_URL
+      || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+      || "http://localhost:8080";
     setForgotSubmitting(true);
     setForgotErr('');
     try {
