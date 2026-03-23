@@ -1,7 +1,7 @@
 import React from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-export default function AreaChartComponent({ data, colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"] }) {
+export default function AreaChartComponent({ data, colors = ["#3360c2", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"] }) {
   return (
     <ResponsiveContainer width="100%" height={200}>
       <AreaChart
@@ -44,6 +44,8 @@ export default function AreaChartComponent({ data, colors = ["#3b82f6", "#10b981
             boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
           }}
           labelStyle={{ color: '#374151', fontWeight: '600' }}
+          filterNull
+          itemSorter={(item) => -(Number(item?.value ?? 0))}
           formatter={(value, name) => [value, 'Consultations']}
         />
         <Area 

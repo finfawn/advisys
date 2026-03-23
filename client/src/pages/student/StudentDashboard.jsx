@@ -13,6 +13,38 @@ import { useSidebar } from "../../contexts/SidebarContext";
 import { Skeleton } from "../../lightswind/skeleton";
 import "./StudentDashboard.css";
 
+const filterPassedSlots = (slotsMap, now) => {
+  const filtered = {};
+  const todayKey = now.toISOString().split('T')[0];
+  
+  Object.keys(slotsMap).forEach(dateKey => {
+    filtered[dateKey] = slotsMap[dateKey].filter(slot => {
+      if (dateKey < todayKey) return false;
+      if (dateKey === todayKey) {
+        try {
+          const timeRange = slot.startTime || slot.slots || '';
+          if (!timeRange) return true;
+          const startTimeStr = timeRange.split(' – ')[0];
+          const [hPart, mPart] = startTimeStr.split(':');
+          const h = parseInt(hPart);
+          const m = parseInt(mPart.split(' ')[0]);
+          const isPM = startTimeStr.toLowerCase().includes('pm');
+          
+          const startHour = isPM && h !== 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
+          const slotStart = new Date(now);
+          slotStart.setHours(startHour, m, 0, 0);
+          
+          return slotStart > now;
+        } catch (e) {
+          return true;
+        }
+      }
+      return true;
+    });
+  });
+  return filtered;
+};
+
 export default function StudentDashboard() {
   const { collapsed, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
@@ -146,9 +178,30 @@ export default function StudentDashboard() {
         ]);
         const dataToday = await resToday.json();
         const dataCal = await resCal.json();
+        
+        const now = new Date();
         const calObj = typeof dataCal === 'object' && dataCal !== null ? dataCal : {};
-        setAvailabilityData(calObj);
-        let todayList = Array.isArray(dataToday) ? dataToday : [];
+        setAvailabilityData(filterPassedSlots(calObj, now));
+        let todayList = (Array.isArray(dataToday) ? dataToday : []).filter(a => {
+          // dataToday returns { id, name, title, department, avatar, coursesTaught, schedule, time, mode }
+          // "time" is "9:00 AM – 10:00 AM"
+          try {
+            if (!a.time) return true;
+            const startTimeStr = a.time.split(' – ')[0];
+            const [hPart, mPart] = startTimeStr.split(':');
+            const h = parseInt(hPart);
+            const m = parseInt(mPart.split(' ')[0]);
+            const isPM = startTimeStr.toLowerCase().includes('pm');
+            
+            const startHour = isPM && h !== 12 ? h + 12 : (!isPM && h === 12 ? 0 : h);
+            const slotStart = new Date();
+            slotStart.setHours(startHour, m, 0, 0);
+            
+            return slotStart > now;
+          } catch (e) {
+            return true;
+          }
+        });
         if (todayList.length === 0) {
           const pad = (n) => String(n).padStart(2, '0');
           const y = today.getFullYear();
@@ -285,9 +338,9 @@ export default function StudentDashboard() {
       const pad = (n) => String(n).padStart(2, '0');
       const ym = `${year}-${pad(monthIdx + 1)}`;
       const resCal = await fetch(`${base}/api/availability/calendar?month=${ym}`);
-      if (!resCal.ok) throw new Error('Failed to load calendar availability');
       const dataCal = await resCal.json();
-      setAvailabilityData(typeof dataCal === 'object' && dataCal !== null ? dataCal : {});
+      const calObj = typeof dataCal === 'object' && dataCal !== null ? dataCal : {};
+      setAvailabilityData(filterPassedSlots(calObj, new Date()));
     } catch (err) {
       console.error('Calendar availability fetch error', err);
     }

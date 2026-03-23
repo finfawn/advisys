@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useSidebar } from "../../contexts/SidebarContext";
 import AdminTopNavbar from "../../components/admin/AdminTopNavbar";
@@ -30,6 +31,14 @@ import {
 } from "../../lightswind/select";
 import { Input } from "../../lightswind/input";
 import { Button } from "../../lightswind/button";
+import {
+  buildSubjectLabel,
+  hasSubjectCodeValue,
+  hasTopicValue,
+  normalizeCatalogText,
+  normalizeSubjectCode,
+  normalizeSubjectName,
+} from "../../lib/consultationCatalog";
 
 export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -107,22 +116,8 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
   const [yearOptions, setYearOptions] = useState([]);
   const [adminProgramOptions, setAdminProgramOptions] = useState([]);
   const [adminYearLevelOptions, setAdminYearLevelOptions] = useState([]);
-  const TOPIC_OPTIONS = [
-    "Thesis / Capstone Guidance",
-    "Course Planning and Enrollment",
-    "Career Planning and Opportunities",
-    "Internship / OJT Support",
-    "Academic Performance Concerns",
-    "Time Management and Study Skills",
-    "Personal Concerns (Academic)",
-  ];
-  const SUBJECT_OPTIONS = [
-    { code: "CS101", name: "Intro to Programming" },
-    { code: "CS102", name: "Data Structures" },
-    { code: "CS201", name: "Database Systems" },
-    { code: "IT201", name: "Networking Basics" },
-    { code: "IT301", name: "Web Development" },
-  ];
+  const [consultationTopicOptions, setConsultationTopicOptions] = useState([]);
+  const [consultationSubjectOptions, setConsultationSubjectOptions] = useState([]);
   const [advisorTopicPreset, setAdvisorTopicPreset] = useState("");
   const [advisorTopicOther, setAdvisorTopicOther] = useState("");
   const [advisorSubjectPreset, setAdvisorSubjectPreset] = useState("");
@@ -181,14 +176,18 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
     };
     const fetchProgramYearOptions = async () => {
       try {
-        const [pRes, yRes] = await Promise.all([
+        const [pRes, yRes, cRes] = await Promise.all([
           fetch(`${base}/api/programs`),
           fetch(`${base}/api/settings/year-levels`),
+          fetch(`${base}/api/consultation-catalog`),
         ]);
         const p = await pRes.json();
         const y = await yRes.json();
+        const c = await cRes.json().catch(() => ({}));
         if (Array.isArray(p)) { setProgramOptions(p); setAdminProgramOptions(p); }
         if (Array.isArray(y)) { setYearOptions(y); setAdminYearLevelOptions(y); }
+        setConsultationTopicOptions(Array.isArray(c?.topics) ? c.topics : []);
+        setConsultationSubjectOptions(Array.isArray(c?.subjects) ? c.subjects : []);
       } catch (_) {}
     };
     fetchStudents();
@@ -245,9 +244,10 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
   };
   const toggleSelectAll = (checked) => {
     if (checked) {
-      setSelectedIds(renderedList.map(i => i.id));
+      setSelectedIds(prev => Array.from(new Set([...prev, ...renderedList.map(i => i.id)])));
     } else {
-      setSelectedIds([]);
+      const visibleIds = new Set(renderedList.map(i => i.id));
+      setSelectedIds(prev => prev.filter(id => !visibleIds.has(id)));
     }
   };
 
@@ -1102,6 +1102,11 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
     setInitialEditForm(baseForm);
     setShowPassword(false);
     setDrawerDeactivate({ reason: 'graduated', otherReason: '', termId: 'current' });
+    setAdvisorTopicPreset("");
+    setAdvisorTopicOther("");
+    setAdvisorSubjectPreset("");
+    setAdvisorSubjectOtherCode("");
+    setAdvisorSubjectOtherName("");
     setViewOpen(true);
     // Load advisor consultation info only
     (async () => {
@@ -1127,6 +1132,11 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
 
   const handleCancelEdit = () => {
     if (initialEditForm) setEditForm(initialEditForm);
+    setAdvisorTopicPreset("");
+    setAdvisorTopicOther("");
+    setAdvisorSubjectPreset("");
+    setAdvisorSubjectOtherCode("");
+    setAdvisorSubjectOtherName("");
     setViewOpen(false);
   };
 
@@ -1462,20 +1472,31 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
               yearOptions={yearOptions}
               showTermSelector={!__forceTab}
             />
-            {selectedIds.length > 0 && (
-              <div className="bulk-actions-top flex items-center justify-between mt-2">
-                <div className="text-sm text-gray-500">{selectedIds.length} selected</div>
-                <div className="flex items-center gap-2">
-                  <Button variant="outline" size="sm" onClick={openBulkDeactivate}>Bulk Deactivate</Button>
-                  {activeTab === 'students' && (
-                    <>
-                      <Button variant="outline" size="sm" onClick={addToTerm}>Add to Term</Button>
-                      <Button variant="outline" size="sm" onClick={removeFromTerm}>Remove from Term</Button>
-                    </>
-                  )}
-                </div>
-              </div>
-            )}
+            <AnimatePresence>
+              {selectedIds.length > 0 && (
+                <motion.div 
+                  initial={{ height: 0, opacity: 0, marginTop: 0 }}
+                  animate={{ height: "auto", opacity: 1, marginTop: 8 }}
+                  exit={{ height: 0, opacity: 0, marginTop: 0 }}
+                  transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+                  className="overflow-hidden"
+                >
+                  <div className="bulk-actions-top flex items-center justify-between py-2 px-3 bg-blue-50/50 border border-blue-100 rounded-lg">
+                    <div className="text-sm font-medium text-blue-700">{selectedIds.length} selected</div>
+                    <div className="flex items-center gap-2">
+                      <Button variant="outline" size="sm" className="bg-white" onClick={openBulkDeactivate}>Bulk Deactivate</Button>
+                      {activeTab === 'students' && (
+                        <>
+                          <Button variant="outline" size="sm" className="bg-white font-semibold text-blue-700 border-blue-200" onClick={() => setPromoteModal({ open: true, toTermId: '' })}>Promote</Button>
+                          <Button variant="outline" size="sm" className="bg-white" onClick={addToTerm}>Enroll</Button>
+                          <Button variant="outline" size="sm" className="bg-white" onClick={removeFromTerm}>Remove</Button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
 
           <AdminContentLayout>
@@ -1642,11 +1663,11 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
         </div>
       )}
 
-      {false && promoteModal.open && (
+      {promoteModal.open && (
         <div className="admin-modal-overlay">
           <div className="admin-modal" role="dialog" aria-modal="true">
             <div className="admin-modal-header">
-              <h3 className="admin-modal-title">Advance Students to Next Term</h3>
+              <h3 className="admin-modal-title">Promote Students</h3>
               <button className="admin-modal-close" onClick={()=>setPromoteModal({ open: false, toTermId: '' })}>×</button>
             </div>
             <div className="admin-modal-body space-y-3">
@@ -1919,7 +1940,7 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
               </div>
             </div>
             <div>
-              <a href="#" className="text-sm text-blue-600" onClick={(e) => { e.preventDefault(); downloadCSVTemplate(); }}>
+              <a href="#" className="text-sm text-[#3360c2]" onClick={(e) => { e.preventDefault(); downloadCSVTemplate(); }}>
                 Download CSV template
               </a>
             </div>
@@ -2219,10 +2240,12 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                         <SelectValue placeholder="Select topic" />
                       </SelectTrigger>
                       <SelectContent>
-                        {TOPIC_OPTIONS.map(opt => (
-                          <SelectItem key={opt} value={opt}>{opt}</SelectItem>
+                        {consultationTopicOptions
+                          .filter((opt) => !hasTopicValue(editForm.consultTopics, opt?.name || ""))
+                          .map((opt) => (
+                          <SelectItem key={opt.id} value={opt.name}>{opt.name}</SelectItem>
                         ))}
-                        <SelectItem value="other">Others</SelectItem>
+                        <SelectItem value="other">Other, specify</SelectItem>
                       </SelectContent>
                     </Select>
                     {advisorTopicPreset === "other" && (
@@ -2237,10 +2260,12 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                       type="button"
                       variant="outline"
                       onClick={() => {
-                        const picked = advisorTopicPreset === "other" ? advisorTopicOther.trim() : advisorTopicPreset;
+                        const picked = advisorTopicPreset === "other"
+                          ? normalizeCatalogText(advisorTopicOther)
+                          : normalizeCatalogText(advisorTopicPreset);
                         if (!picked) return;
                         const existing = editForm.consultTopics || [];
-                        if (existing.includes(picked)) return;
+                        if (hasTopicValue(existing, picked)) return;
                         setEditForm({ ...editForm, consultTopics: [...existing, picked] });
                         setAdvisorTopicPreset("");
                         setAdvisorTopicOther("");
@@ -2275,18 +2300,20 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                           }
                         }}
                       >
-                        <SelectTrigger className="w-full md:w-64">
-                          <SelectValue placeholder="Select subject" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {SUBJECT_OPTIONS.map(opt => (
-                            <SelectItem key={opt.code} value={opt.code}>
-                              {opt.name} ({opt.code})
-                            </SelectItem>
-                          ))}
-                          <SelectItem value="other">Others (manual entry)</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <SelectTrigger className="w-full md:w-64">
+                        <SelectValue placeholder="Select subject" />
+                      </SelectTrigger>
+                      <SelectContent>
+                          {consultationSubjectOptions
+                            .filter((opt) => !hasSubjectCodeValue(editForm.consultSubjects, opt?.subject_code || ""))
+                            .map((opt) => (
+                              <SelectItem key={opt.id} value={String(opt.id)}>
+                                {buildSubjectLabel(opt)}
+                              </SelectItem>
+                            ))}
+                          <SelectItem value="other">Other, specify</SelectItem>
+                      </SelectContent>
+                    </Select>
                       {advisorSubjectPreset === "other" && (
                         <>
                           <Input
@@ -2311,13 +2338,13 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                           if (!advisorSubjectPreset) return;
 
                           if (advisorSubjectPreset === "other") {
-                            const code = advisorSubjectOtherCode.trim();
-                            const name = advisorSubjectOtherName.trim();
+                            const code = normalizeSubjectCode(advisorSubjectOtherCode);
+                            const name = normalizeSubjectName(advisorSubjectOtherName);
                             if (!code || !name) {
                               await showToast('warning', 'Required', 'Please enter both subject code and name.');
                               return;
                             }
-                            const exists = existing.some(s => String(s.code || "").toLowerCase() === code.toLowerCase());
+                            const exists = hasSubjectCodeValue(existing, code);
                             if (exists) return;
                             setEditForm({
                               ...editForm,
@@ -2329,13 +2356,13 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
                             return;
                           }
 
-                          const opt = SUBJECT_OPTIONS.find(o => o.code === advisorSubjectPreset);
+                          const opt = consultationSubjectOptions.find(o => String(o.id) === String(advisorSubjectPreset));
                           if (!opt) return;
-                          const exists = existing.some(s => String(s.code || "").toLowerCase() === opt.code.toLowerCase());
+                          const exists = hasSubjectCodeValue(existing, opt.subject_code);
                           if (exists) return;
                           setEditForm({
                             ...editForm,
-                            consultSubjects: [...existing, { code: opt.code, name: opt.name }],
+                            consultSubjects: [...existing, { code: opt.subject_code, name: opt.subject_name }],
                           });
                           setAdvisorSubjectPreset("");
                         }}

@@ -78,12 +78,12 @@ function AdvisorHistoryCard({ consultation, onViewDetails, onDelete }) {
         <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.topic}</h3>
         
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <BsClock className="w-4 h-4 text-blue-600" />
+          <BsClock className="w-4 h-4 text-[#3360c2]" />
           <span>{formatDate(consultation.date)} • {consultation.time}</span>
         </div>
         
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0">
+          <div className="w-10 h-10 rounded-full bg-[#3360c2] text-white flex items-center justify-center text-lg flex-shrink-0">
             {(consultation.student && consultation.student.avatar) || <BsPersonCircle />}
           </div>
           <div className="flex-1 min-w-0">

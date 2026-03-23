@@ -38,7 +38,7 @@ const toastVariants = cva(
         destructive: "border-red-500 bg-red-100 text-red-800",
         success: "border-green-500 bg-green-100 text-green-800",
         warning: "border-yellow-500 bg-yellow-100 text-yellow-800",
-        info: "border-blue-500 bg-blue-100 text-blue-800",
+        info: "border-[#3360c2] bg-blue-100 text-blue-800",
       },
     },
     defaultVariants: {
@@ -117,7 +117,7 @@ const Toast = React.forwardRef<HTMLDivElement, ToastProps>(
                 variant === "destructive" ? "bg-red-600" : 
                 variant === "success" ? "bg-green-600" : 
                 variant === "warning" ? "bg-yellow-600" : 
-                variant === "info" ? "bg-blue-600" : 
+                variant === "info" ? "bg-[#3360c2]" : 
                 "bg-gray-600"
               )}
             />

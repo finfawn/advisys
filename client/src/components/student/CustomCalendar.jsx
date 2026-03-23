@@ -1,4 +1,5 @@
 import React from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Button } from '../../lightswind/button';
 // using simple characters for chevrons to avoid icon package resolution issues
 import './CustomCalendar.css';
@@ -10,6 +11,7 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onM
   
   const [displayMonth, setDisplayMonth] = React.useState(currentMonth);
   const [displayYear, setDisplayYear] = React.useState(currentYear);
+  const [navDirection, setNavDirection] = React.useState(null);
 
   // Notify parent of initial month/year on mount
   React.useEffect(() => {
@@ -76,6 +78,7 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onM
   };
 
   const handlePrevMonth = () => {
+    setNavDirection('prev');
     let nextMonth = displayMonth - 1;
     let nextYear = displayYear;
     if (nextMonth < 0) {
@@ -90,6 +93,7 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onM
   };
 
   const handleNextMonth = () => {
+    setNavDirection('next');
     let nextMonth = displayMonth + 1;
     let nextYear = displayYear;
     if (nextMonth > 11) {
@@ -160,7 +164,18 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onM
       <div className="calendar-header-wrap">
         <div className="calendar-header">
           <h3 className="calendar-month-year">
-            {monthNames[displayMonth]} {displayYear}
+            <AnimatePresence mode="wait">
+              <motion.span
+                key={`${displayYear}-${displayMonth}`}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.2, ease: 'easeOut' }}
+                style={{ display: 'inline-block' }}
+              >
+                {monthNames[displayMonth]} {displayYear}
+              </motion.span>
+            </AnimatePresence>
           </h3>
         </div>
         <div className="calendar-nav" aria-label="Calendar navigation">
@@ -187,47 +202,87 @@ const CustomCalendar = ({ selectedDate, onDateSelect, availabilityData = {}, onM
         </div>
       </div>
 
-      <table className="calendar-table">
-        <thead>
-          <tr>
-            {daysOfWeek.map((day) => (
-              <th key={day} className="calendar-weekday">
-                {day}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {weeks.map((week, weekIndex) => (
-            <tr key={weekIndex} className="calendar-week">
-              {week.map((dateObj, dayIndex) => {
-                const availabilityType = getAvailabilityType(dateObj.date);
-                return (
-                  <td 
-                    key={dayIndex} 
-                    className={`calendar-day-cell ${
-                      !dateObj.isCurrentMonth ? 'outside-month' : ''
-                    } ${
-                      isSameDay(dateObj.date, selectedDate) ? 'selected' : ''
-                    } ${
-                      isToday(dateObj.date) ? 'today' : ''
-                    } ${
-                      availabilityType ? `has-availability ${availabilityType}` : ''
-                    }`}
-                  >
-                    <button
-                      className="calendar-day-button"
-                      onClick={() => handleDateClick(dateObj)}
-                    >
-                      {dateObj.day}
-                    </button>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={`${displayYear}-${displayMonth}`}
+          initial={navDirection === 'next' ? { x: 24, opacity: 0, scale: 0.995 } : { x: -24, opacity: 0, scale: 0.995 }}
+          animate={{ x: 0, opacity: 1, scale: 1 }}
+          exit={navDirection === 'next' ? { x: -24, opacity: 0, scale: 0.995 } : { x: 24, opacity: 0, scale: 0.995 }}
+          transition={{ duration: 0.25, ease: 'easeOut' }}
+        >
+          <table className="calendar-table">
+            <thead>
+              <tr>
+                {daysOfWeek.map((day) => (
+                  <th key={day} className="calendar-weekday">
+                    {day}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {weeks.map((week, weekIndex) => (
+                <tr key={weekIndex} className="calendar-week">
+                  {week.map((dateObj, dayIndex) => {
+                    const availabilityType = getAvailabilityType(dateObj.date);
+                    return (
+                      <td 
+                        key={dayIndex} 
+                        className={`calendar-day-cell ${
+                          !dateObj.isCurrentMonth ? 'outside-month' : ''
+                        } ${
+                          isSameDay(dateObj.date, selectedDate) ? 'selected' : ''
+                        } ${
+                          isToday(dateObj.date) ? 'today' : ''
+                        } ${
+                          availabilityType ? `has-availability ${availabilityType}` : ''
+                        }`}
+                      >
+                        <button
+                          className="calendar-day-button"
+                          onClick={() => handleDateClick(dateObj)}
+                        >
+                          <span className="day-number">{dateObj.day}</span>
+                          
+                          {availabilityData[formatLocalDateKey(dateObj.date)] && (() => {
+                            const slots = availabilityData[formatLocalDateKey(dateObj.date)];
+                            const uniqueSlots = [];
+                            const seenTimes = new Set();
+                            
+                            for (const s of slots) {
+                              if (!seenTimes.has(s.startTime)) {
+                                uniqueSlots.push(s);
+                                seenTimes.add(s.startTime);
+                              }
+                            }
+                            
+                            const displaySlots = uniqueSlots.slice(0, 3);
+                            const hasMore = uniqueSlots.length > 3;
+                            
+                            return (
+                              <div className="day-slots-peek">
+                                {displaySlots.map((slot, idx) => (
+                                  <div 
+                                    key={idx} 
+                                    className={`peek-slot ${String(slot.mode || '').toLowerCase().replace(' ', '-')}`}
+                                  >
+                                    {slot.startTime || slot.slots || slot.name || 'Slot'}
+                                  </div>
+                                ))}
+                                {hasMore && <div className="peek-more">...</div>}
+                              </div>
+                            );
+                          })()}
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </motion.div>
+      </AnimatePresence>
     </div>
   );
 };

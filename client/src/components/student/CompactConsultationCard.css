@@ -34,7 +34,7 @@
   height: 60px;
   border-radius: 12px;
   background: #eef7ff;
-  color: #2d5bd1;
+  color: #3360c2;
   text-align: center;
 }
 
@@ -101,7 +101,7 @@
 
 .time-icon {
   font-size: 0.8rem;
-  color: #667eea;
+  color: #3360c2;
 }
 
 .time-text {
@@ -175,7 +175,7 @@
 }
 
 .compact-mode-indicator.online {
-  color: #2563eb;
+  color: #2a51a3;
 }
 
 .compact-mode-indicator.in-person {
@@ -190,7 +190,7 @@
 }
 
 .compact-mode-indicator.online .mode-dot {
-  background: #2563eb;
+  background: #2a51a3;
 }
 
 .compact-mode-indicator.in-person .mode-dot {
@@ -234,22 +234,22 @@
 }
 
 .compact-card-action-btn.in-person {
-  background: #6366f1;
+  background: #3360c2;
   color: white;
 }
 
 .compact-card-action-btn.in-person:hover {
-  background: #4f46e5;
+  background: #2a51a3;
   transform: translateY(-1px);
 }
 
 .compact-card-action-btn.details {
-  background: #3b82f6;
+  background: #3360c2;
   color: white;
 }
 
 .compact-card-action-btn.details:hover {
-  background: #2563eb;
+  background: #2a51a3;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(59, 130, 246, 0.3);
 }

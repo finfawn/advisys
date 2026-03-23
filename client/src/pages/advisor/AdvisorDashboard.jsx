@@ -1,8 +1,7 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { BsChevronRight, BsChevronDown } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
-import ProfileCompletionBanner from "../../components/advisor/ProfileCompletionBanner";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
@@ -15,15 +14,21 @@ import ConsultationTrendCard from "../../components/advisor/dashboard/Consultati
 import TopTopicsCard from "../../components/advisor/dashboard/TopTopicsCard";
 import { useSidebar } from "../../contexts/SidebarContext";
 import "./AdvisorDashboard.css";
+import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
+import ConsultationSetupGate from "../../components/advisor/ConsultationSetupGate";
 
 export default function AdvisorDashboard() {
   const { collapsed, toggleSidebar } = useSidebar();  
   const navigate = useNavigate();
+  const [consultationProfileReady, setConsultationProfileReady] = useState(true);
+  const [consultationPromptOpen, setConsultationPromptOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
       try {
-        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const base = import.meta.env.VITE_API_BASE_URL
+          || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+          || 'http://localhost:8080';
         const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
         const parsed = storedUser ? JSON.parse(storedUser) : null;
         const advisorId = parsed?.id;
@@ -31,22 +36,49 @@ export default function AdvisorDashboard() {
 
         const onboardingKey = 'advisys_advisor_consultation_onboarded';
         const already = typeof window !== 'undefined' ? localStorage.getItem(onboardingKey) : null;
-        if (already === 'true') return;
+        if (already === 'true') {
+          setConsultationProfileReady(true);
+          setConsultationPromptOpen(false);
+          return;
+        }
 
         const res = await fetch(`${base}/api/advisors/${advisorId}`);
         if (!res.ok) return;
         const data = await res.json();
         const topics = Array.isArray(data.topicsCanHelpWith) ? data.topicsCanHelpWith : [];
+        const guidelines = Array.isArray(data.consultationGuidelines) ? data.consultationGuidelines : [];
         const courses = Array.isArray(data.coursesTaught) ? data.coursesTaught : [];
-        const hasTopicsOrCourses = topics.length > 0 || courses.length > 0;
+        const complete = topics.length > 0 && guidelines.length > 0 && courses.length > 0;
 
-        if (!hasTopicsOrCourses) {
-          navigate('/advisor-dashboard/settings', { replace: true, state: { focusConsultation: true, autoEditConsultation: true } });
+        if (!complete) {
+          setConsultationProfileReady(false);
+          setConsultationPromptOpen(true);
+          try {
+            const onceKey = 'advisys_notify_consultation_incomplete';
+            const seen = typeof window !== 'undefined' ? localStorage.getItem(onceKey) : null;
+            if (seen !== 'true') {
+              const payload = {
+                user_id: advisorId,
+                type: 'advisor_consultation_incomplete',
+                title: 'Complete Your Consultation Profile',
+                message: 'Add at least one topic, guideline, and subject to unlock your dashboard.',
+                data: { missing: { topics: topics.length, guidelines: guidelines.length, courses: courses.length } }
+              };
+              await fetch(`${base}/api/notifications`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+              }).catch(()=>{});
+              localStorage.setItem(onceKey, 'true');
+            }
+          } catch (_) {}
           return;
         }
 
         try {
           localStorage.setItem(onboardingKey, 'true');
+          setConsultationProfileReady(true);
+          setConsultationPromptOpen(false);
         } catch (_) {}
       } catch (_) {}
     })();
@@ -131,6 +163,8 @@ export default function AdvisorDashboard() {
       navigate('/advisor-dashboard/consultations');
     } else if (page === 'availability') {
       navigate('/advisor-dashboard/availability');
+    } else if (page === 'students') {
+      navigate('/advisor-dashboard/students');
     } else if (page === 'profile') {
       navigate('/advisor-dashboard/profile');
     } else if (page === 'logout') {
@@ -161,6 +195,11 @@ export default function AdvisorDashboard() {
       onClick: () => handleNavigation('availability') 
     },
     { 
+      label: "Students", 
+      icon: <CalendarDaysIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('students') 
+    },
+    { 
       label: "Profile", 
       icon: <Cog6ToothIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('profile') 
@@ -173,6 +212,7 @@ export default function AdvisorDashboard() {
   ];
 
   return (
+    <>
     <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
 
@@ -227,7 +267,6 @@ export default function AdvisorDashboard() {
 
         {/* Content */}
         <main className="advisor-dash-main">
-          <ProfileCompletionBanner />
 
           {/* Mobile Sticky Upcoming Consultations - visible on mobile & tablets */}
       <div className="xl:hidden mobile-upcoming-sticky">
@@ -246,46 +285,52 @@ export default function AdvisorDashboard() {
             </Collapsible>
           </div>
 
-          {/* Dashboard Bento Grid */}
-          <div className="dashboard-bento-grid">
-            {/* Row 1 Col 1-2: Total Consultations - spans 2 rows, 2 columns */}
-            {!collapsed && (
-              <div className="bento-item-tall-wide" style={{ gridColumn: '1 / 3', gridRow: '1 / 3' }}>
-                <TotalConsultationsCard />
+          {consultationProfileReady && (
+            <div className="dashboard-bento-grid">
+              {!collapsed && (
+                <div className="bento-item-tall-wide" style={{ gridColumn: '1 / 3', gridRow: '1 / 3' }}>
+                  <TotalConsultationsCard />
+                </div>
+              )}
+              {!collapsed && (
+                <div className="bento-item-small" style={{ gridColumn: '3', gridRow: '1' }}>
+                  <ConsultationModeCard />
+                </div>
+              )}
+              <div className="bento-item-small" style={{ gridColumn: '3', gridRow: '2' }}>
+                <AverageSessionCard />
               </div>
-            )}
-            
-            {/* Row 1 Col 2: Consultation Mode */}
-            {!collapsed && (
-              <div className="bento-item-small" style={{ gridColumn: '3', gridRow: '1' }}>
-                <ConsultationModeCard />
+              <div className="bento-item-tall hidden xl:block" style={{ gridColumn: '4', gridRow: '1 / 3' }}>
+                <UpcomingConsultationsCard />
               </div>
-            )}
-            
-            {/* Row 2 Col 2: Average Session */}
-            <div className="bento-item-small" style={{ gridColumn: '3', gridRow: '2' }}>
-              <AverageSessionCard />
-            </div>
-            
-            {/* Row 1-2 Col 4: Upcoming Consultations - spans 2 rows, 1 column, always on right, hidden on mobile & tablets */}
-      <div className="bento-item-tall hidden xl:block" style={{ gridColumn: '4', gridRow: '1 / 3' }}>
-              <UpcomingConsultationsCard />
-            </div>
-            
-            {/* Row 3 Col 1-3: Consultation Trend - spans 3 columns */}
-            {!collapsed && (
-              <div className="bento-item-extra-wide" style={{ gridColumn: '1 / 4', gridRow: '3' }}>
-                <ConsultationTrendCard />
+              {!collapsed && (
+                <div className="bento-item-extra-wide" style={{ gridColumn: '1 / 4', gridRow: '3' }}>
+                  <ConsultationTrendCard />
+                </div>
+              )}
+              <div className="bento-item-small" style={{ gridColumn: '4', gridRow: '3' }}>
+                <TopTopicsCard />
               </div>
-            )}
-            
-            {/* Row 3 Col 4: Top Topics - matches Upcoming width (1 column) */}
-            <div className="bento-item-small" style={{ gridColumn: '4', gridRow: '3' }}>
-              <TopTopicsCard />
             </div>
-          </div>
+          )}
         </main>
       </div>
     </div>
+    {consultationPromptOpen ? (
+      (() => {
+        const missing = { topics: [], guidelines: [], courses: [] };
+        return (
+          <ConsultationSetupGate
+            open={true}
+            missing={missing}
+            onProceed={()=>{
+              setConsultationPromptOpen(false);
+              navigate('/advisor-dashboard/profile', { state: { focusConsultation: true, autoEditConsultation: true } });
+            }}
+          />
+        );
+      })()
+    ) : null}
+    </>
   );
 }

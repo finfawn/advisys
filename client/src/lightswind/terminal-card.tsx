@@ -59,7 +59,7 @@ const TerminalCard: React.FC<TerminalCardProps> = ({ command, language = "tsx", 
       {/* Header */}
       <div className="flex items-center justify-between px-3 py-2 bg-gray-100 dark:bg-[#202425] rounded-t-lg text-sm font-semibold text-gray-700 dark:text-gray-400">
         <div className="flex items-center gap-2">
-          <BsTerminal className="w-4 h-4 text-blue-500" />
+          <BsTerminal className="w-4 h-4 text-[#3360c2]" />
           Terminal
         </div>
         <button

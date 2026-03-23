@@ -8,31 +8,33 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import { Card, CardContent } from "../../lightswind/card";
 import { BsDownload, BsCameraVideo, BsGeoAlt } from "react-icons/bs";
 import InitialsAvatar from "../../components/common/InitialsAvatar";
+import { downloadLinesAsPdf } from "../../lib/pdfExport";
+import "../student/StudentThreadPage.css";
 
-const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+const AI_ENABLED = false;
 
 export default function AdvisorThreadPage() {
   const { collapsed, toggleSidebar } = useSidebar();
   const { studentId } = useParams();
   const navigate = useNavigate();
-  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-  const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  const token = typeof window !== "undefined" ? localStorage.getItem("advisys_token") : null;
   const authHeader = token ? { Authorization: `Bearer ${token}` } : {};
 
   const [terms, setTerms] = useState([]);
-  const [termId, setTermId] = useState('current');
+  const [termId, setTermId] = useState("current");
   const [advisorId, setAdvisorId] = useState(null);
   const [advisorName, setAdvisorName] = useState(null);
   const [thread, setThread] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [modeFilter, setModeFilter] = useState('all');
-  const [timeFilter, setTimeFilter] = useState('all');
+  const [modeFilter, setModeFilter] = useState("all");
+  const [timeFilter, setTimeFilter] = useState("all");
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
 
   useEffect(() => {
     try {
-      const user = JSON.parse(localStorage.getItem('advisys_user') || 'null');
+      const user = JSON.parse(localStorage.getItem("advisys_user") || "null");
       setAdvisorId(user?.id || null);
       setAdvisorName(user?.name || null);
     } catch {}
@@ -41,137 +43,181 @@ export default function AdvisorThreadPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const [tRes] = await Promise.all([
-          fetch(`${base}/api/settings/academic/terms`)
-        ]);
-        const t = await tRes.json();
-        if (Array.isArray(t)) setTerms(t);
+        const response = await fetch(`${base}/api/settings/academic/terms`);
+        const data = await response.json();
+        if (Array.isArray(data)) setTerms(data);
       } catch {}
     };
     load();
-  }, []);
+  }, [base]);
 
   const loadThread = async () => {
     if (!advisorId) return;
     setLoading(true);
     try {
       const url = new URL(`${base}/api/consultations/thread`);
-      url.searchParams.set('studentId', String(studentId));
-      url.searchParams.set('advisorId', String(advisorId));
-      if (termId === 'all') {
-        url.searchParams.set('term', 'all');
-      } else if (termId !== 'current') {
-        url.searchParams.set('termId', String(termId));
+      url.searchParams.set("studentId", String(studentId));
+      url.searchParams.set("advisorId", String(advisorId));
+      if (termId === "all") {
+        url.searchParams.set("term", "all");
+      } else if (termId !== "current") {
+        url.searchParams.set("termId", String(termId));
       }
       const res = await fetch(url.toString(), { headers: { ...authHeader } });
       const data = await res.json();
       setThread(Array.isArray(data) ? data : []);
-    } catch (err) {
+    } catch {
       setThread([]);
     } finally {
       setLoading(false);
     }
   };
 
-  useEffect(() => { loadThread(); }, [advisorId, termId, studentId]);
+  useEffect(() => {
+    loadThread();
+  }, [advisorId, termId, studentId]);
 
   const studentMeta = useMemo(() => {
     const first = thread[0];
     if (!first) return null;
     return {
-      name: first.student_name || 'Student',
+      name: first.student_name || "Student",
       program: first.student_program || null,
       year: first.student_year || null,
-      avatar: first.student_avatar_url || null,
     };
   }, [thread]);
 
   const getStartDate = React.useCallback((c) => {
-    const v = c?.start_datetime || (c?.date && c?.time ? `${c.date} ${c.time}` : c?.date);
-    const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null;
+    const value = c?.start_datetime || (c?.date && c?.time ? `${c.date} ${c.time}` : c?.date);
+    const parsed = value ? new Date(value) : null;
+    return parsed && !Number.isNaN(parsed.getTime()) ? parsed : null;
   }, []);
-  const isWithinTimeFilter = React.useCallback((d) => {
-    if (!d || isNaN(d)) return false;
-    const now = new Date();
-    const startOfWeek = (() => { const s = new Date(now); const day = s.getDay(); const diff = (day === 0 ? -6 : 1) - day; s.setDate(s.getDate() + diff); s.setHours(0,0,0,0); return s; })();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1); startOfMonth.setHours(0,0,0,0);
-    const daysAgo = (n) => { const s = new Date(now); s.setDate(s.getDate() - n); s.setHours(0,0,0,0); return s; };
-    switch (timeFilter) {
-      case 'this_week': return d >= startOfWeek;
-      case 'this_month': return d >= startOfMonth;
-      case 'last_7': return d >= daysAgo(7);
-      case 'last_30': return d >= daysAgo(30);
-      default: return true;
-    }
-  }, [timeFilter]);
+
+  const isWithinTimeFilter = React.useCallback(
+    (date) => {
+      if (!date || Number.isNaN(date.getTime())) return false;
+      const now = new Date();
+      const startOfWeek = (() => {
+        const start = new Date(now);
+        const day = start.getDay();
+        const diff = (day === 0 ? -6 : 1) - day;
+        start.setDate(start.getDate() + diff);
+        start.setHours(0, 0, 0, 0);
+        return start;
+      })();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+      startOfMonth.setHours(0, 0, 0, 0);
+      const daysAgo = (count) => {
+        const start = new Date(now);
+        start.setDate(start.getDate() - count);
+        start.setHours(0, 0, 0, 0);
+        return start;
+      };
+
+      switch (timeFilter) {
+        case "this_week":
+          return date >= startOfWeek;
+        case "this_month":
+          return date >= startOfMonth;
+        case "last_7":
+          return date >= daysAgo(7);
+        case "last_30":
+          return date >= daysAgo(30);
+        default:
+          return true;
+      }
+    },
+    [timeFilter]
+  );
+
   const filteredThread = useMemo(() => {
-    let arr = Array.isArray(thread) ? thread : [];
-    if (modeFilter !== 'all') {
-      arr = arr.filter((c) => String(c?.mode || '').toLowerCase() === (modeFilter === 'online' ? 'online' : 'in-person'));
+    let items = Array.isArray(thread) ? thread : [];
+    if (modeFilter !== "all") {
+      items = items.filter((c) => String(c?.mode || "").toLowerCase() === (modeFilter === "online" ? "online" : "in-person"));
     }
-    if (timeFilter !== 'all') {
-      arr = arr.filter((c) => { const d = getStartDate(c); return isWithinTimeFilter(d); });
+    if (timeFilter !== "all") {
+      items = items.filter((c) => {
+        const date = getStartDate(c);
+        return isWithinTimeFilter(date);
+      });
     }
     if (selectedStatuses.length > 0) {
-      const set = new Set(selectedStatuses.map(s=>String(s).toLowerCase()));
-      arr = arr.filter((c) => { const s = String(c?.status||'').toLowerCase(); const canonical = s === 'canceled' ? 'cancelled' : s; return set.has(canonical); });
+      const statusSet = new Set(selectedStatuses.map((s) => String(s).toLowerCase()));
+      items = items.filter((c) => {
+        const status = String(c?.status || "").toLowerCase();
+        const canonical = status === "canceled" ? "cancelled" : status;
+        return statusSet.has(canonical);
+      });
     }
-    return arr;
+    return items;
   }, [thread, modeFilter, timeFilter, isWithinTimeFilter, selectedStatuses, getStartDate]);
 
-  const exportPdf = () => {
+  const exportPdf = async () => {
     const lines = [];
-    const advisorLabel = advisorName ? `Advisor: ${advisorName}` : '';
-    const studentLabel = studentMeta?.name ? `Student: ${studentMeta.name}` : '';
+    const advisorLabel = advisorName ? `Advisor: ${advisorName}` : "";
+    const studentLabel = studentMeta?.name ? `Student: ${studentMeta.name}` : "";
     const termLabel = (() => {
-      if (termId === 'all') return 'All Terms';
-      if (termId === 'current') {
-        const cur = terms.find(t => Number(t.is_current) === 1);
-        return cur ? `${cur.year_label} • ${cur.semester_label} Semester` : 'Current Term';
+      if (termId === "all") return "All Terms";
+      if (termId === "current") {
+        const currentTerm = terms.find((t) => Number(t.is_current) === 1);
+        return currentTerm ? `${currentTerm.year_label} - ${currentTerm.semester_label} Semester` : "Current Term";
       }
-      const t = terms.find(t => String(t.id) === String(termId));
-      return t ? `${t.year_label} • ${t.semester_label} Semester` : 'Current Term';
+      const term = terms.find((t) => String(t.id) === String(termId));
+      return term ? `${term.year_label} - ${term.semester_label} Semester` : "Current Term";
     })();
-    const timeLabels = { all:'All Time', this_week:'This Week', this_month:'This Month', last_7:'Last 7 Days', last_30:'Last 30 Days' };
-    lines.push('AdviSys – Consultation Thread');
+    const timeLabels = {
+      all: "All Time",
+      this_week: "This Week",
+      this_month: "This Month",
+      last_7: "Last 7 Days",
+      last_30: "Last 30 Days",
+    };
+
+    lines.push("AdviSys - Consultation Thread");
     if (advisorLabel) lines.push(advisorLabel);
     if (studentLabel) lines.push(studentLabel);
     if (termLabel) lines.push(`Term: ${termLabel}`);
-    lines.push(`Filters: Mode=${modeFilter}, Time=${timeLabels[timeFilter] || 'All Time'}, Status=${selectedStatuses.length ? selectedStatuses.join(', ') : 'All'}`);
-    lines.push('');
+    lines.push(`Filters: Mode=${modeFilter}, Time=${timeLabels[timeFilter] || "All Time"}, Status=${selectedStatuses.length ? selectedStatuses.join(", ") : "All"}`);
+    lines.push("");
+
     filteredThread.forEach((c, idx) => {
-      const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
-      const modeStr = c.mode === 'online' ? 'Online' : 'In-Person';
-      const statusStr = String(c.status||'').charAt(0).toUpperCase() + String(c.status||'').slice(1);
-      const topic = c.category || c.topic || '—';
-      const loc = c.location || '';
-      const summary = c.summary_notes || c.ai_summary || '';
-      const cancelReason = c.cancel_reason || '';
+      const dateStr = new Date(c.start_datetime).toLocaleString("en-PH", {
+        timeZone: "Asia/Manila",
+        dateStyle: "medium",
+        timeStyle: "short",
+      });
+      const modeStr = c.mode === "online" ? "Online" : "In-Person";
+      const statusStr = String(c.status || "").charAt(0).toUpperCase() + String(c.status || "").slice(1);
+      const topic = c.category || c.topic || "---";
+      const consultationAdvisor = c.advisor_name || advisorName || "";
+      const location = c.location || "";
+      const summary = c.summary_notes || c.ai_summary || "";
+      const cancelReason = c.cancel_reason || "";
+
       lines.push(`Consultation ${idx + 1}`);
+      if (consultationAdvisor) lines.push(`  Advisor: ${consultationAdvisor}`);
       lines.push(`  Topic: ${topic}`);
       lines.push(`  Date/Time: ${dateStr}`);
       lines.push(`  Mode: ${modeStr}`);
       lines.push(`  Status: ${statusStr}`);
-      if (loc) lines.push(`  Location: ${loc}`);
+      if (location) lines.push(`  Location: ${location}`);
       if (cancelReason) lines.push(`  Cancellation Reason: ${cancelReason}`);
       if (summary) lines.push(`  Summary: ${summary}`);
-      lines.push('');
+      lines.push("");
     });
-    const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = `Consultations_${advisorName || 'Advisor'}_${studentMeta?.name || 'Student'}_${new Date().toISOString().slice(0,10)}.txt`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
+
+    await downloadLinesAsPdf(
+      lines,
+      `Consultations_${advisorName || "Advisor"}_${studentMeta?.name || "Student"}_${new Date().toISOString().slice(0, 10)}.pdf`
+    );
   };
 
   return (
     <div className="admin-dash-wrap">
       <AdvisorTopNavbar />
-      <div className={`admin-dash-body ${collapsed ? 'collapsed' : ''}`}>
+      <div className={`admin-dash-body ${collapsed ? "collapsed" : ""}`}>
         <div className="hidden xl:block">
-          <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={(p)=>navigate(p)} />
+          <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={(path) => navigate(path)} />
         </div>
         <main className="admin-dash-main">
           <div className="consultations-container">
@@ -179,47 +225,68 @@ export default function AdvisorThreadPage() {
               <h1 className="consultations-title">Consultation Thread</h1>
               <div className="flex items-center gap-2 flex-wrap">
                 <Select value={termId} onValueChange={setTermId}>
-                  <SelectTrigger className="filter-dropdown"><SelectValue placeholder="Term" /></SelectTrigger>
+                  <SelectTrigger className="filter-dropdown">
+                    <SelectValue placeholder="Term" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="current">Current Term</SelectItem>
                     <SelectItem value="all">All Terms</SelectItem>
-                    {terms.map(t => (
-                      <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label} Semester</SelectItem>
+                    {terms.map((t) => (
+                      <SelectItem key={t.id} value={String(t.id)}>
+                        {t.year_label} - {t.semester_label} Semester
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
                 <div className="relative">
-                  <Button variant="outline" onClick={()=>setStatusMenuOpen(v=>!v)}>Status</Button>
+                  <Button variant="outline" onClick={() => setStatusMenuOpen((value) => !value)}>
+                    Status
+                  </Button>
                   {statusMenuOpen && (
                     <div className="absolute mt-2 w-52 bg-white border border-gray-200 rounded-md shadow-sm p-2 z-20">
                       {[
-                        {k:'approved', label:'Approved'},
-                        {k:'pending', label:'Pending'},
-                        {k:'declined', label:'Declined'},
-                        {k:'expired', label:'Expired'},
-                        {k:'completed', label:'Completed'},
-                        {k:'cancelled', label:'Cancelled'},
-                        {k:'missed', label:'Missed'},
-                      ].map(opt=>{
+                        { k: "approved", label: "Approved" },
+                        { k: "pending", label: "Pending" },
+                        { k: "declined", label: "Declined" },
+                        { k: "expired", label: "Expired" },
+                        { k: "completed", label: "Completed" },
+                        { k: "cancelled", label: "Cancelled" },
+                        { k: "missed", label: "Missed" },
+                      ].map((opt) => {
                         const checked = selectedStatuses.includes(opt.k);
                         return (
                           <label key={opt.k} className="flex items-center gap-2 px-1 py-1 text-xs">
-                            <input type="checkbox" checked={checked} onChange={()=>{
-                              setSelectedStatuses(prev=>{ const set = new Set(prev); if (set.has(opt.k)) set.delete(opt.k); else set.add(opt.k); return Array.from(set); });
-                            }} />
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() => {
+                                setSelectedStatuses((prev) => {
+                                  const next = new Set(prev);
+                                  if (next.has(opt.k)) next.delete(opt.k);
+                                  else next.add(opt.k);
+                                  return Array.from(next);
+                                });
+                              }}
+                            />
                             <span>{opt.label}</span>
                           </label>
                         );
                       })}
                       <div className="mt-2 flex gap-2">
-                        <Button size="sm" variant="outline" onClick={()=>{ setSelectedStatuses([]); }}>Clear</Button>
-                        <Button size="sm" variant="outline" onClick={()=>setStatusMenuOpen(false)}>Done</Button>
+                        <Button size="sm" variant="outline" onClick={() => setSelectedStatuses([])}>
+                          Clear
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setStatusMenuOpen(false)}>
+                          Done
+                        </Button>
                       </div>
                     </div>
                   )}
                 </div>
                 <Select value={modeFilter} onValueChange={setModeFilter}>
-                  <SelectTrigger className="filter-dropdown"><SelectValue placeholder="Mode" /></SelectTrigger>
+                  <SelectTrigger className="filter-dropdown">
+                    <SelectValue placeholder="Mode" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Modes</SelectItem>
                     <SelectItem value="online">Online</SelectItem>
@@ -227,7 +294,9 @@ export default function AdvisorThreadPage() {
                   </SelectContent>
                 </Select>
                 <Select value={timeFilter} onValueChange={setTimeFilter}>
-                  <SelectTrigger className="filter-dropdown"><SelectValue placeholder="Time" /></SelectTrigger>
+                  <SelectTrigger className="filter-dropdown">
+                    <SelectValue placeholder="Time" />
+                  </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">All Time</SelectItem>
                     <SelectItem value="this_week">This Week</SelectItem>
@@ -236,40 +305,83 @@ export default function AdvisorThreadPage() {
                     <SelectItem value="last_30">Last 30 Days</SelectItem>
                   </SelectContent>
                 </Select>
-                <Button variant="outline" onClick={()=>{ setModeFilter('all'); setTimeFilter('all'); setSelectedStatuses([]); setStatusMenuOpen(false); }}>Clear Filters</Button>
-                <Button onClick={exportPdf} disabled={!thread.length}><BsDownload className="w-4 h-4 mr-1" />Download PDF</Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setModeFilter("all");
+                    setTimeFilter("all");
+                    setSelectedStatuses([]);
+                    setStatusMenuOpen(false);
+                  }}
+                >
+                  Clear Filters
+                </Button>
+                <Button onClick={exportPdf} disabled={!thread.length}>
+                  <BsDownload className="w-4 h-4 mr-1" />
+                  Download PDF
+                </Button>
               </div>
             </div>
 
             {studentMeta && (
-              <div className="mb-3 text-sm text-gray-600 flex items-center gap-3">
-                <InitialsAvatar name={studentMeta.name} size={40} />
-                <div>
-                  <div className="font-medium text-gray-900">{studentMeta.name}</div>
-                  <div className="text-xs text-gray-600">{studentMeta.program ? `${studentMeta.program}` : ''}{studentMeta.year ? ` • Year ${studentMeta.year}` : ''}</div>
+              <div className="thread-profile-strip">
+                <InitialsAvatar name={studentMeta.name} size={56} className="rounded-full flex-shrink-0" />
+                <div className="thread-profile-text">
+                  <div className="thread-profile-title">{studentMeta.name}</div>
+                  <div className="thread-profile-subtitle">
+                    {studentMeta.program ? `${studentMeta.program}` : ""}
+                    {studentMeta.year ? ` - Year ${studentMeta.year}` : ""}
+                  </div>
                 </div>
               </div>
             )}
 
             {loading ? (
-              <div>Loading…</div>
-            ) : thread.length === 0 ? (
+              <div>Loading...</div>
+            ) : filteredThread.length === 0 ? (
               <div className="text-sm text-gray-600">No consultations for this selection.</div>
             ) : (
-              <div className="consultations-grid">
+              <div className="thread-list">
                 {filteredThread.map((c) => {
-                  const dateStr = new Date(c.start_datetime).toLocaleString('en-PH', { timeZone: 'Asia/Manila', dateStyle: 'medium', timeStyle: 'short' });
+                  const dateStr = new Date(c.start_datetime).toLocaleString("en-PH", {
+                    timeZone: "Asia/Manila",
+                    dateStyle: "medium",
+                    timeStyle: "short",
+                  });
+                  const statusKey = String(c.status || "scheduled").toLowerCase();
+                  const summaryText = c.summary_notes || (AI_ENABLED && !c.summary_notes ? c.ai_summary : "");
+
                   return (
-                    <Card key={c.id} className="h-full">
-                      <CardContent className="p-4 space-y-2">
-                        <div className="text-sm font-semibold">{c.category || c.topic || 'No Topic'}</div>
-                        <div className="text-xs text-gray-600">{dateStr} • {c.mode === 'online' ? (<span className="inline-flex items-center gap-1"><BsCameraVideo />Online</span>) : (<span className="inline-flex items-center gap-1"><BsGeoAlt />In-Person</span>)} • {c.status}</div>
-                        {c.summary_notes && (
-                          <div className="text-sm mt-2"><span className="font-semibold">Summary: </span><span className="whitespace-pre-wrap">{c.summary_notes}</span></div>
-                        )}
-                        {AI_ENABLED && !c.summary_notes && c.ai_summary && (
-                          <div className="text-sm mt-2"><span className="font-semibold">AI Summary: </span><span className="whitespace-pre-wrap">{c.ai_summary}</span></div>
-                        )}
+                    <Card key={c.id} className="thread-card">
+                      <CardContent className="thread-card-body">
+                        <div className="thread-card-main">
+                          <div className="thread-card-title-row">
+                            <h3 className="thread-card-title">{c.category || c.topic || "No Topic"}</h3>
+                            <span className={`thread-status-badge ${statusKey}`}>{c.status || "Scheduled"}</span>
+                          </div>
+                          <div className="thread-meta-row">
+                            <span className="thread-meta-pill">{dateStr}</span>
+                            <span className="thread-meta-pill">
+                              {c.mode === "online" ? (
+                                <>
+                                  <BsCameraVideo />
+                                  Online
+                                </>
+                              ) : (
+                                <>
+                                  <BsGeoAlt />
+                                  In-Person
+                                </>
+                              )}
+                            </span>
+                          </div>
+                          {summaryText && (
+                            <div className="thread-summary">
+                              <div className="thread-summary-label">{c.summary_notes ? "Summary" : "AI Summary"}</div>
+                              <div className="thread-summary-text">{summaryText}</div>
+                            </div>
+                          )}
+                        </div>
                       </CardContent>
                     </Card>
                   );

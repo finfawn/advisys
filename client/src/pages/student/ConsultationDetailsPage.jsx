@@ -22,7 +22,7 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import { ShineButton } from "../../lightswind/shine-button";
 import "./ConsultationDetailsPage.css";
 
-const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+const AI_ENABLED = false;
 
 export default function ConsultationDetailsPage() {
   const { consultationId } = useParams();

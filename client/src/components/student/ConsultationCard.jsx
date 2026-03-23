@@ -1,5 +1,7 @@
 import React from "react";
-import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle, BsClock } from "react-icons/bs";
+import { PersonCircleIcon, VideoCameraIcon, MapPinIcon, ChevronRightIcon, CheckCircleIcon, XCircleIcon, ClockIcon } from "../icons/Heroicons";
+
+
 import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
 import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
@@ -22,25 +24,25 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
   const getStatusInfo = () => {
     const inSession = String(consultation.status) === 'approved' && !!consultation.actual_start_datetime && !consultation.actual_end_datetime;
     if (inSession) {
-      return { text: 'In Session', icon: <BsClock />, class: 'status-insession' };
+      return { text: 'In Session', icon: <ClockIcon className="w-4 h-4" />, class: 'status-insession' };
     }
     switch (consultation.status) {
       case 'approved':
-        return { text: 'Approved', icon: <BsCheckCircle />, class: 'status-approved' };
+        return { text: 'Approved', icon: <CheckCircleIcon className="w-4 h-4" />, class: 'status-approved' };
       case 'pending':
-        return { text: 'Awaiting Approval', icon: <BsClockHistory />, class: 'status-pending' };
+        return { text: 'Awaiting Approval', icon: <ClockIcon className="w-4 h-4" />, class: 'status-pending' };
       case 'declined':
-        return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
+        return { text: 'Declined', icon: <XCircleIcon className="w-4 h-4" />, class: 'status-declined' };
       case 'expired':
-        return { text: 'Expired', icon: <BsClockHistory />, class: 'status-expired' };
+        return { text: 'Expired', icon: <ClockIcon className="w-4 h-4" />, class: 'status-expired' };
       case 'completed':
-        return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
+        return { text: 'Completed', icon: <CheckCircleIcon className="w-4 h-4" />, class: 'status-completed' };
       case 'cancelled':
-        return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+        return { text: 'Cancelled', icon: <XCircleIcon className="w-4 h-4" />, class: 'status-cancelled' };
       case 'missed':
-        return { text: 'Missed', icon: <BsClockHistory />, class: 'status-missed' };
+        return { text: 'Missed', icon: <ClockIcon className="w-4 h-4" />, class: 'status-missed' };
       default:
-        return { text: 'Unknown', icon: <BsClockHistory />, class: 'status-pending' };
+        return { text: 'Unknown', icon: <ClockIcon className="w-4 h-4" />, class: 'status-pending' };
     }
   };
 
@@ -63,7 +65,11 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
   const canMarkMissed = () => {
     if (consultation.status !== 'approved') return false;
     const startRaw = consultation.start_datetime || consultation.date;
-    const start = new Date(startRaw);
+    if (!startRaw) return false;
+    const s = String(startRaw).trim();
+    const hasTZ = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
+    const cleaned = s.replace(' ', 'T');
+    const start = hasTZ ? new Date(cleaned) : new Date(`${cleaned}Z`);
     if (isNaN(start.getTime())) return false;
     const durationMin = consultation.duration || consultation.duration_minutes || 30;
     const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
@@ -132,7 +138,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
           {statusInfo.text}
         </Badge>
         <Badge variant="outline" className="flex items-center gap-1 text-xs">
-          {consultation.mode === 'online' ? <BsCameraVideo className="w-3 h-3" /> : <BsGeoAlt className="w-3 h-3" />}
+          {consultation.mode === 'online' ? <VideoCameraIcon className="w-3 h-3" /> : <MapPinIcon className="w-3 h-3" />}
           {consultation.mode === 'online' ? 'Online' : 'In-Person'}
         </Badge>
       </CardHeader>
@@ -140,11 +146,15 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
       <CardContent className="space-y-2 flex-1">
         <div className="flex items-start justify-between gap-2">
           <h3 className="text-base font-semibold text-gray-900 leading-tight">{consultation.topic || consultation.title || 'No Title'}</h3>
-          {consultation.category && (
-            <Badge variant="secondary" className="text-xs flex-shrink-0">
-              {consultation.category}
-            </Badge>
-          )}
+          {(() => {
+            const displayCat = consultation.category || 'General';
+            
+            return (
+              <Badge variant="secondary" className="text-xs flex-shrink-0 bg-gray-500 hover:bg-gray-600 text-white border-0 px-2 shadow-sm">
+                {displayCat}
+              </Badge>
+            );
+          })()}
         </div>
         
         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -158,7 +168,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
               if (avatar) {
                 return <img src={avatar} alt={consultation?.advisor?.name || consultation?.faculty?.name || 'Advisor'} className="w-full h-full object-cover" />;
               }
-              return <BsPersonCircle className="w-5 h-5" />;
+              return <PersonCircleIcon className="w-5 h-5" />;
             })()}
           </div>
           <div className="flex-1 min-w-0">
@@ -235,17 +245,16 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
               <div className="text-xs text-gray-700 truncate break-all">{val}</div>
             </div>
           );
-        })()}
+      })()}
       </CardContent>
-      
       {consultation.status === 'approved' && (
         <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1" onClick={onActionClick}>
+          <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={onActionClick}>
             {consultation.mode === 'online' ? 'Join' : 'Details'}
-            <BsChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRightIcon className="w-4 h-4 ml-1" />
           </Button>
           <Button size="sm" variant="outline" className="text-red-600 border-red-300 hover:bg-red-50" onClick={handleCancelConsultation}>
-            <BsXCircle className="w-4 h-4" />
+            <XCircleIcon className="w-4 h-4" />
           </Button>
           {canMarkMissed() && onMarkMissed && (
             <Button size="sm" variant="outline" className="text-amber-700 border-amber-300 hover:bg-amber-50" onClick={() => onMarkMissed(consultation)}>
@@ -259,7 +268,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         <CardFooter className="pt-2 gap-2 justify-center" align="center">
           <Button size="sm" variant="outline" className="w-full text-red-600 border-red-600 hover:bg-red-600 hover:text-white" onClick={handleCancelConsultation}>
             Cancel
-            <BsXCircle className="w-4 h-4 ml-1" />
+            <XCircleIcon className="w-4 h-4 ml-1" />
           </Button>
         </CardFooter>
       )}
@@ -274,9 +283,9 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
       
       {consultation.status === 'completed' && (
         <CardFooter className="pt-2 gap-2" align="between">
-          <Button size="sm" className="flex-1" onClick={onActionClick}>
+          <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={onActionClick}>
             View Details
-            <BsChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRightIcon className="w-4 h-4 ml-1" />
           </Button>
         </CardFooter>
       )}

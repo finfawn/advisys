@@ -3,7 +3,7 @@ import { Input } from "../../../lightswind/input";
 import { Button } from "../../../lightswind/button";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../../lightswind/select";
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from "../../../lightswind/dropdown-menu";
-import { BsPlus, BsThreeDotsVertical } from "react-icons/bs";
+import { PlusIcon, EllipsisVerticalIcon } from "../../icons/Heroicons";
 
 export default function AdminManageFilters({ 
   search,
@@ -89,12 +89,12 @@ export default function AdminManageFilters({
         </div>
         <div className="flex items-center gap-1.5">
           <Button size="icon" aria-label="Add user" className="h-7 w-7 md:h-8 md:w-8" onClick={onAddUserOpen}>
-            <BsPlus className="w-4 h-4" />
+            <PlusIcon className="w-4 h-4" />
           </Button>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="outline" size="icon" aria-label="More actions" className="h-7 w-7 md:h-8 md:w-8">
-                <BsThreeDotsVertical className="w-4 h-4" />
+                <EllipsisVerticalIcon className="w-4 h-4" />
               </Button>
             </DropdownMenuTrigger>
               <DropdownMenuContent align="end">

@@ -5,6 +5,7 @@ import { Button } from "../../../lightswind/button";
 import { BsChevronRight } from "react-icons/bs";
 import { toast } from "../../../components/hooks/use-toast";
 import AdminConsultationCard from "./AdminConsultationCard";
+import { downloadLinesAsPdf } from "../../../lib/pdfExport";
 
 export default function AdminUserHistoryDrawer({ open, user, consultations = [], onClose, terms = [], selectedTermId, onTermChange }) {
   const [selected, setSelected] = useState(null);
@@ -323,7 +324,7 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
     return arr;
   }, [visibleConsultations, advisorFilter, modeFilter, timeFilter, isWithinTimeFilter, selectedStatuses, extractParty]);
 
-  const exportToPdf = () => {
+  const exportToPdf = async () => {
     try {
       const lines = [];
       const who = user?.name ? `Name: ${user.name}` : '';
@@ -380,14 +381,8 @@ export default function AdminUserHistoryDrawer({ open, user, consultations = [],
       const t = (terms || []).find(x => String(x.id) === String(selectedTermId));
       const sem = t ? `${t.semester_label} Semester` : 'Current-Term';
       const sy = t ? `SY-${t.year_label}` : `SY-${new Date().getFullYear()}`;
-      const fileName = `${(last || '').replace(/\s+/g, '-')}-${first}-Consultations-${sem.replace(/\s+/g, '-')}-${sy}.txt`;
-      const blob = new Blob([lines.join('\n')], { type: 'text/plain;charset=utf-8' });
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(blob);
-      a.download = fileName;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
+      const fileName = `${(last || '').replace(/\s+/g, '-')}-${first}-Consultations-${sem.replace(/\s+/g, '-')}-${sy}.pdf`;
+      await downloadLinesAsPdf(lines, fileName);
     } catch (err) {
       console.error('Failed to export', err);
       toast.destructive({

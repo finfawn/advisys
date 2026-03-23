@@ -42,7 +42,7 @@
   }
   
   .legend-dot.consultation {
-    background: #3b82f6;
+    background: #3360c2;
   }
   
   .legend-dot.available {
@@ -224,12 +224,12 @@
   }
   .slot-tab:hover { background: #f3f4f6; }
   .slot-tab[aria-selected="true"] {
-    background: #3b82f6;
+    background: #3360c2;
     color: #ffffff;
-    border-color: #3b82f6;
+    border-color: #3360c2;
   }
   .slot-tab:focus-visible {
-    outline: 2px solid #2563eb;
+    outline: 2px solid #2a51a3;
     outline-offset: 2px;
   }
 
@@ -348,7 +348,7 @@
     font-weight: 500;
   }
   .advisor-dash-main .undo-btn {
-    background: #667eea;
+    background: #3360c2;
     color: white;
     border: none;
     border-radius: 6px;
@@ -370,7 +370,7 @@
   }
   .advisor-dash-main .undo-timer-bar {
     height: 100%;
-    background: #667eea;
+    background: #3360c2;
     width: 100%;
     animation: advisor-countdown 5s linear forwards;
     transform-origin: left;
@@ -433,12 +433,12 @@
     border-color: #9ca3af;
   }
   .rbc-toolbar button.rbc-active {
-    background: #3b82f6;
+    background: #3360c2;
     color: white;
-    border-color: #3b82f6;
+    border-color: #3360c2;
   }
   .rbc-toolbar button.rbc-active:hover {
-    background: #2563eb;
+    background: #2a51a3;
   }
   
   .rbc-month-view {

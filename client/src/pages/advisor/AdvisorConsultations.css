@@ -36,7 +36,7 @@
   align-items: center;
   gap: 8px;
   padding: 12px 20px;
-  background: #3b82f6;
+  background: #3360c2;
   border: none;
   border-radius: 8px;
   color: white;
@@ -45,7 +45,7 @@
 }
 
 .add-consultation-btn:hover {
-  background: #2563eb;
+  background: #2a51a3;
   transform: translateY(-1px);
 }
 
@@ -83,13 +83,14 @@
 .consultations-title { font-size: 2rem; font-weight: 700; color: #1f2937; margin: 0 0 0.5rem 0; }
 .consultations-subtitle { font-size: 1.1rem; color: #666; margin: 0; line-height: 1.4; }
 
-.consultations-tabs { display: flex; background: #f8fafc; border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; gap: 4px; }
+.consultations-tabs { display: flex; background: #f8fafc; border-radius: 12px; padding: 4px; margin-bottom: 1.5rem; gap: 4px; position: relative; }
 .tab-button { display: flex; align-items: center; gap: 8px; padding: 12px 20px; border: none; background: transparent; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; font-weight: 500; color: #64748b; flex: 1; justify-content: center; position: relative; }
 .tab-button:hover { background: #e2e8f0; color: #475569; }
 .tab-button.active { background: #ffffff; color: #1e293b; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-weight: 600; }
 .tab-label { font-size: 0.95rem; }
 .tab-count { background: #e2e8f0; color: #64748b; padding: 4px 8px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; min-width: 24px; height: 24px; text-align: center; display: flex; align-items: center; justify-content: center; line-height: 1; }
 .tab-content { min-height: 400px; }
+.tab-underline { position: absolute; bottom: 0; left: 0; height: 2px; background: #3360c2; border-radius: 9999px; }
 
 .consultations-section { margin-bottom: 2rem; }
 .advisor-my-consultations .consultations-section { margin-bottom: 2rem; padding: 0 12px 15px 12px !important; }

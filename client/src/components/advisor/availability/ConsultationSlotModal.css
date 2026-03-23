@@ -55,7 +55,7 @@
 }
 .modern-date-input:focus {
   outline: none;
-  border-color: #3b82f6; /* primary */
+  border-color: #3360c2; /* primary */
   box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
 }
 
@@ -142,7 +142,7 @@
   color: #1e293b;
 }
 .mode-option[data-state='on'] {
-  border-color: #3b82f6;
+  border-color: #3360c2;
   background: #e7efff;
   color: #0f172a;
   box-shadow: 0 0 0 3px rgba(59,130,246,0.15);
@@ -452,8 +452,8 @@
 .dtp-item:hover { background: #f3f4f6; }
 .dtp-item.selected { background: #e7efff; color: #0f172a; font-weight: 600; }
 .dtp-actions { display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; }
-.dtp-actions .btn-cancel { background: transparent; color: #4f46e5; border: none; padding: 6px 10px; }
-.dtp-actions .btn-ok { background: #4f46e5; color: #ffffff; border: none; padding: 6px 10px; border-radius: 8px; }
+.dtp-actions .btn-cancel { background: transparent; color: #2a51a3; border: none; padding: 6px 10px; }
+.dtp-actions .btn-ok { background: #2a51a3; color: #ffffff; border: none; padding: 6px 10px; border-radius: 8px; }
 .dtp-actions { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding-top: 8px; }
 .btn-cancel { background: transparent; color: #6b7280; padding: 6px 10px; border-radius: 8px; }
 .btn-cancel:hover { background: #f3f4f6; color: #374151; }
@@ -478,8 +478,8 @@
 
 /* Make mode selection filled when active */
 .mode-option[data-state='on'] {
-  background: #3b82f6 !important;
+  background: #3360c2 !important;
   color: #ffffff !important;
-  border-color: #3b82f6 !important;
+  border-color: #3360c2 !important;
   box-shadow: none !important;
 }

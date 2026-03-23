@@ -1,8 +1,12 @@
 import React from "react";
-import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsClock, BsXCircle } from "react-icons/bs";
+import { 
+  PersonCircleIcon, VideoCameraIcon, MapPinIcon, ChevronRightIcon, 
+  CheckCircleIcon, ClockIcon, XCircleIcon 
+} from "../../../components/icons/Heroicons";
 import { Card, CardHeader, CardContent, CardFooter } from "../../../lightswind/card";
 import { Badge } from "../../../lightswind/badge";
 import { Button } from "../../../lightswind/button";
+import { Avatar, AvatarImage, AvatarFallback } from "../../../lightswind/avatar";
 import "../../student/ConsultationCard.css";
 import "./AdvisorConsultationCard.css";
 
@@ -34,42 +38,44 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   };
 
   const formatDate = (c) => {
-    if (isParsableDate(c.date)) {
-      const d = new Date(c.date);
-      return d.toLocaleDateString('en-US', {
-        weekday: 'short',
-        month: 'short',
-        day: 'numeric'
-      });
+    const raw = c.date;
+    if (!raw) return '';
+    const s = String(raw).trim();
+    // Parse date-only string as UTC midnight to avoid local-time day shifts
+    const d = new Date(s.includes('T') ? s : `${s}T00:00:00Z`);
+    if (isNaN(d.getTime())) {
+      return (c.day && c.date) ? `${c.day} ${c.date}` : (c.date || '');
     }
-    if (c.day && c.date) {
-      return `${c.day} ${c.date}`;
-    }
-    return '';
+    return d.toLocaleDateString('en-PH', {
+      timeZone: 'Asia/Manila',
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric'
+    });
   };
 
   const getStatusInfo = () => {
     const inSession = String(consultation.status) === 'approved' && !!consultation.actual_start_datetime && !consultation.actual_end_datetime;
     if (inSession) {
-      return { text: 'In Session', icon: <BsClock />, class: 'status-insession' };
+      return { text: 'In Session', icon: <ClockIcon />, class: 'status-insession' };
     }
     switch (consultation.status) {
       case 'approved':
-        return { text: 'Approved', icon: <BsCheckCircle />, class: 'status-approved' };
+        return { text: 'Approved', icon: <CheckCircleIcon />, class: 'status-approved' };
       case 'pending':
-        return { text: 'Awaiting Approval', icon: <BsClockHistory />, class: 'status-pending' };
+        return { text: 'Awaiting Approval', icon: <ClockIcon />, class: 'status-pending' };
       case 'declined':
-        return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
+        return { text: 'Declined', icon: <XCircleIcon />, class: 'status-declined' };
       case 'expired':
-        return { text: 'Expired', icon: <BsClockHistory />, class: 'status-expired' };
+        return { text: 'Expired', icon: <ClockIcon />, class: 'status-expired' };
       case 'completed':
-        return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
+        return { text: 'Completed', icon: <CheckCircleIcon />, class: 'status-completed' };
       case 'cancelled':
-        return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+        return { text: 'Cancelled', icon: <XCircleIcon />, class: 'status-cancelled' };
       case 'missed':
-        return { text: 'Missed', icon: <BsClockHistory />, class: 'status-missed' };
+        return { text: 'Missed', icon: <ClockIcon />, class: 'status-missed' };
       default:
-        return { text: 'Unknown', icon: <BsClockHistory />, class: 'status-pending' };
+        return { text: 'Unknown', icon: <ClockIcon />, class: 'status-pending' };
     }
   };
 
@@ -141,7 +147,11 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
   const canMarkMissed = () => {
     if (consultation.status !== 'approved') return false;
     const startRaw = consultation.start_datetime || consultation.date;
-    const start = new Date(startRaw);
+    if (!startRaw) return false;
+    const s = String(startRaw).trim();
+    const hasTZ = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
+    const cleaned = s.replace(' ', 'T');
+    const start = hasTZ ? new Date(cleaned) : new Date(`${cleaned}Z`);
     if (isNaN(start.getTime())) return false;
     const durationMin = consultation.duration || consultation.duration_minutes || 30;
     const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
@@ -164,19 +174,23 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
           {statusInfo.text}
         </Badge>
         <Badge variant="outline" className="flex items-center gap-1 text-xs">
-          {consultation.mode === 'online' ? <BsCameraVideo className="w-3 h-3" /> : <BsGeoAlt className="w-3 h-3" />}
+          {consultation.mode === 'online' ? <VideoCameraIcon className="w-3 h-3" /> : <MapPinIcon className="w-3 h-3" />}
           {consultation.mode === 'online' ? 'Online' : 'In-Person'}
         </Badge>
       </CardHeader>
 
       <CardContent className="space-y-2 flex-1">
         <div className="flex items-start justify-between gap-2">
-          <h3 className="text-base font-semibold text-gray-900 leading-tight">{consultation.topic || consultation.category || 'No Topic'}</h3>
-          {consultation.category && (
-            <Badge variant="secondary" className="text-xs flex-shrink-0">
-              {consultation.category}
-            </Badge>
-          )}
+          <h3 className="text-base font-semibold text-gray-900 leading-tight">{consultation.topic || consultation.title || 'No Topic'}</h3>
+          {(() => {
+            const displayCat = consultation.category || 'General';
+            
+            return (
+              <Badge variant="secondary" className="text-xs flex-shrink-0 bg-gray-500 hover:bg-gray-600 text-white border-0 px-2 shadow-sm">
+                {displayCat}
+              </Badge>
+            );
+          })()}
         </div>
         
         <div className="flex items-center gap-2 text-sm text-gray-600">
@@ -184,18 +198,13 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         </div>
         
         <div className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-100">
-          <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-sm flex-shrink-0 overflow-hidden">
-            {consultation?.student?.avatar ? (
-              <img
-                src={consultation.student.avatar}
-                alt={consultation.student?.name ? `${consultation.student.name} avatar` : 'Student avatar'}
-                className="w-full h-full object-cover"
-                loading="lazy"
-              />
-            ) : (
-              <BsPersonCircle className="w-5 h-5" />
-            )}
-          </div>
+          <Avatar className="w-8 h-8 flex-shrink-0 border border-gray-200 shadow-sm">
+            <AvatarImage 
+              src={consultation?.student?.avatar} 
+              alt={consultation.student?.name || 'Student'} 
+            />
+            <AvatarFallback name={consultation.student?.name} />
+          </Avatar>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-gray-900 text-sm truncate">{consultation.student?.name || 'Student'}</div>
             <div className="text-xs text-gray-600 truncate">{consultation.student?.title ?? consultation.student?.course ?? 'Student'}</div>
@@ -204,7 +213,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         
         {consultation.mode === 'in-person' && consultation.location && (
           <div className="flex items-center gap-2 text-xs text-gray-700 p-1.5 bg-amber-50 border border-amber-200 rounded-md">
-            <BsGeoAlt className="w-3 h-3 text-amber-600 flex-shrink-0" />
+            <MapPinIcon className="w-3 h-3 text-amber-600 flex-shrink-0" />
             <span className="truncate">{consultation.location}</span>
           </div>
         )}
@@ -270,7 +279,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1" onClick={handlePrimaryClick}>
             View Details
-            <BsChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRightIcon className="w-4 h-4 ml-1" />
           </Button>
         </CardFooter>
       )}
@@ -279,7 +288,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" variant="ghost" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={() => onActionClick?.(consultation)}>
             Reschedule
-            <BsChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRightIcon className="w-4 h-4 ml-1" />
           </Button>
         </CardFooter>
       )}
@@ -288,12 +297,11 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         <CardFooter className="pt-2 gap-2" align="between">
           <Button
             size="sm"
-            variant="ghost"
-            className={`flex-1 ${String(consultation.status).toLowerCase() === 'cancelled' ? 'bg-amber-500 hover:bg-amber-600' : ''}`}
+            className={`flex-1 ${consultation.status === 'cancelled' || consultation.status === 'missed' ? 'bg-amber-500 hover:bg-amber-600' : 'bg-blue-600 hover:bg-blue-700'}`}
             onClick={handlePrimaryClick}
           >
             {getActionButtonText()}
-            <BsChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRightIcon className="w-4 h-4 ml-1" />
           </Button>
           {consultation.status === 'approved' && canMarkMissed() && onMarkMissed && (
             <Button size="sm" variant="outline" className="text-amber-700 border-amber-300 hover:bg-amber-50" onClick={() => onMarkMissed(consultation)}>
@@ -326,7 +334,7 @@ function AdvisorConsultationCard({ consultation, onActionClick, onDelete, onAppr
         <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" variant="ghost" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={() => onActionClick?.(consultation)}>
             Reschedule
-            <BsChevronRight className="w-4 h-4 ml-1" />
+            <ChevronRightIcon className="w-4 h-4 ml-1" />
           </Button>
         </CardFooter>
       )}

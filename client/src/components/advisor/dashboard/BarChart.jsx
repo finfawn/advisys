@@ -16,7 +16,7 @@ export default function CustomBarChart({ data }) {
   const chartData = data.map(item => ({
     year: item.label,
     consultations: Number(item.value || 0),
-    fill: colors[item.label] || item.color || "#3b82f6",
+    fill: colors[item.label] || item.color || "#3360c2",
   }));
 
   return (
@@ -68,7 +68,7 @@ export default function CustomBarChart({ data }) {
             <Bar 
               dataKey="consultations" 
               radius={[4, 4, 0, 0]}
-              fill="#3b82f6"
+              fill="#3360c2"
             />
           </BarChart>
         </ResponsiveContainer>

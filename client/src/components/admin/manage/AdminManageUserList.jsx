@@ -25,7 +25,13 @@ export default function AdminManageUserList({
         <TableHeader>
           <TableRow>
             <TableHead className="w-8">
-              <input type="checkbox" aria-label="Select all" onChange={(e)=>onToggleSelectAll && onToggleSelectAll(e.target.checked)} />
+              <input 
+              type="checkbox" 
+              className="cursor-pointer" 
+              aria-label="Select all" 
+              checked={items.length > 0 && items.every(item => selectedIds.includes(item.id))}
+              onChange={(e)=>onToggleSelectAll && onToggleSelectAll(e.target.checked)} 
+            />
             </TableHead>
             <TableHead className="w-[240px]">Name</TableHead>
             <TableHead className="w-[300px]">{isStudent ? "Program" : "Department"}</TableHead>
@@ -84,7 +90,13 @@ export default function AdminManageUserList({
         <TableHeader>
           <TableRow>
             <TableHead className="w-8">
-              <input type="checkbox" aria-label="Select all" onChange={(e)=>onToggleSelectAll && onToggleSelectAll(e.target.checked)} />
+              <input 
+              type="checkbox" 
+              className="cursor-pointer" 
+              aria-label="Select all" 
+              checked={items.length > 0 && items.every(item => selectedIds.includes(item.id))}
+              onChange={(e)=>onToggleSelectAll && onToggleSelectAll(e.target.checked)} 
+            />
             </TableHead>
             <TableHead className="w-[240px]">Name</TableHead>
             <TableHead className="w-[300px]">{isStudent ? "Program" : "Department"}</TableHead>
@@ -109,7 +121,13 @@ export default function AdminManageUserList({
       <TableHeader>
         <TableRow>
           <TableHead className="w-8">
-            <input type="checkbox" aria-label="Select all" onChange={(e)=>onToggleSelectAll && onToggleSelectAll(e.target.checked)} />
+            <input 
+              type="checkbox" 
+              className="cursor-pointer" 
+              aria-label="Select all" 
+              checked={items.length > 0 && items.every(item => selectedIds.includes(item.id))}
+              onChange={(e)=>onToggleSelectAll && onToggleSelectAll(e.target.checked)} 
+            />
           </TableHead>
           <TableHead className="w-[240px]">Name</TableHead>
           <TableHead className="w-[300px]">{isStudent ? "Program" : "Department"}</TableHead>

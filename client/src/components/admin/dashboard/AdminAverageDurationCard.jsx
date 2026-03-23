@@ -5,7 +5,7 @@ import { Skeleton } from "../../../lightswind/skeleton";
 import "./AdminAverageDurationCard.css";
 
 export default function AdminAverageDurationCard({ loading = false, minutes = null }) {
-  const avg = Number.isFinite(minutes) ? Math.round(minutes) : 38;
+  const avg = Number.isFinite(minutes) ? Math.round(minutes) : 0;
   return (
     <Card hoverable className="average-session-card">
       <CardHeader spacing="default" className="pb-2">

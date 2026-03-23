@@ -1,5 +1,6 @@
 const { getPool } = require('./pool');
 const { run: runAddDepsProgs } = require('./scripts/add_departments_programs');
+const { run: runAddConsultationCatalogs } = require('./scripts/add_consultation_catalogs');
 const { run: runAlterSubjects } = require('./scripts/alter_advisor_courses_subjects');
 const { run: dropAdvisorAutoMax } = require('./scripts/drop_advisor_settings_auto_max');
 
@@ -32,6 +33,12 @@ async function autoMigrate() {
     await runAddDepsProgs();
   } catch (err) {
     console.error('Auto-migrate departments/programs failed:', err?.message || err);
+  }
+
+  try {
+    await runAddConsultationCatalogs();
+  } catch (err) {
+    console.error('Auto-migrate consultation catalogs failed:', err?.message || err);
   }
 
   try {

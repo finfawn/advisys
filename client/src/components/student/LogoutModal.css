@@ -54,7 +54,7 @@
   background: #eff6ff;
   border: 1px solid #bfdbfe;
   border-radius: 50%;
-  color: #2563eb;
+  color: #2a51a3;
   font-size: 24px;
   margin-bottom: 16px;
 }
@@ -133,14 +133,14 @@
 }
 
 .logout-modal-btn.confirm-btn {
-  background: #2563eb;
+  background: #2a51a3;
   color: white;
-  border-color: #2563eb;
+  border-color: #2a51a3;
 }
 
 .logout-modal-btn.confirm-btn:hover {
-  background: #1d4ed8;
-  border-color: #1d4ed8;
+  background: #1f3c7a;
+  border-color: #1f3c7a;
 }
 
 .logout-modal-btn.confirm-btn:focus {

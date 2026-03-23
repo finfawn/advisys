@@ -1,9 +1,9 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BsCalendar, BsClockHistory, BsListCheck } from "react-icons/bs";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
-import ProfileCompletionBanner from "../../components/advisor/ProfileCompletionBanner";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
 import AdvisorConsultationCard from "../../components/advisor/my_consultation/AdvisorConsultationCard";
@@ -15,10 +15,13 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from ".
 import "./AdvisorDashboard.css";
 import "./AdvisorConsultations.css";
 import ConsultationModal from "../../components/student/ConsultationModal";
+import ConsultationSetupGate from "../../components/advisor/ConsultationSetupGate";
 
 export default function AdvisorConsultations() {
   // API config (module-wide inside component)
-  const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+  const base = import.meta.env.VITE_API_BASE_URL
+    || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+    || 'http://localhost:8080';
   const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
   const authHeader = storedToken ? { Authorization: `Bearer ${storedToken}` } : {};
 
@@ -91,6 +94,7 @@ export default function AdvisorConsultations() {
   const location = useLocation();
   const [showRescheduleModal, setShowRescheduleModal] = useState(false);
   const [consultationToReschedule, setConsultationToReschedule] = useState(null);
+  const [consultationPromptOpen, setConsultationPromptOpen] = useState(false);
 
   const toggleSidebar = () => setCollapsed(v => !v);
 
@@ -107,6 +111,8 @@ export default function AdvisorConsultations() {
       navigate('/advisor-dashboard/availability');
     } else if (page === 'profile') {
       navigate('/advisor-dashboard/profile');
+    } else if (page === 'students') {
+      navigate('/advisor-dashboard/students');
     } else if (page === 'logout') {
       navigate('/logout');
     }
@@ -134,6 +140,11 @@ export default function AdvisorConsultations() {
       onClick: () => handleNavigation('availability') 
     },
     { 
+      label: "Students", 
+      icon: <ClockIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('students') 
+    },
+    { 
       label: "Profile", 
       icon: <Cog6ToothIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('profile') 
@@ -153,6 +164,27 @@ export default function AdvisorConsultations() {
   const [counterparts, setCounterparts] = useState([]);
   const [terms, setTerms] = useState([]);
   useEffect(() => {
+    // Gate access if consultation profile is incomplete
+    (async () => {
+      try {
+        const base = import.meta.env.VITE_API_BASE_URL
+          || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+          || 'http://localhost:8080';
+        const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+        const parsed = storedUser ? JSON.parse(storedUser) : null;
+        const advisorId = parsed?.id;
+        if (!advisorId) return;
+        const res = await fetch(`${base}/api/advisors/${advisorId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        const topics = Array.isArray(data.topicsCanHelpWith) ? data.topicsCanHelpWith : [];
+        const guidelines = Array.isArray(data.consultationGuidelines) ? data.consultationGuidelines : [];
+        const courses = Array.isArray(data.coursesTaught) ? data.coursesTaught : [];
+        const complete = topics.length > 0 && guidelines.length > 0 && courses.length > 0;
+        if (!complete) setConsultationPromptOpen(true);
+      } catch (_) {}
+    })();
+
     const fetchConsultations = async () => {
       try {
         setIsLoading(true);
@@ -176,6 +208,7 @@ export default function AdvisorConsultations() {
       try { const r = await fetch(`${base}/api/settings/academic/terms`); const d = await r.json(); if (Array.isArray(d)) setTerms(d); } catch(_){}
     })();
   }, []);
+  // Removed in-page Students tab; use sidebar Students page instead
 
   useEffect(() => {
     const fetchCounterparts = async () => {
@@ -524,6 +557,7 @@ export default function AdvisorConsultations() {
   };
 
   return (
+    <>
     <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
 
@@ -576,14 +610,12 @@ export default function AdvisorConsultations() {
         </div>
 
         <main className="advisor-dash-main relative">
-          <ProfileCompletionBanner />
           <div className="consultations-container advisor-my-consultations">
             <div className="consultations-header">
               <h1 className="consultations-title">My Consultations</h1>
               <p className="consultations-subtitle">Manage your student consultation sessions</p>
             </div>
             
-            {/* Tabs */}
             <div className="consultations-tabs">
                 <button
                   className={`tab-button ${activeTab === 'upcoming' ? 'active' : ''}`}
@@ -606,12 +638,34 @@ export default function AdvisorConsultations() {
                   <span className="tab-label">History</span>
                   <span className="tab-count">{historyData.length}</span>
                 </button>
+                <button
+                  style={{ display: 'none' }}
+                />
+                {(() => {
+                  const i = activeTab === 'upcoming' ? 0 : activeTab === 'requests' ? 1 : 2;
+                  return (
+                    <motion.div
+                      className="tab-underline"
+                      initial={false}
+                      animate={{ x: `${i * 100}%` }}
+                      transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                      style={{ width: 'calc(100% / 3)' }}
+                    />
+                  );
+                })()}
             </div>
             
-            {/* Tab Content */}
             <div className="tab-content">
+              <AnimatePresence mode="wait">
               {activeTab === 'upcoming' && (
-                <section className="consultations-section">
+                <motion.section
+                  key="upcoming"
+                  className="consultations-section"
+                  initial={{ opacity: 0, y: 6, scale: 0.995 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.995 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
                   <div className="section-header">
                     <h2 className="section-title">Upcoming Consultations</h2>
                     <div className="section-controls">
@@ -694,11 +748,19 @@ export default function AdvisorConsultations() {
                       )}
                     </div>
                   )}
-                </section>
+                </motion.section>
               )}
+            
 
               {activeTab === 'requests' && (
-                <section className="consultations-section">
+                <motion.section
+                  key="requests"
+                  className="consultations-section"
+                  initial={{ opacity: 0, y: 6, scale: 0.995 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.995 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
                   <div className="section-header">
                     <h2 className="section-title">Consultation Requests</h2>
                     <div className="section-controls">
@@ -783,11 +845,18 @@ export default function AdvisorConsultations() {
                   )}
 
                   
-                </section>
+                </motion.section>
               )}
 
               {activeTab === 'history' && (
-                <section className="consultations-section">
+                <motion.section
+                  key="history"
+                  className="consultations-section"
+                  initial={{ opacity: 0, y: 6, scale: 0.995 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -6, scale: 0.995 }}
+                  transition={{ duration: 0.25, ease: 'easeOut' }}
+                >
                   <div className="section-header">
                     <h2 className="section-title">Consultation History</h2>
                     <div className="section-controls">
@@ -915,8 +984,9 @@ export default function AdvisorConsultations() {
                   )}
 
                   
-                </section>
+                </motion.section>
               )}
+              </AnimatePresence>
             </div>
           </div>
         </main>
@@ -955,5 +1025,21 @@ export default function AdvisorConsultations() {
         />
       )}
     </div>
+    {consultationPromptOpen ? (
+      (() => {
+        const missing = { topics: [], guidelines: [], courses: [] };
+        return (
+          <ConsultationSetupGate
+            open={true}
+            missing={missing}
+            onProceed={()=>{
+              setConsultationPromptOpen(false);
+              navigate('/advisor-dashboard/profile', { state: { focusConsultation: true, autoEditConsultation: true } });
+            }}
+          />
+        );
+      })()
+    ) : null}
+    </>
   );
 }

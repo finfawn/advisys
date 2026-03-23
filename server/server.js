@@ -5,6 +5,7 @@ const path = require('path');
 const https = require('https');
 const { getPool } = require('./db/pool');
 const bcrypt = require('bcrypt');
+const { sendEmail } = require('./services/email');
 
 const app = express();
 const isServerless = Boolean(process.env.VERCEL) || String(process.env.SERVERLESS || 'false').toLowerCase() === 'true';
@@ -63,7 +64,7 @@ mount('/api', './routes/transcriptions');
 mount('/api/uploads', './routes/uploads');
 mount('/api/departments', './routes/departments');
 mount('/api/programs', './routes/programs');
-mount('/api', './routes/ai_debug');
+mount('/api/consultation-catalog', './routes/consultationCatalog');
 mount('/api/stream', './routes/stream');
 mount('/api/diag', './routes/diagnostics');
 
@@ -154,6 +155,7 @@ app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
     const MAILJET_API_SECRET = (process.env.MAILJET_API_SECRET || '').trim();
     const MAIL_FROM = (process.env.MAIL_FROM || '').trim();
     const envOk = Boolean(MAILJET_API_KEY && MAILJET_API_SECRET && MAIL_FROM);
+    const to = String(req.query?.to || '').trim().toLowerCase();
     function checkHttps(hostname) {
       return new Promise((resolve) => {
         const rq = https.request({ hostname, method: 'HEAD', path: '/', timeout: 8000 }, (r) => {
@@ -169,7 +171,18 @@ app.get('/', (req, res) => res.send('AdviSys backend is running 🚀'));
       });
     }
     const net = await checkHttps('api.mailjet.com');
-    res.json({ envOk, net });
+    let send = null;
+    if (envOk && to) {
+      try {
+        const subject = 'AdviSys Email Diagnostics';
+        const html = `<p>This is a test email from AdviSys diagnostics endpoint.</p><p>Sent at: ${new Date().toISOString()}</p>`;
+        const result = await sendEmail({ to, subject, html });
+        send = { attempted: true, ok: !!(result && result.ok) };
+      } catch (e) {
+        send = { attempted: true, ok: false, error: e?.message || String(e) };
+      }
+    }
+    res.json({ envOk, net, send });
   });
 
 // Temporary debug: list registered routes (method and path)
@@ -469,6 +482,16 @@ async function runAdvisorSlotsCleanupJob() {
 if (!isTest) {
   setInterval(runAdvisorSlotsCleanupJob, SLOTS_CLEANUP_POLL_MS);
 }
+
+// Manual trigger endpoint for advisor slots cleanup (useful for cron jobs)
+app.get('/api/advisor/slots/cleanup/run', async (req, res) => {
+  try {
+    await runAdvisorSlotsCleanupJob();
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to run advisor slots cleanup job' });
+  }
+});
 
 const PORT = process.env.PORT || 8080;
 if (require.main === module) {

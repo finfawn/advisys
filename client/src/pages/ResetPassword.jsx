@@ -1,4 +1,5 @@
 import React from "react";
+import logoLargeTransparent from "/logo-large-transparent.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function ResetPassword() {
@@ -23,7 +24,9 @@ export default function ResetPassword() {
     if (!token) { setError('Invalid or missing token'); return; }
     if (!valid()) return;
     setSubmitting(true);
-    const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+    const base = import.meta.env.VITE_API_BASE_URL
+      || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+      || 'http://localhost:8080';
     try {
       const res = await fetch(`${base}/api/auth/reset-password`, {
         method: 'POST',
@@ -41,8 +44,40 @@ export default function ResetPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-gray-50">
-      <div className="w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow p-6">
+    <div className="min-h-screen relative flex items-center justify-center px-5 py-10">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-[#e9ecf4]">
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage: `
+              linear-gradient(#cfd7e61f 1px, transparent 1px),
+              linear-gradient(90deg, #cfd7e61f 1px, transparent 1px),
+              linear-gradient(#b5c0d81a 1px, transparent 1px),
+              linear-gradient(90deg, #b5c0d81a 1px, transparent 1px)
+            `,
+            backgroundSize: '24px 24px, 24px 24px, 120px 120px, 120px 120px'
+          }}
+        />
+        <img
+          src={logoLargeTransparent}
+          alt=""
+          aria-hidden="true"
+          className="absolute select-none"
+          style={{
+            width: 'min(68vw, 1100px)',
+            height: 'auto',
+            opacity: 0.06,
+            filter: 'grayscale(100%)',
+            left: '74%',
+            top: '58%',
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] md:text-[11px] tracking-wide text-gray-600/60 uppercase">
+          KING'S COLLEGE OF THE PHILIPPINES - COLLEGE OF INFORMATION TECHNOLOGY
+        </div>
+      </div>
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow p-6">
         <h1 className="text-2xl font-bold text-gray-900 mb-1">Reset Password</h1>
         <p className="text-sm text-gray-500 mb-6">Create a new password for your account.</p>
         {!done ? (
@@ -73,14 +108,14 @@ export default function ResetPassword() {
             {error && <p className="text-xs text-red-600">{error}</p>}
             <div className="flex items-center justify-end gap-3 pt-2">
               <button type="button" className="h-10 px-4 rounded-xl border border-gray-300 text-sm bg-white hover:bg-gray-50" onClick={()=> navigate('/auth')}>Cancel</button>
-              <button type="submit" disabled={submitting} className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-70">{submitting ? 'Saving…' : 'Reset Password'}</button>
+              <button type="submit" disabled={submitting} className="h-10 px-4 rounded-xl bg-[#3360c2] text-white text-sm hover:bg-[#2a51a3] disabled:opacity-70">{submitting ? 'Saving…' : 'Reset Password'}</button>
             </div>
           </form>
         ) : (
           <div className="space-y-4">
             <p className="text-sm text-gray-700">Your password has been reset successfully.</p>
             <div className="flex items-center justify-end">
-              <button className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700" onClick={()=> navigate('/auth')}>Go to Sign in</button>
+              <button className="h-10 px-4 rounded-xl bg-[#3360c2] text-white text-sm hover:bg-[#2a51a3]" onClick={()=> navigate('/auth')}>Go to Sign in</button>
             </div>
           </div>
         )}

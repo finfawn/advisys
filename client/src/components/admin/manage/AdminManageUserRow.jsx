@@ -3,6 +3,7 @@ import { BsClockHistory, BsSlashCircle, BsCheckCircle } from "react-icons/bs";
 import { Button } from "../../../lightswind/button";
 import { Badge } from "../../../lightswind/badge";
 import { TableRow, TableCell } from "../../../lightswind/table";
+import { Avatar, AvatarImage, AvatarFallback } from "../../../lightswind/avatar";
 
 const describePasswordChanged = (raw) => {
   if (!raw) return "";
@@ -44,6 +45,7 @@ export default function AdminManageUserRow({
       <TableCell className="w-8">
         <input
           type="checkbox"
+          className="cursor-pointer"
           aria-label={`Select ${item.name}`}
           checked={!!selected}
           onClick={(e) => e.stopPropagation()}
@@ -51,11 +53,17 @@ export default function AdminManageUserRow({
         />
       </TableCell>
       <TableCell className="w-[240px] py-1">
-        <div className="min-w-0">
-          <div className="font-semibold text-primary truncate leading-tight" title={item.name}>{item.name}</div>
-          {item.email && (
-            <div className="hidden xl:block text-[11px] text-gray-500 truncate leading-tight" title={item.email}>{item.email}</div>
-          )}
+        <div className="flex items-center gap-3 min-w-0">
+          <Avatar className="h-8 w-8 border border-gray-100 shadow-sm flex-shrink-0">
+            <AvatarImage src={item.avatar || item.avatar_url} alt={item.name} />
+            <AvatarFallback name={item.name} />
+          </Avatar>
+          <div className="min-w-0">
+            <div className="font-semibold text-primary truncate leading-tight" title={item.name}>{item.name}</div>
+            {item.email && (
+              <div className="hidden xl:block text-[11px] text-gray-500 truncate leading-tight" title={item.email}>{item.email}</div>
+            )}
+          </div>
         </div>
       </TableCell>
       <TableCell className="w-[300px] py-1">

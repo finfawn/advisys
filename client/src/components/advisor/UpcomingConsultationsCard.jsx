@@ -1,16 +1,36 @@
 import React, { useEffect, useState, useMemo } from "react";
-import { BsClock, BsChevronRight, BsCalendar } from "react-icons/bs";
+import { ClockIcon, ChevronRightIcon, CalendarDaysIcon } from "../icons/Heroicons";
 import "./UpcomingConsultationsCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../lightswind/card";
 import { useNavigate } from "react-router-dom";
 import { Skeleton } from "../../lightswind/skeleton";
+import { Avatar, AvatarImage, AvatarFallback } from "../../lightswind/avatar";
+
+const toDateUtc = (val) => {
+  const s = String(val || '');
+  const base = s.includes('T') ? s : s.replace(' ', 'T');
+  const withSec = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(base) ? `${base}:00` : base;
+  const hasTz = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
+  const d = new Date(hasTz ? s : `${withSec}Z`);
+  return d;
+};
+
+const formatDate = (dateString) => {
+  return new Intl.DateTimeFormat('en-PH', { 
+    timeZone: 'Asia/Manila',
+    weekday: 'short',
+    month: 'short', 
+    day: 'numeric' 
+  }).format(toDateUtc(dateString));
+};
 
 export default function UpcomingConsultationsCard() {
   const navigate = useNavigate();
-  const [allConsultations, setAllConsultations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [consultations, setConsultations] = useState([]);
+
   useEffect(() => {
-    const fetchConsultations = async () => {
+    const fetchUpcoming = async () => {
       try {
         setLoading(true);
         const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
@@ -22,54 +42,35 @@ export default function UpcomingConsultationsCard() {
           headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined,
         });
         const data = await res.json();
-        setAllConsultations(Array.isArray(data) ? data : []);
+        
+        const now = new Date();
+        const upcoming = (Array.isArray(data) ? data : [])
+          .map(c => {
+            const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
+            const durationMin = c.duration || c.duration_minutes || 30;
+            const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
+            let status = c.status;
+            let inGrace = false;
+            if (start) {
+              inGrace = now < (start.getTime() + graceMs);
+              if (status === 'approved' && !inGrace && now >= (start.getTime() + graceMs)) {
+                status = 'missed';
+              }
+            }
+            return { ...c, _start: start, _inGrace: inGrace, status };
+          })
+          .filter(c => c.status === 'approved' && c._start && (c._start >= now || c._inGrace))
+          .sort((a, b) => new Date(a._start) - new Date(b._start));
+          
+        setConsultations(upcoming);
       } catch (err) {
-        console.error('Failed to load advisor consultations', err);
-      }
-      finally {
+        console.error('Failed to load upcoming consultations', err);
+      } finally {
         setLoading(false);
       }
     };
-    fetchConsultations();
+    fetchUpcoming();
   }, []);
-
-  const consultations = useMemo(() => {
-    const now = new Date();
-    return allConsultations
-      .map(c => {
-        const start = c.start_datetime ? new Date(c.start_datetime) : (c.date ? new Date(c.date) : null);
-        const durationMin = c.duration || c.duration_minutes || 30;
-        const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
-        let status = c.status;
-        let inGrace = false;
-        if (start) {
-          inGrace = now < (start.getTime() + graceMs);
-          if (status === 'approved' && !inGrace && now >= (start.getTime() + graceMs)) {
-            status = 'missed';
-          }
-        }
-        return { ...c, status, _start: start, _inGrace: inGrace };
-      })
-      .filter(c => c.status === 'approved' && c._start && (c._start >= now || c._inGrace))
-      .sort((a, b) => new Date(a._start || a.date) - new Date(b._start || b.date));
-  }, [allConsultations]);
-
-  const toDateUtc = (val) => {
-    const s = String(val || '');
-    const base = s.includes('T') ? s : s.replace(' ', 'T');
-    const withSec = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(base) ? `${base}:00` : base;
-    const hasTz = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(s);
-    const d = new Date(hasTz ? s : `${withSec}Z`);
-    return d;
-  };
-  const formatDate = (dateString) => {
-    return new Intl.DateTimeFormat('en-PH', { 
-      timeZone: 'Asia/Manila',
-      weekday: 'short',
-      month: 'short', 
-      day: 'numeric' 
-    }).format(toDateUtc(dateString));
-  };
 
   const getActionButtonText = (index) => {
     // First upcoming item shows "Join" for quick action
@@ -95,7 +96,7 @@ export default function UpcomingConsultationsCard() {
           <CardTitle size="default" className="upcoming-card-title">Upcoming Consultations</CardTitle>
           <button className="upcoming-view-all" onClick={() => navigate('/advisor-dashboard/consultations')}>
             View All
-            <BsChevronRight className="view-all-icon" />
+            <ChevronRightIcon className="view-all-icon" />
           </button>
         </div>
       </CardHeader>
@@ -122,7 +123,7 @@ export default function UpcomingConsultationsCard() {
           )}
           {consultations.length === 0 && !loading && (
             <div className="upcoming-empty">
-              <BsCalendar className="upcoming-empty-icon" />
+              <CalendarDaysIcon className="upcoming-empty-icon" />
               <h4>No upcoming consultations</h4>
               <p>
                 You don’t have any upcoming sessions. When students book with you,
@@ -139,7 +140,11 @@ export default function UpcomingConsultationsCard() {
           {!loading && consultations.slice(0, 5).map((consultation, index) => (
             <div key={consultation.id} className="compact-consultation-card">
             <div className="compact-date-section">
-              <div className="compact-date">
+              <Avatar className="h-10 w-10 border border-gray-100 shadow-sm flex-shrink-0">
+                <AvatarImage src={consultation.student?.avatar} alt={consultation.student?.name} />
+                <AvatarFallback name={consultation.student?.name} />
+              </Avatar>
+              <div className="compact-date ml-3">
                 <div className="compact-dow">{formatDate(consultation.date).split(' ')[0]}</div>
                 <div className="compact-dom">{formatDate(consultation.date).split(' ')[2]}</div>
               </div>
@@ -168,7 +173,7 @@ export default function UpcomingConsultationsCard() {
             <div className="compact-action">
               <button className={getActionButtonClass(index)} onClick={() => handleActionClick(consultation, index)}>
                 {getActionButtonText(index)}
-                <BsChevronRight className="action-icon" />
+                <ChevronRightIcon className="action-icon" />
               </button>
             </div>
             </div>

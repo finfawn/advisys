@@ -11,11 +11,11 @@
 .reason-options { display: flex; flex-direction: column; gap: 12px; }
 .reason-option { display: flex; align-items: center; gap: 12px; padding: 12px 16px; border: 1px solid #e5e7eb; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; background: white; }
 .reason-option:hover { border-color: #d1d5db; background: #f9fafb; }
-.reason-option input[type="radio"] { margin: 0; accent-color: #3b82f6; }
+.reason-option input[type="radio"] { margin: 0; accent-color: #3360c2; }
 .option-text { font-size: 0.95rem; font-weight: 500; color: #374151; }
 .custom-reason { margin-top: 16px; }
 .custom-reason-input { width: 100%; padding: 12px 16px; border: 1px solid #d1d5db; border-radius: 8px; font-size: 0.95rem; font-family: inherit; resize: vertical; min-height: 80px; transition: border-color 0.2s ease; }
-.custom-reason-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
+.custom-reason-input:focus { outline: none; border-color: #3360c2; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1); }
 .custom-reason-input::placeholder { color: #9ca3af; }
 
 .confirmation-step { text-align: center; padding: 20px 0; }

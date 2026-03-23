@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=IM+Fell+DW+Pica+SC&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -21,8 +22,14 @@
     -moz-osx-font-smoothing: grayscale;
 
     /* Brand palette */
-    --brand-blue: #5285c9; /* matches .brand-sys */
-    --brand-blue-dark: #306bb8; /* dark blue used in shadows/banners */
+    --brand-blue: #3360c2; /* matches .brand-sys */
+    --brand-blue-dark: #2a51a3; /* dark blue used in shadows/banners */
+}
+
+/* Logo font utility */
+.logo-font {
+    font-family: 'IM Fell DW Pica SC', serif !important;
+    font-weight: 400;
 }
 
 /* --- App overrides for full-width landing hero --- */
@@ -99,7 +106,7 @@ button {
     color: #212529;
 }
 button:hover {
-    border-color: #434ac5;
+    border-color: #2a51a3;
 }
 button:focus,
 button:focus-visible {

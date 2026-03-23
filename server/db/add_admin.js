@@ -13,7 +13,7 @@ async function ensureAdmin() {
       const u = rows[0];
       // If exists, set role to admin and reset password
       const hash = await bcrypt.hash(plainPassword, 10);
-      await pool.query('UPDATE users SET role = ?, password_hash = ?, full_name = ?, status = ? WHERE id = ?', [
+      await pool.query('UPDATE users SET role = ?, password_hash = ?, full_name = ?, status = ?, email_verified = 1, email_verified_at = NOW() WHERE id = ?', [
         'admin',
         hash,
         fullName,
@@ -24,8 +24,8 @@ async function ensureAdmin() {
     } else {
       const hash = await bcrypt.hash(plainPassword, 10);
       const [resUser] = await pool.query(
-        'INSERT INTO users (role, email, password_hash, full_name, status) VALUES (?,?,?,?,?)',
-        ['admin', email, hash, fullName, 'active']
+        'INSERT INTO users (role, email, password_hash, full_name, status, email_verified, email_verified_at) VALUES (?,?,?,?,?,?,NOW())',
+        ['admin', email, hash, fullName, 'active', 1]
       );
       console.log(`[admin] Created admin user: ${email} (id=${resUser.insertId})`);
     }

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsBell, BsChevronDown, BsGear, BsBoxArrowRight } from "react-icons/bs";
+import { BellIcon, ChevronDownIcon, Cog6ToothIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
 import Logo from "../../assets/logo.png";
 import NotificationModal from "../NotificationModal";
 import { useNotifications } from "../../contexts/NotificationContext";
@@ -30,7 +30,9 @@ function AdvisorTopNavbar() {
     const token = localStorage.getItem("advisys_token");
     if (!token) return;
     const controller = new AbortController();
-    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const base = import.meta.env.VITE_API_BASE_URL
+      || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+      || "http://localhost:8080";
     fetch(`${base}/api/profile/me`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
@@ -100,7 +102,7 @@ function AdvisorTopNavbar() {
           aria-label="Notifications"
           onClick={handleNotificationClick}
         >
-          <BsBell className="bell-icon" />
+          <BellIcon className="bell-icon" />
           {unreadCount > 0 && <span className="notification-dot"></span>}
         </button>
         
@@ -114,7 +116,7 @@ function AdvisorTopNavbar() {
           >
             <InitialsAvatar name={advisorName || 'Advisor'} size={32} className="avatar small overflow-hidden" />
             <span className="user-name d-none d-md-inline">{advisorName || 'Advisor'}</span>
-            <BsChevronDown className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
+            <ChevronDownIcon className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
           </button>
           
           {isDropdownOpen && (
@@ -136,7 +138,7 @@ function AdvisorTopNavbar() {
                   className="dropdown-item"
                   onClick={handleSettingsClick}
                 >
-                  <BsGear className="dropdown-item-icon" />
+                  <Cog6ToothIcon className="dropdown-item-icon" />
                   <span>Profile</span>
                 </button>
                 
@@ -146,7 +148,7 @@ function AdvisorTopNavbar() {
                   className="dropdown-item logout-item"
                   onClick={handleLogout}
                 >
-                  <BsBoxArrowRight className="dropdown-item-icon" />
+                  <ArrowRightOnRectangleIcon className="dropdown-item-icon" />
                   <span>Logout</span>
                 </button>
               </div>

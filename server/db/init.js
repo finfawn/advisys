@@ -30,15 +30,46 @@ const mysql = require('mysql2/promise');
   console.log('Connecting to MySQL...', { DB_HOST, DB_PORT, DB_USER });
   let conn;
   try {
-    conn = await mysql.createConnection({
-      host: DB_HOST,
-      port: DB_PORT,
-      user: DB_USER,
-      password: DB_PASSWORD,
-      database: DB_NAME,
-      multipleStatements: true,
-      ssl: sslConfig,
-    });
+    try {
+      conn = await mysql.createConnection({
+        host: DB_HOST,
+        port: DB_PORT,
+        user: DB_USER,
+        password: DB_PASSWORD,
+        database: DB_NAME,
+        multipleStatements: true,
+        ssl: sslConfig,
+      });
+    } catch (e) {
+      if (String(e?.message || '').toLowerCase().includes('unknown database')) {
+        const admin = await mysql.createConnection({
+          host: DB_HOST,
+          port: DB_PORT,
+          user: DB_USER,
+          password: DB_PASSWORD,
+          multipleStatements: true,
+          ssl: sslConfig,
+        });
+        try {
+          await admin.query(`CREATE DATABASE IF NOT EXISTS \`${DB_NAME}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci;`);
+          await admin.end();
+          conn = await mysql.createConnection({
+            host: DB_HOST,
+            port: DB_PORT,
+            user: DB_USER,
+            password: DB_PASSWORD,
+            database: DB_NAME,
+            multipleStatements: true,
+            ssl: sslConfig,
+          });
+        } catch (createErr) {
+          await admin.end().catch(() => {});
+          throw createErr;
+        }
+      } else {
+        throw e;
+      }
+    }
     console.log('Connected. Applying tables to database...', DB_NAME);
     // Drop advisor_profiles to resolve legacy foreign key conflicts
     await conn.query(`DROP TABLE IF EXISTS advisor_profiles;`);

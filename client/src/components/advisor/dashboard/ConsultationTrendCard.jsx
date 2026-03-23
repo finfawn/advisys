@@ -10,6 +10,8 @@ export default function ConsultationTrendCard({ data = null }) {
   const [selectedPeriod, setSelectedPeriod] = useState("month");
   const [weeklyData, setWeeklyData] = useState([]);
   const [monthlyData, setMonthlyData] = useState([]);
+  const [weeklyLabels, setWeeklyLabels] = useState({ current: "This Week", previous: "Last Week" });
+  const [monthlyLabels, setMonthlyLabels] = useState({ current: "", previous: "" });
   const [loaded, setLoaded] = useState(false);
 
   // Get current date for dynamic month names
@@ -39,6 +41,14 @@ export default function ConsultationTrendCard({ data = null }) {
           const month = data.month || { current: [], previous: [] };
           setWeeklyData(mergeByDay(week.current, week.previous));
           setMonthlyData(mergeByDay(month.current, month.previous));
+          setWeeklyLabels({
+            current: week.currentLabel || "This Week",
+            previous: week.previousLabel || "Last Week",
+          });
+          setMonthlyLabels({
+            current: month.currentLabel || currentMonth,
+            previous: month.previousLabel || previousMonth,
+          });
           setLoaded(true);
           return;
         }
@@ -55,6 +65,14 @@ export default function ConsultationTrendCard({ data = null }) {
         const month = json?.trend?.month || { current: [], previous: [] };
         setWeeklyData(mergeByDay(week.current, week.previous));
         setMonthlyData(mergeByDay(month.current, month.previous));
+        setWeeklyLabels({
+          current: week.currentLabel || "This Week",
+          previous: week.previousLabel || "Last Week",
+        });
+        setMonthlyLabels({
+          current: month.currentLabel || currentMonth,
+          previous: month.previousLabel || previousMonth,
+        });
       } catch (err) {
         console.error('Failed to load dashboard summary (trend)', err);
       }
@@ -126,19 +144,17 @@ export default function ConsultationTrendCard({ data = null }) {
                 boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
               }}
               labelStyle={{ color: '#374151', fontWeight: '600' }}
-            />
-            <Legend 
-              wrapperStyle={{ paddingTop: '10px' }}
-              iconType="line"
+              filterNull
+              itemSorter={(item) => -(Number(item?.value ?? 0))}
             />
             <Line 
               type="monotone" 
               dataKey="current" 
-              stroke="#3b82f6" 
+              stroke="#3360c2" 
               strokeWidth={3}
-              dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
-              activeDot={{ r: 6, stroke: '#3b82f6', strokeWidth: 2, fill: '#fff' }}
-              name={selectedPeriod === "week" ? "This Week" : currentMonth}
+              dot={{ fill: '#3360c2', strokeWidth: 2, r: 4 }}
+              activeDot={{ r: 6, stroke: '#3360c2', strokeWidth: 2, fill: '#fff' }}
+              name={selectedPeriod === "week" ? weeklyLabels.current : (monthlyLabels.current || currentMonth)}
             />
             <Line 
               type="monotone" 
@@ -148,7 +164,7 @@ export default function ConsultationTrendCard({ data = null }) {
               strokeDasharray="5 5"
               dot={{ fill: '#94a3b8', strokeWidth: 2, r: 3 }}
               activeDot={{ r: 5, stroke: '#94a3b8', strokeWidth: 2, fill: '#fff' }}
-              name={selectedPeriod === "week" ? "Last Week" : previousMonth}
+              name={selectedPeriod === "week" ? weeklyLabels.previous : (monthlyLabels.previous || previousMonth)}
               />
             </LineChart>
           </ResponsiveContainer>

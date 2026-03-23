@@ -135,7 +135,7 @@
   border-radius: 8px;
   padding: 8px 10px;
 }
-.smc-chat-item.me { background: #0b3b60; border-color: #2563eb; }
+.smc-chat-item.me { background: #0b3b60; border-color: #2a51a3; }
 .smc-chat-item.other { background: #111827; }
 .smc-chat-item .meta {
   font-size: 12px;

@@ -1,5 +1,5 @@
 import React from "react";
-import { BsCalendarEvent, BsPersonCheck, BsFileText, BsBarChart } from "react-icons/bs";
+import { CalendarDaysIcon, CheckCircleIcon, DocumentTextIcon, ChartBarIcon } from "./icons/Heroicons";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "../lightswind/card";
 import { ScrollReveal } from "../lightswind/scroll-reveal";
 import { motion, useInView } from "framer-motion";
@@ -7,25 +7,25 @@ import { useRef } from "react";
 
 const features = [
   {
-    icon: BsCalendarEvent,
+    icon: CalendarDaysIcon,
     title: "Easy Scheduling",
     desc: "Students can quickly book or reschedule consultations.",
     bullets: ["Quick booking", "Easy rescheduling"],
   },
   {
-    icon: BsPersonCheck,
+    icon: CheckCircleIcon,
     title: "Online or In-Person",
     desc: "Flexible options for how consultations happen.",
     bullets: ["Video calls", "Face-to-face meetings"],
   },
   {
-    icon: BsFileText,
+    icon: DocumentTextIcon,
     title: "Consultation Summaries",
     desc: "Auto-generated notes and session documentation.",
     bullets: ["Auto-generated notes", "Session documentation"],
   },
   {
-    icon: BsBarChart,
+    icon: ChartBarIcon,
     title: "Analytics & Reports",
     desc: "Access consultation trends and reports.",
     bullets: ["Trend analysis", "Detailed reports"],
@@ -72,7 +72,7 @@ function FeaturesSection() {
                     <CardHeader spacing="default" className="flex-shrink-0">
                       <div className="flex flex-col items-center text-center space-y-4">
                         <div className="w-16 h-16 rounded-lg bg-blue-100 flex items-center justify-center">
-                          <Icon className="text-blue-600" size={32} />
+                          <Icon className="text-[#3360c2]" size={32} />
                         </div>
                         <CardTitle size="default" className="text-gray-900">{f.title}</CardTitle>
                       </div>

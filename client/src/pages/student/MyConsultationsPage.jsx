@@ -990,7 +990,7 @@ export default function MyConsultationsPage() {
                     <Card hoverable className="add-consultation-card-new cursor-pointer" onClick={handleNewConsultation}>
                       <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
                         <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
-                          <BsPlus className="text-4xl text-blue-600" />
+                          <BsPlus className="text-4xl text-[#3360c2]" />
                         </div>
                         <h3 className="text-lg font-semibold text-gray-900">Add New Consultation</h3>
                         <p className="text-sm text-gray-600 text-center">Book a new consultation session</p>
@@ -1195,10 +1195,16 @@ export default function MyConsultationsPage() {
                         </div>
                       </>
                     ) : (
-                      <div className="no-history">
-                        <BsListCheck className="no-history-icon" />
-                        <h3>No consultation history</h3>
-                        <p>You haven't completed any consultation sessions yet.</p>
+                      <div className="consultations-grid">
+                        <Card className="add-consultation-card-new">
+                          <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
+                            <div className="w-16 h-16 rounded-full bg-blue-50 flex items-center justify-center">
+                              <BsListCheck className="text-3xl text-[#3360c2]" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-gray-900">No consultation history</h3>
+                            <p className="text-sm text-gray-600 text-center">You haven't completed any consultation sessions yet.</p>
+                          </CardContent>
+                        </Card>
                       </div>
                     )
                   ) : (

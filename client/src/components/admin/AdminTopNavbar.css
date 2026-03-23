@@ -26,6 +26,22 @@
   gap: 135px;
 }
 
+.admin-topbar-center {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 280px;
+  max-width: min(42vw, 520px);
+  pointer-events: none;
+}
+
+.admin-topbar-center > * {
+  pointer-events: auto;
+}
+
 @media (max-width: 767px) {
   .admin-topbar-left {
     gap: 16px;
@@ -37,6 +53,10 @@
   }
   
   .admin-topbar .admin-greeting {
+    display: none !important;
+  }
+
+  .admin-topbar .admin-topbar-center {
     display: none !important;
   }
   
@@ -89,10 +109,11 @@
   font-weight: 700;
   font-size: 1.125rem;
   color: #111827;
+  font-family: 'IM Fell DW Pica SC', serif;
 }
 
 .admin-brand-sys {
-  color: #5285c9;
+  color: #3360c2;
 }
 
 .admin-greeting {
@@ -120,6 +141,7 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  margin-left: auto;
 }
 
 /* Scoped utility styles for navbar controls */
@@ -240,7 +262,7 @@
   height: 40px;
   border-radius: 50%;
   background: #e6efff;
-  color: #2d5bd1;
+  color: #3360c2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -305,7 +327,7 @@
 
 .admin-topbar .dropdown-item:hover .dropdown-item-icon,
 .admin-topbar .dropdown-item:focus .dropdown-item-icon {
-  color: #3b82f6;
+  color: #3360c2;
 }
 
 .admin-topbar .logout-item {
@@ -335,7 +357,7 @@
   display: grid;
   place-items: center;
   background: #e6efff;
-  color: #2d5bd1;
+  color: #3360c2;
 }
 
 .admin-topbar .user-name {
@@ -415,4 +437,5 @@
   .admin-topbar .admin-greeting { display: none !important; }
   .admin-topbar .user-dropdown { display: none !important; }
   .admin-topbar .hamburger-spacer { display: block !important; }
+  .admin-topbar .admin-topbar-center { display: none !important; }
 }

@@ -10,7 +10,7 @@ import AdminConsultationModeCard from "../../components/admin/dashboard/AdminCon
 import AdminAverageDurationCard from "../../components/admin/dashboard/AdminAverageDurationCard";
 import AdminStatusBreakdownCard from "../../components/admin/dashboard/AdminStatusBreakdownCard";
 import "./AdminDashboard.css";
-import { Button } from "../../lightswind/button";
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 
 // export functionality temporarily disabled to simplify build
 
@@ -20,7 +20,45 @@ export default function AdminDashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [summary, setSummary] = useState(null);
-  const [monthlyMode, setMonthlyMode] = useState(null);
+  const [terms, setTerms] = useState([]);
+  const [scope, setScope] = useState("overall");
+  const [selectedTermId, setSelectedTermId] = useState("");
+
+  const currentTerm = terms.find((term) => Number(term.is_current) === 1) || null;
+  const selectedScopeValue =
+    scope === "current"
+      ? "current"
+      : scope === "term" && selectedTermId
+        ? `term:${selectedTermId}`
+        : "overall";
+
+  useEffect(() => {
+    const fetchTerms = async () => {
+      const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const storedToken = localStorage.getItem('advisys_token');
+      const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined;
+      try {
+        const response = await fetch(`${base}/api/settings/academic/terms`, { headers });
+        const data = await response.json();
+        setTerms(Array.isArray(data) ? data : []);
+      } catch (err) {
+        console.error('Failed to load academic terms for dashboard filters', err);
+      }
+    };
+    fetchTerms();
+  }, []);
+
+  useEffect(() => {
+    if (scope === "current" && !currentTerm && terms.length > 0) {
+      setScope("overall");
+    }
+  }, [scope, currentTerm, terms.length]);
+
+  useEffect(() => {
+    if (scope === "term" && !selectedTermId && terms.length > 0) {
+      setSelectedTermId(String(currentTerm?.id || terms[0]?.id || ""));
+    }
+  }, [scope, selectedTermId, terms, currentTerm]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,26 +66,42 @@ export default function AdminDashboard() {
       const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
       const storedToken = localStorage.getItem('advisys_token');
       const headers = storedToken ? { Authorization: `Bearer ${storedToken}` } : undefined;
+      const params = new URLSearchParams();
+
+      if (scope === "current" && currentTerm) {
+        params.set("scope", "current");
+      } else if (scope === "term" && selectedTermId) {
+        params.set("scope", "term");
+        params.set("termId", String(selectedTermId));
+      }
+
+      const summaryUrl = `${base}/api/dashboard/admin/summary${params.toString() ? `?${params.toString()}` : ''}`;
 
       try {
-        const [summaryRes, monthlyModeRes] = await Promise.all([
-          fetch(`${base}/api/dashboard/admin/summary`, { headers }),
-          fetch(`${base}/api/dashboard/admin/monthly-mode`, { headers }),
-        ]);
+        const summaryRes = await fetch(summaryUrl, { headers });
 
         const summaryData = await summaryRes.json();
-        const monthlyModeData = await monthlyModeRes.json();
 
         setSummary(summaryData);
-        setMonthlyMode(monthlyModeData);
       } catch (err) {
         console.error('Failed to load admin dashboard data', err);
       } finally {
         setIsLoading(false);
       }
     };
+
+    if (scope === "current" && !currentTerm) {
+      setSummary(null);
+      setIsLoading(false);
+      return;
+    }
+
+    if (scope === "term" && !selectedTermId) {
+      return;
+    }
+
     fetchData();
-  }, []);
+  }, [scope, selectedTermId, currentTerm]);
 
   const handleNavigation = (page) => {
     if (page === 'dashboard') navigate('/admin-dashboard');
@@ -58,9 +112,49 @@ export default function AdminDashboard() {
     else if (page === 'logout') navigate('/logout');
   };
 
+  const handleScopeSelect = (value) => {
+    if (value === "overall") {
+      setScope("overall");
+      return;
+    }
+
+    if (value === "current") {
+      setScope("current");
+      return;
+    }
+
+    if (value.startsWith("term:")) {
+      const termId = value.slice(5);
+      setSelectedTermId(termId);
+      setScope("term");
+    }
+  };
+
+  const navbarScopeDropdown = (
+    <div className="flex items-center justify-center">
+      <Select value={selectedScopeValue} onValueChange={handleScopeSelect}>
+        <SelectTrigger
+          aria-label="Dashboard scope"
+          className="h-11 min-w-[310px] rounded-2xl border-slate-200 bg-white/95 text-sm font-medium text-slate-700 shadow-[0_10px_28px_-20px_rgba(15,23,42,0.35)]"
+        >
+          <SelectValue placeholder="Select dashboard view" />
+        </SelectTrigger>
+        <SelectContent align="center">
+          <SelectItem value="overall">Overall</SelectItem>
+          {currentTerm ? <SelectItem value="current">Current Semester</SelectItem> : null}
+          {terms.map((term) => (
+            <SelectItem key={term.id} value={`term:${term.id}`}>
+              {`SY ${term.year_label} / ${term.semester_label} Semester`}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  );
+
   return (
     <div className="admin-dash-wrap">
-      <AdminTopNavbar />
+      <AdminTopNavbar centerContent={navbarScopeDropdown} />
 
       {/* Body */}
       <div className={`admin-dash-body ${collapsed ? "collapsed" : ""}`}>
@@ -75,7 +169,6 @@ export default function AdminDashboard() {
 
         {/* Content */}
         <main className="admin-dash-main">
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }} />
           <div className="admin-bento-grid">
             {/* Row 1–2 left: Students with total indicator */}
             <div style={{ gridColumn: '1 / 3', gridRow: '1 / 3' }}>

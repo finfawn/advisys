@@ -19,5 +19,19 @@
     { "src": "/healthz", "dest": "/api/serverless.js" },
     { "handle": "filesystem" },
     { "src": "/(.*)", "dest": "/client/dist/index.html" }
+  ],
+  "crons": [
+    {
+      "path": "/api/consultations/reminders/run",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/consultations/missed/run",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/advisor/slots/cleanup/run",
+      "schedule": "0 * * * *"
+    }
   ]
 }

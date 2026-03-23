@@ -250,7 +250,7 @@
 .calendar-day:focus-visible,
 .nav-button:focus-visible,
 .footer-button:focus-visible {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #3360c2;
   outline-offset: 2px;
 }
 

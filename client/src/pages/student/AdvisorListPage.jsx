@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "react-bootstrap";
 import AdvisorCard from "../../components/student/AdvisorCard";
+import { motion, AnimatePresence } from "framer-motion";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import { useSidebar } from "../../contexts/SidebarContext";
@@ -416,22 +417,31 @@ export default function AdvisorListPage() {
                   </div>
                 </div>
                 <div className="advisor-grid">
-                  {previousConsultations.map(advisor => (
-                    <AdvisorCard
-                      key={`previous-${advisor.id}`}
-                      advisorId={advisor.id}
-                      name={advisor.name}
-                      title={advisor.title}
-                      status={advisor.status}
-                      schedule={advisor.schedule}
-                      time={advisor.time}
-                      mode={advisor.mode}
-                      avatar={advisor.avatar}
-                      coursesTaught={advisor.coursesTaught}
-                      officeLocation={advisor.officeLocation}
-                      onBookClick={() => handleBookClick(advisor.name)}
-                    />
-                  ))}
+                  <AnimatePresence mode="popLayout">
+                    {previousConsultations.map(advisor => (
+                      <motion.div
+                        key={`previous-${advisor.id}`}
+                        initial={{ opacity: 0, y: 8, scale: 0.995 }}
+                        animate={{ opacity: 1, y: 0, scale: 1 }}
+                        exit={{ opacity: 0, y: -8, scale: 0.995 }}
+                        transition={{ duration: 0.2, ease: 'easeOut' }}
+                      >
+                        <AdvisorCard
+                          advisorId={advisor.id}
+                          name={advisor.name}
+                          title={advisor.title}
+                          status={advisor.status}
+                          schedule={advisor.schedule}
+                          time={advisor.time}
+                          mode={advisor.mode}
+                          avatar={advisor.avatar}
+                          coursesTaught={advisor.coursesTaught}
+                          officeLocation={advisor.officeLocation}
+                          onBookClick={() => handleBookClick(advisor.name)}
+                        />
+                      </motion.div>
+                    ))}
+                  </AnimatePresence>
                 </div>
               </section>
             )}
@@ -527,26 +537,40 @@ export default function AdvisorListPage() {
               ) : displayedAdvisors.length > 0 ? (
                 <>
                   <div className="advisor-grid">
-                    {displayedAdvisors.map(advisor => (
-                      <AdvisorCard
-                        key={advisor.id}
-                        advisorId={advisor.id}
-                        name={advisor.name}
-                        title={advisor.title}
-                        status={advisor.status}
-                        schedule={advisor.schedule}
-                        time={advisor.time}
-                        mode={advisor.mode}
-                        avatar={advisor.avatar}
-                        coursesTaught={advisor.coursesTaught}
-                        officeLocation={advisor.officeLocation}
-                        onBookClick={() => handleBookClick(advisor.name)}
-                      />
-                    ))}
+                    <AnimatePresence mode="popLayout">
+                      {displayedAdvisors.map(advisor => (
+                        <motion.div
+                          key={advisor.id}
+                          initial={{ opacity: 0, y: 8, scale: 0.995 }}
+                          animate={{ opacity: 1, y: 0, scale: 1 }}
+                          exit={{ opacity: 0, y: -8, scale: 0.995 }}
+                          transition={{ duration: 0.2, ease: 'easeOut' }}
+                        >
+                          <AdvisorCard
+                            advisorId={advisor.id}
+                            name={advisor.name}
+                            title={advisor.title}
+                            status={advisor.status}
+                            schedule={advisor.schedule}
+                            time={advisor.time}
+                            mode={advisor.mode}
+                            avatar={advisor.avatar}
+                            coursesTaught={advisor.coursesTaught}
+                            officeLocation={advisor.officeLocation}
+                            onBookClick={() => handleBookClick(advisor.name)}
+                          />
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
                   </div>
                   
                   {!showAll && endIndex < filteredAdvisors.length && showLoadMore && (
-                    <div className="load-more-section">
+                    <motion.div
+                      className="load-more-section"
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.2, ease: 'easeOut' }}
+                    >
                       <Button
                         variant="default"
                         className="load-more-btn"
@@ -554,7 +578,7 @@ export default function AdvisorListPage() {
                       >
                         Load More ({filteredAdvisors.length - endIndex} remaining)
                       </Button>
-                    </div>
+                    </motion.div>
                   )}
                 </>
               ) : (

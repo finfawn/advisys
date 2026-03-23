@@ -3,7 +3,7 @@
 /* Layout container */
 .consultation-details-wrap {
   min-height: 100vh;
-  background: #f5f7fb;
+  background: transparent;
   color: #1f2937;
 }
 
@@ -242,8 +242,8 @@
 
 /* Online mode pill */
 .mode-badge.online {
-  background: #e0e7ff;
-  color: #1d4ed8;
+  background: #dbeafe;
+  color: #1f3c7a;
   border: 1px solid #bfdbfe;
 }
 
@@ -265,7 +265,7 @@
 
 .date-icon,
 .time-icon {
-  color: #667eea;
+  color: #3360c2;
   font-size: 1.1rem;
 }
 
@@ -286,7 +286,7 @@
   height: 80px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #cfe0ff, #a7c1ff);
-  color: #2d5bd1;
+  color: #3360c2;
   font-size: 40px;
   display: flex;
   align-items: center;
@@ -403,7 +403,7 @@
 }
 
 .section-icon {
-  color: #3b82f6;
+  color: #3360c2;
   font-size: 1.3rem;
 }
 
@@ -1014,7 +1014,7 @@
 /* Focus states for accessibility */
 .back-button:focus,
 .action-btn:focus {
-  outline: 2px solid #3b82f6;
+  outline: 2px solid #3360c2;
   outline-offset: 2px;
 }
 

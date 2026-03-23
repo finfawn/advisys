@@ -87,7 +87,7 @@ const ImageMarquee: React.FC<ImageMarqueeProps> = ({
             key={idx}
             className={`${imageWidth} ${imageHeight} ${imageMarginX} flex-shrink-0 
     transform hover:scale-125 transition-transform duration-300 
-    border border-white/20 hover:border-blue-500/40 p-2 
+    border border-white/20 hover:border-[#3360c2]/40 p-2 
     rounded-xl shadow-lg backdrop-blur-md 
     bg-gray-200/60 dark:bg-white/5`}
           >

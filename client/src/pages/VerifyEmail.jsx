@@ -27,7 +27,9 @@ export default function VerifyEmail() {
     return () => clearTimeout(t);
   }, [cooldown]);
 
-  const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+  const base = import.meta.env.VITE_API_BASE_URL
+    || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+    || "http://localhost:8080";
 
   const onSubmit = async (e) => {
     e.preventDefault();
@@ -76,8 +78,40 @@ export default function VerifyEmail() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 py-10 bg-gray-50">
-      <div className="w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow p-8">
+    <div className="min-h-screen relative flex items-center justify-center px-5 py-10">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none bg-[#e9ecf4]">
+        <div
+          className="absolute inset-0 opacity-70"
+          style={{
+            backgroundImage: `
+              linear-gradient(#cfd7e61f 1px, transparent 1px),
+              linear-gradient(90deg, #cfd7e61f 1px, transparent 1px),
+              linear-gradient(#b5c0d81a 1px, transparent 1px),
+              linear-gradient(90deg, #b5c0d81a 1px, transparent 1px)
+            `,
+            backgroundSize: '24px 24px, 24px 24px, 120px 120px, 120px 120px'
+          }}
+        />
+        <img
+          src={logoLargeTransparent}
+          alt=""
+          aria-hidden="true"
+          className="absolute select-none"
+          style={{
+            width: 'min(68vw, 1100px)',
+            height: 'auto',
+            opacity: 0.06,
+            filter: 'grayscale(100%)',
+            left: '74%',
+            top: '58%',
+            transform: 'translate(-50%, -50%)'
+          }}
+        />
+        <div className="absolute bottom-2 left-1/2 -translate-x-1/2 text-[10px] md:text-[11px] tracking-wide text-gray-600/60 uppercase">
+          KING'S COLLEGE OF THE PHILIPPINES - COLLEGE OF INFORMATION TECHNOLOGY
+        </div>
+      </div>
+      <div className="relative z-10 w-full max-w-md rounded-2xl bg-white border border-gray-200 shadow p-8">
         <h1 className="text-2xl font-extrabold text-gray-900">Verify your email</h1>
         <p className="mt-2 text-sm text-gray-600">
           We sent a 6-digit code to {email || "your email"}. Enter it below to activate your account.
@@ -122,7 +156,7 @@ export default function VerifyEmail() {
             <button
               type="submit"
               disabled={submitting}
-              className="h-10 px-4 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700"
+              className="h-10 px-4 rounded-xl bg-[#3360c2] text-white text-sm hover:bg-[#2a51a3]"
             >
               {submitting ? 'Verifying…' : 'Verify'}
             </button>

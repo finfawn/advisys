@@ -11,7 +11,7 @@
 }
 
 .history-card-new:hover {
-  border-color: #3b82f6 !important;
+  border-color: #3360c2 !important;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
   transform: none !important;
 }
@@ -32,7 +32,7 @@
 }
 
 .history-card:hover {
-  border-color: #667eea;
+  border-color: #3360c2;
 }
 
 .history-card-header {
@@ -141,7 +141,7 @@
 
 .time-icon {
   font-size: 1rem;
-  color: #667eea;
+  color: #3360c2;
 }
 
 .history-card-faculty {
@@ -160,7 +160,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #667eea;
+  background: #3360c2;
   color: white;
   border-radius: 50%;
   font-size: 1.2rem;
@@ -216,7 +216,7 @@
   gap: 0.5rem;
   flex: 1;
   padding: 0.75rem 1rem;
-  border: 1px solid #667eea;
+  border: 1px solid #3360c2;
   border-radius: 8px;
   font-weight: 600;
   font-size: 0.95rem;
@@ -225,7 +225,7 @@
 }
 
 .history-card-action-btn.view-details {
-  background: #667eea;
+  background: #3360c2;
   color: white;
 }
 

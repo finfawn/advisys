@@ -12,7 +12,7 @@ import AdminConfirmModal from "../../components/shared/AdminConfirmModal";
 import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "../../lightswind/collapsible";
 import "../student/ConsultationDetailsPage.css";
 
-const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+const AI_ENABLED = false;
 
 export default function AdvisorOnlineConsultationDetailsPage() {
   const { consultationId } = useParams();
@@ -300,7 +300,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
     if (page === 'consultations') navigate('/advisor-dashboard/consultations');
     if (page === 'dashboard') navigate('/advisor-dashboard');
     if (page === 'availability') navigate('/advisor-dashboard/availability');
-    if (page === 'settings') navigate('/advisor-dashboard/settings');
+    if (page === 'settings') navigate('/advisor-dashboard/profile');
     if (page === 'logout') navigate('/logout');
   };
 
@@ -381,7 +381,7 @@ export default function AdvisorOnlineConsultationDetailsPage() {
             { label: "Dashboard", icon: <ChartBarIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard') },
             { label: "Consultations", icon: <CalendarDaysIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard/consultations') },
             { label: "Availability", icon: <ClockIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard/availability') },
-            { label: "Profile", icon: <Cog6ToothIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard/settings') },
+            { label: "Profile", icon: <Cog6ToothIcon className="w-6 h-6" />, onClick: () => navigate('/advisor-dashboard/profile') },
             { label: "Logout", icon: <ArrowRightOnRectangleIcon className="w-6 h-6" />, onClick: () => navigate('/logout') },
           ]}
           buttonTop="12px"

@@ -65,6 +65,7 @@ function getPool() {
       waitForConnections: true,
       connectionLimit: 10,
       queueLimit: 0,
+      timezone: '+00:00', // Treat all DB dates as UTC
     };
 
     if (socketAvailable) {

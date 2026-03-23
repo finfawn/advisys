@@ -237,8 +237,34 @@ router.get('/academic/terms', async (req, res) => {
   const pool = getPool();
   try {
     const [rows] = await pool.query(
-      `SELECT id, year_label, semester_label, start_date, end_date, is_current
+      `SELECT t.id, t.year_label, t.semester_label, t.start_date, t.end_date, t.is_current,
+              COALESCE((
+                SELECT COUNT(*)
+                FROM academic_term_memberships m
+                WHERE m.term_id = t.id AND m.role = 'student' AND m.status_in_term = 'enrolled'
+              ), 0) AS student_enrolled_count,
+              COALESCE((
+                SELECT COUNT(*)
+                FROM academic_term_memberships m
+                WHERE m.term_id = t.id AND m.role = 'student'
+              ), 0) AS student_total_count,
+              COALESCE((
+                SELECT COUNT(*)
+                FROM academic_term_memberships m
+                WHERE m.term_id = t.id AND m.role = 'advisor'
+              ), 0) AS advisor_count,
+              COALESCE((
+                SELECT COUNT(*)
+                FROM consultations c
+                WHERE c.academic_term_id = t.id
+              ), 0) AS consultation_count,
+              COALESCE((
+                SELECT COUNT(*)
+                FROM consultations c
+                WHERE c.academic_term_id = t.id AND c.status = 'completed'
+              ), 0) AS completed_consultation_count
        FROM academic_terms
+       t
        ORDER BY is_current DESC, start_date DESC, id DESC`
     );
     res.json(rows || []);

@@ -396,7 +396,7 @@ const TooltipContentDisplay = () => {
 
     switch (variant) {
       case 'info':
-        return 'bg-blue-500 text-white';
+        return 'bg-[#3360c2] text-white';
       case 'success':
         return 'bg-green-500 text-white';
       case 'warning':

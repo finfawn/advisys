@@ -9,9 +9,6 @@ interface AvatarProps extends React.HTMLAttributes<HTMLDivElement> {
   status?: "online" | "offline" | "away" | "busy" | null;
 }
 
-const DEFAULT_AVATAR = `https://robohash.org/${Math.random().toString(36).substring(7)}.png`;
-
-
 const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
   ({ className, src, alt, fallback, status, ...props }, ref) => {
     return (
@@ -27,7 +24,6 @@ const Avatar = React.forwardRef<HTMLDivElement, AvatarProps>(
     );
   }
 );
-
 Avatar.displayName = "Avatar";
 
 interface AvatarImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {}
@@ -37,10 +33,9 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
     const [isLoaded, setIsLoaded] = React.useState(false);
     const [imgError, setImgError] = React.useState(false);
 
-    const finalSrc = src && !imgError ? src : DEFAULT_AVATAR;
+    const finalSrc = src && !imgError ? src : null;
 
     const handleError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-      console.log("AvatarImage error occurred, using fallback");
       setImgError(true);
       if (onError) onError(e);
     };
@@ -49,6 +44,8 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
       setIsLoaded(true);
       if (onLoad) onLoad(e);
     };
+
+    if (!finalSrc) return null;
 
     return (
       <img
@@ -70,19 +67,28 @@ const AvatarImage = React.forwardRef<HTMLImageElement, AvatarImageProps>(
 );
 AvatarImage.displayName = "AvatarImage";
 
+const getInitials = (name?: string) => {
+  if (!name) return "";
+  const parts = name.trim().split(/\s+/).slice(0, 2);
+  return parts.map(p => p[0]?.toUpperCase() || "").join("") || "";
+};
+
 interface AvatarFallbackProps extends React.HTMLAttributes<HTMLDivElement> {}
 
-const AvatarFallback = React.forwardRef<HTMLDivElement, AvatarFallbackProps>(
-  ({ className, ...props }, ref) => (
+const AvatarFallback = React.forwardRef<HTMLDivElement, AvatarFallbackProps & { name?: string }>(
+  ({ className, name, children, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
-        "flex h-full w-full items-center justify-center rounded-full bg-muted",
+        "flex h-full w-full items-center justify-center rounded-full text-xs font-semibold uppercase select-none",
+        "bg-gray-200 text-gray-700 border border-gray-300/10",
         "animate-in fade-in-0 zoom-in-0 duration-300",
         className
       )}
       {...props}
-    />
+    >
+      {children || getInitials(name)}
+    </div>
   )
 );
 AvatarFallback.displayName = "AvatarFallback";

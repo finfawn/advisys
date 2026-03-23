@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../../lightswind/dialog";
 import { Button } from "react-bootstrap";
 import { toast } from "../../components/hooks/use-toast";
@@ -8,9 +8,26 @@ export default function ChangePasswordDialog({ open, onClose }) {
   const [next, setNext] = useState("");
   const [confirm, setConfirm] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotEmail, setForgotEmail] = useState("");
+  const [forgotSubmitting, setForgotSubmitting] = useState(false);
+  const [forgotDone, setForgotDone] = useState(false);
+  const [forgotErr, setForgotErr] = useState("");
 
   const apiBase = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
   const token = typeof window !== "undefined" ? localStorage.getItem("advisys_token") : null;
+  useEffect(() => {
+    if (!open) return;
+    try {
+      const raw = typeof window !== "undefined" ? localStorage.getItem("advisys_user") : null;
+      const u = raw ? JSON.parse(raw) : null;
+      if (u?.email) setForgotEmail(String(u.email));
+    } catch (_) {}
+    setForgotOpen(false);
+    setForgotDone(false);
+    setForgotErr("");
+    setForgotSubmitting(false);
+  }, [open]);
 
   const handleSubmit = async () => {
     if (!current || !next || !confirm) {
@@ -56,6 +73,28 @@ export default function ChangePasswordDialog({ open, onClose }) {
     }
   };
 
+  const onForgot = async () => {
+    const email = String(forgotEmail || "").trim();
+    if (!email) {
+      setForgotErr("Enter your email.");
+      return;
+    }
+    setForgotSubmitting(true);
+    setForgotErr("");
+    try {
+      await fetch(`${apiBase}/api/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email })
+      });
+      setForgotDone(true);
+    } catch {
+      setForgotDone(true);
+    } finally {
+      setForgotSubmitting(false);
+    }
+  };
+
   return (
     <Dialog open={open}>
       <DialogContent className="max-w-md" hideClose>
@@ -90,6 +129,61 @@ export default function ChangePasswordDialog({ open, onClose }) {
               onTouchStart={(e)=>e.currentTarget.removeAttribute('readonly')}
               style={{ WebkitTextSecurity: 'disc' }}
             />
+            <div className="mt-1 text-right">
+              <a
+                href="#"
+                className="text-xs text-blue-700 hover:underline"
+                onClick={(e)=>{ e.preventDefault(); setForgotOpen(v=>!v); }}
+              >
+                Forgot password?
+              </a>
+            </div>
+            {forgotOpen && (
+              <div className="mt-2 rounded-md border border-gray-200 bg-gray-50 p-3 space-y-2">
+                {!forgotDone ? (
+                  <>
+                    <input
+                      type="email"
+                      placeholder="Email"
+                      value={forgotEmail}
+                      onChange={(e)=> setForgotEmail(e.target.value)}
+                      className="w-full rounded-md border px-3 py-2 text-sm border-gray-300 bg-white"
+                    />
+                    {forgotErr ? <div className="text-xs text-red-600">{forgotErr}</div> : null}
+                    <div className="flex items-center justify-end gap-2">
+                      <button
+                        type="button"
+                        className="h-9 px-3 rounded-lg border border-gray-300 text-xs bg-white hover:bg-gray-100"
+                        onClick={()=>{ setForgotOpen(false); setForgotErr(""); }}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        disabled={forgotSubmitting}
+                        className="h-9 px-3 rounded-lg bg-[#3360c2] text-white text-xs hover:bg-[#2a51a3] disabled:opacity-70"
+                        onClick={onForgot}
+                      >
+                        {forgotSubmitting ? "Sending…" : "Send link"}
+                      </button>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="text-sm text-gray-700">If an account exists for this email, we've sent a reset link.</p>
+                    <div className="flex items-center justify-end">
+                      <button
+                        type="button"
+                        className="h-9 px-3 rounded-lg bg-[#3360c2] text-white text-xs hover:bg-[#2a51a3]"
+                        onClick={()=> setForgotOpen(false)}
+                      >
+                        Close
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">New Password</label>

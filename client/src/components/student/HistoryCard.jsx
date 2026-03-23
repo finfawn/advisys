@@ -1,5 +1,5 @@
 import React from "react";
-import { BsClock, BsPersonCircle, BsCameraVideo, BsGeoAlt, BsCheckCircle, BsXCircle, BsChevronRight } from "react-icons/bs";
+import { ClockIcon, PersonCircleIcon, VideoCameraIcon, MapPinIcon, CheckCircleIcon, XCircleIcon, ChevronRightIcon } from "../icons/Heroicons";
 import { Card, CardHeader, CardContent, CardFooter } from "../../lightswind/card";
 import { Badge } from "../../lightswind/badge";
 import { Button } from "../../lightswind/button";
@@ -7,22 +7,28 @@ import "./HistoryCard.css";
 
 function HistoryCard({ consultation, onViewDetails, onDelete }) {
   const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
+    if (!dateString) return '';
+    const s = String(dateString).trim();
+    // Use T00:00:00Z to ensure a date-only string is parsed as UTC midnight
+    const d = new Date(s.includes('T') ? s : `${s}T00:00:00Z`);
+    if (isNaN(d.getTime())) return s;
+    return d.toLocaleDateString('en-PH', { 
+      timeZone: 'Asia/Manila',
       weekday: 'short',
       month: 'short', 
       day: 'numeric' 
     });
   };
 
+
   const getStatusInfo = () => {
     switch (consultation.status) {
       case 'completed':
-        return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
+        return { text: 'Completed', icon: <CheckCircleIcon className="w-4 h-4" />, class: 'status-completed' };
       case 'cancelled':
-        return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+        return { text: 'Cancelled', icon: <XCircleIcon className="w-4 h-4" />, class: 'status-cancelled' };
       case 'missed':
-        return { text: 'Missed', icon: <BsClock />, class: 'status-missed' };
+        return { text: 'Missed', icon: <ClockIcon className="w-4 h-4" />, class: 'status-missed' };
       default:
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
     }
@@ -62,7 +68,7 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
           {statusInfo.text}
         </Badge>
         <Badge variant="outline" className="flex items-center gap-1.5">
-          {consultation.mode === 'online' ? <BsCameraVideo className="w-3.5 h-3.5" /> : <BsGeoAlt className="w-3.5 h-3.5" />}
+          {consultation.mode === 'online' ? <VideoCameraIcon className="w-3.5 h-3.5" /> : <MapPinIcon className="w-3.5 h-3.5" />}
           {consultation.mode === 'online' ? 'Online' : 'In-Person'}
         </Badge>
       </CardHeader>
@@ -71,12 +77,12 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
         <h3 className="text-lg font-semibold text-gray-900 leading-tight">{consultation.topic}</h3>
         
         <div className="flex items-center gap-2 text-sm text-gray-600">
-          <BsClock className="w-4 h-4 text-blue-600" />
+          <ClockIcon className="w-4 h-4 text-[#3360c2]" />
           <span>{formatDate(consultation.date)} • {consultation.time}</span>
         </div>
         
         <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg border border-gray-100">
-          <div className="w-10 h-10 rounded-full bg-blue-600 text-white flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
+          <div className="w-10 h-10 rounded-full bg-[#3360c2] text-white flex items-center justify-center text-lg flex-shrink-0 overflow-hidden">
             {consultation?.faculty?.avatar ? (
               typeof consultation.faculty.avatar === 'string' && consultation.faculty.avatar.startsWith('http') ? (
                 <img src={consultation.faculty.avatar} alt={consultation?.faculty?.name || 'Advisor'} className="w-full h-full object-cover" />
@@ -85,7 +91,7 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
                 <span className="text-base leading-none">{consultation.faculty.avatar}</span>
               )
             ) : (
-              <BsPersonCircle className="w-6 h-6" />
+              <PersonCircleIcon className="w-6 h-6" />
             )}
           </div>
           <div className="flex-1 min-w-0">
@@ -96,7 +102,7 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
         
         {consultation.mode === 'in-person' && consultation.location && (
           <div className="flex items-center gap-2 text-sm text-gray-700 p-2 bg-amber-50 border border-amber-200 rounded-md">
-            <BsGeoAlt className="w-4 h-4 text-amber-600 flex-shrink-0" />
+            <MapPinIcon className="w-4 h-4 text-amber-600 flex-shrink-0" />
             <span className="truncate">{consultation.location}</span>
           </div>
         )}
@@ -105,7 +111,7 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
       <CardFooter className="pt-3 gap-2" align="between">
         <Button size="sm" className="flex-1" onClick={handleViewDetails}>
           View Details
-          <BsChevronRight className="w-4 h-4 ml-1" />
+          <ChevronRightIcon className="w-4 h-4 ml-1" />
         </Button>
       </CardFooter>
     </Card>

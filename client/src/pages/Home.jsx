@@ -11,13 +11,13 @@ import HomeSidebar from "../components/HomeSidebar";
 import Footer from "../components/Footer";
 import HamburgerMenuOverlay from "../lightswind/hamburger-menu-overlay";
 import {
-  BsChatDots,
-  BsLaptop,
-  BsPeople,
-  BsGraphUp,
-  BsLightbulb,
-  BsCalendarCheck,
-} from "react-icons/bs";
+  ChatBubbleLeftRightIcon,
+  ComputerDesktopIcon,
+  UsersIcon,
+  ChartBarIcon,
+  LightBulbIcon,
+  CalendarDaysIcon,
+} from "../components/icons/Heroicons";
 
 function Home() {
   const navigate = useNavigate();
@@ -156,15 +156,15 @@ function Home() {
 
               {/* Decorative Icons */}
               <div className="home-icons-container">
-                <BsChatDots className="home-float-icon home-icon-1" />
-                <BsLaptop className="home-float-icon home-icon-2" />
-                <BsPeople className="home-float-icon home-icon-3" />
-                <BsGraphUp className="home-float-icon home-icon-4" />
-                <BsLightbulb className="home-float-icon home-icon-5" />
-                <BsCalendarCheck className="home-float-icon home-icon-6" />
-                <BsChatDots className="home-float-icon home-icon-7" />
-                <BsLaptop className="home-float-icon home-icon-8" />
-                <BsPeople className="home-float-icon home-icon-9" />
+                <ChatBubbleLeftRightIcon className="home-float-icon home-icon-1" />
+                <ComputerDesktopIcon className="home-float-icon home-icon-2" />
+                <UsersIcon className="home-float-icon home-icon-3" />
+                <ChartBarIcon className="home-float-icon home-icon-4" />
+                <LightBulbIcon className="home-float-icon home-icon-5" />
+                <CalendarDaysIcon className="home-float-icon home-icon-6" />
+                <ChatBubbleLeftRightIcon className="home-float-icon home-icon-7" />
+                <ComputerDesktopIcon className="home-float-icon home-icon-8" />
+                <UsersIcon className="home-float-icon home-icon-9" />
               </div>
             </div>
 

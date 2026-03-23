@@ -12,6 +12,7 @@ import { FaUserTie } from "react-icons/fa";
 import TopNavbar from "../../components/student/TopNavbar";
 import Sidebar from "../../components/student/Sidebar";
 import ConsultationModal from "../../components/student/ConsultationModal";
+import InitialsAvatar from "../../components/common/InitialsAvatar";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { Skeleton } from "../../lightswind/skeleton";
 import "./AdvisorProfilePage.css";
@@ -390,7 +391,7 @@ export default function AdvisorProfilePage() {
                   {advisorData && advisorData.avatar ? (
                     <img src={advisorData.avatar} alt={advisorData.name || 'Advisor'} />
                   ) : (
-                    <BsPersonCircle />
+                    <InitialsAvatar name={advisorData?.name || 'Advisor'} size={100} className="w-full h-full text-3xl" />
                   )}
                 </div>
                 
@@ -449,12 +450,12 @@ export default function AdvisorProfilePage() {
                             const name = (typeof course === 'string') ? course : (course?.name || course?.course_name || '');
                             const code = (typeof course === 'string') ? '' : (course?.code || course?.subject_code || '');
                             return (
-                              <li key={index} className="course-item flex items-center justify-between">
+                              <li key={index} className="course-item flex items-center justify-start gap-4">
                                 <div className="flex items-center gap-2">
                                   <BsBook className="course-icon" />
                                   <span className="course-name">{name || 'No Subject Name'}</span>
                                 </div>
-                                <span className="course-code text-gray-600">{code || ''}</span>
+                                <span className="course-code text-gray-500 font-medium">({code || ''})</span>
                               </li>
                             );
                           })}

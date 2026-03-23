@@ -56,10 +56,11 @@
 .dash-topbar .brand-title {
     font-weight: 700;
     font-size: 1.125rem;
+    font-family: 'IM Fell DW Pica SC', serif;
 }
 
 .dash-topbar .brand-sys {
-    color: #5285c9;
+    color: #3360c2;
 }
 
 /* Student Greeting Styles */
@@ -108,7 +109,8 @@
 }
 
 .bell-icon {
-    font-size: 20px;
+    width: 22px;
+    height: 22px;
     color: #374151;
 }
 
@@ -146,6 +148,13 @@
     border-radius: 6px;
 }
 
+.dash-topbar .tb-right {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
+}
+
 .dash-topbar .tb-center {
     flex: 1;
     display: flex;
@@ -168,7 +177,7 @@
 }
 
 .search-box:focus-within {
-    border-color: #2d5bd1;
+    border-color: #3360c2;
     box-shadow: 0 0 0 3px rgba(45, 91, 209, 0.1);
 }
 
@@ -262,7 +271,7 @@
     height: 36px;
     border-radius: 50%;
     background: #e6efff;
-    color: #2d5bd1;
+    color: #3360c2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -332,7 +341,7 @@
     display: grid;
     place-items: center;
     background: #e6efff;
-    color: #2d5bd1;
+    color: #3360c2;
 }
 
 .user-name {
@@ -423,7 +432,7 @@
     height: 40px;
     border-radius: 50%;
     background: #e6efff;
-    color: #2d5bd1;
+    color: #3360c2;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -493,7 +502,7 @@
 
 .dropdown-item:hover .dropdown-item-icon,
 .dropdown-item:focus .dropdown-item-icon {
-    color: #3b82f6;
+    color: #3360c2;
 }
 
 .logout-item {

@@ -25,7 +25,7 @@ import { ShineButton } from "../../lightswind/shine-button";
 import { Skeleton } from "../../lightswind/skeleton";
 import "./ConsultationDetailsPage.css";
 
-const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+const AI_ENABLED = false;
 
 export default function OnlineConsultationDetailsPage() {
   const { consultationId } = useParams();

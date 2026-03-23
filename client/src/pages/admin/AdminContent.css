@@ -1,6 +1,6 @@
 /* Shared Admin Content Layout */
 .admin-content {
-  background: #f5f7fb;
+  background: transparent;
   /* Fill available vertical space in admin pages */
   display: flex;
   flex-direction: column;

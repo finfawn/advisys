@@ -4,7 +4,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 export default function CustomPieChart({ data }) {
   // Transform data to match Recharts format
   const palette = {
-    online: "#2563eb",
+    online: "#2a51a3",
     in_person: "#f43f5e",
     face_to_face: "#f59e0b",
   };
@@ -14,7 +14,7 @@ export default function CustomPieChart({ data }) {
     let color = item.color;
     if (!color) {
       const key = String(name || "").toLowerCase().replace(/\s+/g, "_");
-      color = palette[key] || ["#2563eb", "#f43f5e", "#10b981", "#8b5cf6"][idx % 4];
+      color = palette[key] || ["#2a51a3", "#f43f5e", "#10b981", "#8b5cf6"][idx % 4];
     }
     return { name, value, color };
   });

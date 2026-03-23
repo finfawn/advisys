@@ -28,7 +28,7 @@ export default function AdminStudentsConsultedBarCard({ loading = false, data = 
     <div className="dashboard-card" style={{ height }}>
       <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ display: 'inline-flex', width: 28, height: 28, borderRadius: 9999, background: '#e6f0ff', alignItems: 'center', justifyContent: 'center', color: '#2563eb' }}>
+          <span style={{ display: 'inline-flex', width: 28, height: 28, borderRadius: 9999, background: '#e6f0ff', alignItems: 'center', justifyContent: 'center', color: '#2a51a3' }}>
             <BsPeopleFill />
           </span>
           <h3 className="card-title">Students Consulted (Year Levels)</h3>

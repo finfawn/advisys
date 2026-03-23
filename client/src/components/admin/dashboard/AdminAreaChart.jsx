@@ -1,7 +1,7 @@
 import React from "react";
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 
-export default function AdminAreaChart({ data, colors = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"], height = 200 }) {
+export default function AdminAreaChart({ data, colors = ["#3360c2", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"], height = 200 }) {
   const truncate = (s, max = 12) => {
     const t = String(s || "");
     return t.length > max ? t.slice(0, max - 1) + "…" : t;

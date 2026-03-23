@@ -1,29 +1,33 @@
 import React, { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { BsBell, BsCheck, BsX, BsCalendar, BsClock, BsPersonCircle, BsCheckCircle, BsXCircle, BsExclamationTriangle, BsCameraVideo, BsGeoAlt, BsDownload, BsTrash } from "react-icons/bs";
+import { 
+  BellIcon, CheckIcon, XIcon, CalendarDaysIcon, ClockIcon, PersonCircleIcon, 
+  CheckCircleIcon, XCircleIcon, ExclamationTriangleIcon, VideoCameraIcon, 
+  MapPinIcon, ArrowDownTrayIcon, TrashIcon 
+} from "./icons/Heroicons";
 import { useNotifications } from "../contexts/NotificationContext";
 import { toast } from "./hooks/use-toast";
 import "./NotificationModal.css";
 import SummaryEditActionModal from "./SummaryEditActionModal";
 
-const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+const AI_ENABLED = false;
 
 const getNotificationIcon = (iconName, className) => {
   switch (iconName) {
-    case "BsBell": return <BsBell className={className} />;
-    case "BsCheck": return <BsCheck className={className} />;
-    case "BsX": return <BsX className={className} />;
-    case "BsCalendar": return <BsCalendar className={className} />;
-    case "BsClock": return <BsClock className={className} />;
-    case "BsPersonCircle": return <BsPersonCircle className={className} />;
-    case "BsCheckCircle": return <BsCheckCircle className={className} />;
-    case "BsXCircle": return <BsXCircle className={className} />;
-    case "BsExclamationTriangle": return <BsExclamationTriangle className={className} />;
-    case "BsCameraVideo": return <BsCameraVideo className={className} />;
-    case "BsGeoAlt": return <BsGeoAlt className={className} />;
-    case "BsDownload": return <BsDownload className={className} />;
-    case "BsTrash": return <BsTrash className={className} />;
+    case "BsBell": return <BellIcon className={className} />;
+    case "BsCheck": return <CheckIcon className={className} />;
+    case "BsX": return <XIcon className={className} />;
+    case "BsCalendar": return <CalendarDaysIcon className={className} />;
+    case "BsClock": return <ClockIcon className={className} />;
+    case "BsPersonCircle": return <PersonCircleIcon className={className} />;
+    case "BsCheckCircle": return <CheckCircleIcon className={className} />;
+    case "BsXCircle": return <XCircleIcon className={className} />;
+    case "BsExclamationTriangle": return <ExclamationTriangleIcon className={className} />;
+    case "BsCameraVideo": return <VideoCameraIcon className={className} />;
+    case "BsGeoAlt": return <MapPinIcon className={className} />;
+    case "BsDownload": return <ArrowDownTrayIcon className={className} />;
+    case "BsTrash": return <TrashIcon className={className} />;
     default: return null;
   }
 };
@@ -158,7 +162,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "2 hours ago",
         date: "Dec 20, 2024",
         isRead: false,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsCheckCircle", "notification-icon approved"),
         action: "View Details"
       },
@@ -170,7 +174,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "30 minutes ago",
         date: "Dec 20, 2024",
         isRead: false,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsClock", "notification-icon reminder"),
         action: "Join Meeting"
       },
@@ -182,7 +186,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "1 day ago",
         date: "Dec 19, 2024",
         isRead: true,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsXCircle", "notification-icon cancelled"),
         action: "Reschedule"
       },
@@ -194,7 +198,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "2 days ago",
         date: "Dec 18, 2024",
         isRead: true,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsDownload", "notification-icon document"),
         action: "Download",
         attachments: [
@@ -212,7 +216,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "1 hour ago",
         date: "Dec 20, 2024",
         isRead: false,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsCalendar", "notification-icon request"),
         action: "Review Request"
       },
@@ -224,7 +228,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "15 minutes ago",
         date: "Dec 20, 2024",
         isRead: false,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsClock", "notification-icon reminder"),
         action: "Join Meeting"
       },
@@ -236,7 +240,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "3 hours ago",
         date: "Dec 20, 2024",
         isRead: true,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsXCircle", "notification-icon cancelled"),
         action: "View Details"
       },
@@ -248,7 +252,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         timestamp: "1 day ago",
         date: "Dec 19, 2024",
         isRead: true,
-        avatar: <BsPersonCircle />,
+        avatar: <PersonCircleIcon />,
         icon: getNotificationIcon("BsExclamationTriangle", "notification-icon system"),
         action: "Learn More"
       }
@@ -547,7 +551,6 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     if (!timestamp) return '';
     const now = Date.now();
 
-    // Normalize timestamp to a safe epoch (handles ISO, MySQL DATETIME strings, and numbers)
     let ts;
     if (typeof timestamp === 'number') {
       ts = timestamp;
@@ -555,15 +558,10 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
       ts = timestamp.getTime();
     } else if (typeof timestamp === 'string') {
       const trimmed = timestamp.trim();
-      // If it looks like "YYYY-MM-DD HH:mm:ss" (no timezone), treat as LOCAL time
-      // This uses the browser's timezone for display, as requested.
+      // If it looks like "YYYY-MM-DD HH:mm:ss" (no timezone), treat as UTC
       if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(trimmed)) {
-        const [datePart, timePart] = trimmed.split(' ');
-        const [y, m, d] = datePart.split('-').map((n) => Number(n));
-        const [hh, mm, ss] = timePart.split(':').map((n) => Number(n));
-        ts = new Date(y, (m || 1) - 1, d || 1, hh || 0, mm || 0, ss || 0).getTime();
+        ts = Date.parse(trimmed.replace(' ', 'T') + 'Z');
       } else {
-        // Parse ISO-like strings normally (respects embedded timezone if present)
         ts = Date.parse(trimmed);
       }
     }
@@ -579,8 +577,14 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
     if (minutes < 60) return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
     if (hours < 24) return `${hours} hour${hours === 1 ? '' : 's'} ago`;
     if (days < 7) return `${days} day${days === 1 ? '' : 's'} ago`;
-    const d = new Date(ts);
-    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    
+    // Fallback for older notifications: format in Manila time
+    return new Intl.DateTimeFormat('en-PH', { 
+      timeZone: 'Asia/Manila',
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric' 
+    }).format(new Date(ts));
   };
 
 
@@ -603,7 +607,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         {/* Header */}
         <div className="notification-header">
           <div className="notification-title">
-            <BsBell className="notification-header-icon" />
+            <BellIcon
+          className="notification-header-icon" />
             <h3>Notifications</h3>
             {unreadCount > 0 && (
               <span className="notification-count">{unreadCount}</span>
@@ -614,7 +619,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
             onClick={handleClose}
             aria-label="Close notifications"
           >
-            <BsX />
+            <XIcon />
           </button>
         </div>
 
@@ -646,7 +651,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
         <div className="notification-list">
           {filteredNotifications.length === 0 ? (
             <div className="notification-empty">
-              <BsBell className="empty-icon" />
+              <BellIcon className="empty-icon" />
               <p>No notifications to show</p>
             </div>
           ) : (
@@ -676,7 +681,7 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
                       aria-label="Delete notification"
                       onClick={(e) => handleDeleteNotification(e, notification.id)}
                     >
-                      <BsTrash />
+                      <TrashIcon />
                     </button>
                   </div>
                   
@@ -690,7 +695,8 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
                       {notification.attachments.map((attachment, index) => (
                         <div key={index} className="notification-attachment">
                           <div className="attachment-preview">
-                            <BsDownload className="attachment-icon" />
+                            <ArrowDownTrayIcon
+                            className="attachment-icon" />
                           </div>
                           <div className="attachment-info">
                             <div className="attachment-name">{attachment.name}</div>
@@ -743,14 +749,14 @@ function NotificationModal({ isOpen, onClose, userType = "student" }) {
             className="notification-mark-all-btn"
             onClick={handleMarkAllAsRead}
           >
-            <BsCheck className="check-icon" />
+            <CheckIcon className="check-icon" />
             Mark all as read
           </button>
           <button
             className="notification-delete-all-btn"
             onClick={handleDeleteAll}
           >
-            <BsTrash className="trash-icon" />
+            <TrashIcon className="trash-icon" />
             Delete all
           </button>
         </div>

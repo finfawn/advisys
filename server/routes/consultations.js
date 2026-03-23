@@ -4,7 +4,6 @@ const { authMiddleware } = require('../middleware/auth');
 
 const router = express.Router();
 const { notify } = require('../services/notifications');
-const { optimizeBookingText } = require('../services/ai');
 
 function formatDate(d) {
   // Always format date in Asia/Manila to avoid server-local timezone drift
@@ -56,7 +55,7 @@ router.post('/consultations', async (req, res) => {
     const studentId = body.student_user_id;
     const advisorId = body.advisor_user_id;
     const topic = body.topic;
-    const category = body.category || topic || null;
+    const category = body.category || null;
     const mode = body.mode; // expect 'online' | 'in-person'
     const location = body.location || null;
     const notes = body.student_notes || body.description || null;
@@ -323,23 +322,6 @@ router.post('/consultations', async (req, res) => {
   }
 });
 
-router.post('/ai/optimize-consultation-input', authMiddleware, async (req, res) => {
-  try {
-    const { description, title } = req.body || {};
-    const desc = String(description || '').trim();
-    const t = String(title || '').trim();
-    if (!desc) return res.status(400).json({ error: 'Description is required' });
-    const result = await optimizeBookingText(desc, t);
-    if (!result) return res.status(503).json({ error: 'AI not available' });
-    const out = {
-      title: String(result.title || t).slice(0, 64),
-      description: String(result.description || desc).slice(0, 300)
-    };
-    return res.json(out);
-  } catch (e) {
-    return res.status(500).json({ error: 'Optimize failed' });
-  }
-});
 
 // Get consultations for a specific student
 // GET /api/consultations/students/:studentId/consultations
@@ -684,70 +666,9 @@ router.post('/consultations/:id/started', async (req, res) => {
   }
 });
 
-// Advisor or approved Student updates AI summary (completed consultations)
-// PATCH /api/consultations/:id/ai-summary { aiSummary }
+// AI summary feature removed
 router.patch('/consultations/:id/ai-summary', authMiddleware, async (req, res) => {
-  const pool = getPool();
-  const id = req.params.id;
-  const { aiSummary } = req.body || {};
-  const user = req.user || {};
-  if (typeof aiSummary !== 'string') {
-    return res.status(400).json({ error: 'aiSummary must be a string' });
-  }
-  try {
-    await ensureSummaryApprovalColumn(pool);
-    const [[c]] = await pool.query('SELECT advisor_user_id, student_user_id, topic FROM consultations WHERE id = ?', [id]);
-    if (!c) return res.status(404).json({ error: 'Consultation not found' });
-    const isAdvisor = user.role === 'advisor' && user.id === c.advisor_user_id;
-    const isStudent = user.role === 'student' && user.id === c.student_user_id;
-
-    // If advisor, always allowed. If student, require prior approval notification.
-    if (!isAdvisor && !isStudent) {
-      return res.status(403).json({ error: 'Only assigned advisor or student can edit the summary' });
-    }
-
-    if (isStudent) {
-      // Strict per-consultation approval: prefer the persisted flag when available, fallback to exact notification match
-      let flagApproved = false;
-      try {
-        const [[row]] = await pool.query('SELECT summary_edit_approved_at FROM consultations WHERE id = ?', [id]);
-        flagApproved = !!row?.summary_edit_approved_at;
-      } catch (_) {
-        flagApproved = false;
-      }
-      if (!flagApproved) {
-        const [rows] = await pool.query(
-          `SELECT id, type, data_json FROM notifications WHERE user_id = ? AND type IN ('consultation_summary_edit_approved', 'summary_edit_approved') ORDER BY id DESC LIMIT 200`,
-          [c.student_user_id]
-        );
-        let approved = false;
-        for (const r of rows) {
-          try {
-            const data = r?.data_json ? JSON.parse(r.data_json) : {};
-            if (Number(data?.consultation_id) === Number(id)) { approved = true; break; }
-          } catch (_) {}
-        }
-        if (!approved) {
-          return res.status(403).json({ error: 'Student edit not approved for this consultation' });
-        }
-      }
-    }
-
-    await pool.query('UPDATE consultations SET ai_summary = ? WHERE id = ?', [aiSummary, id]);
-
-    // Notify the other party that summary was updated
-    try {
-      const notifyTarget = isAdvisor ? c.student_user_id : c.advisor_user_id;
-      const who = isAdvisor ? 'advisor' : 'student';
-      const title = 'Consultation summary updated';
-      const message = `Your consultation summary for '${c.topic}' was updated by the ${who}.`;
-      await notify(pool, notifyTarget, 'consultation_summary_updated', title, message, { consultation_id: Number(id) });
-    } catch (_) {}
-    return res.json({ success: true });
-  } catch (err) {
-    console.error('Update AI summary error:', err);
-    return res.status(500).json({ error: 'Failed to update AI summary' });
-  }
+  return res.status(410).json({ error: 'AI summary feature removed' });
 });
 
 // Advisor or Student updates shared consultation notes

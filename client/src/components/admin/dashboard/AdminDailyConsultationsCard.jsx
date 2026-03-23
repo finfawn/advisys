@@ -85,7 +85,7 @@ export default function AdminDailyConsultationsCard({ loading = false, weekCurre
                 labelStyle={{ color: '#374151', fontWeight: 600 }}
               />
               <Legend verticalAlign="bottom" height={0} wrapperStyle={{ display: 'none' }} />
-              <Line type="monotone" dataKey="current" name="Current" stroke="#1d4ed8" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="current" name="Current" stroke="#1f3c7a" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
               <Line type="monotone" dataKey="previous" name="Previous" stroke="#9ca3af" strokeWidth={3} dot={false} activeDot={{ r: 5 }} />
             </LineChart>
           </ResponsiveContainer>

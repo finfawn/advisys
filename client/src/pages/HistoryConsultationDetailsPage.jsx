@@ -1,18 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
-  BsPersonCircle, 
-  BsClock, 
-  BsCameraVideo, 
-  BsGeoAlt, 
-  BsCheckCircle, 
-  BsXCircle, 
-  BsChevronLeft,
-  BsCalendar,
-  BsFileText,
-  BsTag,
-  BsListCheck,
-} from 'react-icons/bs';
+  PersonCircleIcon, ClockIcon, VideoCameraIcon, MapPinIcon, 
+  CheckCircleIcon, XCircleIcon, ChevronLeftIcon, CalendarDaysIcon, 
+  DocumentTextIcon, TagIcon, ListBulletIcon 
+} from '../components/icons/Heroicons';
 import TopNavbar from '../components/student/TopNavbar';
 import Sidebar from '../components/student/Sidebar';
 import { useSidebar } from '../contexts/SidebarContext';
@@ -21,7 +13,7 @@ import { ShineButton } from '../lightswind/shine-button';
 import { toast } from '../components/hooks/use-toast';
 import './student/ConsultationDetailsPage.css';
 
-const AI_ENABLED = String(import.meta.env.VITE_ENABLE_AI || 'false').toLowerCase() === 'true';
+const AI_ENABLED = false;
 
 const HistoryConsultationDetailsPage = () => {
   const { consultationId } = useParams();
@@ -191,13 +183,13 @@ const HistoryConsultationDetailsPage = () => {
 
     switch (derived) {
       case 'completed':
-        return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
+        return { text: 'Completed', icon: <CheckCircleIcon />, class: 'status-completed' };
       case 'cancelled':
-        return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
+        return { text: 'Cancelled', icon: <XCircleIcon />, class: 'status-cancelled' };
       case 'missed':
-        return { text: 'Missed', icon: <BsClock />, class: 'status-missed' };
+        return { text: 'Missed', icon: <ClockIcon />, class: 'status-missed' };
       default:
-        return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
+        return { text: 'Completed', icon: <CheckCircleIcon />, class: 'status-completed' };
     }
   };
 
@@ -322,7 +314,7 @@ const HistoryConsultationDetailsPage = () => {
               className="back-button"
               onClick={() => navigate('/student-dashboard/consultations?tab=history')}
             >
-              <BsChevronLeft />
+              <ChevronLeftIcon />
               Back to My Consultations
             </button>
           </div>
@@ -340,7 +332,7 @@ const HistoryConsultationDetailsPage = () => {
                         <span>{statusInfo.text}</span>
                       </span>
                       <span className={`mode-badge ${consultation?.mode}`}>
-                        {consultation?.mode === 'online' ? <BsCameraVideo /> : <BsGeoAlt />}
+                        {consultation?.mode === 'online' ? <VideoCameraIcon /> : <MapPinIcon />}
                         <span>{consultation?.mode === 'online' ? 'Online' : 'In-Person'}</span>
                       </span>
                     </div>
@@ -348,11 +340,11 @@ const HistoryConsultationDetailsPage = () => {
                   
                   <div className="consultation-datetime">
                     <div className="date-info">
-                      <BsCalendar className="date-icon" />
+                      <CalendarDaysIcon className="date-icon" />
                       <span className="date-text">{consultation ? formatDate(consultation.date) : ''}</span>
                     </div>
                     <div className="time-info">
-                      <BsClock className="time-icon" />
+                      <ClockIcon className="time-icon" />
                       <span className="time-text">{consultation?.time}</span>
                     </div>
                   </div>
@@ -363,7 +355,7 @@ const HistoryConsultationDetailsPage = () => {
                     {consultation?.faculty?.avatar ? (
                       <img src={consultation.faculty.avatar} alt={consultation.faculty.name} />
                     ) : (
-                      <BsPersonCircle />
+                      <PersonCircleIcon />
                     )}
                   </div>
                   <div className="advisor-details">
@@ -381,12 +373,12 @@ const HistoryConsultationDetailsPage = () => {
                 {/* Student Request Section */}
                 <section className="consultation-details-section">
                   <h2 className="section-title">
-                    <BsFileText className="section-icon" />
+                    <DocumentTextIcon className="section-icon" />
                     My Request
                   </h2>
                   <div className="section-content">
                     <div className="request-category">
-                      <BsTag className="category-icon" />
+                      <TagIcon className="category-icon" />
                       <span className="category-text">{consultation?.category || 'General'}</span>
                     </div>
                     <div className="student-notes">
@@ -397,7 +389,7 @@ const HistoryConsultationDetailsPage = () => {
                 {AI_ENABLED && (
                   <section className="consultation-details-section">
                     <h2 className="section-title">
-                      <BsFileText className="section-icon" />
+                      <DocumentTextIcon className="section-icon" />
                       Consultation Summary
                       <span className={`approval-badge ${editApproved ? 'approved' : 'required'}`}
                         title={editApproved ? 'You have approval to edit this summary' : 'Approval required before editing'}>
@@ -457,7 +449,7 @@ const HistoryConsultationDetailsPage = () => {
                 {/* Student Private Notes Section (sticky-note editable) */}
                 <section className="consultation-details-section">
                   <h2 className="section-title">
-                    <BsListCheck className="section-icon" />
+                    <ListBulletIcon className="section-icon" />
                     My Notes
                   </h2>
                   <div className="section-content">
@@ -490,7 +482,7 @@ const HistoryConsultationDetailsPage = () => {
                 {/* Details Section */}
                 <section className="consultation-details-section">
                   <h2 className="section-title">
-                    <BsClock className="section-icon" />
+                    <ClockIcon className="section-icon" />
                     Details
                   </h2>
                   <div className="section-content">

@@ -60,7 +60,7 @@
 }
 
 .advisor-brand-sys {
-  color: #5285c9;
+  color: #3360c2;
 }
 
 .advisor-greeting {
@@ -108,7 +108,8 @@
 }
 
 .bell-icon {
-  font-size: 20px;
+  width: 22px;
+  height: 22px;
   color: #374151;
 }
 
@@ -136,7 +137,7 @@
 
 .avatar-icon {
   font-size: 24px;
-  color: #3b82f6;
+  color: #3360c2;
 }
 
 .faculty-name {
@@ -229,7 +230,7 @@
   height: 40px;
   border-radius: 50%;
   background: #e6efff;
-  color: #2d5bd1;
+  color: #3360c2;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -299,7 +300,7 @@
 
 .dropdown-item:hover .dropdown-item-icon,
 .dropdown-item:focus .dropdown-item-icon {
-  color: #3b82f6;
+  color: #3360c2;
 }
 
 .logout-item {
@@ -333,7 +334,7 @@
   display: grid; 
   place-items: center; 
   background: #e6efff; 
-  color: #2d5bd1; 
+  color: #3360c2; 
 }
 
 .user-name { 

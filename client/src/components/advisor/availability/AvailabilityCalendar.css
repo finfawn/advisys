@@ -31,7 +31,7 @@
 }
 
 .legend-dot.consultation {
-  background: #3b82f6;
+  background: #3360c2;
 }
 
 .legend-dot.available {
@@ -106,7 +106,7 @@
 
 .rbc-year-select:focus {
   outline: none;
-  border-color: #3b82f6;
+  border-color: #3360c2;
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
 }
 
@@ -333,7 +333,7 @@
 .ev-available.mode-online .availability-chip {
   background: #eff6ff; /* blue-50 */
   color: #1e3a8a; /* blue-900 */
-  border-color: #3b82f6; /* blue-500 */
+  border-color: #3360c2; /* blue-500 */
   box-shadow: 0 1px 2px rgba(59, 130, 246, 0.15);
 }
 
@@ -370,7 +370,7 @@
 .day-mode-label.online {
   background: #eff6ff; /* blue-50 */
   color: #1e3a8a; /* blue-900 */
-  border-color: #3b82f6; /* blue-500 */
+  border-color: #3360c2; /* blue-500 */
 }
 
 .day-mode-label.hybrid {
@@ -456,7 +456,7 @@
 }
 
 .ev-available.mode-online .availability-dot {
-  background: #3b82f6; /* blue */
+  background: #3360c2; /* blue */
 }
 
 .ev-available.mode-face_to_face .availability-dot {

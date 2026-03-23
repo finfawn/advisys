@@ -10,7 +10,7 @@
 }
 
 .consultation-card-new:hover {
-  border-color: #3b82f6 !important;
+  border-color: #3360c2 !important;
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15) !important;
   transform: none !important;
 }
@@ -31,7 +31,7 @@
 }
 
 .consultation-card:hover {
-  border-color: #667eea;
+  border-color: #3360c2;
 }
 
 .consultation-card-header {
@@ -145,7 +145,7 @@
 
 .time-icon {
   font-size: 1rem;
-  color: #667eea;
+  color: #3360c2;
 }
 
 .consultation-card-faculty {
@@ -164,7 +164,7 @@
   justify-content: center;
   width: 40px;
   height: 40px;
-  background: #667eea;
+  background: #3360c2;
   color: white;
   border-radius: 50%;
   font-size: 1.2rem;
@@ -305,22 +305,22 @@
 }
 
 .consultation-card-action-btn.in-person {
-  background: #6366f1;
+  background: #3360c2;
   color: white;
 }
 
 .consultation-card-action-btn.in-person:hover {
-  background: #4f46e5;
+  background: #2a51a3;
   transform: translateY(-1px);
 }
 
 .consultation-card-action-btn.details {
-  background: #3b82f6;
+  background: #3360c2;
   color: white;
 }
 
 .consultation-card-action-btn.details:hover {
-  background: #2563eb;
+  background: #2a51a3;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
 }

@@ -1,5 +1,5 @@
 import React from "react";
-import { HomeIcon, CalendarDaysIcon, ClockIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
+import { HomeIcon, CalendarDaysIcon, ClockIcon, UsersIcon, ArrowRightOnRectangleIcon } from "../icons/Heroicons";
 import DashboardSidebar from "../shared/DashboardSidebar";
 
 function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
@@ -7,6 +7,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
     { key: "advisor-dashboard", label: "Dashboard", Icon: HomeIcon },
     { key: "advisor-consultations", label: "My Consultations", Icon: CalendarDaysIcon },
     { key: "advisor-availability", label: "Availability", Icon: ClockIcon },
+    { key: "advisor-students", label: "Students", Icon: UsersIcon },
     { key: "advisor-logout", label: "Logout", Icon: ArrowRightOnRectangleIcon, isLogout: true },
   ];
 
@@ -14,6 +15,7 @@ function AdvisorSidebar({ collapsed, onToggle, onNavigate }) {
     if (key === "advisor-dashboard") onNavigate && onNavigate("dashboard");
     else if (key === "advisor-consultations") onNavigate && onNavigate("consultations");
     else if (key === "advisor-availability") onNavigate && onNavigate("availability");
+    else if (key === "advisor-students") onNavigate && onNavigate("students");
     else if (key === "advisor-logout") onNavigate && onNavigate("logout");
   };
 

@@ -1,9 +1,11 @@
 import React, { useMemo, useState, useLayoutEffect, useRef, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import AdvisorTopNavbar from "../../components/advisor/AdvisorTopNavbar";
 import AdvisorSidebar from "../../components/advisor/AdvisorSidebar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
-import { BsHouseDoor, BsBarChart, BsCalendarDate, BsClock, BsBoxArrowRight, BsGear } from "react-icons/bs";
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../../components/icons/Heroicons";
+import { BsPencilSquare, BsTrash } from "react-icons/bs";
 import AvailabilityCalendar from "../../components/advisor/availability/AvailabilityCalendar";
 import { useSidebar } from "../../contexts/SidebarContext";
 import { Card, CardHeader, CardTitle, CardContent } from "../../lightswind/card";
@@ -11,6 +13,7 @@ import { Button } from "../../lightswind/button";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 import moment from "moment";
 import "./AdvisorAvailability.css";
+import ConsultationSetupGate from "../../components/advisor/ConsultationSetupGate";
 
 export default function AdvisorAvailability() {
   const { collapsed, toggleSidebar } = useSidebar();
@@ -397,6 +400,8 @@ export default function AdvisorAvailability() {
       navigate('/advisor-dashboard/consultations');
     } else if (page === 'availability') {
       navigate('/advisor-dashboard/availability');
+    } else if (page === 'students') {
+      navigate('/advisor-dashboard/students');
     } else if (page === 'profile') {
       navigate('/advisor-dashboard/profile');
     } else if (page === 'logout') {
@@ -407,32 +412,37 @@ export default function AdvisorAvailability() {
   const menuItems = [
     { 
       label: "Home", 
-      icon: <BsHouseDoor size={24} />, 
+      icon: <HomeIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('home') 
     },
     { 
       label: "Dashboard", 
-      icon: <BsBarChart size={24} />, 
+      icon: <ChartBarIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('dashboard') 
     },
     { 
       label: "Consultations", 
-      icon: <BsCalendarDate size={24} />, 
+      icon: <CalendarDaysIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('consultations') 
     },
     { 
       label: "Availability", 
-      icon: <BsClock size={24} />, 
+      icon: <ClockIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('availability') 
     },
     { 
+      label: "Students", 
+      icon: <UsersIcon className="w-6 h-6" />, 
+      onClick: () => handleNavigation('students') 
+    },
+    { 
       label: "Profile", 
-      icon: <BsGear size={24} />, 
+      icon: <Cog6ToothIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('profile') 
     },
     { 
       label: "Logout", 
-      icon: <BsBoxArrowRight size={24} />, 
+      icon: <ArrowRightOnRectangleIcon className="w-6 h-6" />, 
       onClick: () => handleNavigation('logout') 
     },
   ];
@@ -516,7 +526,18 @@ export default function AdvisorAvailability() {
                 <Card hoverable bordered className="inspector-card" style={inspectorHeight ? { height: inspectorHeight } : undefined}>
                   <CardHeader className="day-inspector-header">
                     <CardTitle>
-                      {selectedDate ? moment(selectedDate).format('dddd, MMM D, YYYY') : 'Select a date'}
+                      <AnimatePresence mode="wait">
+                        <motion.span
+                          key={selectedDate ? moment(selectedDate).format('YYYY-MM-DD') : 'no-date'}
+                          initial={{ opacity: 0, y: 4 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: -4 }}
+                          transition={{ duration: 0.2, ease: 'easeOut' }}
+                          style={{ display: 'inline-block' }}
+                        >
+                          {selectedDate ? moment(selectedDate).format('dddd, MMM D, YYYY') : 'Select a date'}
+                        </motion.span>
+                      </AnimatePresence>
                     </CardTitle>
                     <div className="header-actions">
                       <Button 
@@ -557,10 +578,12 @@ export default function AdvisorAvailability() {
                       </div>
                     )}
                     {slotsForSelected.length === 0 ? (
-                      <div className="empty-state-card">
-                        <div className="empty-title">No consultation slots for this day.</div>
-                        <div className="empty-text">Click “+ Add Slot” to create one.</div>
-                      </div>
+                      !isPastSelectedDay ? (
+                        <div className="empty-state-card">
+                          <div className="empty-title">No consultation slots for this day.</div>
+                          <div className="empty-text">Click “+ Add Slot” to create one.</div>
+                        </div>
+                      ) : null
                     ) : (
                       <>
                         <div className="slot-tabs" role="tablist" aria-label="Time of day">
@@ -602,7 +625,15 @@ export default function AdvisorAvailability() {
                           id={`panel-${activeSection}`}
                           aria-labelledby={`tab-${activeSection}`}
                         >
-                          <div className="slots-section">
+                          <AnimatePresence mode="wait">
+                          <motion.div
+                            key={`${formatManilaDateYYYYMMDD(selectedDate)}-${activeSection}-${(activeSection === 'morning' ? groupedSlots.morning.length : activeSection === 'afternoon' ? groupedSlots.afternoon.length : groupedSlots.evening.length)}`}
+                            className="slots-section"
+                            initial={{ opacity: 0, y: 6, scale: 0.995 }}
+                            animate={{ opacity: 1, y: 0, scale: 1 }}
+                            exit={{ opacity: 0, y: -6, scale: 0.995 }}
+                            transition={{ duration: 0.25, ease: 'easeOut' }}
+                          >
                             {(activeSection === 'morning' ? groupedSlots.morning : activeSection === 'afternoon' ? groupedSlots.afternoon : groupedSlots.evening).length === 0 ? (
                               <div className="empty-state-card">
                                 <div className="empty-title">No slots in this time range.</div>
@@ -610,7 +641,14 @@ export default function AdvisorAvailability() {
                               </div>
                             ) : (
                               (activeSection === 'morning' ? groupedSlots.morning : activeSection === 'afternoon' ? groupedSlots.afternoon : groupedSlots.evening).map((slot) => (
-                                <div key={`${slot.id}-${new Date(slot.start).getTime()}`} className="slot-card">
+                                <motion.div
+                                  key={`${slot.id}-${new Date(slot.start).getTime()}`}
+                                  className="slot-card"
+                                  initial={{ opacity: 0, y: 4 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -4 }}
+                                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                                >
                                   <div className="slot-info">
                                     <div className="slot-time">{formatTimePH(slot.start)} – {formatTimePH(slot.end)}</div>
                                     <div className="slot-mode">Mode: {`${slot.hasOnline ? 'Online' : ''}${slot.hasOnline && slot.hasInPerson ? '/' : ''}${slot.hasInPerson ? 'In-person' : ''}`}</div>
@@ -621,18 +659,20 @@ export default function AdvisorAvailability() {
                                       ) : null;
                                     })()}
                                   </div>
-                                  <div className="slot-actions" style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
+                                  <div className="slot-actions" style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <button
+                                      type="button"
+                                      aria-label="Edit slot"
+                                      title="Edit"
                                       onClick={() => setEditEvent(slot.onlineSlot || slot.inPersonSlot)}
+                                      className="flex items-center justify-center w-9 h-9 p-0 border border-gray-300 rounded-lg hover:bg-gray-100 text-gray-700 transition-colors shrink-0"
                                     >
-                                      Edit
-                                    </Button>
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                                      <BsPencilSquare size={15} />
+                                    </button>
+                                    <button
+                                      type="button"
+                                      aria-label="Delete slot"
+                                      title="Delete"
                                       onClick={() => {
                                         const delList = [slot.onlineSlot, slot.inPersonSlot].filter(Boolean);
                                         if (delList.length) {
@@ -640,14 +680,16 @@ export default function AdvisorAvailability() {
                                           setDeleteOpen(true);
                                         }
                                       }}
+                                      className="flex items-center justify-center w-9 h-9 p-0 border border-red-300 rounded-lg hover:bg-red-50 text-red-600 transition-colors shrink-0"
                                     >
-                                      Delete
-                                    </Button>
+                                      <BsTrash size={15} />
+                                    </button>
                                   </div>
-                                </div>
+                                </motion.div>
                               ))
                             )}
-                          </div>
+                          </motion.div>
+                          </AnimatePresence>
                         </div>
                       </>
                     )}
@@ -749,27 +791,21 @@ export default function AdvisorAvailability() {
           )}
         </main>
       </div>
-      <AlertDialog open={consultationPromptOpen} onOpenChange={()=>{}}>
-        <AlertDialogContent onPointerDownOutside={e=>e.preventDefault()} onEscapeKeyDown={e=>e.preventDefault()}>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="leading-none text-center">Complete Your Consultation Profile</AlertDialogTitle>
-            <AlertDialogDescription className="text-center">
-              Before adding availability, add at least one consultation topic or subject in your profile.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter className="sm:items-center sm:justify-between">
-            <AlertDialogAction
-              className="w-full"
-              onClick={() => {
+      {consultationPromptOpen ? (
+        (() => {
+          const missing = { topics: [], guidelines: [], courses: [] };
+          return (
+            <ConsultationSetupGate
+              open={true}
+              missing={missing}
+              onProceed={()=>{
                 setConsultationPromptOpen(false);
                 navigate('/advisor-dashboard/profile', { state: { focusConsultation: true, autoEditConsultation: true } });
               }}
-            >
-              Update Consultation Settings
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+            />
+          );
+        })()
+      ) : null}
     </div>
   );
 }

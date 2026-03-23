@@ -139,7 +139,7 @@
 }
 
 .student-my-consultations .tab-button.active .tab-count {
-    background: #3b82f6;
+    background: #3360c2;
     color: #ffffff;
 }
 
@@ -185,7 +185,7 @@
     align-items: center;
     gap: 8px;
     padding: 12px 24px;
-    background: #3b82f6;
+    background: #3360c2;
     border: none;
     border-radius: 8px;
     color: white;
@@ -194,7 +194,7 @@
 }
 
 .add-consultation-btn:hover {
-    background: #2563eb;
+    background: #2a51a3;
     transform: translateY(-1px);
 }
 
@@ -300,7 +300,7 @@
 
 .filter-dropdown:focus {
     outline: none;
-    border-color: #667eea;
+    border-color: #3360c2;
 }
 
 .section-count {
@@ -482,7 +482,7 @@
 }
 
 .student-my-consultations .add-consultation-card-new:hover {
-    border-color: #3b82f6;
+    border-color: #3360c2;
     background: #eff6ff;
     transform: translateY(-2px);
     box-shadow: 0 8px 16px rgba(59, 130, 246, 0.15);
@@ -505,7 +505,7 @@
 
 .student-my-consultations .add-consultation-card:hover {
     background: #e9ecef;
-    border-color: #667eea;
+    border-color: #3360c2;
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
 }
@@ -519,7 +519,7 @@
 
 .student-my-consultations .add-consultation-icon {
     font-size: 2.5rem;
-    color: #667eea;
+    color: #3360c2;
     margin-bottom: 0.5rem;
 }
 
@@ -594,7 +594,7 @@
 }
 
 .student-my-consultations .undo-btn {
-    background: #667eea;
+    background: #3360c2;
     color: white;
     border: none;
     border-radius: 6px;
@@ -619,7 +619,7 @@
 
 .student-my-consultations .undo-timer-bar {
     height: 100%;
-    background: #667eea;
+    background: #3360c2;
     width: 100%;
     animation: countdown 5s linear forwards;
     transform-origin: left;
@@ -655,8 +655,8 @@
 
 .load-more-btn {
     padding: 0.75rem 2rem;
-    border: 2px solid #667eea;
-    color: #667eea;
+    border: 2px solid #3360c2;
+    color: #3360c2;
     background: white;
     border-radius: 8px;
     font-weight: 600;
@@ -664,7 +664,7 @@
 }
 
 .load-more-btn:hover {
-    background: #667eea;
+    background: #3360c2;
     color: white;
     transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);

@@ -309,13 +309,58 @@ export default function ConsultationSlotModal({
     && (occurrencePreview.count ?? 0) > 0 
     && selectedModes.length > 0
     && (!selectedModes.includes("face_to_face") || !!room.trim())
-    && activeSlotIds.length > 0;
+    && activeSlotIds.length > 0
+    && !error;
   const disabledUntil = repeatMode === "none";
   const disabledDays = repeatMode !== "custom";
   
   // Keep drafts in sync when actual values change or modal opens
   useEffect(() => { setDraftStart(startTime || ""); }, [startTime, isOpen]);
   useEffect(() => { setDraftEnd(endTime || ""); }, [endTime, isOpen]);
+
+  useEffect(() => {
+    setError("");
+    const today = new Date();
+    const todayDay = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const selectedDayOnly = new Date(year, month, day);
+    if (selectedDayOnly < todayDay) {
+      setError("Selected date is in the past. Choose a future date.");
+      return;
+    }
+    if (!timeValid) {
+      setError("End time must be after start time.");
+      return;
+    }
+    if (selectedModes.includes("face_to_face") && !room.trim()) {
+      setError("Please specify a room for face-to-face mode.");
+      return;
+    }
+    if (selectedDayOnly.getTime() === todayDay.getTime()) {
+      const [sh, sm] = (startTime || "00:00").split(":").map(Number);
+      const [eh, em] = (endTime || "00:00").split(":").map(Number);
+      const sampleStart = new Date(year, month, day, sh || 0, sm || 0, 0, 0);
+      if (sampleStart <= today) {
+        setError("Selected time is in the past. Pick a future time.");
+        return;
+      }
+    }
+    if (repeatMode !== "none") {
+      const untilDay = new Date(repeatUntil.getFullYear(), repeatUntil.getMonth(), repeatUntil.getDate());
+      const startDateOnly = selectedDayOnly;
+      for (let cursor = new Date(startDateOnly); cursor <= untilDay; cursor = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate() + 1)) {
+        const cursorDayOnly = new Date(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
+        const isIncluded = repeatMode === "daily"
+          ? true
+          : (repeatMode === "weekly"
+            ? (cursor.getDay() === startDateOnly.getDay())
+            : (!!customDays[cursor.getDay()]));
+        if (isIncluded && cursorDayOnly < todayDay) {
+          setError("Repeat range includes past dates. Adjust the repeat range.");
+          return;
+        }
+      }
+    }
+  }, [year, month, day, startTime, endTime, timeValid, repeatMode, repeatUntil, customDays, room, selectedModes]);
 
 
   // Update end time when start time changes and preset is active

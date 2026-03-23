@@ -55,7 +55,7 @@
 .left-pill.active {
     background: #eef2ff;
     border-color: #c7d2fe;
-    color: #1d4ed8;
+    color: #1f3c7a;
 }
 
 /* Right Content */
@@ -146,6 +146,16 @@
     border-radius: 8px;
 }
 
+.admin-table th:first-child,
+.admin-table td:first-child {
+  user-select: none;
+  cursor: default;
+}
+
+.admin-table input[type="checkbox"] {
+  cursor: pointer;
+}
+
 .manage-row {
     display: grid;
     grid-template-columns: 2fr 1fr 0.8fr 0.7fr 1.2fr;
@@ -206,7 +216,7 @@
 .manage-row .name-text {
     font-weight: 600;
     font-size: 0.80rem;
-    color: #2563eb; /* link-like title, simple table style */
+    color: #2a51a3; /* link-like title, simple table style */
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
@@ -239,7 +249,7 @@
 }
 
 .manage-row .program-dept-col svg {
-    color: #3b82f6;
+    color: #3360c2;
     flex-shrink: 0;
 }
 
@@ -801,7 +811,7 @@
 }
 
 .admin-modal .history-card-new:hover {
-    border-color: #3b82f6;
+    border-color: #3360c2;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
     transform: translateY(-2px);
 }
@@ -920,7 +930,7 @@
 }
 
 .undo-btn {
-    background: #3b82f6;
+    background: #3360c2;
     color: white;
     border: none;
     border-radius: 6px;
@@ -933,7 +943,7 @@
 }
 
 .undo-btn:hover {
-    background: #2563eb;
+    background: #2a51a3;
 }
 
 .undo-timer {
@@ -945,7 +955,7 @@
 
 .undo-timer-bar {
     height: 100%;
-    background: #3b82f6;
+    background: #3360c2;
     width: 100%;
     animation: countdown 5s linear forwards;
     transform-origin: left;

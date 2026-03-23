@@ -21,10 +21,10 @@
   border-radius: 16px;
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  padding: 25px;
+  padding: 16px;
   width: 100%;
   max-width: 100%;
-  height: 100%;
+  height: auto;
   display: flex;
   flex-direction: column;
   transition: border-color 0.2s ease;
@@ -35,23 +35,23 @@
 
 
 .advisor-card:hover {
-  border-color: #667eea;
+  border-color: #3360c2;
 }
 
 .advisor-card-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 8px;
 }
 
 .advisor-card-avatar {
-  width: 48px;
-  height: 48px;
+  width: 42px;
+  height: 42px;
   border-radius: 50%;
   background: radial-gradient(circle at 30% 30%, #cfe0ff, #a7c1ff);
-  color: #2d5bd1;
-  font-size: 26px;
+  color: #3360c2;
+  font-size: 22px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -65,14 +65,14 @@
 
 .advisor-card-name {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: 0.95rem;
   color: #374151;
   margin-bottom: 2px;
 }
 
 .advisor-card-title {
   color: #6b7280;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   font-weight: 400;
 }
 
@@ -100,11 +100,11 @@
 
 .advisor-card-meta {
   color: #6b7280;
-  font-size: 0.9rem;
+  font-size: 0.85rem;
   border-top: 1px solid rgba(0,0,0,0.08);
-  padding-top: 15px;
+  padding-top: 10px;
   margin-top: 4px;
-  margin-bottom: 1px;
+  margin-bottom: 0;
   display: flex;
   align-items: flex-start;
   gap: 8px;
@@ -132,7 +132,7 @@
 .advisor-card-detail-row {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
+  gap: 10px;
 }
 
 .advisor-card-detail-label {
@@ -221,7 +221,7 @@
 /* Mode-specific styling */
 .consultation-mode-display.online-mode {
   background: #dbeafe;
-  color: #2563eb;
+  color: #2a51a3;
   border: 1px solid #93c5fd;
 }
 
@@ -253,8 +253,8 @@
 
 .advisor-card-actions {
   display: flex;
-  gap: 8px;
-  margin-top: auto;
+  gap: 6px;
+  margin-top: 10px;
   width: 100%;
   max-width: 100%;
   flex-wrap: wrap;
@@ -341,15 +341,14 @@
 @media (min-width: 769px) {
   .advisor-card-new {
     height: auto !important;
-    min-height: 320px;
+    min-height: 240px;
   }
   
   /* Add more space above buttons */
-  .advisor-card-new > div:last-child {
-    margin-top: 24px !important;
+    margin-top: 12px !important;
+    padding-top: 10px !important;
     padding-top: 16px !important;
   }
-}
 
 @media (max-width: 576px) {
   .advisor-card {

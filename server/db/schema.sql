@@ -126,6 +126,28 @@ CREATE TABLE IF NOT EXISTS `advisor_topics` (
     FOREIGN KEY (`advisor_user_id`) REFERENCES `users`(`id`) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
+-- Consultation topic catalog managed by admins
+CREATE TABLE IF NOT EXISTS `consultation_topic_catalog` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `name` VARCHAR(255) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_consultation_topic_catalog_name` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Consultation subject catalog managed by admins
+CREATE TABLE IF NOT EXISTS `consultation_subject_catalog` (
+  `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  `subject_code` VARCHAR(50) NOT NULL,
+  `subject_name` VARCHAR(255) NOT NULL,
+  `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uq_consultation_subject_catalog_code` (`subject_code`),
+  KEY `idx_consultation_subject_catalog_name` (`subject_name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 -- Advisor preparation guidelines
 CREATE TABLE IF NOT EXISTS `advisor_guidelines` (
   `id` INT UNSIGNED NOT NULL AUTO_INCREMENT,

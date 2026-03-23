@@ -4,7 +4,7 @@ import withDragAndDrop from 'react-big-calendar/lib/addons/dragAndDrop';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import "./AvailabilityCalendar.css";
-import { BsChevronLeft, BsChevronRight } from "react-icons/bs";
+import { ChevronLeftIcon, ChevronRightIcon } from "../../icons/Heroicons";
 import CustomCalendar from "../../student/CustomCalendar";
 // Temporary: existing modal; will be replaced by Lightswind modal in next step
 import ConsultationSlotModal from "./ConsultationSlotModal";
@@ -28,44 +28,30 @@ export default function AvailabilityCalendar({
   onRequestModalClose, // notify parent to clear edit state when modal closes
   refreshSignal = 0,
 }) {
+  // Build a Manila-offset ISO string from a local Date object.
+  // We read the Date's LOCAL time fields (which the user typed) and tag
+  // them as +08:00.  The server's parseManilaLocal() then converts to UTC.
+  // This avoids double-subtraction on PH machines (which are already UTC+8).
   const manilaToUtcIso = (d) => {
-    const parts = new Intl.DateTimeFormat('en-CA', {
-      timeZone: 'Asia/Manila', year: 'numeric', month: '2-digit', day: '2-digit',
-      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
-    }).formatToParts(new Date(d));
-    const val = (t) => parts.find((p) => p.type === t)?.value || '0';
-    let year = Number(val('year'));
-    let month = Number(val('month'));
-    let day = Number(val('day'));
-    let hour = Number(val('hour'));
-    const minute = Number(val('minute'));
-    const second = Number(val('second'));
-    // Allow hour 24 from some locales by rolling to next day at 00:xx:xx
-    if (hour === 24) {
-      hour = 0;
-      const t = new Date(Date.UTC(year, month - 1, day, 0, 0, 0));
-      t.setUTCDate(t.getUTCDate() + 1);
-      year = t.getUTCFullYear();
-      month = t.getUTCMonth() + 1;
-      day = t.getUTCDate();
-    }
-    const utc = new Date(Date.UTC(year, (month - 1), day, (hour - 8), minute, second, 0));
-    return utc.toISOString().replace(/\.\d{3}Z$/, 'Z');
+    const pad = (n, w = 2) => String(n).padStart(w, '0');
+    const dt = d instanceof Date ? d : new Date(d);
+    return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}T${pad(dt.getHours())}:${pad(dt.getMinutes())}:${pad(dt.getSeconds())}+08:00`;
   };
+  // Parse a datetime string coming back from the server (stored as UTC in DB).
+  // Naked strings like "2026-03-18 01:00:00" are UTC — append Z so JS treats
+  // them as UTC and the browser displays them in local (Manila) time correctly.
   const parseServerDatetime = (val) => {
     if (!val) return null;
     const s = String(val).trim();
+    // Already has timezone info — parse as-is
     if (/([zZ]|[+\-]\d{2}:?\d{2})$/.test(s)) {
       const d = new Date(s);
       return isNaN(d.getTime()) ? null : d;
     }
-    const match = s.replace('T', ' ').match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2})(?::(\d{2}))?$/);
-    if (!match) {
-      const d = new Date(s);
-      return isNaN(d.getTime()) ? null : d;
-    }
-    const [_, y, m, d2, hh, mm, ss] = match;
-    return new Date(Number(y), Number(m) - 1, Number(d2), Number(hh), Number(mm), Number(ss || 0));
+    // Naked datetime from DB — treat as UTC
+    const normalized = s.replace(' ', 'T') + 'Z';
+    const d = new Date(normalized);
+    return isNaN(d.getTime()) ? null : d;
   };
   // Controlled current date for navigation
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -114,20 +100,50 @@ export default function AvailabilityCalendar({
   // Adapter: map advisor events into student calendar availabilityData shape
   const availabilityData = useMemo(() => {
     const map = {};
+    const fmtPH = (date) => new Intl.DateTimeFormat('en-PH', { 
+      timeZone: 'Asia/Manila', 
+      hour: 'numeric', 
+      minute: '2-digit', 
+      hour12: true 
+    }).format(date).replace(/[\u00A0\u202F]/g, ' ');
+
+    const now = moment();
+
     events.forEach((ev) => {
       if (ev.type !== 'available') return;
-      const key = moment(ev.start).format('YYYY-MM-DD');
+      
+      // Filter out passed slots
+      const startTime = moment(ev.start);
+      if (startTime.isBefore(now)) return;
+
+      const key = startTime.format('YYYY-MM-DD');
       const mode = ev.mode === 'face_to_face' ? 'In-person' : 'Online';
       if (!map[key]) map[key] = [];
-      map[key].push({ mode });
+      map[key].push({ 
+        id: ev.id,
+        mode,
+        startTime: fmtPH(ev.start)
+      });
     });
+
+    // Sort slots by start time within each day
+    Object.keys(map).forEach(key => {
+      map[key].sort((a, b) => {
+        const timeA = moment(a.startTime, 'h:mm A');
+        const timeB = moment(b.startTime, 'h:mm A');
+        return timeA.diff(timeB);
+      });
+    });
+
     return map;
   }, [events]);
 
   const doFetchMonthSlots = async () => {
     if (!monthParam) return;
     try {
-      const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+      const baseUrl = import.meta.env.VITE_API_BASE_URL
+        || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+        || 'http://localhost:8080';
       const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
       const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
       const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -198,10 +214,10 @@ export default function AvailabilityCalendar({
         <div className="availability-month-label">{monthYearLabel}</div>
         <div className="availability-nav">
           <button type="button" className="nav-btn prev" onClick={goToPrevMonth} aria-label="Previous Month">
-            <BsChevronLeft />
+            <ChevronLeftIcon className="w-5 h-5" />
           </button>
           <button type="button" className="nav-btn next" onClick={goToNextMonth} aria-label="Next Month">
-            <BsChevronRight />
+            <ChevronRightIcon className="w-5 h-5" />
           </button>
         </div>
       </div>
@@ -334,7 +350,9 @@ export default function AvailabilityCalendar({
                   try { return ev.start?.getTime?.() === editDefaults.event.start?.getTime?.() && ev.end?.getTime?.() === editDefaults.event.end?.getTime?.(); } catch (_) { return false; }
                 });
                 const byMode = Object.fromEntries(siblings.map((ev) => [normalizeMode(ev.mode), ev]));
-                const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                const baseUrl = import.meta.env.VITE_API_BASE_URL
+                  || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+                  || 'http://localhost:8080';
                 const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
                 const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
                 const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -475,7 +493,9 @@ export default function AvailabilityCalendar({
               } else {
                 // Persist created slots to backend
                 try {
-                  const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+                  const baseUrl = import.meta.env.VITE_API_BASE_URL
+                    || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+                    || 'http://localhost:8080';
                   const storedUser = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
                   const advisorId = storedUser ? JSON.parse(storedUser)?.id : null;
                   const storedToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;

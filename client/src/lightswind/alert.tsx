@@ -13,7 +13,7 @@ const alertVariants = {
     warning:
       "border-yellow-500/50 text-yellow-700 dark:text-yellow-500 [&>svg]:text-yellow-500",
     info:
-      "border-blue-500/50 text-blue-700 dark:text-blue-500 [&>svg]:text-blue-500",
+      "border-[#3360c2]/50 text-blue-700 dark:text-[#3360c2] [&>svg]:text-[#3360c2]",
   },
   size: {
     default: "p-4",

@@ -1,7 +1,7 @@
 /* Admin Dashboard Layout (standalone) */
 .admin-dash-wrap {
   height: 100vh;
-  background: #f5f7fb;
+  background: transparent;
   color: #1f2937;
   overflow: hidden;
 }

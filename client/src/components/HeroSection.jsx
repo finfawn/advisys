@@ -44,7 +44,7 @@ function HeroSection({ onGetStarted }) {
             size="2xl"
             align="left"
             variant="default"
-            className="font-sans text-sky-900"
+            className="logo-font text-sky-900"
             baseRotation={0}
           >
             AdviSys

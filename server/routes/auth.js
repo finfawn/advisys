@@ -219,7 +219,7 @@ router.post('/login', async (req, res) => {
         [rows] = await pool.query('SELECT id, role, email, password_hash, full_name, status FROM users WHERE email = ?', [emailNorm]);
       }
     }
-    if (!rows.length) return res.status(401).json({ error: 'Invalid credentials' });
+    if (!rows.length) return res.status(401).json({ error: 'Account does not exist. Create an account?' });
     const user = rows[0];
     if (!user.password_hash) return res.status(401).json({ error: 'Invalid credentials' });
     const ok = await bcrypt.compare(password, user.password_hash);
@@ -228,7 +228,7 @@ router.post('/login', async (req, res) => {
     if (await shouldBlockForDeactivation(pool, user)) {
       return res.status(403).json(buildDeactivatedResponse());
     }
-    if (!VERIFICATION_DISABLED) {
+    if (!VERIFICATION_DISABLED && String(user.role).toLowerCase() !== 'admin') {
       const hasEmailVerified = typeof user.email_verified !== 'undefined';
       const notVerified = hasEmailVerified ? Number(user.email_verified) !== 1 : (String(user.status).toLowerCase() !== 'active');
       if (notVerified) {
@@ -279,9 +279,10 @@ router.post('/verify/request', async (req, res) => {
   const email = String(req.body?.email || '').trim().toLowerCase();
   if (!email) return res.status(400).json({ error: 'Email required' });
   try {
-    const [[user]] = await pool.query('SELECT id, email, full_name, status FROM users WHERE email = ? LIMIT 1', [email]);
+    const [[user]] = await pool.query('SELECT id, email, full_name, status, role FROM users WHERE email = ? LIMIT 1', [email]);
     // Always return success to avoid enumeration
     if (!user) return res.json({ success: true });
+    if (String(user.role).toLowerCase() === 'admin') return res.json({ success: true });
     if (user.status === 'active') return res.json({ success: true });
 
     const [[last]] = await pool.query(
@@ -317,6 +318,10 @@ router.post('/verify/confirm', async (req, res) => {
   try {
     const [[user]] = await pool.query('SELECT id, role, email, full_name, status FROM users WHERE email = ? LIMIT 1', [email]);
     if (!user) return res.status(400).json({ error: 'Invalid or expired code' });
+    if (String(user.role).toLowerCase() === 'admin') {
+      const token = makeToken(user);
+      return res.json({ token, user: { id: user.id, role: user.role, email: user.email, full_name: user.full_name } });
+    }
     if (user.status === 'active') {
       const token = makeToken(user);
       return res.json({ token, user: { id: user.id, role: user.role, email: user.email, full_name: user.full_name } });

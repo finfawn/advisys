@@ -19,7 +19,7 @@ function ensureAdmin(req, res, next) {
 router.get('/', async (req, res) => {
   const pool = getPool();
   try {
-    const [rows] = await pool.query('SELECT id, name FROM departments ORDER BY name ASC');
+    const [rows] = await pool.query('SELECT id, name, updated_at FROM departments ORDER BY updated_at DESC, id DESC');
     res.json(rows);
   } catch (err) {
     console.error('List departments error', err);

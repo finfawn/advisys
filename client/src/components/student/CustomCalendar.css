@@ -288,7 +288,7 @@
 }
 
 .calendar-day-cell.selected .calendar-day-button::before {
-  background: transparent;
+  display: none;
 }
 
 .calendar-day-cell.selected:hover {
@@ -304,31 +304,64 @@
 }
 
 .calendar-day-cell.today .calendar-day-button::before {
-  background: transparent;
+  display: none;
 }
 
-/* Availability Dots */
-.calendar-day-cell.has-availability.online .calendar-day-button::before {
-  background: #3b82f6;
-  box-shadow: 0 0 4px rgba(59, 130, 246, 0.4);
+/* Slot Peeks */
+.day-slots-peek {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end; /* Right align peeks */
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+  overflow: hidden;
+  pointer-events: none;
 }
 
+.peek-slot {
+  font-size: 0.625rem;
+  line-height: 1.1;
+  padding: 3px 6px;
+  border-radius: 5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-weight: 500;
+  border: 1px solid transparent;
+  transition: all 0.2s ease;
+  width: 72px; /* Fixed uniform width for 12:00 PM style times */
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.peek-slot.online {
+  background: #f1f5f9;
+  color: #334155;
+  border-left: 3px solid #3b82f6; /* Blue indicator for Online */
+}
+
+.peek-slot.in-person,
+.peek-slot.face-to-face {
+  background: #f1f5f9;
+  color: #334155;
+  border-left: 3px solid #10b981; /* Green indicator for In-person */
+}
+
+.peek-more {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: -2px;
+  font-weight: 800;
+  text-align: right;
+  width: 72px; /* Match the pill width for alignment */
+  padding-right: 4px;
+}
+
+/* Availability Dots - Legacy hidden */
+.calendar-day-cell.has-availability.online .calendar-day-button::before,
 .calendar-day-cell.has-availability.in-person .calendar-day-button::before {
-  background: #10b981;
-  box-shadow: 0 0 4px rgba(16, 185, 129, 0.4);
-}
-
-/* Keep dots visible on hover and selected states */
-.calendar-day-cell.has-availability.online:hover .calendar-day-button::before,
-.calendar-day-cell.has-availability.online.selected .calendar-day-button::before {
-  background: #3b82f6;
-  box-shadow: 0 0 6px rgba(59, 130, 246, 0.6);
-}
-
-.calendar-day-cell.has-availability.in-person:hover .calendar-day-button::before,
-.calendar-day-cell.has-availability.in-person.selected .calendar-day-button::before {
-  background: #10b981;
-  box-shadow: 0 0 6px rgba(16, 185, 129, 0.6);
+  display: none;
 }
 
 .calendar-day-cell.today:hover .calendar-day-button {

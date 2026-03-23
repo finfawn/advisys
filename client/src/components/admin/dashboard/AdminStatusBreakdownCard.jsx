@@ -5,8 +5,8 @@ import { Skeleton } from "../../../lightswind/skeleton";
 export default function AdminStatusBreakdownCard({ loading = false, data = null, height = 360 }) {
   const palette = {
     completed: "#10b981",
-    approved: "#3b82f6",
-    requested: "#6366f1",
+    approved: "#3360c2",
+    requested: "#3360c2",
     pending: "#eab308",
     missed: "#f97316",
     cancelled: "#ef4444",
@@ -16,7 +16,7 @@ export default function AdminStatusBreakdownCard({ loading = false, data = null,
   const chartData = Array.isArray(data)
     ? data.map((d, i) => {
         const raw = String(d.label || d.status || '').toLowerCase();
-        const color = palette[raw] || ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][i % 5];
+        const color = palette[raw] || ["#3360c2", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"][i % 5];
         return { name: String(d.label || d.status || ''), value: Number(d.value || d.count || 0), color };
       })
     : [];

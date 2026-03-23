@@ -38,11 +38,177 @@
   box-sizing: border-box;
 }
 
+.thread-profile-strip {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+  padding: 4px 0 2px;
+}
+
+.thread-profile-text {
+  min-width: 0;
+}
+
+.thread-profile-title {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #1f2937;
+}
+
+.thread-profile-subtitle {
+  margin-top: 4px;
+  font-size: 0.83rem;
+  color: #5f6b7e;
+}
+
+.thread-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.thread-card {
+  border: 1px solid rgba(211, 219, 232, 0.92);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(248,250,253,0.98) 100%);
+  box-shadow: 0 18px 34px -28px rgba(15, 23, 42, 0.22);
+  transition: border-color 180ms ease, box-shadow 180ms ease, transform 180ms ease;
+}
+
+.thread-card:hover {
+  border-color: rgba(148, 163, 184, 0.65);
+  box-shadow: 0 24px 42px -30px rgba(15, 23, 42, 0.28);
+  transform: translateY(-1px);
+}
+
+.thread-card-body {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 18px 22px;
+}
+
+.thread-card-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.thread-card-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.thread-card-title {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #182132;
+  letter-spacing: -0.01em;
+}
+
+.thread-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: capitalize;
+  letter-spacing: 0.02em;
+}
+
+.thread-status-badge.pending {
+  background: #fff3db;
+  color: #9a5a00;
+}
+
+.thread-status-badge.completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.thread-status-badge.missed {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.thread-status-badge.cancelled,
+.thread-status-badge.canceled,
+.thread-status-badge.declined,
+.thread-status-badge.expired {
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.thread-status-badge.approved {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.thread-meta-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.thread-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f4f7fb;
+  border: 1px solid rgba(214, 222, 234, 0.95);
+  color: #516074;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.thread-meta-pill svg {
+  font-size: 0.82rem;
+}
+
+.thread-summary {
+  margin-top: 14px;
+  padding-top: 13px;
+  border-top: 1px solid rgba(223, 229, 238, 0.95);
+}
+
+.thread-summary-label {
+  font-size: 0.71rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #6a7890;
+}
+
+.thread-summary-text {
+  margin-top: 6px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: #334155;
+  white-space: pre-wrap;
+}
+
 /* Place vertical scrollbar at the viewport edge on small screens */
 @media (max-width: 768px) {
   /* Scrollbar at edge */
   .student-thread.consultations-container {
     padding-left: 16px !important;
     padding-right: 16px !important;
+  }
+
+  .thread-card-body {
+    padding: 16px;
+  }
+
+  .thread-card-title {
+    font-size: 0.98rem;
   }
 }

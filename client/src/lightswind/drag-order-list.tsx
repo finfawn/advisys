@@ -68,7 +68,7 @@ function DragOrderItem({ item }: { item: DragItem }) {
             href={item.link}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-2 inline-block text-xs text-blue-500 hover:underline"
+            className="mt-2 inline-block text-xs text-[#3360c2] hover:underline"
           >
             More Info
           </a>

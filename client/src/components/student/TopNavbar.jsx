@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsSearch, BsBell, BsChevronDown, BsGear, BsBoxArrowRight, BsX } from "react-icons/bs";
-import { HomeIcon, ChartBarIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../icons/Heroicons";
+import { HomeIcon, ChartBarIcon, UsersIcon, CalendarDaysIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, SearchIcon, BellIcon, ChevronDownIcon, XIcon } from "../icons/Heroicons";
 import Logo from "../../assets/logo.png";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 import NotificationModal from "../NotificationModal";
@@ -37,7 +36,9 @@ function TopNavbar() {
     const token = localStorage.getItem("advisys_token");
     if (!token) return;
     const controller = new AbortController();
-    const base = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+    const base = import.meta.env.VITE_API_BASE_URL
+      || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+      || "http://localhost:8080";
     fetch(`${base}/api/profile/me`, {
       headers: { Authorization: `Bearer ${token}` },
       signal: controller.signal,
@@ -54,10 +55,21 @@ function TopNavbar() {
   const [allAdvisors, setAllAdvisors] = useState([]);
   const [isLoadingAdvisors, setIsLoadingAdvisors] = useState(false);
   useEffect(() => {
+    const resolveAssetUrl = (url) => {
+      if (!url) return null;
+      if (url.startsWith('http')) return url;
+      const base = import.meta.env.VITE_API_BASE_URL
+        || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+        || 'http://localhost:8080';
+      return `${base}${url}`;
+    };
+
     const fetchAdvisors = async () => {
       try {
         setIsLoadingAdvisors(true);
-        const base = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const base = import.meta.env.VITE_API_BASE_URL
+          || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+          || 'http://localhost:8080';
         const res = await fetch(`${base}/api/advisors`);
         const data = await res.json();
         const shaped = Array.isArray(data) ? data.map(a => ({
@@ -278,7 +290,7 @@ function TopNavbar() {
 
       <div className="tb-center">
         <div className="search-box" ref={searchRef}>
-          <BsSearch className="search-ic" />
+          <SearchIcon className="search-ic w-5 h-5" />
           <input 
             type="text"
             placeholder="Find faculty" 
@@ -294,7 +306,7 @@ function TopNavbar() {
               onClick={clearSearch}
               aria-label="Clear search"
             >
-              <BsX />
+              <XIcon className="w-4 h-4" />
             </button>
           )}
           
@@ -335,7 +347,7 @@ function TopNavbar() {
           aria-label="Notifications"
           onClick={handleNotificationClick}
         >
-          <BsBell className="bell-icon" />
+          <BellIcon className="bell-icon" />
           {unreadCount > 0 && <span className="notification-dot"></span>}
         </button>
         
@@ -349,7 +361,7 @@ function TopNavbar() {
           >
             <InitialsAvatar name={studentName || 'Student'} size={32} className="avatar small overflow-hidden" />
             <span className="user-name d-none d-md-inline">{studentName}</span>
-            <BsChevronDown className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
+            <ChevronDownIcon className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
           </button>
           
           {isDropdownOpen && (
@@ -371,7 +383,7 @@ function TopNavbar() {
                   className="dropdown-item"
                   onClick={handleSettingsClick}
                 >
-                  <BsGear className="dropdown-item-icon" />
+                  <Cog6ToothIcon className="dropdown-item-icon" />
                   <span>Settings</span>
                 </button>
                 
@@ -381,7 +393,7 @@ function TopNavbar() {
                   className="dropdown-item logout-item"
                   onClick={handleLogout}
                 >
-                  <BsBoxArrowRight className="dropdown-item-icon" />
+                  <ArrowRightOnRectangleIcon className="dropdown-item-icon" />
                   <span>Logout</span>
                 </button>
               </div>

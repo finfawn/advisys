@@ -1,13 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { BsPersonCircle, BsChevronDown, BsBoxArrowRight, BsGear } from "react-icons/bs";
+import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon, PersonCircleIcon, ChevronDownIcon } from "../icons/Heroicons";
 import Logo from "../../assets/logo.png";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
-import { HomeIcon, ChartBarIcon, CalendarDaysIcon, UsersIcon, ArrowRightOnRectangleIcon, Cog6ToothIcon } from "../icons/Heroicons";
 import "./AdminTopNavbar.css";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
+import InitialsAvatar from "../common/InitialsAvatar";
 
-function AdminTopNavbar() {
+function AdminTopNavbar({ centerContent = null }) {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
@@ -140,6 +140,12 @@ function AdminTopNavbar() {
         </div>
       </div>
 
+      {centerContent ? (
+        <div className="admin-topbar-center hidden md:flex">
+          {centerContent}
+        </div>
+      ) : null}
+
       <div className="admin-topbar-right">
 
         {/* User Profile Dropdown - Desktop only */}
@@ -151,17 +157,17 @@ function AdminTopNavbar() {
             aria-haspopup="true"
           >
             <div className="avatar small" aria-hidden>
-              <BsPersonCircle />
+              <PersonCircleIcon className="w-5 h-5" />
             </div>
             <span className="user-name d-none d-md-inline">{adminName}</span>
-            <BsChevronDown className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
+            <ChevronDownIcon className={`dropdown-arrow ${isDropdownOpen ? 'open' : ''}`} />
           </button>
           {isDropdownOpen && (
             <div className="user-dropdown-menu">
               <div className="dropdown-header">
                 <div className="dropdown-user-info">
                   <div className="dropdown-avatar">
-                    <BsPersonCircle />
+                    <InitialsAvatar name={adminName} size={40} className="dropdown-avatar overflow-hidden" />
                   </div>
                   <div className="dropdown-user-details">
                     <div className="dropdown-user-name">{adminName}</div>
@@ -177,7 +183,7 @@ function AdminTopNavbar() {
                   className="dropdown-item"
                   onClick={() => { setIsDropdownOpen(false); navigate('/admin-dashboard/settings'); }}
                 >
-                  <BsGear className="dropdown-item-icon" />
+                  <Cog6ToothIcon className="dropdown-item-icon" />
                   <span>Settings</span>
                 </button>
 
@@ -187,7 +193,7 @@ function AdminTopNavbar() {
                   className="dropdown-item logout-item"
                   onClick={handleLogout}
                 >
-                  <BsBoxArrowRight className="dropdown-item-icon" />
+                  <ArrowRightOnRectangleIcon className="dropdown-item-icon" />
                   <span>Logout</span>
                 </button>
               </div>
