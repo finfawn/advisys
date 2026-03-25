@@ -6,6 +6,8 @@ interface RippleButtonProps {
   circleColor?: string;
   width?: string;  // e.g., "200px" or "100%"
   height?: string; // e.g., "50px"
+  loading?: boolean;
+  disabled?: boolean;
   onClick?: (e: React.MouseEvent<HTMLButtonElement>) => void;
 }
 
@@ -15,18 +17,24 @@ const RippleButton: React.FC<RippleButtonProps> = ({
   circleColor,
   width,
   height,
+  loading = false,
+  disabled = false,
   onClick,
 }) => {
+  const isDisabled = loading || disabled;
+
   return (
     <>
       <button
-        className={`ripple-btn text-white dark:text-black dark:bg-white bg-black`}
+        className={`ripple-btn text-white dark:text-black dark:bg-white bg-black ${loading ? "is-loading" : ""}`}
         style={{
           backgroundColor: bgColor,
           width: width,
           height: height,
         }}
         type="submit"
+        disabled={isDisabled}
+        aria-busy={loading}
         onClick={onClick}
       >
         <span className="circle1"></span>
@@ -34,7 +42,11 @@ const RippleButton: React.FC<RippleButtonProps> = ({
         <span className="circle3"></span>
         <span className="circle4"></span>
         <span className="circle5"></span>
-        <span className="text">{text}</span>
+        {loading ? <span className="loading-bar" aria-hidden="true"></span> : null}
+        <span className="text">
+          {loading ? <span className="loading-spinner" aria-hidden="true"></span> : null}
+          <span>{text}</span>
+        </span>
       </button>
 
       <style>{`
@@ -53,7 +65,12 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           transition: all 0.3s ease;
         }
 
-        .ripple-btn span:not(:nth-child(6)) {
+        .ripple-btn:disabled {
+          cursor: wait;
+          opacity: 0.98;
+        }
+
+        .ripple-btn span:not(.text):not(.loading-bar) {
           position: absolute;
           left: 50%;
           top: 50%;
@@ -66,34 +83,105 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           pointer-events: none;
         }
 
-        .ripple-btn span:nth-child(6) {
+        .ripple-btn .text {
           position: relative;
           z-index: 1;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
+          gap: 10px;
         }
 
-        .ripple-btn span:nth-child(1) {
+        .ripple-btn .circle1 {
           transform: translate(-3.3em, -4em);
         }
 
-        .ripple-btn span:nth-child(2) {
+        .ripple-btn .circle2 {
           transform: translate(-6em, 1.3em);
         }
 
-        .ripple-btn span:nth-child(3) {
+        .ripple-btn .circle3 {
           transform: translate(-0.2em, 1.8em);
         }
 
-        .ripple-btn span:nth-child(4) {
+        .ripple-btn .circle4 {
           transform: translate(3.5em, 1.4em);
         }
 
-        .ripple-btn span:nth-child(5) {
+        .ripple-btn .circle5 {
           transform: translate(3.5em, -3.8em);
         }
 
-        .ripple-btn:hover span:not(:nth-child(6)) {
+        .ripple-btn:hover span:not(.text):not(.loading-bar) {
           transform: translate(-50%, -50%) scale(4);
           transition: 1.5s ease;
+        }
+
+        .ripple-btn.is-loading span:not(.text):not(.loading-bar) {
+          animation: loadingPulse 2.4s ease-in-out infinite;
+        }
+
+        .ripple-btn.is-loading .text {
+          position: relative;
+          z-index: 2;
+        }
+
+        .loading-spinner {
+          width: 16px;
+          height: 16px;
+          border-radius: 999px;
+          border: 2px solid rgba(255, 255, 255, 0.28);
+          border-top-color: rgba(255, 255, 255, 0.95);
+          animation: spin 0.8s linear infinite;
+          flex-shrink: 0;
+        }
+
+        .loading-bar {
+          position: absolute;
+          left: 12px;
+          right: 12px;
+          bottom: 7px;
+          height: 3px;
+          border-radius: 999px;
+          background: rgba(255, 255, 255, 0.14);
+          overflow: hidden;
+          z-index: 1;
+        }
+
+        .loading-bar::after {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: -30%;
+          width: 30%;
+          height: 100%;
+          background: rgba(255, 255, 255, 0.88);
+          animation: loadingSlide 1.15s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+          to {
+            transform: rotate(360deg);
+          }
+        }
+
+        @keyframes loadingSlide {
+          0% {
+            left: -30%;
+          }
+          100% {
+            left: 100%;
+          }
+        }
+
+        @keyframes loadingPulse {
+          0%,
+          100% {
+            opacity: 0.58;
+          }
+          50% {
+            opacity: 0.9;
+          }
         }
       `}</style>
     </>

@@ -83,6 +83,27 @@ function AuthPage({ embedded = false }) {
   const [forgotSubmitting, setForgotSubmitting] = useState(false);
   const [forgotErr, setForgotErr] = useState('');
   const [showPw, setShowPw] = useState(false);
+  const isBusy = submitting || forgotSubmitting;
+
+  const getPrimaryActionText = () => {
+    if (isBusy) {
+      if (mode === "login") return "Signing in";
+      if (mode === "register") return "Creating account";
+      if (mode === "forgot") return "Sending link";
+      return "Loading";
+    }
+    if (mode === "login") return "Sign In";
+    if (mode === "register") return "Register";
+    if (mode === "forgot") return "Send link";
+    return "Back to Sign In";
+  };
+
+  const getBusyHint = () => {
+    if (mode === "login") return "Checking your account and preparing your dashboard...";
+    if (mode === "register") return "Setting up your account details. This can take a moment.";
+    if (mode === "forgot") return "Sending your reset instructions now...";
+    return "Working on your request...";
+  };
 
   useEffect(() => {
     const base = resolveApiBase();
@@ -578,12 +599,22 @@ function AuthPage({ embedded = false }) {
                   <motion.div layout className="pt-3">
                     <RippleButton 
                       onClick={mode === "forgot" ? onForgot : onSubmit} 
-                      text={submitting || forgotSubmitting ? "Please wait" : (mode === "login" ? "Sign In" : mode === "register" ? "Register" : mode === "forgot" ? "Send link" : "Back to Sign In")} 
+                      text={getPrimaryActionText()}
                       width="100%" 
                       height="48px" 
                       bgColor="#3a6bb8" 
                       circleColor="#60a5fa" 
+                      loading={isBusy}
                     />
+                    {isBusy ? (
+                      <motion.p
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="mt-3 text-center text-xs font-medium tracking-[0.03em] text-slate-500"
+                      >
+                        {getBusyHint()}
+                      </motion.p>
+                    ) : null}
                   </motion.div>
 
                   <motion.div layout className="mt-3 text-center text-sm text-gray-600">
