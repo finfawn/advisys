@@ -170,12 +170,12 @@ const HistoryConsultationDetailsPage = () => {
     const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
 
     let derived = original;
-    if (derived === 'cancelled' || derived === 'missed' || derived === 'completed') {
+    if (derived === 'cancelled' || derived === 'missed' || derived === 'completed' || derived === 'incomplete') {
       // keep as is
     } else {
       // Map any non-history statuses to completed/missed based on schedule
       if (start && !isNaN(start.getTime()) && Date.now() >= start.getTime() + graceMs) {
-        derived = 'missed';
+        derived = consultation?.actual_start_datetime ? 'completed' : 'missed';
       } else {
         derived = 'completed';
       }
@@ -188,6 +188,8 @@ const HistoryConsultationDetailsPage = () => {
         return { text: 'Cancelled', icon: <XCircleIcon />, class: 'status-cancelled' };
       case 'missed':
         return { text: 'Missed', icon: <ClockIcon />, class: 'status-missed' };
+      case 'incomplete':
+        return { text: 'Incomplete', icon: <ClockIcon />, class: 'status-missed' };
       default:
         return { text: 'Completed', icon: <CheckCircleIcon />, class: 'status-completed' };
     }

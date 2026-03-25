@@ -112,8 +112,8 @@ export default function OnlineConsultationDetailsPage() {
     const now = Date.now();
     const inUpcomingWindow = start ? (now < (start.getTime() + graceMs)) : false;
     if (status === 'pending' || status === 'declined' || status === 'expired') return 'requests';
-    if (status === 'completed' || status === 'cancelled' || status === 'missed') return 'history';
-    if (status === 'approved') return inUpcomingWindow ? 'upcoming' : 'history';
+    if (status === 'completed' || status === 'cancelled' || status === 'missed' || status === 'incomplete') return 'history';
+    if (status === 'approved') return (inUpcomingWindow || c?.actual_start_datetime) ? 'upcoming' : 'history';
     return 'upcoming';
   };
   const backTab = location.state?.fromTab || deriveBackTab(consultationData) || 'upcoming';
@@ -221,7 +221,7 @@ export default function OnlineConsultationDetailsPage() {
 
   useEffect(() => {
     const status = String(consultationData?.status || '').toLowerCase();
-    if (status === 'completed' || status === 'cancelled' || status === 'canceled' || status === 'missed') {
+    if (status === 'completed' || status === 'cancelled' || status === 'canceled' || status === 'missed' || status === 'incomplete') {
       setCountdownText('');
       return;
     }
@@ -647,6 +647,7 @@ export default function OnlineConsultationDetailsPage() {
                           cancelled: 'Cancelled',
                           canceled: 'Cancelled',
                           completed: 'Completed',
+                          incomplete: 'Incomplete',
                           missed: 'Missed',
                           expired: 'Expired',
                         };
@@ -869,7 +870,7 @@ export default function OnlineConsultationDetailsPage() {
                     <div className="action-buttons">
                       {(() => {
                         const statusLc = String(consultationData?.status || '').toLowerCase();
-                        const hide = statusLc === 'completed' || statusLc === 'cancelled' || statusLc === 'canceled';
+                        const hide = statusLc === 'completed' || statusLc === 'cancelled' || statusLc === 'canceled' || statusLc === 'incomplete';
                         if (hide) return null;
                         return (
                         <>
@@ -936,6 +937,7 @@ export default function OnlineConsultationDetailsPage() {
                             cancelled: 'Cancelled',
                             canceled: 'Cancelled',
                             completed: 'Completed',
+                            incomplete: 'Incomplete',
                             missed: 'Missed',
                             expired: 'Expired',
                           };

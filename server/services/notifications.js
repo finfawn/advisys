@@ -43,6 +43,7 @@ function shouldEmailType(type) {
     'consultation_request',
     'consultation_approved',
     'consultation_cancelled',
+    'consultation_incomplete',
     'consultation_reminder',
   ]);
   return allowed.has(String(type || '').toLowerCase());

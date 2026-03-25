@@ -182,6 +182,12 @@ export default function MyConsultationsPage() {
       const s = String(r).trim();
       return s ? s : null;
     })();
+    const incompleteReason = (() => {
+      const r = c?.incomplete_reason ?? c?.incompleteReason ?? c?.incomplete_notes ?? c?.incompleteNotes ?? null;
+      if (r == null) return null;
+      const s = String(r).trim();
+      return s ? s : null;
+    })();
 
     const declineR = declineReason || findReason(c, 'decline');
     const cancelR = cancelReason || findReason(c, 'cancel');
@@ -196,6 +202,7 @@ export default function MyConsultationsPage() {
       time,
       declineReason: declineR,
       cancelReason: cancelR,
+      incompleteReason,
       faculty: { id, name, title, department, avatar },
     };
   };
@@ -409,8 +416,8 @@ export default function MyConsultationsPage() {
       const inGrace = start ? now < (start.getTime() + graceMs) : false;
       const isFuture = start ? start >= now : (c.date ? new Date(c.date) >= now : false);
       let status = String(c.status || '').toLowerCase();
-      // After grace window, still "approved" implies missed
-      if (status === 'approved' && start && now >= (start.getTime() + graceMs)) {
+      // Only untouched approved consultations become missed after the grace window.
+      if (status === 'approved' && !c.actual_start_datetime && start && now >= (start.getTime() + graceMs)) {
         status = 'missed';
       }
       // After grace window, still "pending" implies expired
@@ -426,7 +433,7 @@ export default function MyConsultationsPage() {
 
     const requests = normalized.filter(c => c.status === 'pending' || c.status === 'declined' || c.status === 'expired');
 
-    const history = normalized.filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'canceled' || c.status === 'missed');
+    const history = normalized.filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'canceled' || c.status === 'missed' || c.status === 'incomplete');
 
     return {
       upcomingConsultations: upcoming,

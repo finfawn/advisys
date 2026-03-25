@@ -1039,3 +1039,519 @@
 @media (max-width: 768px) {
   .mobile-inline-only { display: inline-flex; }
 }
+
+/* Advisor-specific redesign: modern, minimal, document-inspired */
+.advisor-details-page .consultation-details-main {
+  padding: 24px 22px 84px;
+}
+
+.advisor-details-page .consultation-details-back {
+  max-width: 1180px;
+  margin: 0 auto 16px;
+  width: 100%;
+}
+
+.advisor-details-page .back-button {
+  padding: 6px 0;
+  border-radius: 0;
+  color: #5f6f86;
+  font-size: 0.92rem;
+}
+
+.advisor-details-page .back-button:hover {
+  background: transparent;
+  color: #243248;
+}
+
+.advisor-details-page .details-loading,
+.advisor-details-page .details-error {
+  border-radius: 10px;
+}
+
+.advisor-details-page .consultation-details-container {
+  max-width: 1180px;
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  border-radius: 12px;
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.06);
+  padding: 0 28px 28px;
+  overflow: hidden;
+}
+
+.advisor-details-page .consultation-details-header {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+  padding: 28px 0 22px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.24);
+}
+
+.advisor-details-page .header-content {
+  gap: 28px;
+  align-items: flex-start;
+}
+
+.advisor-details-page .consultation-title-section {
+  margin-bottom: 14px;
+}
+
+.advisor-details-page .consultation-title {
+  font-size: 2.15rem;
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  margin-bottom: 12px;
+}
+
+.advisor-details-page .consultation-badges {
+  gap: 8px;
+}
+
+.advisor-details-page .status-badge,
+.advisor-details-page .mode-badge {
+  border-radius: 9px;
+  padding: 6px 12px;
+  font-size: 0.82rem;
+  letter-spacing: 0.02em;
+  border-width: 1px;
+}
+
+.advisor-details-page .status-badge.approved {
+  background: #eef6ef;
+  color: #1d5a34;
+  border-color: #c8e3cf;
+}
+
+.advisor-details-page .status-badge.completed {
+  background: #edf5ff;
+  color: #1f4f9d;
+  border-color: #c9ddfb;
+}
+
+.advisor-details-page .status-badge.cancelled,
+.advisor-details-page .status-badge.declined {
+  background: #fdf0f1;
+  color: #9c2836;
+  border-color: #f3c7cf;
+}
+
+.advisor-details-page .status-badge.missed,
+.advisor-details-page .status-badge.status-missed {
+  background: #fef6e9;
+  color: #975a16;
+  border-color: #f2d2a0;
+}
+
+.advisor-details-page .status-badge.insession {
+  background: #eef4ff;
+  color: #2c5ac0;
+  border-color: #c9daf9;
+}
+
+.advisor-details-page .mode-badge.in-person {
+  background: #f4f6fa;
+  color: #334155;
+  border-color: #d8e0eb;
+}
+
+.advisor-details-page .mode-badge.online {
+  background: #eff5ff;
+  color: #264f96;
+  border-color: #cfe0ff;
+}
+
+.advisor-details-page .consultation-datetime {
+  gap: 18px;
+  margin-top: 14px;
+  flex-wrap: wrap;
+}
+
+.advisor-details-page .date-info,
+.advisor-details-page .time-info {
+  color: #445266;
+  font-size: 0.97rem;
+}
+
+.advisor-details-page .date-icon,
+.advisor-details-page .time-icon {
+  color: #5778b8;
+}
+
+.advisor-details-page .advisor-info-card {
+  min-width: 300px;
+  background: linear-gradient(180deg, rgba(248, 250, 252, 0.96), rgba(244, 247, 251, 0.9));
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 10px;
+  padding: 16px 18px;
+  box-shadow: none;
+}
+
+.advisor-details-page .advisor-avatar {
+  width: 64px;
+  height: 64px;
+  font-size: 34px;
+  border-width: 2px;
+  box-shadow: none;
+}
+
+.advisor-details-page .advisor-name {
+  font-size: 1.16rem;
+  margin-bottom: 2px;
+}
+
+.advisor-details-page .advisor-title,
+.advisor-details-page .advisor-department {
+  font-size: 0.92rem;
+}
+
+.advisor-details-page .consultation-details-grid {
+  gap: 28px;
+  padding-top: 6px;
+  align-items: start;
+}
+
+.advisor-details-page .consultation-details-left,
+.advisor-details-page .consultation-details-right {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.advisor-details-page .consultation-details-section {
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  margin-bottom: 0;
+  padding: 22px 0;
+  border-top: 1px solid rgba(226, 232, 240, 0.95);
+}
+
+.advisor-details-page .consultation-details-left > .consultation-details-section:first-child,
+.advisor-details-page .consultation-details-right > .consultation-details-section:first-child {
+  border-top: none;
+}
+
+.advisor-details-page .section-title {
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.9);
+  font-size: 1.08rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.advisor-details-page .section-icon {
+  color: #4f6fb2;
+  font-size: 1.08rem;
+}
+
+.advisor-details-page .section-content {
+  color: #445266;
+}
+
+.advisor-details-page .location-info,
+.advisor-details-page .meeting-link-container,
+.advisor-details-page .notes-text,
+.advisor-details-page .summary-text,
+.advisor-details-page .notes-container .student-notes,
+.advisor-details-page .edit-request-textarea,
+.advisor-details-page .sticky-note,
+.advisor-details-page .info-item {
+  background: #f9fbfd;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.advisor-details-page .location-info {
+  color: #364152;
+}
+
+.advisor-details-page .location-icon,
+.advisor-details-page .meeting-icon {
+  color: #4f6fb2;
+}
+
+.advisor-details-page .meeting-link-container {
+  padding: 16px 18px;
+}
+
+.advisor-details-page .meeting-label {
+  color: #5c6d85;
+  letter-spacing: 0.08em;
+}
+
+.advisor-details-page .meeting-link-text {
+  color: #243248;
+  font-family: inherit;
+  font-size: 0.96rem;
+}
+
+.advisor-details-page .request-category {
+  background: #f5f8fc;
+  color: #30435f;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 8px;
+  padding: 6px 12px;
+  margin-bottom: 16px;
+}
+
+.advisor-details-page .student-notes h3 {
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #6c7a8e;
+  margin-bottom: 10px;
+}
+
+.advisor-details-page .notes-text,
+.advisor-details-page .summary-text,
+.advisor-details-page .notes-container .student-notes {
+  padding: 14px 16px;
+  line-height: 1.72;
+  color: #364152;
+}
+
+.advisor-details-page .summary-text,
+.advisor-details-page .edit-request-textarea {
+  min-height: 136px;
+}
+
+.advisor-details-page .sticky-note {
+  transform: none;
+  min-height: 180px;
+  padding: 16px;
+  background:
+    linear-gradient(to bottom, rgba(79, 111, 178, 0.05), rgba(79, 111, 178, 0.05)) top/100% 1px no-repeat,
+    linear-gradient(#ffffff, #ffffff) padding-box;
+}
+
+.advisor-details-page .sticky-note::after,
+.advisor-details-page .sticky-pin {
+  display: none;
+}
+
+.advisor-details-page .sticky-note-display,
+.advisor-details-page .sticky-note-textarea {
+  min-height: 144px;
+  color: #364152;
+  line-height: 1.72;
+}
+
+.advisor-details-page .sticky-note-textarea {
+  resize: vertical;
+}
+
+.advisor-details-page .guidelines-list {
+  gap: 10px;
+}
+
+.advisor-details-page .guideline-item {
+  border-radius: 8px;
+  padding: 12px 14px;
+  background: #fbfcfe;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+}
+
+.advisor-details-page .guideline-item:hover {
+  background: #f7faff;
+  border-color: rgba(148, 163, 184, 0.28);
+}
+
+.advisor-details-page .guideline-icon {
+  color: #4f6fb2;
+}
+
+.advisor-details-page .actions-section .section-title,
+.advisor-details-page .actions-section .section-content {
+  color: inherit;
+  border-bottom-color: rgba(226, 232, 240, 0.9);
+}
+
+.advisor-details-page .action-buttons {
+  gap: 8px;
+}
+
+.advisor-details-page .action-btn {
+  justify-content: flex-start;
+  padding: 11px 14px;
+  border-radius: 8px;
+  font-size: 0.93rem;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.advisor-details-page .action-btn.join-meeting {
+  background: #2f5bb6;
+  border-color: #2f5bb6;
+}
+
+.advisor-details-page .action-btn.join-meeting:hover {
+  background: #274b95;
+  border-color: #274b95;
+  transform: none;
+  box-shadow: none;
+}
+
+.advisor-details-page .action-btn.cancel-consultation {
+  background: #ffffff;
+  color: #b42318;
+  border-color: #e6b1af;
+}
+
+.advisor-details-page .action-btn.cancel-consultation:hover:not(:disabled) {
+  background: #fff7f7;
+  color: #9f1d14;
+}
+
+.advisor-details-page .info-grid {
+  gap: 12px;
+}
+
+.advisor-details-page .info-item {
+  gap: 6px;
+  padding: 12px 14px;
+}
+
+.advisor-details-page .info-item:hover {
+  background: #f9fbfd;
+  border-color: rgba(148, 163, 184, 0.24);
+}
+
+.advisor-details-page .info-label {
+  font-size: 0.74rem;
+  letter-spacing: 0.12em;
+  color: #6c7a8e;
+}
+
+.advisor-details-page .info-value {
+  background: transparent;
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  color: #1f2937;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.advisor-details-page .info-value.status-approved {
+  color: #1d5a34;
+}
+
+.advisor-details-page .info-value.status-missed,
+.advisor-details-page .info-value.status-no-show {
+  color: #975a16;
+}
+
+.advisor-details-page .success-text {
+  display: inline-block;
+  margin-top: 8px;
+  color: #436d36;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .advisor-details-page .consultation-details-section,
+  .advisor-details-page .info-item,
+  .advisor-details-page .guideline-item {
+    transition: none;
+  }
+
+  .advisor-details-page .consultation-details-section:hover {
+    transform: none;
+    box-shadow: none;
+  }
+}
+
+@media (max-width: 1366px) {
+  .advisor-details-page .consultation-details-grid {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+
+  .advisor-details-page .consultation-details-right {
+    border-top: 1px solid rgba(226, 232, 240, 0.95);
+  }
+
+  .advisor-details-page .consultation-details-right > .consultation-details-section:first-child {
+    border-top: none;
+  }
+}
+
+@media (max-width: 768px) {
+  .advisor-details-page .consultation-details-main {
+    padding: 14px 12px 72px;
+  }
+
+  .advisor-details-page .consultation-details-container {
+    padding: 0 18px 18px;
+    border-radius: 10px;
+  }
+
+  .advisor-details-page .consultation-details-header {
+    padding: 22px 0 18px;
+  }
+
+  .advisor-details-page .header-content {
+    gap: 18px;
+  }
+
+  .advisor-details-page .consultation-title {
+    font-size: 1.82rem;
+  }
+
+  .advisor-details-page .consultation-datetime {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .advisor-details-page .advisor-info-card {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .advisor-details-page .consultation-details-section {
+    padding: 18px 0;
+  }
+
+  .advisor-details-page .actions-trigger {
+    background: #f9fbfd;
+    border: 1px solid rgba(148, 163, 184, 0.24);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+
+  .advisor-details-page .actions-section {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 18px 0 !important;
+    margin-bottom: 0;
+  }
+
+  .advisor-details-page .actions-section .lw-collapsible-content,
+  .advisor-details-page .actions-section .section-content {
+    background: transparent;
+    border: none;
+    border-radius: 0;
+    padding: 14px 0 0;
+    margin-top: 0;
+  }
+}
+
+@media (max-width: 576px) {
+  .advisor-details-page .consultation-details-container {
+    padding: 0 14px 16px;
+  }
+
+  .advisor-details-page .consultation-title {
+    font-size: 1.58rem;
+  }
+
+  .advisor-details-page .status-badge,
+  .advisor-details-page .mode-badge {
+    border-radius: 8px;
+    padding: 6px 10px;
+  }
+}

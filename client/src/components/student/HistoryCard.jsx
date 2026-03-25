@@ -25,6 +25,8 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
     switch (consultation.status) {
       case 'completed':
         return { text: 'Completed', icon: <CheckCircleIcon className="w-4 h-4" />, class: 'status-completed' };
+      case 'incomplete':
+        return { text: 'Incomplete', icon: <ClockIcon className="w-4 h-4" />, class: 'status-missed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <XCircleIcon className="w-4 h-4" />, class: 'status-cancelled' };
       case 'missed':
@@ -58,6 +60,7 @@ function HistoryCard({ consultation, onViewDetails, onDelete }) {
         <Badge 
           variant={
             consultation.status === 'completed' ? 'success' : 
+            consultation.status === 'incomplete' ? 'warning' :
             consultation.status === 'cancelled' ? 'destructive' : 
             consultation.status === 'missed' ? 'warning' :
             'success'

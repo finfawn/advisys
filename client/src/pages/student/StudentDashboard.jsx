@@ -279,7 +279,7 @@ export default function StudentDashboard() {
           : null;
         const isPast = end ? end < now : false;
         let status = c.status;
-        if (status === 'approved' && isPast) status = 'missed';
+        if (status === 'approved' && !c.actual_start_datetime && isPast) status = 'missed';
         return { ...c, status, _start: start };
       })
       .filter(c => c.status === 'approved' && c._start && c._start >= now)

@@ -345,19 +345,19 @@ export default function AdvisorOnlineConsultationDetailsPage() {
   const deriveHistoryAwareStatus = () => {
     let s = statusRaw;
     if (fromHistory) {
-      if (s === 'cancelled' || s === 'missed' || s === 'completed') return s;
+      if (s === 'cancelled' || s === 'missed' || s === 'completed' || s === 'incomplete') return s;
       // Map any non-history statuses to completed/missed by schedule
       const start = getStartDate(consultationData);
       const durationMin = Number(consultationData?.duration || consultationData?.duration_minutes || 30);
       const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
-      if (start && Date.now() >= (start.getTime() + graceMs)) return 'missed';
+      if (!consultationData?.actual_start_datetime && start && Date.now() >= (start.getTime() + graceMs)) return 'missed';
       return 'completed';
     }
     return s;
   };
-  const statusClass = ['completed','cancelled','missed','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : 'approved';
+  const statusClass = ['completed','cancelled','missed','incomplete','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : 'approved';
   const statusLabel = statusClass.charAt(0).toUpperCase() + statusClass.slice(1);
-  const isCompletedLike = ['completed','cancelled','missed'].includes(statusClass);
+  const isCompletedLike = ['completed','cancelled','missed','incomplete'].includes(statusClass);
   const modeRaw = String(consultationData?.mode || 'online').toLowerCase();
   const modeClass = modeRaw === 'in-person' ? 'in-person' : 'online';
   const modeLabel = modeClass === 'in-person' ? 'In-Person' : 'Online';

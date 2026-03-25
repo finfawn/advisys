@@ -97,6 +97,9 @@
 .section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem; }
 .section-title { font-size: 1.2rem; font-weight: 700; color: #1f2937; margin: 0; }
 .section-controls { display: flex; align-items: center; gap: 10px; }
+.section-controls-history { flex-wrap: wrap; justify-content: flex-end; row-gap: 10px; }
+.history-controls-group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.history-controls-group-secondary { justify-content: flex-end; margin-left: auto; }
 .filter-dropdown { min-width: 140px; }
 .section-count { font-size: 0.9rem; color: #6b7280; }
 
@@ -120,10 +123,16 @@
   .advisor-my-consultations .consultations-tabs { flex-direction: column; gap: 4px; }
   .advisor-my-consultations .section-header { flex-direction: column; align-items: stretch; gap: 8px; margin-bottom: 8px; }
   .advisor-my-consultations .section-controls { justify-content: space-between; width: 100%; flex-wrap: wrap; gap: 6px; }
+  .advisor-my-consultations .history-controls-group { width: 100%; }
+  .advisor-my-consultations .history-controls-group-secondary { justify-content: space-between; margin-left: 0; }
   .advisor-my-consultations .filter-dropdown { flex: 1 1 48%; min-width: 0; }
 }
 @media (max-width: 640px) {
   .advisor-my-consultations .filter-dropdown { flex: 1 1 100%; min-width: 0; width: 100%; }
+  .advisor-my-consultations .history-controls-group,
+  .advisor-my-consultations .history-controls-group-secondary { flex-direction: column; align-items: stretch; }
+  .advisor-my-consultations .history-controls-group-secondary { justify-content: flex-start; margin-left: 0; }
+  .advisor-my-consultations .section-count { align-self: flex-start; }
 }
 
 .undo-notification { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: #1f2937; color: white; border-radius: 8px; padding: 0; box-shadow: 0 4px 12px rgba(0,0,0,0.15); z-index: 1000; min-width: 300px; max-width: 500px; }

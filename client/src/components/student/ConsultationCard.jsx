@@ -37,6 +37,8 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         return { text: 'Expired', icon: <ClockIcon className="w-4 h-4" />, class: 'status-expired' };
       case 'completed':
         return { text: 'Completed', icon: <CheckCircleIcon className="w-4 h-4" />, class: 'status-completed' };
+      case 'incomplete':
+        return { text: 'Incomplete', icon: <ClockIcon className="w-4 h-4" />, class: 'status-missed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <XCircleIcon className="w-4 h-4" />, class: 'status-cancelled' };
       case 'missed':
@@ -130,6 +132,7 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
             consultation.status === 'approved' ? 'default' : 
             consultation.status === 'pending' ? 'warning' : 
             consultation.status === 'completed' ? 'success' :
+            consultation.status === 'incomplete' ? 'warning' :
             'destructive'
           } 
           className="flex items-center gap-1 text-xs"
@@ -233,6 +236,21 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         })()}
 
         {(() => {
+          const incompleteText = rs.reason
+            || consultation.incompleteReason
+            || consultation.incomplete_reason
+            || consultation.incompleteNotes
+            || consultation.incomplete_notes
+            || consultation.reason;
+          return (statusLc === 'incomplete' || rsStatus === 'incomplete') && incompleteText ? (
+            <div className="p-2 bg-amber-50 border-l-4 border-amber-500 rounded">
+              <div className="text-xs font-semibold text-amber-800 mb-0.5">Incomplete:</div>
+              <div className="text-xs text-amber-700">{prettyReason(incompleteText)}</div>
+            </div>
+          ) : null;
+        })()}
+
+        {(() => {
           const isApproved = String(rs.status || '').toLowerCase() === 'approved';
           const val = isApproved ? rs.value : null;
           if (!val) return null;
@@ -273,15 +291,15 @@ function ConsultationCard({ consultation, onActionClick, onDelete, onCancel, onR
         </CardFooter>
       )}
       
-      {(consultation.status === 'declined' || consultation.status === 'expired' || consultation.status === 'missed' || consultation.status === 'cancelled') && (
+      {(consultation.status === 'declined' || consultation.status === 'expired' || consultation.status === 'missed' || consultation.status === 'cancelled' || consultation.status === 'incomplete') && (
         <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" variant="ghost" className="flex-1 bg-amber-500 hover:bg-amber-600" onClick={handleRescheduleConsultation}>
             Reschedule
           </Button>
         </CardFooter>
       )}
-      
-      {consultation.status === 'completed' && (
+
+      {(consultation.status === 'completed' || consultation.status === 'incomplete') && (
         <CardFooter className="pt-2 gap-2" align="between">
           <Button size="sm" className="flex-1 bg-blue-600 hover:bg-blue-700" onClick={onActionClick}>
             View Details

@@ -238,7 +238,7 @@ export default function AdvisorConsultations() {
         let inGrace = false;
         if (start) {
           inGrace = now < (start.getTime() + graceMs);
-          if (status === 'approved' && !inGrace && now >= (start.getTime() + graceMs)) {
+          if (status === 'approved' && !c.actual_start_datetime && !inGrace && now >= (start.getTime() + graceMs)) {
             status = 'missed';
           }
         }
@@ -271,9 +271,9 @@ export default function AdvisorConsultations() {
       const durationMin = c.duration || c.duration_minutes || 30;
       const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
       let status = c.status;
-      if (status === 'approved' && start && now >= (start.getTime() + graceMs)) status = 'missed';
+      if (status === 'approved' && !c.actual_start_datetime && start && now >= (start.getTime() + graceMs)) status = 'missed';
       return { ...c, status };
-    }).filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'missed')
+    }).filter(c => c.status === 'completed' || c.status === 'cancelled' || c.status === 'missed' || c.status === 'incomplete')
   ), [allConsultations]);
 
   const [upcomingCards, setUpcomingCards] = useState([]);
@@ -859,45 +859,56 @@ export default function AdvisorConsultations() {
                 >
                   <div className="section-header">
                     <h2 className="section-title">Consultation History</h2>
-                    <div className="section-controls">
-                      <Select value={historyView} onValueChange={setHistoryView}>
-                        <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="consultations">View by Consultations</SelectItem>
-                          <SelectItem value="by-students">View by Students</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={historyTermId} onValueChange={setHistoryTermId}>
-                        <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="current">Current Term</SelectItem>
-                          <SelectItem value="all">All Terms</SelectItem>
-                          {terms.map(t => (
-                            <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label} Semester</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <Select value={historyFilter} onValueChange={setHistoryFilter}>
-                        <SelectTrigger className="filter-dropdown">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="all">All</SelectItem>
-                          <SelectItem value="online">Online</SelectItem>
-                          <SelectItem value="in-person">In-Person</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <Select value={historySort} onValueChange={setHistorySort}>
-                        <SelectTrigger className="filter-dropdown">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="asc">Date Asc</SelectItem>
-                          <SelectItem value="desc">Date Desc</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      
-                      <span className="section-count">{filteredHistory.length} past sessions</span>
+                    <div className="section-controls section-controls-history">
+                      <div className="history-controls-group">
+                        <Select value={historyView} onValueChange={setHistoryView}>
+                          <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="consultations">View by Consultations</SelectItem>
+                            <SelectItem value="by-students">View by Students</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <Select value={historyTermId} onValueChange={setHistoryTermId}>
+                          <SelectTrigger className="filter-dropdown"><SelectValue /></SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="current">Current Term</SelectItem>
+                            <SelectItem value="all">All Terms</SelectItem>
+                            {terms.map(t => (
+                              <SelectItem key={t.id} value={String(t.id)}>{t.year_label} • {t.semester_label} Semester</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div className="history-controls-group history-controls-group-secondary">
+                        {historyView === 'consultations' ? (
+                          <>
+                            <Select value={historyFilter} onValueChange={setHistoryFilter}>
+                              <SelectTrigger className="filter-dropdown">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="all">All</SelectItem>
+                                <SelectItem value="online">Online</SelectItem>
+                                <SelectItem value="in-person">In-Person</SelectItem>
+                              </SelectContent>
+                            </Select>
+                            <Select value={historySort} onValueChange={setHistorySort}>
+                              <SelectTrigger className="filter-dropdown">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="asc">Date Asc</SelectItem>
+                                <SelectItem value="desc">Date Desc</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </>
+                        ) : null}
+                        <span className="section-count">
+                          {historyView === 'consultations'
+                            ? `${filteredHistory.length} history`
+                            : `${counterparts.length} students`}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   
@@ -951,10 +962,17 @@ export default function AdvisorConsultations() {
                           />
                         ))}
                         {filteredHistory.length === 0 && (
-                          <div className="no-history">
-                            <BsListCheck className="no-history-icon" />
+                          <div className="no-consultations">
+                            <BsListCheck className="no-consultations-icon" />
                             <h3>No consultation history</h3>
                             <p>You haven’t completed any consultation sessions yet.</p>
+                            <Button
+                              variant="primary"
+                              onClick={() => navigate('/advisor-dashboard/availability')}
+                              className="add-consultation-btn"
+                            >
+                              Manage Availability
+                            </Button>
                           </div>
                         )}
                       </div>
@@ -973,10 +991,17 @@ export default function AdvisorConsultations() {
                           </div>
                         ))}
                         {counterparts.length === 0 && (
-                          <div className="no-history">
-                            <BsListCheck className="no-history-icon" />
+                          <div className="no-consultations">
+                            <BsListCheck className="no-consultations-icon" />
                             <h3>No students found</h3>
                             <p>No consultations with students in this selection.</p>
+                            <Button
+                              variant="primary"
+                              onClick={() => navigate('/advisor-dashboard/availability')}
+                              className="add-consultation-btn"
+                            >
+                              Manage Availability
+                            </Button>
                           </div>
                         )}
                       </div>

@@ -33,6 +33,8 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
         return { text: 'Declined', icon: <BsXCircle />, class: 'status-declined' };
       case 'completed':
         return { text: 'Completed', icon: <BsCheckCircle />, class: 'status-completed' };
+      case 'incomplete':
+        return { text: 'Incomplete', icon: <BsClockHistory />, class: 'status-missed' };
       case 'cancelled':
         return { text: 'Cancelled', icon: <BsXCircle />, class: 'status-cancelled' };
       case 'missed':

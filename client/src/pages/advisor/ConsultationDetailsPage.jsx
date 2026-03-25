@@ -140,12 +140,12 @@ export default function AdvisorConsultationDetailsPage() {
   const deriveHistoryAwareStatus = () => {
     let s = statusRaw;
     if (fromHistory) {
-      if (s === 'cancelled' || s === 'missed' || s === 'completed') return s;
+      if (s === 'cancelled' || s === 'missed' || s === 'completed' || s === 'incomplete') return s;
       // Map any non-history statuses to completed/missed by schedule
       const start = getStartDate(consultationData);
       const durationMin = Number(consultationData?.duration || consultationData?.duration_minutes || 30);
       const graceMs = (durationMin < 30 ? 10 : 15) * 60 * 1000;
-      if (start && Date.now() >= (start.getTime() + graceMs)) return 'missed';
+      if (!consultationData?.actual_start_datetime && start && Date.now() >= (start.getTime() + graceMs)) return 'missed';
       return 'completed';
     }
     return s;
@@ -164,10 +164,10 @@ export default function AdvisorConsultationDetailsPage() {
     return null;
   };
   const endPassedNotStarted = (() => { const e = scheduledEndRef(); return e && Date.now() > e.getTime() && !consultationData?.actual_start_datetime; })();
-  const statusClass = ['completed','cancelled','missed','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : (endPassedNotStarted ? 'missed' : 'approved');
+  const statusClass = ['completed','cancelled','missed','incomplete','approved','pending','declined'].includes(deriveHistoryAwareStatus()) ? deriveHistoryAwareStatus() : (endPassedNotStarted ? 'missed' : 'approved');
   const inSession = statusClass === 'approved' && !!consultationData?.actual_start_datetime && !consultationData?.actual_end_datetime;
   const statusLabel = inSession ? 'In Session' : (statusClass.charAt(0).toUpperCase() + statusClass.slice(1));
-  const isCompletedLike = ['completed','cancelled','missed'].includes(statusClass);
+  const isCompletedLike = ['completed','cancelled','missed','incomplete'].includes(statusClass);
   const modeRaw = String(consultationData?.mode || 'in-person').toLowerCase();
   const modeClass = modeRaw === 'online' ? 'online' : 'in-person';
   const modeLabel = modeClass === 'online' ? 'Online' : 'In-Person';

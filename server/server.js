@@ -384,6 +384,7 @@ async function runMissedConsultationJob() {
     // Find consultations that are approved and already ended
     const [rows] = await pool.query(
       `SELECT c.id, c.student_user_id, c.advisor_user_id, c.topic, c.start_datetime, c.end_datetime, c.status,
+              c.actual_start_datetime, c.actual_end_datetime,
               c.duration_minutes,
               s.full_name AS student_name, a.full_name AS advisor_name
          FROM consultations c
@@ -396,10 +397,14 @@ async function runMissedConsultationJob() {
     const now = new Date();
     for (const c of rows) {
       // Double-check current status to avoid race conditions
-      const [[current]] = await pool.query('SELECT status, start_datetime, end_datetime, duration_minutes FROM consultations WHERE id = ?', [c.id]);
+      const [[current]] = await pool.query(
+        'SELECT status, start_datetime, end_datetime, duration_minutes, actual_start_datetime, actual_end_datetime FROM consultations WHERE id = ?',
+        [c.id]
+      );
       if (!current) continue;
       const currStatus = String(current.status || '').toLowerCase();
       if (currStatus !== 'approved') continue; // already handled elsewhere
+      if (current.actual_start_datetime || current.actual_end_datetime) continue; // call/session already started or handled
 
       const start = new Date(current.start_datetime || c.start_datetime);
       const end = new Date(current.end_datetime || c.end_datetime);

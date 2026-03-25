@@ -371,6 +371,7 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
         const value = s === 'approved' ? (isOnline ? (r.meeting_link || null) : (r.location || r.room_name || null)) : null;
         const reason = s === 'declined' ? (r.decline_reason || null)
           : s === 'cancelled' || s === 'canceled' ? (r.cancel_reason || null)
+          : s === 'incomplete' ? (r.incomplete_reason || null)
           : null;
         return { status: s, value, reason };
       })();
@@ -411,6 +412,8 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
         decline_reason: r.decline_reason || null,
         cancel_reason: r.cancel_reason || null,
         cancellation_reason: r.cancel_reason || null,
+        incomplete_reason: r.incomplete_reason || null,
+        incomplete_notes: r.incomplete_notes || null,
         // Unified conditional field
         request_status: requestStatus,
       };
@@ -476,6 +479,7 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
       const value = s === 'approved' ? (isOnline ? (r.meeting_link || null) : (r.location || r.room_name || null)) : null;
       const reason = s === 'declined' ? (r.decline_reason || null)
         : s === 'cancelled' || s === 'canceled' ? (r.cancel_reason || null)
+        : s === 'incomplete' ? (r.incomplete_reason || null)
         : null;
       return { status: s, value, reason };
     })();
@@ -509,10 +513,14 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
         location: r.location || undefined,
         declineReason: r.decline_reason || undefined,
         cancelReason: r.cancel_reason || undefined,
+        incompleteReason: r.incomplete_reason || undefined,
+        incompleteNotes: r.incomplete_notes || undefined,
         // Also expose standardized snake_case for clients expecting these names
         decline_reason: r.decline_reason || null,
         cancel_reason: r.cancel_reason || null,
       cancellation_reason: r.cancel_reason || null,
+      incomplete_reason: r.incomplete_reason || null,
+      incomplete_notes: r.incomplete_notes || null,
       request_status: requestStatus,
       duration: computedDuration,
       bookingDate: r.booking_date,
@@ -531,8 +539,18 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
 router.patch('/consultations/:id/status', async (req, res) => {
   const pool = getPool();
   const id = req.params.id;
-  const { status, declineReason, cancelReason, location, noShowParty, summaryNotes } = req.body || {};
-  const allowed = new Set(['pending','approved','declined','completed','cancelled','missed']);
+  const {
+    status,
+    declineReason,
+    cancelReason,
+    incompleteReason,
+    incompleteNotes,
+    location,
+    noShowParty,
+    summaryNotes,
+  } = req.body || {};
+  await ensureIncompleteOutcomeSupport(pool);
+  const allowed = new Set(['pending','approved','declined','completed','cancelled','missed','incomplete']);
   if (!status || !allowed.has(status)) {
     return res.status(400).json({ error: 'Invalid or missing status' });
   }
@@ -544,23 +562,35 @@ router.patch('/consultations/:id/status', async (req, res) => {
     let values = [status];
     if (declineReason !== undefined) { fields.push('decline_reason = ?'); values.push(declineReason || null); }
     if (cancelReason !== undefined) { fields.push('cancel_reason = ?'); values.push(cancelReason || null); }
+    if (incompleteReason !== undefined) { fields.push('incomplete_reason = ?'); values.push(incompleteReason || null); }
+    if (incompleteNotes !== undefined) { fields.push('incomplete_notes = ?'); values.push(incompleteNotes || null); }
     if (location !== undefined) { fields.push('location = ?'); values.push(location || null); }
     if (summaryNotes !== undefined) { fields.push('summary_notes = ?'); values.push(summaryNotes || null); }
+    if (status !== 'declined') { fields.push('decline_reason = NULL'); }
+    if (status !== 'cancelled') { fields.push('cancel_reason = NULL'); }
+    if (status !== 'incomplete') {
+      fields.push('incomplete_reason = NULL');
+      fields.push('incomplete_notes = NULL');
+    }
     values.push(id);
-    // If completing, stamp actual_end_datetime now
+    // If completing/incompleting, stamp actual_end_datetime now
     let now = null;
-    if (status === 'completed') {
+    if (status === 'completed' || status === 'incomplete') {
       now = new Date();
       fields.push('actual_end_datetime = ?');
-      values = [status, ...(declineReason !== undefined ? [declineReason || null] : []), ...(cancelReason !== undefined ? [cancelReason || null] : []), ...(location !== undefined ? [location || null] : []), ...(summaryNotes !== undefined ? [summaryNotes || null] : []), now, id];
+      values.push(now);
+    }
+    // If approved again, clear any final timestamps so the session can proceed normally.
+    if (status === 'approved') {
+      fields.push('actual_end_datetime = NULL');
     }
     const [result] = await pool.query(`UPDATE consultations SET ${fields.join(', ')} WHERE id = ?`, values);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Consultation not found' });
     }
 
-    // If completed, compute actual duration from actual_start/end and persist
-    if (status === 'completed') {
+    // If completed/incomplete, compute actual duration from actual_start/end and persist
+    if (status === 'completed' || status === 'incomplete') {
       try {
         const [[row]] = await pool.query('SELECT actual_start_datetime, actual_end_datetime, start_datetime, end_datetime, duration_minutes FROM consultations WHERE id = ?', [id]);
         if (row) {
@@ -621,6 +651,18 @@ router.patch('/consultations/:id/status', async (req, res) => {
             'UPDATE advisor_slots SET status = ? WHERE advisor_user_id = ? AND start_datetime = ? AND end_datetime = ? AND status = ?',
             ['available', c.advisor_user_id, c.start_datetime, c.end_datetime, 'booked']
           );
+        } else if (status === 'incomplete') {
+          const reasonText = incompleteReason || c.incomplete_reason || null;
+          const notesText = incompleteNotes || c.incomplete_notes || null;
+          const title = `Consultation marked incomplete`;
+          const message = `The consultation for '${c.topic}' on ${date} at ${time} was marked incomplete.${reasonText ? ` Reason: ${reasonText}` : ''}`;
+          const data = {
+            consultation_id: c.id,
+            incomplete_reason: reasonText,
+            incomplete_notes: notesText,
+          };
+          await notify(pool, c.advisor_user_id, 'consultation_incomplete', title, message, data);
+          await notify(pool, c.student_user_id, 'consultation_incomplete', title, message, data);
         } else if (status === 'missed') {
           // Neutral "missed" state replaces "no-show" without blaming either party
           const title = `Consultation missed`;
@@ -738,6 +780,32 @@ async function ensureSummaryApprovalColumn(pool) {
     const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "summary_edit_approved_at"');
     if (!cols || cols.length === 0) {
       try { await pool.query('ALTER TABLE consultations ADD COLUMN summary_edit_approved_at DATETIME NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+}
+
+async function ensureIncompleteOutcomeSupport(pool) {
+  try {
+    const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "status"');
+    const statusType = String(cols?.[0]?.Type || cols?.[0]?.type || '').toLowerCase();
+    if (statusType && !statusType.includes("'incomplete'")) {
+      try {
+        await pool.query(
+          "ALTER TABLE consultations MODIFY COLUMN status ENUM('pending','approved','declined','completed','cancelled','missed','incomplete') NOT NULL DEFAULT 'pending'"
+        );
+      } catch (_) {}
+    }
+  } catch (_) {}
+  try {
+    const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "incomplete_reason"');
+    if (!cols || cols.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN incomplete_reason TEXT NULL'); } catch (_) {}
+    }
+  } catch (_) {}
+  try {
+    const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "incomplete_notes"');
+    if (!cols || cols.length === 0) {
+      try { await pool.query('ALTER TABLE consultations ADD COLUMN incomplete_notes TEXT NULL'); } catch (_) {}
     }
   } catch (_) {}
 }

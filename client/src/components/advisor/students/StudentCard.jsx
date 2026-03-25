@@ -13,8 +13,18 @@ export default function StudentCard({
   onAssign,
 }) {
   const toAcronym = (text) => {
+    const raw = String(text || '').trim();
+    if (!raw) return '';
+
+    const leadingCode = raw.match(/^([A-Za-z]{2,10})\s*[-–—:]/);
+    if (leadingCode) return leadingCode[1].toUpperCase();
+
+    if (/^[A-Za-z]{2,10}$/.test(raw) && raw.length <= 6) {
+      return raw.toUpperCase();
+    }
+
     const stop = new Set(['OF', 'IN', 'AND', 'THE', 'ON', 'AT', 'FOR', 'WITH']);
-    const words = String(text || '')
+    const words = raw
       .replace(/[-/]+/g, ' ')
       .trim()
       .split(/\s+/)
