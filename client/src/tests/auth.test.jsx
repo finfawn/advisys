@@ -4,6 +4,29 @@ import { render, screen, fireEvent, waitFor, within } from '@testing-library/rea
 import { MemoryRouter } from 'react-router-dom';
 import AuthPage from '../pages/AuthPage.jsx';
 
+const okJson = (body) => ({
+  ok: true,
+  status: 200,
+  json: async () => body,
+});
+
+const failJson = (status, body) => ({
+  ok: false,
+  status,
+  json: async () => body,
+});
+
+const installFetchMock = (handlers = {}) => {
+  return vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+    const url = String(input);
+    if (url.includes('/healthz')) return okJson({ ok: true });
+    if (url.includes('/api/auth/login') && handlers.login) return handlers.login(url);
+    if (url.includes('/api/auth/register') && handlers.register) return handlers.register(url);
+    if (url.includes('/api/auth/forgot-password') && handlers.forgotPassword) return handlers.forgotPassword(url);
+    return failJson(500, { error: `Unhandled fetch: ${url}` });
+  });
+};
+
 const setup = (path = '/auth') => {
   return render(
     <MemoryRouter initialEntries={[{ pathname: path }]}> <AuthPage /> </MemoryRouter>
@@ -36,9 +59,8 @@ describe('Authentication', () => {
   });
 
   it('logs in student and stores token/user', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ token: 't-stu', user: { id: 9, role: 'student' } })
+    installFetchMock({
+      login: async () => okJson({ token: 't-stu', user: { id: 9, role: 'student' } }),
     });
     setup();
     fireEvent.change(screen.getByPlaceholderText(/Email/i), { target: { value: 's@example.com' } });
@@ -52,9 +74,8 @@ describe('Authentication', () => {
   });
 
   it('logs in admin and navigates to admin dashboard', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ token: 't-admin', user: { id: 1, role: 'admin' } })
+    installFetchMock({
+      login: async () => okJson({ token: 't-admin', user: { id: 1, role: 'admin' } }),
     });
     setup();
     fireEvent.change(screen.getByPlaceholderText(/Email/i), { target: { value: 'admin@example.com' } });
@@ -68,10 +89,8 @@ describe('Authentication', () => {
   });
 
   it('shows error for invalid credentials', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: false,
-      status: 400,
-      json: async () => ({ error: 'Invalid credentials' })
+    installFetchMock({
+      login: async () => failJson(400, { error: 'Invalid credentials' }),
     });
     setup();
     fireEvent.change(screen.getByPlaceholderText(/Email/i), { target: { value: 'bad@example.com' } });
@@ -81,7 +100,9 @@ describe('Authentication', () => {
   });
 
   it('sends forgot password request to backend', async () => {
-    const spy = vi.spyOn(global, 'fetch').mockResolvedValueOnce({ ok: true, json: async () => ({}) });
+    const spy = installFetchMock({
+      forgotPassword: async () => okJson({}),
+    });
     setup('/auth');
     fireEvent.click(screen.getByText(/Forgot password\?/i));
     const dialog = await screen.findByRole('dialog');
@@ -95,8 +116,9 @@ describe('Authentication', () => {
   });
 
   it('redirects to verification when email not verified (403)', async () => {
-    const fetchSpy = vi.spyOn(global, 'fetch');
-    fetchSpy.mockResolvedValueOnce({ ok: false, status: 403, json: async () => ({ error: 'Email not verified' }) });
+    installFetchMock({
+      login: async () => failJson(403, { error: 'Email not verified' }),
+    });
     setup();
     fireEvent.change(screen.getByPlaceholderText(/Email/i), { target: { value: 'new@example.com' } });
     fireEvent.change(screen.getByPlaceholderText(/Password/i), { target: { value: 'secret123' } });
@@ -105,10 +127,8 @@ describe('Authentication', () => {
   });
 
   it('shows deactivated notice on 403 with deactivated code', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: false,
-      status: 403,
-      json: async () => ({ error: 'Account deactivated', code: 'ACCOUNT_DEACTIVATED' })
+    installFetchMock({
+      login: async () => failJson(403, { error: 'Account deactivated', code: 'ACCOUNT_DEACTIVATED' }),
     });
     setup();
     fireEvent.change(screen.getByPlaceholderText(/Email/i), { target: { value: 'x@example.com' } });
@@ -118,9 +138,8 @@ describe('Authentication', () => {
   });
 
   it('registers student and stores token/user', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ token: 't-new', user: { id: 11, role: 'student' } })
+    installFetchMock({
+      register: async () => okJson({ token: 't-new', user: { id: 11, role: 'student' } }),
     });
 
     setup();
@@ -144,9 +163,8 @@ describe('Authentication', () => {
   });
 
   it('registers advisor via role select', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({ token: 't-adv', user: { id: 7, role: 'advisor' } })
+    installFetchMock({
+      register: async () => okJson({ token: 't-adv', user: { id: 7, role: 'advisor' } }),
     });
     setup();
     fireEvent.click(screen.getByRole('button', { name: /Create account/i }));

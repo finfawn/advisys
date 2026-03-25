@@ -15,8 +15,10 @@ const VERIF_TTL_MIN = Number(process.env.VERIFICATION_CODE_TTL_MINUTES || 10);
 const VERIF_RESEND_SECONDS = Number(process.env.VERIFICATION_CODE_RESEND_SECONDS || 60);
 const VERIF_MAX_PER_HOUR = Number(process.env.VERIFICATION_MAX_PER_HOUR || 5);
 const VERIFICATION_DISABLED = String(process.env.EMAIL_VERIFICATION_DISABLED || 'false').toLowerCase() === 'true';
+const AUTO_ENROLL_ON_LOGIN = String(process.env.AUTO_ENROLL_ON_LOGIN || 'false').toLowerCase() === 'true';
 const ACCOUNT_DEACTIVATED_CODE = 'ACCOUNT_DEACTIVATED';
 const ACCOUNT_DEACTIVATED_MESSAGE = 'This account has been deactivated. Please contact the administrator for assistance.';
+let usersAuthColumnsPromise = null;
 
 const _invalidPlaceholders = new Set(['-', '--', '---', 'n/a', 'na', 'none', 'null', 'undefined']);
 function _isValidName(s) {
@@ -121,6 +123,53 @@ async function shouldBlockForDeactivation(pool, user = {}) {
   return isEmailVerified(user);
 }
 
+async function getUsersAuthColumns(pool) {
+  if (!usersAuthColumnsPromise) {
+    usersAuthColumnsPromise = (async () => {
+      try {
+        const [cols] = await pool.query('SHOW COLUMNS FROM users');
+        const colNames = new Set((Array.isArray(cols) ? cols : []).map((col) => String(col?.Field || '').toLowerCase()));
+        return {
+          hasEmailVerified: colNames.has('email_verified'),
+          hasMustChangePassword: colNames.has('must_change_password'),
+        };
+      } catch (err) {
+        console.warn('Could not inspect users auth columns:', err?.message || err);
+        return {
+          hasEmailVerified: true,
+          hasMustChangePassword: true,
+        };
+      }
+    })();
+  }
+  return usersAuthColumnsPromise;
+}
+
+async function getLoginUser(pool, emailNorm) {
+  const cols = await getUsersAuthColumns(pool);
+  const selectCols = ['id', 'role', 'email', 'password_hash', 'full_name', 'status'];
+  if (cols.hasEmailVerified) selectCols.push('email_verified');
+  if (cols.hasMustChangePassword) selectCols.push('must_change_password');
+  const [rows] = await pool.query(
+    `SELECT ${selectCols.join(', ')} FROM users WHERE email = ? LIMIT 1`,
+    [emailNorm]
+  );
+  return rows;
+}
+
+async function autoEnrollStudentOnLogin(pool, userId) {
+  const [[t]] = await pool.query(
+    `SELECT id FROM academic_terms WHERE is_current = 1 AND CURDATE() BETWEEN start_date AND end_date LIMIT 1`
+  );
+  if (!t || !t.id) return;
+  const [[sp]] = await pool.query('SELECT program, year_level FROM student_profiles WHERE user_id = ? LIMIT 1', [userId]);
+  await pool.query(
+    `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
+     VALUES (?,?,?,?,?,?)`,
+    [t.id, userId, 'student', 'enrolled', sp?.program || null, (sp?.year_level != null ? String(sp.year_level) : null)]
+  );
+}
+
 // POST /api/auth/register
 // Body: { role: 'student'|'advisor', firstName, lastName, email, password, program?, department?, yearLevel? }
 router.post('/register', async (req, res) => {
@@ -209,16 +258,7 @@ router.post('/login', async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
   try {
     const emailNorm = String(email).trim().toLowerCase();
-    let rows;
-    try {
-      [rows] = await pool.query('SELECT id, role, email, password_hash, full_name, status, email_verified, must_change_password FROM users WHERE email = ?', [emailNorm]);
-    } catch (_e) {
-      try {
-        [rows] = await pool.query('SELECT id, role, email, password_hash, full_name, status, email_verified FROM users WHERE email = ?', [emailNorm]);
-      } catch (_e2) {
-        [rows] = await pool.query('SELECT id, role, email, password_hash, full_name, status FROM users WHERE email = ?', [emailNorm]);
-      }
-    }
+    const rows = await getLoginUser(pool, emailNorm);
     if (!rows.length) return res.status(401).json({ error: 'Account does not exist. Create an account?' });
     const user = rows[0];
     if (!user.password_hash) return res.status(401).json({ error: 'Invalid credentials' });
@@ -235,28 +275,11 @@ router.post('/login', async (req, res) => {
         return res.status(403).json({ error: 'Email not verified' });
       }
     }
-    // Optional auto-enroll at login
-    try {
-      const autoOnLogin = String(process.env.AUTO_ENROLL_ON_LOGIN || 'false').toLowerCase() === 'true';
-      if (autoOnLogin && user.role === 'student') {
-        const [[t]] = await pool.query(`SELECT id FROM academic_terms WHERE is_current = 1 AND CURDATE() BETWEEN start_date AND end_date LIMIT 1`);
-        if (t && t.id) {
-          const [[sp]] = await pool.query('SELECT program, year_level FROM student_profiles WHERE user_id = ? LIMIT 1', [user.id]);
-          await pool.query(
-            `INSERT IGNORE INTO academic_term_memberships (term_id,user_id,role,status_in_term,program_snapshot,year_level_snapshot)
-             VALUES (?,?,?,?,?,?)`,
-            [t.id, user.id, 'student', 'enrolled', sp?.program || null, (sp?.year_level != null ? String(sp.year_level) : null)]
-          );
-        }
-      }
-    } catch (e) {
-      console.warn('Auto-enroll on login failed:', e?.message || e);
-    }
     const token = makeToken(user);
     const mustChangePassword = Object.prototype.hasOwnProperty.call(user, 'must_change_password')
       ? Number(user.must_change_password) === 1
       : false;
-    return res.json({
+    const response = {
       token,
       user: {
         id: user.id,
@@ -265,7 +288,18 @@ router.post('/login', async (req, res) => {
         full_name: user.full_name,
         must_change_password: mustChangePassword,
       },
-    });
+    };
+
+    res.json(response);
+
+    if (AUTO_ENROLL_ON_LOGIN && String(user.role).toLowerCase() === 'student') {
+      setImmediate(() => {
+        autoEnrollStudentOnLogin(pool, user.id).catch((e) => {
+          console.warn('Auto-enroll on login failed:', e?.message || e);
+        });
+      });
+    }
+    return;
   } catch (err) {
     console.error('Login failed:', err);
     return res.status(500).json({ error: 'Login failed' });

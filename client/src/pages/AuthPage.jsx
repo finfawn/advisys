@@ -7,6 +7,41 @@ import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from ".
 
 const ACCOUNT_DEACTIVATED_CODE = 'ACCOUNT_DEACTIVATED';
 const DEACTIVATED_NOTICE = 'This account has been deactivated. Please contact the administrator for assistance.';
+let apiWarmupPromise = null;
+
+function resolveApiBase() {
+  return import.meta.env.VITE_API_BASE_URL
+    || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
+    || "http://localhost:8080";
+}
+
+function warmApi(base) {
+  if (typeof window === 'undefined') return Promise.resolve();
+  if (apiWarmupPromise) return apiWarmupPromise;
+  apiWarmupPromise = fetch(`${base}/healthz`, {
+    method: "GET",
+    cache: "no-store",
+  }).catch(() => null);
+  return apiWarmupPromise;
+}
+
+function preconnectToApi(base) {
+  if (typeof document === 'undefined') return;
+  try {
+    const origin = new URL(base, window.location.origin).origin;
+    if (!origin) return;
+    const selector = `link[data-advisys-preconnect="${origin}"]`;
+    if (document.head.querySelector(selector)) return;
+    const link = document.createElement("link");
+    link.rel = "preconnect";
+    link.href = origin;
+    link.crossOrigin = "anonymous";
+    link.dataset.advisysPreconnect = origin;
+    document.head.appendChild(link);
+  } catch {
+    return;
+  }
+}
 
 // Custom hook for debounced state - JavaScript version (no TypeScript)
 function useDebouncedState(value, delay = 0.2) {
@@ -49,6 +84,12 @@ function AuthPage({ embedded = false }) {
   const [forgotErr, setForgotErr] = useState('');
   const [showPw, setShowPw] = useState(false);
 
+  useEffect(() => {
+    const base = resolveApiBase();
+    preconnectToApi(base);
+    void warmApi(base);
+  }, []);
+
   const onChange = (name, value) => setForm(prev => ({ ...prev, [name]: value }));
 
   const validate = () => {
@@ -75,9 +116,7 @@ function AuthPage({ embedded = false }) {
     if (!validate()) return;
     setSubmitting(true);
     setServerError("");
-    const base = import.meta.env.VITE_API_BASE_URL
-      || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
-      || "http://localhost:8080";
+    const base = resolveApiBase();
     try {
       if (mode === "login") {
         const res = await fetch(`${base}/api/auth/login`, {
@@ -163,9 +202,7 @@ function AuthPage({ embedded = false }) {
   };
 
   const onForgot = async () => {
-    const base = import.meta.env.VITE_API_BASE_URL
-      || (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.host}` : '')
-      || "http://localhost:8080";
+    const base = resolveApiBase();
     setForgotSubmitting(true);
     setForgotErr('');
     try {
