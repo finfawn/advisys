@@ -42,11 +42,15 @@ const RippleButton: React.FC<RippleButtonProps> = ({
         <span className="circle3"></span>
         <span className="circle4"></span>
         <span className="circle5"></span>
-        {loading ? <span className="loading-bar" aria-hidden="true"></span> : null}
-        <span className="text">
-          {loading ? <span className="loading-spinner" aria-hidden="true"></span> : null}
-          <span>{text}</span>
-        </span>
+        {loading ? (
+          <span className="spinner-only" aria-hidden="true">
+            <span className="loading-spinner"></span>
+          </span>
+        ) : (
+          <span className="text">
+            <span>{text}</span>
+          </span>
+        )}
       </button>
 
       <style>{`
@@ -70,7 +74,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           opacity: 0.98;
         }
 
-        .ripple-btn span:not(.text):not(.loading-bar) {
+        .ripple-btn span:not(.text):not(.spinner-only) {
           position: absolute;
           left: 50%;
           top: 50%;
@@ -112,23 +116,22 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           transform: translate(3.5em, -3.8em);
         }
 
-        .ripple-btn:hover span:not(.text):not(.loading-bar) {
+        .ripple-btn:hover span:not(.text):not(.spinner-only) {
           transform: translate(-50%, -50%) scale(4);
           transition: 1.5s ease;
         }
 
-        .ripple-btn.is-loading span:not(.text):not(.loading-bar) {
-          animation: loadingPulse 2.4s ease-in-out infinite;
-        }
-
-        .ripple-btn.is-loading .text {
+        .spinner-only {
           position: relative;
           z-index: 2;
+          display: inline-flex;
+          align-items: center;
+          justify-content: center;
         }
 
         .loading-spinner {
-          width: 16px;
-          height: 16px;
+          width: 18px;
+          height: 18px;
           border-radius: 999px;
           border: 2px solid rgba(255, 255, 255, 0.28);
           border-top-color: rgba(255, 255, 255, 0.95);
@@ -136,51 +139,9 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           flex-shrink: 0;
         }
 
-        .loading-bar {
-          position: absolute;
-          left: 12px;
-          right: 12px;
-          bottom: 7px;
-          height: 3px;
-          border-radius: 999px;
-          background: rgba(255, 255, 255, 0.14);
-          overflow: hidden;
-          z-index: 1;
-        }
-
-        .loading-bar::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: -30%;
-          width: 30%;
-          height: 100%;
-          background: rgba(255, 255, 255, 0.88);
-          animation: loadingSlide 1.15s ease-in-out infinite;
-        }
-
         @keyframes spin {
           to {
             transform: rotate(360deg);
-          }
-        }
-
-        @keyframes loadingSlide {
-          0% {
-            left: -30%;
-          }
-          100% {
-            left: 100%;
-          }
-        }
-
-        @keyframes loadingPulse {
-          0%,
-          100% {
-            opacity: 0.58;
-          }
-          50% {
-            opacity: 0.9;
           }
         }
       `}</style>

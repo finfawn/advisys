@@ -499,51 +499,40 @@ input:checked + .toggle-slider:before {
 
 /* Consultation Tab */
 .consultation-record {
-  position: relative;
   gap: 0;
-  background:
-    linear-gradient(180deg, rgba(244, 247, 252, 0.96), rgba(255, 255, 255, 0.98)),
-    #ffffff;
-  border: 1px solid #cfd8e6;
-  box-shadow:
-    0 18px 40px -34px rgba(15, 23, 42, 0.35),
-    inset 0 0 0 1px rgba(255, 255, 255, 0.75);
-  padding: 28px 28px 24px;
+  background: transparent;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
 }
 
 .consultation-record::before {
-  content: "";
-  position: absolute;
-  top: 16px;
-  left: 18px;
-  right: 18px;
-  height: 3px;
-  background: linear-gradient(90deg, #1d4ed8 0%, #3b82f6 48%, #93c5fd 100%);
-  opacity: 0.78;
+  content: none;
 }
 
 .consultation-record .section-header-row {
-  margin-bottom: 0;
-  padding: 6px 0 20px;
-  border-bottom: 1px solid #dbe3ef;
-  align-items: center;
+  margin-bottom: 24px;
+  padding: 0 0 18px;
+  border-bottom: 1px solid #e5e7eb;
+  align-items: flex-start;
 }
 
 .consultation-record .section-title {
-  font-size: 1.5rem;
-  letter-spacing: -0.02em;
-  margin-bottom: 6px;
+  font-size: 1.25rem;
+  letter-spacing: normal;
+  margin-bottom: 8px;
 }
 
 .consultation-record .section-description {
-  font-size: 0.74rem;
-  letter-spacing: 0.14em;
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #64748b;
 }
 
 .consult-section {
-  margin-top: 16px;
+  margin-top: 24px;
   padding: 0;
   border-bottom: none;
 }
@@ -569,43 +558,30 @@ input:checked + .toggle-slider:before {
 .inline-input,
 .consultation-record .select-trigger,
 .consultation-record button.add-item-btn {
-  border-radius: 2px;
+  border-radius: 8px;
 }
 
 .consult-value-block {
-  position: relative;
-  background:
-    linear-gradient(180deg, rgba(248, 250, 252, 0.86), rgba(255, 255, 255, 0.96));
-  border: 1px solid #d7deea;
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
   padding: 14px 16px;
   min-height: 56px;
 }
 
-.consult-value-block::before {
-  content: "";
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 112px;
-  height: 2px;
-  background: #93c5fd;
-}
-
 .consult-about-text {
   margin: 0;
-  line-height: 1.8;
+  line-height: 1.7;
   color: #1f2937;
-  font-size: 0.98rem;
+  font-size: 0.95rem;
 }
 
 .consult-textarea {
   width: 100%;
-  padding: 14px 16px;
+  padding: 12px 14px;
   border: 1px solid #cbd5e1;
-  background:
-    linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
-  font-size: 0.95rem;
-  line-height: 1.75;
+  background: #ffffff;
+  font-size: 0.9rem;
+  line-height: 1.6;
   min-height: 124px;
   resize: vertical;
 }
@@ -619,26 +595,25 @@ input:checked + .toggle-slider:before {
 }
 
 .topic-tag {
-  background: #ffffff;
+  background: #f8fafc;
   color: #334155;
-  padding: 8px 14px;
-  border-radius: 2px;
-  font-size: 0.82rem;
-  font-weight: 600;
-  letter-spacing: 0.03em;
-  border: 1px solid #d5dce8;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+  border: 1px solid #dbe4f0;
   border-left: 3px solid #94a3b8;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   white-space: nowrap;
   gap: 6px;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.65);
 }
 
 .topic-tag:hover {
-  background: #f8fafc;
-  border-color: #bfccdc;
+  background: #f1f5f9;
+  border-color: #cbd5e1;
   color: #0f172a;
 }
 
@@ -668,10 +643,10 @@ input:checked + .toggle-slider:before {
   position: relative;
   padding: 13px 18px 13px 42px;
   background: #ffffff;
-  border: 1px solid #d7deea;
+  border: 1px solid #e5e7eb;
   color: #334155;
-  font-size: 0.93rem;
-  line-height: 1.6;
+  font-size: 0.9rem;
+  line-height: 1.5;
 }
 
 .guideline-item::before {
@@ -711,7 +686,7 @@ input:checked + .toggle-slider:before {
   align-items: center;
   gap: 12px;
   padding: 12px 16px;
-  border: 1px solid #d7deea;
+  border: 1px solid #e5e7eb;
   background: #ffffff;
   color: #1f2937; 
   position: relative; 
@@ -727,12 +702,13 @@ input:checked + .toggle-slider:before {
   padding: 0 10px;
   margin-right: 2px;
   background: #eef2f7;
-  border: 1px solid #d3dbe7;
+  border: 1px solid #dbe4f0;
   color: #475569;
   font-size: 0.68rem;
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+  border-radius: 6px;
 }
 
 .course-item.editable { padding-right: 34px; }
@@ -747,7 +723,7 @@ input:checked + .toggle-slider:before {
 .settings-section.editing .consult-textarea:focus {
   outline: none;
   border-color: #3360c2;
-  box-shadow: 0 0 0 3px rgba(51,96,194,0.08);
+  box-shadow: 0 0 0 2px rgba(51,96,194,0.1);
 }
 
 .list-add-row {
@@ -765,12 +741,12 @@ input:checked + .toggle-slider:before {
   padding: 11px 12px;
   border: 1px solid #cbd5e1;
   background: #ffffff;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
 }
 .inline-input:focus {
   outline: none;
   border-color: #3360c2;
-  box-shadow: 0 0 0 3px rgba(51, 96, 194, 0.08);
+  box-shadow: 0 0 0 2px rgba(51, 96, 194, 0.1);
 }
 
 /* Auto-save status pill */
@@ -779,7 +755,7 @@ input:checked + .toggle-slider:before {
   align-items: center;
   gap: 6px;
   padding: 7px 12px;
-  border-radius: 2px;
+  border-radius: 999px;
   font-size: 0.8rem;
   font-weight: 700;
   letter-spacing: 0.08em;
@@ -803,26 +779,26 @@ input:checked + .toggle-slider:before {
 
 .help-text {
   color: #64748b;
-  font-size: 0.77rem;
-  letter-spacing: 0.03em;
+  font-size: 0.78rem;
+  letter-spacing: normal;
   margin: 8px 2px 0 2px;
 }
 
 .section-header-row.sticky {
   position: sticky;
   top: 0;
-  background: linear-gradient(180deg, rgba(244, 247, 252, 0.98), rgba(255, 255, 255, 0.98));
-  padding-top: 8px;
+  background: #ffffff;
+  padding-top: 0;
   padding-bottom: 14px;
   z-index: 5;
-  border-bottom: 1px solid #dbe3ef;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .consultation-record .edit-actions .btn,
 .consultation-record .edit-btn,
 .consultation-record .cancel-btn,
 .consultation-record .add-item-btn {
-  border-radius: 2px;
+  border-radius: 8px;
 }
 
 .consultation-record .edit-btn,
@@ -845,6 +821,7 @@ input:checked + .toggle-slider:before {
 
 .consultation-record .edit-actions {
   align-items: center;
+  gap: 10px;
 }
 
 .consultation-record .list-add-row.flex.flex-col {
@@ -931,7 +908,7 @@ input:checked + .toggle-slider:before {
   }
 
   .consultation-record {
-    padding: 24px 18px 20px;
+    padding: 0;
   }
 
   .consultation-record .section-header-row {
@@ -978,7 +955,7 @@ input:checked + .toggle-slider:before {
   }
 
   .consultation-record {
-    padding: 20px 14px 18px;
+    padding: 0;
   }
 
   .consultation-record .section-title {

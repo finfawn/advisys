@@ -5,7 +5,6 @@ import { SidebarProvider } from "./contexts/SidebarContext";
 import { NotificationProvider } from "./contexts/NotificationContext";
 import { Toaster } from "./lightswind/toaster";
 import SessionHandler from "./components/SessionHandler";
-import Home from "./pages/Home";
 import AuthPage from "./pages/AuthPage";
 import VerifyEmail from "./pages/VerifyEmail";
 import ResetPassword from "./pages/ResetPassword";
@@ -75,7 +74,7 @@ function RequireAuth({ allowedRoles = [] }) {
   return <Outlet />;
 }
 
-// Logout route component: clears auth and returns to home
+// Logout route component: clears auth and returns to sign-in
 function Logout() {
   React.useEffect(() => {
     try {
@@ -83,7 +82,7 @@ function Logout() {
       localStorage.removeItem("advisys_user");
     } catch (_) {}
   }, []);
-  return <Navigate to="/" replace />;
+  return <Navigate to="/auth" replace />;
 }
 
 // Generic dashboard alias: redirects to role-specific dashboard
@@ -146,7 +145,7 @@ function AnimatedRoutes() {
           style={{ position: 'relative', zIndex: 1 }}
         >
           <Routes location={location}>
-            <Route path="/" element={<Home />} />
+            <Route path="/" element={<DashboardRedirect />} />
             <Route path="/auth" element={<AuthPage />} />
             <Route path="/verify-email" element={<VerifyEmail />} />
             <Route path="/reset-password" element={<ResetPassword />} />
