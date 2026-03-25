@@ -68,7 +68,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           opacity: 0.98;
         }
 
-        .ripple-btn span:not(:nth-child(6)) {
+        .ripple-btn > span:not(:nth-child(6)) {
           position: absolute;
           left: 50%;
           top: 50%;
@@ -81,7 +81,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           pointer-events: none;
         }
 
-        .ripple-btn span:nth-child(6) {
+        .ripple-btn > span:nth-child(6) {
           position: relative;
           z-index: 1;
           display: inline-flex;
@@ -89,27 +89,27 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           justify-content: center;
         }
 
-        .ripple-btn span:nth-child(1) {
+        .ripple-btn > span:nth-child(1) {
           transform: translate(-3.3em, -4em);
         }
 
-        .ripple-btn span:nth-child(2) {
+        .ripple-btn > span:nth-child(2) {
           transform: translate(-6em, 1.3em);
         }
 
-        .ripple-btn span:nth-child(3) {
+        .ripple-btn > span:nth-child(3) {
           transform: translate(-0.2em, 1.8em);
         }
 
-        .ripple-btn span:nth-child(4) {
+        .ripple-btn > span:nth-child(4) {
           transform: translate(3.5em, 1.4em);
         }
 
-        .ripple-btn span:nth-child(5) {
+        .ripple-btn > span:nth-child(5) {
           transform: translate(3.5em, -3.8em);
         }
 
-        .ripple-btn:hover span:not(:nth-child(6)) {
+        .ripple-btn:hover > span:not(:nth-child(6)) {
           transform: translate(-50%, -50%) scale(4);
           transition: 1.5s ease;
         }
