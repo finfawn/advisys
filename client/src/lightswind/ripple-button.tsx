@@ -42,15 +42,9 @@ const RippleButton: React.FC<RippleButtonProps> = ({
         <span className="circle3"></span>
         <span className="circle4"></span>
         <span className="circle5"></span>
-        {loading ? (
-          <span className="spinner-only" aria-hidden="true">
-            <span className="loading-spinner"></span>
-          </span>
-        ) : (
-          <span className="text">
-            <span>{text}</span>
-          </span>
-        )}
+        <span className="text">
+          {loading ? <span className="loading-spinner" aria-hidden="true"></span> : text}
+        </span>
       </button>
 
       <style>{`
@@ -74,7 +68,7 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           opacity: 0.98;
         }
 
-        .ripple-btn span:not(.text):not(.spinner-only) {
+        .ripple-btn span:not(:nth-child(6)) {
           position: absolute;
           left: 50%;
           top: 50%;
@@ -87,46 +81,37 @@ const RippleButton: React.FC<RippleButtonProps> = ({
           pointer-events: none;
         }
 
-        .ripple-btn .text {
+        .ripple-btn span:nth-child(6) {
           position: relative;
           z-index: 1;
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          gap: 10px;
         }
 
-        .ripple-btn .circle1 {
+        .ripple-btn span:nth-child(1) {
           transform: translate(-3.3em, -4em);
         }
 
-        .ripple-btn .circle2 {
+        .ripple-btn span:nth-child(2) {
           transform: translate(-6em, 1.3em);
         }
 
-        .ripple-btn .circle3 {
+        .ripple-btn span:nth-child(3) {
           transform: translate(-0.2em, 1.8em);
         }
 
-        .ripple-btn .circle4 {
+        .ripple-btn span:nth-child(4) {
           transform: translate(3.5em, 1.4em);
         }
 
-        .ripple-btn .circle5 {
+        .ripple-btn span:nth-child(5) {
           transform: translate(3.5em, -3.8em);
         }
 
-        .ripple-btn:hover span:not(.text):not(.spinner-only) {
+        .ripple-btn:hover span:not(:nth-child(6)) {
           transform: translate(-50%, -50%) scale(4);
           transition: 1.5s ease;
-        }
-
-        .spinner-only {
-          position: relative;
-          z-index: 2;
-          display: inline-flex;
-          align-items: center;
-          justify-content: center;
         }
 
         .loading-spinner {
