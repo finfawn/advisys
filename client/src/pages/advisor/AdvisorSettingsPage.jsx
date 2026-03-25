@@ -1046,7 +1046,7 @@ export default function AdvisorSettingsPage() {
 
                 {/* Consultation Section */}
                 {activeSection === "consultation" && (
-                  <div className={`settings-section ${isEditingConsult ? 'editing' : ''}`}>
+                  <div className={`settings-section consultation-record ${isEditingConsult ? 'editing' : ''}`}>
                     
                     <div className={`section-header-row ${isEditingConsult ? 'sticky' : ''}`}>
                       <div>
@@ -1075,7 +1075,9 @@ export default function AdvisorSettingsPage() {
                     <section className="consult-section">
                       <h3 className="consult-subtitle">About</h3>
                       {!isEditingConsult ? (
-                        <p className="consult-about-text">{consultationData.bio}</p>
+                        <div className="consult-value-block">
+                          <p className="consult-about-text">{consultationData.bio}</p>
+                        </div>
                       ) : (
                         <>
                         <textarea

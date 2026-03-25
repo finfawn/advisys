@@ -1790,9 +1790,11 @@ export default function AdminManageUsers({ __forceTab, __title, __subtitle }) {
       <Drawer open={addOpen} onOpenChange={setAddOpen}>
         <DrawerContent className="max-w-xl p-0">
           <DrawerHeader>
-            <DrawerTitle>Add New User</DrawerTitle>
+            <DrawerTitle>{activeTab === 'students' ? 'Add New Student' : 'Add New Advisor'}</DrawerTitle>
             <DrawerDescription>
-              Create a new student or advisor account
+              {activeTab === 'students'
+                ? 'Create a new student account'
+                : 'Create a new advisor account'}
             </DrawerDescription>
           </DrawerHeader>
           <div className="p-4 space-y-4">
