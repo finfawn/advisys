@@ -171,6 +171,20 @@ export default function AdvisorConsultationDetailsPage() {
   const modeRaw = String(consultationData?.mode || 'in-person').toLowerCase();
   const modeClass = modeRaw === 'online' ? 'online' : 'in-person';
   const modeLabel = modeClass === 'online' ? 'Online' : 'In-Person';
+  const normalizedStudentTitle = String(consultationData?.student?.title || '').trim();
+  const normalizedStudentDepartment = String(
+    consultationData?.student?.department ||
+    consultationData?.student?.program ||
+    consultationData?.student?.program_name ||
+    ''
+  ).trim();
+  const studentCardTitle = normalizedStudentTitle && normalizedStudentTitle.toLowerCase() !== 'student'
+    ? normalizedStudentTitle
+    : normalizedStudentDepartment || 'Student';
+  const studentCardDepartment = normalizedStudentDepartment &&
+    normalizedStudentDepartment.toLowerCase() !== studentCardTitle.toLowerCase()
+      ? normalizedStudentDepartment
+      : '';
   const backTab = location.state?.tab || location.state?.source || (fromHistory ? 'history' : null);
   const showActions = (statusClass === 'approved' && !isCompletedLike && !fromHistory);
 
@@ -415,8 +429,10 @@ export default function AdvisorConsultationDetailsPage() {
                   </div>
                   <div className="advisor-details">
                     <h3 className="advisor-name">{consultationData.student?.name || 'Student'}</h3>
-                    <p className="advisor-title">{consultationData.student?.title || 'Student'}</p>
-                    <p className="advisor-department">Student</p>
+                    <p className="advisor-title">{studentCardTitle}</p>
+                    {studentCardDepartment ? (
+                      <p className="advisor-department">{studentCardDepartment}</p>
+                    ) : null}
                   </div>
                 </div>
               </div>

@@ -454,6 +454,28 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
   // Progress bar calculation
   const totalSteps = 3;
   const progressPercent = ((currentStep - 1) / (totalSteps - 1)) * 100;
+  const isRescheduleFlow = modeType === "edit";
+  const modalShellMotion = isRescheduleFlow
+    ? {
+        initial: { opacity: 0, scale: 0.98, y: 8 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.98, y: -8 },
+        transition: {
+          layout: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] },
+          opacity: { duration: 0.3 },
+          scale: { duration: 0.3 },
+          y: { duration: 0.3 },
+        },
+      }
+    : {
+        initial: { opacity: 0, scale: 0.96, y: 16 },
+        animate: { opacity: 1, scale: 1, y: 0 },
+        exit: { opacity: 0, scale: 0.96, y: 16 },
+        transition: {
+          layout: { type: "tween", duration: 0.45, ease: [0.25, 0.1, 0.25, 1] },
+          opacity: { duration: 0.2 },
+        },
+      };
 
   return (
     <AnimatePresence>
@@ -473,10 +495,10 @@ function ConsultationModal({ isOpen, onClose, faculty, onNavigateToConsultations
           <motion.div
             layout
             key={`modal-step-${currentStep}`}
-            initial={{ opacity: 0, scale: 0.96, y: 16 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 16 }}
-            transition={{ layout: { type: "tween", duration: 0.45, ease: [0.25, 0.1, 0.25, 1] }, opacity: { duration: 0.2 } }}
+            initial={modalShellMotion.initial}
+            animate={modalShellMotion.animate}
+            exit={modalShellMotion.exit}
+            transition={modalShellMotion.transition}
             className="relative z-10 w-full max-w-[580px] bg-white rounded-2xl shadow-2xl flex flex-col max-h-[90vh] mx-auto overflow-hidden"
             style={{ boxShadow: '0 24px 60px -8px rgba(0,0,0,0.22), 0 8px 20px -4px rgba(0,0,0,0.08)' }}
           >

@@ -3,6 +3,7 @@ import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout,
 import { StreamChat } from 'stream-chat';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
 import { BsTelephoneX, BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle } from 'react-icons/bs';
+import { toast } from '../hooks/use-toast';
 
 import './StreamMeetCall.css';
 
@@ -138,6 +139,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [advisorOutcomeReason, setAdvisorOutcomeReason] = useState('student_left_early');
   const [advisorOutcomeNotes, setAdvisorOutcomeNotes] = useState('');
   const [submittingAdvisorOutcome, setSubmittingAdvisorOutcome] = useState(false);
+  const [advisorOutcomeError, setAdvisorOutcomeError] = useState('');
+  const [earlyFinalizeWarningOpen, setEarlyFinalizeWarningOpen] = useState(false);
   const [minuteWarnOpen, setMinuteWarnOpen] = useState(false);
   const minuteWarnShownRef = useRef(false);
 
@@ -552,9 +555,28 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     confirmAndHangup();
   };
 
-  const submitAdvisorOutcome = async () => {
+  const getRemainingSessionMs = () => {
+    const end = scheduledEnd();
+    if (!end) return 0;
+    return Math.max(0, end.getTime() - Date.now());
+  };
+
+  const formatRemainingSession = (ms) => {
+    const totalMinutes = Math.max(1, Math.ceil(ms / 60000));
+    if (totalMinutes >= 60) {
+      const hours = Math.floor(totalMinutes / 60);
+      const minutes = totalMinutes % 60;
+      if (!minutes) return `${hours} hour${hours === 1 ? '' : 's'}`;
+      return `${hours}h ${minutes}m`;
+    }
+    return `${totalMinutes} minute${totalMinutes === 1 ? '' : 's'}`;
+  };
+
+  const performAdvisorOutcomeSubmit = async () => {
     if (!consultationData?.id || submittingAdvisorOutcome) return;
+    const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
     setSubmittingAdvisorOutcome(true);
+    setAdvisorOutcomeError('');
     try {
       const payload = advisorOutcome === 'completed'
         ? { status: 'completed' }
@@ -566,25 +588,43 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
       const response = await fetch(`${API_BASE_URL}/api/consultations/${consultationData.id}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
         body: JSON.stringify(payload),
       });
+      const data = await response.json().catch(() => ({}));
       if (!response.ok) {
-        throw new Error(`Failed to save consultation outcome (${response.status})`);
+        throw new Error(data?.error || `Failed to save consultation outcome (${response.status})`);
       }
 
       advisorOutcomeHandledRef.current = true;
       endedForAllRef.current = true;
       setAdvisorDecisionOpen(false);
+      setEarlyFinalizeWarningOpen(false);
+      setAdvisorOutcomeError('');
 
       try { await call?.endCall?.(); } catch (_) {}
       try { await call?.leave?.(); } catch (_) {}
       handleLeave();
     } catch (err) {
       console.error('Failed to submit advisor outcome', err);
+      const message = err?.message || 'Failed to save consultation outcome';
+      setAdvisorOutcomeError(message);
+      toast.destructive({ title: 'Unable to finalize consultation', description: message });
     } finally {
       setSubmittingAdvisorOutcome(false);
     }
+  };
+
+  const submitAdvisorOutcome = async () => {
+    const remainingMs = getRemainingSessionMs();
+    if (remainingMs > 0) {
+      setEarlyFinalizeWarningOpen(true);
+      return;
+    }
+    await performAdvisorOutcomeSubmit();
   };
 
   // Recording toggles are not exposed in minimal layout; capture starts automatically on join
@@ -757,13 +797,13 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       {confirmLeaveOpen && (
         <div className="smc-modal-backdrop">
           <div className="smc-modal">
-            <h3 style={{margin:'0 0 8px 0', fontSize:18}}>End consultation now?</h3>
-            <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>
+            <h3 className="smc-modal-title">End consultation now?</h3>
+            <p className="smc-modal-text">
               The scheduled consultation time has not ended yet. This will only leave the call on this device. Use "End for all" if you want to close the session for everyone and record the final outcome.
             </p>
             <div className="smc-modal-actions">
-              <button onClick={()=>{ setConfirmLeaveOpen(false); }} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Resume call</button>
-              <button onClick={confirmAndHangup} style={{padding:'8px 12px', borderRadius:8, background:'#10b981', color:'#fff', border:'1px solid #34d399'}}>End now</button>
+              <button className="smc-modal-btn smc-modal-btn--secondary" onClick={()=>{ setConfirmLeaveOpen(false); }}>Resume call</button>
+              <button className="smc-modal-btn smc-modal-btn--danger" onClick={confirmAndHangup}>End now</button>
             </div>
           </div>
         </div>
@@ -772,9 +812,9 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       {/* Leave or End for all selection */}
       {endOptionsOpen && (
         <div className="smc-modal-backdrop">
-          <div className="smc-modal" style={{maxWidth:480}}>
-            <h3 style={{margin:'0 0 8px 0', fontSize:18}}>Choose how to exit</h3>
-            <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>Leave the call locally or end it for everyone.</p>
+          <div className="smc-modal smc-modal--compact">
+            <h3 className="smc-modal-title">Choose how to exit</h3>
+            <p className="smc-modal-text">Leave the call locally or end it for everyone.</p>
             <div className="smc-modal-actions">
               <button onClick={()=>{
                 if (endActionGuardRef.current) return; endActionGuardRef.current = true;
@@ -782,7 +822,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                 try { handleHangup(); } finally {
                   setTimeout(()=>{ endActionGuardRef.current = false; }, 800);
                 }
-              }} style={{padding:'8px 12px', borderRadius:8, background:'#6b7280', color:'#fff', border:'1px solid #9ca3af'}}>Leave call</button>
+              }} className="smc-modal-btn smc-modal-btn--secondary">Leave call</button>
               {isAdvisor && (
                 <button onClick={async ()=>{
                   setEndOptionsOpen(false);
@@ -790,9 +830,9 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   setAdvisorOutcome('completed');
                   setAdvisorOutcomeReason('student_left_early');
                   setAdvisorOutcomeNotes('');
-                }} style={{padding:'8px 12px', borderRadius:8, background:'#ef4444', color:'#fff', border:'1px solid #f87171'}}>End for all</button>
+                }} className="smc-modal-btn smc-modal-btn--danger">End for all</button>
               )}
-              <button onClick={()=> setEndOptionsOpen(false)} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Cancel</button>
+              <button className="smc-modal-btn smc-modal-btn--ghost" onClick={()=> setEndOptionsOpen(false)}>Cancel</button>
             </div>
           </div>
         </div>
@@ -801,48 +841,34 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       {/* Advisor decision modal shown after call.session_ended (end for all) */}
       {advisorDecisionOpen && (
         <div className="smc-modal-backdrop">
-          <div className="smc-modal" style={{maxWidth:460}}>
-            <h3 style={{margin:'0 0 8px 0', fontSize:18}}>Finalize consultation outcome</h3>
-            <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>
+          <div className="smc-modal smc-modal--compact">
+            <h3 className="smc-modal-title">Finalize consultation outcome</h3>
+            <p className="smc-modal-text">
               Before ending the call for everyone, choose how this consultation should be recorded.
             </p>
-            <div style={{display:'flex', flexDirection:'column', gap:14}}>
-              <div style={{display:'grid', gap:10}}>
+            <div className="smc-modal-stack">
+              <div className="smc-outcome-grid">
                 <button
                   type="button"
                   onClick={()=> setAdvisorOutcome('completed')}
-                  style={{
-                    padding:'12px 14px',
-                    borderRadius:12,
-                    border: advisorOutcome === 'completed' ? '1px solid #34d399' : '1px solid #374151',
-                    background: advisorOutcome === 'completed' ? 'rgba(16,185,129,0.16)' : '#111827',
-                    color:'#fff',
-                    textAlign:'left'
-                  }}
+                  className={`smc-outcome-card ${advisorOutcome === 'completed' ? 'is-selected is-success' : ''}`}
                 >
-                  <strong style={{display:'block', marginBottom:4}}>Completed</strong>
-                  <span style={{fontSize:13, color:'#cbd5e1'}}>The consultation happened and reached a usable outcome.</span>
+                  <strong className="smc-outcome-title">Completed</strong>
+                  <span className="smc-outcome-copy">The consultation happened and reached a usable outcome.</span>
                 </button>
                 <button
                   type="button"
                   onClick={()=> setAdvisorOutcome('incomplete')}
-                  style={{
-                    padding:'12px 14px',
-                    borderRadius:12,
-                    border: advisorOutcome === 'incomplete' ? '1px solid #f59e0b' : '1px solid #374151',
-                    background: advisorOutcome === 'incomplete' ? 'rgba(245,158,11,0.14)' : '#111827',
-                    color:'#fff',
-                    textAlign:'left'
-                  }}
+                  className={`smc-outcome-card ${advisorOutcome === 'incomplete' ? 'is-selected is-warning' : ''}`}
                 >
-                  <strong style={{display:'block', marginBottom:4}}>Incomplete</strong>
-                  <span style={{fontSize:13, color:'#cbd5e1'}}>The consultation started but could not be completed properly.</span>
+                  <strong className="smc-outcome-title">Incomplete</strong>
+                  <span className="smc-outcome-copy">The consultation started but could not be completed properly.</span>
                 </button>
               </div>
 
               {advisorOutcome === 'incomplete' ? (
-                <div style={{display:'flex', flexDirection:'column', gap:10}}>
-                  <select value={advisorOutcomeReason} onChange={(e)=> setAdvisorOutcomeReason(e.target.value)} style={{width:'100%', padding:'10px 12px', borderRadius:10, border:'1px solid #4b5563', background:'#0b1220', color:'#fff'}}>
+                <div className="smc-modal-field-stack">
+                  <select className="smc-modal-field" value={advisorOutcomeReason} onChange={(e)=> setAdvisorOutcomeReason(e.target.value)}>
                     <option value="student_left_early">Student left early</option>
                     <option value="advisor_ended_early">Advisor ended early</option>
                     <option value="technical_issue">Technical issue</option>
@@ -852,37 +878,65 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     <option value="other">Other</option>
                   </select>
                   <textarea
+                    className="smc-modal-field smc-modal-field--textarea"
                     value={advisorOutcomeNotes}
                     onChange={(e)=> setAdvisorOutcomeNotes(e.target.value)}
                     rows={4}
                     placeholder="Add details or specify the reason"
-                    style={{width:'100%', padding:'10px 12px', borderRadius:10, border:'1px solid #4b5563', background:'#0b1220', color:'#fff', resize:'vertical'}}
                   />
                 </div>
               ) : null}
 
-              <div className="smc-modal-actions" style={{gap:8}}>
+              <div className="smc-modal-actions">
                 <button
+                  className="smc-modal-btn smc-modal-btn--secondary"
                   onClick={()=> setAdvisorDecisionOpen(false)}
                   disabled={submittingAdvisorOutcome}
-                  style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}
                 >
                   Back
                 </button>
                 <button
+                  className={`smc-modal-btn ${advisorOutcome === 'completed' ? 'smc-modal-btn--brand' : 'smc-modal-btn--warning'}`}
                   onClick={submitAdvisorOutcome}
                   disabled={submittingAdvisorOutcome || (advisorOutcome === 'incomplete' && !advisorOutcomeReason)}
-                  style={{
-                    padding:'8px 12px',
-                    borderRadius:8,
-                    background: advisorOutcome === 'completed' ? '#10b981' : '#f59e0b',
-                    color:'#fff',
-                    border: advisorOutcome === 'completed' ? '1px solid #34d399' : '1px solid #fbbf24'
-                  }}
                 >
                   {submittingAdvisorOutcome ? 'Saving...' : (advisorOutcome === 'completed' ? 'End and mark completed' : 'End and mark incomplete')}
                 </button>
               </div>
+              {advisorOutcomeError ? (
+                <div className="smc-modal-error" role="alert">{advisorOutcomeError}</div>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {earlyFinalizeWarningOpen && (
+        <div className="smc-modal-backdrop">
+          <div className="smc-modal smc-modal--narrow">
+            <h3 className="smc-modal-title">End consultation early?</h3>
+            <p className="smc-modal-text">
+              There {getRemainingSessionMs() > 60000 ? 'are' : 'is'} still {formatRemainingSession(getRemainingSessionMs())} left in this consultation slot.
+              {' '}Are you sure you want to end it now and mark it as {advisorOutcome === 'completed' ? 'completed' : 'incomplete'}?
+            </p>
+            <div className="smc-warning-note">
+              The session will close for everyone and the remaining slot time will be forfeited.
+            </div>
+            <div className="smc-modal-actions">
+              <button
+                className="smc-modal-btn smc-modal-btn--secondary"
+                onClick={() => setEarlyFinalizeWarningOpen(false)}
+                disabled={submittingAdvisorOutcome}
+              >
+                Go back
+              </button>
+              <button
+                className={`smc-modal-btn ${advisorOutcome === 'completed' ? 'smc-modal-btn--brand' : 'smc-modal-btn--warning'}`}
+                onClick={performAdvisorOutcomeSubmit}
+                disabled={submittingAdvisorOutcome}
+              >
+                {submittingAdvisorOutcome ? 'Saving...' : `Yes, end early`}
+              </button>
             </div>
           </div>
         </div>
@@ -891,14 +945,14 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       {/* Student early leave prompt */}
       {studentLeavePromptOpen && (
         <div className="smc-modal-backdrop">
-          <div className="smc-modal" style={{maxWidth: 440}}>
-            <h3 style={{margin:'0 0 8px 0', fontSize:18}}>You left the meeting</h3>
-            <p style={{margin:'0 0 16px 0', fontSize:14, color:'#d1d5db'}}>
+          <div className="smc-modal smc-modal--narrow">
+            <h3 className="smc-modal-title">You left the meeting</h3>
+            <p className="smc-modal-text">
               You can rejoin until the scheduled end time.
             </p>
             <div className="smc-modal-actions">
-              <button onClick={()=>{ setStudentLeavePromptOpen(false); setInMeeting(true); setRejoinSeed(s=>s+1); }} style={{padding:'8px 12px', borderRadius:8, background:'#374151', color:'#fff', border:'1px solid #4b5563'}}>Resume call</button>
-              <button onClick={()=>{ setStudentLeavePromptOpen(false); if (onClose) onClose(); }} style={{padding:'8px 12px', borderRadius:8, background:'#6b7280', color:'#fff', border:'1px solid #9ca3af'}}>Leave</button>
+              <button className="smc-modal-btn smc-modal-btn--brand" onClick={()=>{ setStudentLeavePromptOpen(false); setInMeeting(true); setRejoinSeed(s=>s+1); }}>Resume call</button>
+              <button className="smc-modal-btn smc-modal-btn--secondary" onClick={()=>{ setStudentLeavePromptOpen(false); if (onClose) onClose(); }}>Leave</button>
             </div>
           </div>
         </div>

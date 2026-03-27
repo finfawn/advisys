@@ -9,23 +9,21 @@
 
 /* Advisor details pages: make layout match fixed sidebar pattern like dashboard */
 .advisor-details-page {
-  height: 100vh;
-  overflow: hidden;
+  min-height: 100vh;
+  height: auto;
+  overflow: visible;
 }
 
 .advisor-details-page .consultation-details-body {
-  height: calc(100vh - 64px); /* subtract top navbar */
-  overflow: hidden;
-  /* Allow grid children to shrink so inner scroll containers work */
-  min-height: 0;
+  min-height: calc(100vh - 64px); /* subtract top navbar */
+  height: auto;
+  overflow: visible;
 }
 
 .advisor-details-page .consultation-details-main {
-  height: 100%;
-  overflow-y: auto;
-  overflow-x: hidden;
-  /* Ensure scroll area can shrink inside grid/flex parents */
-  min-height: 0;
+  min-height: calc(100vh - 64px);
+  height: auto;
+  overflow: visible;
   min-width: 0;
 }
 
