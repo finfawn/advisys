@@ -467,3 +467,38 @@
   /* Ensure spacer is visible on tablets despite Tailwind lg:hidden on desktops */
   .hamburger-spacer { display: block !important; }
 }
+
+@media (min-width: 769px) {
+  .advisor-top-nav,
+  .advisor-topbar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 1020 !important;
+  }
+
+  .advisor-dash-wrap,
+  .consultation-details-wrap.advisor-details-page {
+    min-height: 100vh !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+
+  .advisor-dash-body,
+  .consultation-details-wrap.advisor-details-page .consultation-details-body {
+    min-height: calc(100vh - 64px) !important;
+    height: auto !important;
+    overflow: visible !important;
+    padding-top: 64px !important;
+    box-sizing: border-box !important;
+  }
+
+  .advisor-dash-main,
+  .consultation-details-wrap.advisor-details-page .consultation-details-main {
+    min-height: calc(100vh - 64px) !important;
+    height: auto !important;
+    overflow: visible !important;
+  }
+}

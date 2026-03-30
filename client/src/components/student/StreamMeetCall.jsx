@@ -1,18 +1,14 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout, PaginatedGridLayout, CallParticipantsList, useCallStateHooks, ToggleAudioPublishingButton, ToggleVideoPublishingButton, ScreenShareButton } from '@stream-io/video-react-sdk';
+import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout, PaginatedGridLayout, CallParticipantsList, CallControls, useCallStateHooks } from '@stream-io/video-react-sdk';
 import { StreamChat } from 'stream-chat';
+import { Chat, Channel, Window, MessageList, MessageInput } from 'stream-chat-react';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
+import 'stream-chat-react/dist/css/v2/index.css';
 import { BsTelephoneX, BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle } from 'react-icons/bs';
 import { toast } from '../hooks/use-toast';
+import Logo from '../../assets/logo.png';
 
 import './StreamMeetCall.css';
-
-const getInitials = (value) => {
-  const text = String(value || '').trim();
-  if (!text) return 'U';
-  const parts = text.split(/\s+/).slice(0, 2);
-  return parts.map((part) => part.charAt(0).toUpperCase()).join('');
-};
 
 const MeetingHeader = ({
   consultationData,
@@ -28,15 +24,17 @@ const MeetingHeader = ({
   const participants = useParticipants ? useParticipants() : [];
   const stats = useCallStatsReport ? useCallStatsReport() : null;
   const latency = stats?.publisherStats?.averageRoundTripTimeInMs;
+  const meetingTitle = consultationData?.title || consultationData?.topic || 'Consultation Meeting';
+  const meetingMeta = consultationData?.category || consultationData?.consultationCategory || consultationData?.mode || 'Consultation';
 
   return (
     <header className="smc-meeting-header">
       <div className="smc-brand-block">
-        <div className="smc-brand-mark">AS</div>
+        <img src={Logo} alt="AdviSys" className="smc-brand-mark" />
         <div className="smc-brand-copy">
-          <span className="smc-brand-eyebrow">AdviSys live consultation</span>
+          <span className="smc-brand-eyebrow">{meetingMeta}</span>
           <strong className="smc-brand-title">
-            {consultationData?.topic || 'Consultation Meeting'}
+            {meetingTitle}
           </strong>
         </div>
       </div>
@@ -125,12 +123,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [chatClient, setChatClient] = useState(null);
   const [chatChannel, setChatChannel] = useState(null);
   const [activePanel, setActivePanel] = useState(null);
-  const [chatMessages, setChatMessages] = useState([]);
-  const [chatInput, setChatInput] = useState('');
-  const [sendingChat, setSendingChat] = useState(false);
-  const [selfId, setSelfId] = useState('');
-  const [selfName, setSelfName] = useState('');
-  const chatListRef = useRef(null);
   const [statsOpen, setStatsOpen] = useState(false);
   const [isAdvisor, setIsAdvisor] = useState(false);
   const endedForAllRef = useRef(false);
@@ -149,13 +141,13 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
   useEffect(() => {
     let mounted = true;
+    let chatInstance = null;
     (async () => {
       try {
         const userRaw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
         const parsedUser = userRaw ? JSON.parse(userRaw) : null;
         const userId = String(parsedUser?.id || 'user');
         const fullName = parsedUser?.full_name || displayName || 'User';
-        setSelfId(userId); setSelfName(fullName);
         // Ask backend for Stream token + apiKey
         const res = await fetch(`${API_BASE_URL}/api/stream/token`, {
           method: 'POST',
@@ -223,6 +215,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         try {
           const sc = StreamChat.getInstance(data.apiKey);
           await sc.connectUser({ id: userId, name: fullName }, data.token);
+          chatInstance = sc;
           const channelId = `advisys-${consultationData?.id || callId}`;
           const members = [userId].filter(Boolean);
           // Attempt to include advisor/student IDs if present in consultationData
@@ -232,24 +225,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           if (aid && !members.includes(String(aid))) members.push(String(aid));
           const ch = sc.channel('livestream', channelId, { name: `Consultation ${consultationData?.id || ''}`, members });
           await ch.watch();
-          const initial = (ch.state?.messages || []).map(m => m);
-          setChatMessages(initial);
-          ch.on('message.new', (ev) => {
-            const m = ev.message;
-            setChatMessages(prev => [...prev, m]);
-          });
-          ch.on('reaction.new', (ev) => {
-            const r = ev.reaction;
-            const mid = r?.message_id;
-            if (!mid) return;
-            setChatMessages(prev => prev.map(m => {
-              if (m.id !== mid) return m;
-              const counts = { ...(m.reaction_counts || {}) };
-              const type = r.type || 'love';
-              counts[type] = (counts[type] || 0) + (r.score || 1);
-              return { ...m, reaction_counts: counts };
-            }));
-          });
           setChatClient(sc);
           setChatChannel(ch);
         } catch (e) {
@@ -265,6 +240,11 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       // Stop capture on unmount for safety
       stopCombinedAudioCapture();
       finalizeTranscript();
+      setChatChannel(null);
+      setChatClient(null);
+      if (chatInstance) {
+        chatInstance.disconnectUser().catch(() => {});
+      }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [API_BASE_URL, callId, callType, displayName, consultationData?.id]);
@@ -315,15 +295,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   }, [rejoinSeed, inMeeting, call]);
 
   // countdown is handled in the main timer effect above
-
-  // Auto-scroll chat to newest message when opened or updated
-  useEffect(() => {
-    try {
-      if (chatListRef.current && activePanel === 'chat') {
-        chatListRef.current.scrollTop = chatListRef.current.scrollHeight;
-      }
-    } catch (_) {}
-  }, [chatMessages, activePanel]);
 
   // Listen for parent tab messages to trigger a graceful leave
   useEffect(() => {
@@ -704,37 +675,24 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                             </div>
                             <button className="smc-panel-close" onClick={() => setActivePanel(null)}>Close</button>
                           </div>
-                          <div className="smc-chat-list" ref={chatListRef}>
-                            {(chatMessages || []).map((m) => {
-                              const me = String(m?.user?.id || '') === String(selfId);
-                              const authorName = m?.user?.name || m?.user?.id || 'User';
-                              return (
-                                <div key={m.id || Math.random()} className={`smc-chat-item ${me ? 'me' : 'other'}`}>
-                                  <div className="smc-message-head">
-                                    <div className="smc-message-avatar">
-                                      {getInitials(authorName)}
-                                    </div>
-                                    <div className="smc-message-meta">
-                                      <div className="meta">{authorName} • {new Date(m?.created_at || Date.now()).toLocaleTimeString()}</div>
-                                      <div className="text">{m?.text || ''}</div>
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                          <div className="smc-chat-input">
-                            <input value={chatInput} onChange={(e)=> setChatInput(e.target.value)} placeholder="Type a message" />
-                            <button disabled={sendingChat} onClick={async ()=>{
-                              try {
-                                if (!chatChannel || !chatInput.trim()) return;
-                                setSendingChat(true);
-                                await chatChannel.sendMessage({ text: chatInput.trim() });
-                                setChatInput('');
-                              } finally {
-                                setSendingChat(false);
-                              }
-                            }}>Send</button>
+                          <div className="smc-chat-shell">
+                            {chatClient && chatChannel ? (
+                              <div className="smc-stream-chat">
+                                <Chat client={chatClient}>
+                                  <Channel channel={chatChannel}>
+                                    <Window>
+                                      <MessageList />
+                                      <MessageInput />
+                                    </Window>
+                                  </Channel>
+                                </Chat>
+                              </div>
+                            ) : (
+                              <div className="smc-chat-placeholder">
+                                <strong>Preparing chat</strong>
+                                <span>Messages will appear here once the consultation channel is ready.</span>
+                              </div>
+                            )}
                           </div>
                         </>
                       )}
@@ -744,9 +702,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                 </section>
 
                 <div className="smc-controls">
-                  <ToggleAudioPublishingButton />
-                  <ToggleVideoPublishingButton />
-                  <ScreenShareButton />
+                  <CallControls />
+                  <div className="smc-controls-divider" />
                   <button
                     className={`smc-utility-btn ${layoutName === 'PaginatedGrid' ? 'is-active' : ''}`}
                     onClick={() => setLayoutName((current) => current === 'PaginatedGrid' ? 'Speaker' : 'PaginatedGrid')}
@@ -964,3 +921,4 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 };
 
 export default StreamMeetCall;
+
