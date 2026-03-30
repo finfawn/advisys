@@ -10,6 +10,42 @@ import Logo from '../../assets/logo.png';
 
 import './StreamMeetCall.css';
 
+const formatElapsedDuration = (joinedAt) => {
+  if (!joinedAt) return 'Not started';
+
+  const totalSeconds = Math.max(0, Math.round((Date.now() - joinedAt.getTime()) / 1000));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m`;
+  if (minutes > 0) return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
+  return `${seconds}s`;
+};
+
+const MeetingPanelFrame = ({ icon: Icon, title, onClose, children }) => (
+  <>
+    <div className="smc-side-panel__header">
+      <div className="smc-side-panel__title">
+        <Icon />
+        <span>{title}</span>
+      </div>
+      <button className="smc-panel-close" onClick={onClose} type="button">Close</button>
+    </div>
+    {children}
+  </>
+);
+
+const ChatEmptyState = () => (
+  <div className="smc-chat-empty-state" role="status">
+    <div className="smc-chat-empty-state__icon">
+      <BsChatDots />
+    </div>
+    <strong>Start chatting</strong>
+    <span>Share updates, links, or quick notes for this consultation.</span>
+  </div>
+);
+
 const MeetingHeader = ({
   consultationData,
   countdownText,
@@ -121,7 +157,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [recordingError, setRecordingError] = useState('');
   const [chatClient, setChatClient] = useState(null);
   const [chatChannel, setChatChannel] = useState(null);
-  const [chatMessageCount, setChatMessageCount] = useState(0);
   const [activePanel, setActivePanel] = useState(null);
   const [isAdvisor, setIsAdvisor] = useState(false);
   const endedForAllRef = useRef(false);
@@ -224,15 +259,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           if (aid && !members.includes(String(aid))) members.push(String(aid));
           const ch = sc.channel('livestream', channelId, { name: `Consultation ${consultationData?.id || ''}`, members });
           await ch.watch();
-          const syncChatCount = () => {
-            const messages = Array.isArray(ch.state?.messages) ? ch.state.messages : [];
-            setChatMessageCount(messages.filter((message) => !message?.deleted_at).length);
-          };
-          syncChatCount();
-          ch.on('message.new', syncChatCount);
-          ch.on('message.deleted', syncChatCount);
-          ch.on('message.updated', syncChatCount);
-          ch.on('channel.truncated', syncChatCount);
           setChatClient(sc);
           setChatChannel(ch);
         } catch (e) {
@@ -250,7 +276,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       finalizeTranscript();
       setChatChannel(null);
       setChatClient(null);
-      setChatMessageCount(0);
       if (chatInstance) {
         chatInstance.disconnectUser().catch(() => {});
       }
@@ -614,8 +639,50 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const togglePanel = (panelName) => {
     setActivePanel((current) => current === panelName ? null : panelName);
   };
+  const closePanel = () => setActivePanel(null);
+  const MeetingDetailsPanelV2 = ({ onClose }) => {
+    const { useParticipants, useHasOngoingScreenShare, useMicrophoneState, useCameraState } = useCallStateHooks();
+    const participants = useParticipants ? useParticipants() : [];
+    const hasScreenShare = useHasOngoingScreenShare ? useHasOngoingScreenShare() : false;
+    const { isMute: micMuted } = useMicrophoneState ? useMicrophoneState() : { isMute: false };
+    const { isMute: camMuted } = useCameraState ? useCameraState() : { isMute: false };
+    const duration = formatElapsedDuration(joinedAt);
 
-  const MeetingDetailsPanel = ({ onClose }) => {
+    return (
+      <MeetingPanelFrame icon={BsInfoCircle} title="Details" onClose={onClose}>
+        <div className="smc-side-panel__body smc-side-panel__body--details" role="dialog" aria-label="Call details">
+          <section className="smc-detail-section">
+            <span className="smc-detail-label">Participants</span>
+            <strong className="smc-detail-value">{participants?.length || 0}</strong>
+          </section>
+          <section className="smc-detail-section">
+            <span className="smc-detail-label">Consultation</span>
+            <strong className="smc-detail-value">{consultationData?.category || consultationData?.consultationCategory || consultationData?.mode || 'Meeting'}</strong>
+          </section>
+          <section className="smc-detail-grid">
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Screenshare</span>
+              <strong className="smc-detail-card__value">{hasScreenShare ? 'On' : 'Off'}</strong>
+            </div>
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Mic</span>
+              <strong className="smc-detail-card__value">{micMuted ? 'Muted' : 'On'}</strong>
+            </div>
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Camera</span>
+              <strong className="smc-detail-card__value">{camMuted ? 'Off' : 'On'}</strong>
+            </div>
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Duration</span>
+              <strong className="smc-detail-card__value">{duration}</strong>
+            </div>
+          </section>
+        </div>
+      </MeetingPanelFrame>
+    );
+  };
+
+  const _MeetingDetailsPanelLegacy = ({ onClose }) => {
     const { useParticipants, useHasOngoingScreenShare, useMicrophoneState, useCameraState } = useCallStateHooks();
     const participants = useParticipants ? useParticipants() : [];
     const hasScreenShare = useHasOngoingScreenShare ? useHasOngoingScreenShare() : false;
@@ -669,45 +736,30 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     if (activePanel === 'people') {
       return (
         <aside className="smc-side-panel smc-side-panel--people" role="complementary">
-          <CallParticipantsList onClose={() => setActivePanel(null)} />
+          <CallParticipantsList onClose={closePanel} />
         </aside>
       );
     }
 
     if (activePanel === 'details') {
       return (
-        <aside className="smc-side-panel" role="complementary">
-          <MeetingDetailsPanel onClose={() => setActivePanel(null)} />
+        <aside className="smc-side-panel smc-side-panel--details" role="complementary">
+          <MeetingDetailsPanelV2 onClose={closePanel} />
         </aside>
       );
     }
 
     return (
-      <aside className="smc-side-panel" role="complementary">
-        <div className="smc-chat-header smc-chat-header--panel">
-          <div className="smc-panel-title">
-            <BsChatDots />
-            <span>Chat</span>
-          </div>
-          <button className="smc-panel-close" onClick={() => setActivePanel(null)}>Close</button>
-        </div>
-        <div className="smc-chat-shell">
+      <aside className="smc-side-panel smc-side-panel--chat" role="complementary">
+        <MeetingPanelFrame icon={BsChatDots} title="Chat" onClose={closePanel}>
+          <div className="smc-chat-shell">
           {chatClient && chatChannel ? (
-            <div className={`smc-stream-chat ${chatMessageCount === 0 ? 'is-empty' : ''}`}>
-              {chatMessageCount === 0 ? (
-                <div className="smc-chat-empty" aria-hidden="true">
-                  <div className="smc-chat-empty__icon">
-                    <BsChatDots />
-                  </div>
-                  <strong>Start chatting</strong>
-                  <span>Share updates, links, or quick notes for this consultation.</span>
-                </div>
-              ) : null}
+            <div className="smc-stream-chat">
               <Chat client={chatClient}>
-                <Channel channel={chatChannel}>
+                <Channel channel={chatChannel} EmptyStateIndicator={ChatEmptyState}>
                   <Window>
                     <MessageList />
-                    <MessageInput />
+                    <MessageInput additionalTextareaProps={{ placeholder: 'Send a message' }} />
                   </Window>
                 </Channel>
               </Chat>
@@ -718,7 +770,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
               <span>Messages will appear here once the consultation channel is ready.</span>
             </div>
           )}
-        </div>
+          </div>
+        </MeetingPanelFrame>
       </aside>
     );
   };
@@ -739,7 +792,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         {client && call && inMeeting ? (
           <StreamVideo client={client}>
             <StreamCall call={call}>
-              <StreamTheme className={`smc-theme ${activePanel ? 'smc-theme--panel-open' : ''}`}>
+              <StreamTheme className={`str-video__theme-dark smc-theme ${activePanel ? 'smc-theme--panel-open' : ''}`}>
                 <section className="smc-workspace">
                   <MeetingHeader
                   consultationData={consultationData}
