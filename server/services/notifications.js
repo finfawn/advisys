@@ -1,13 +1,26 @@
 const { sendEmail } = require('./email');
 const { getPool } = require('../db/pool');
 
+let notificationsMutedColumnReady = false;
+let notificationsMutedColumnPromise = null;
+
 async function ensureNotificationsMutedColumn(poolOrConn) {
+  if (notificationsMutedColumnReady) return;
+  if (notificationsMutedColumnPromise) return notificationsMutedColumnPromise;
+  notificationsMutedColumnPromise = (async () => {
+    try {
+      const [cols] = await poolOrConn.query('SHOW COLUMNS FROM notification_settings LIKE "notifications_muted"');
+      if (!cols || cols.length === 0) {
+        await poolOrConn.query('ALTER TABLE notification_settings ADD COLUMN notifications_muted TINYINT(1) NOT NULL DEFAULT 0');
+      }
+      notificationsMutedColumnReady = true;
+    } catch (_) {}
+  })();
   try {
-    const [cols] = await poolOrConn.query('SHOW COLUMNS FROM notification_settings LIKE "notifications_muted"');
-    if (!cols || cols.length === 0) {
-      await poolOrConn.query('ALTER TABLE notification_settings ADD COLUMN notifications_muted TINYINT(1) NOT NULL DEFAULT 0');
-    }
-  } catch (_) {}
+    await notificationsMutedColumnPromise;
+  } finally {
+    notificationsMutedColumnPromise = null;
+  }
 }
 
 async function getNotificationSettings(userId) {
@@ -116,20 +129,20 @@ async function notify(poolOrConn, userId, type, title, message, data = null) {
       [userId, type, title, message, dataJson]
     );
 
-  // Decide on email delivery
-  if (!settings.email_notifications) return null;
-  if (!shouldEmailType(type)) return null;
+    // Decide on email delivery
+    if (!settings.email_notifications) return null;
+    if (!shouldEmailType(type)) return null;
 
-  // Load user email and role
+    // Load user email and role
     const [[user]] = await db.query('SELECT email, role, full_name FROM users WHERE id = ? LIMIT 1', [userId]);
     if (!user || !user.email) return null;
 
     const html = buildEmailHtml({ title, message, role: user.role, data });
-    try {
-      await sendEmail({ to: user.email, subject: title || 'Notification', html });
-    } catch (emailErr) {
-      console.warn('Notification email send failed:', emailErr?.message || emailErr);
-    }
+    setImmediate(() => {
+      sendEmail({ to: user.email, subject: title || 'Notification', html }).catch((emailErr) => {
+        console.warn('Notification email send failed:', emailErr?.message || emailErr);
+      });
+    });
     return true;
   } catch (err) {
     const logFn = (process.env.NODE_ENV === 'test') ? console.warn : console.error;

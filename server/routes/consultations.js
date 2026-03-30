@@ -5,6 +5,9 @@ const { authMiddleware } = require('../middleware/auth');
 const router = express.Router();
 const { notify } = require('../services/notifications');
 
+let hasAcademicTermIdColumnCache = null;
+let hasAcademicTermIdColumnPromise = null;
+
 function formatDate(d) {
   // Always format date in Asia/Manila to avoid server-local timezone drift
   const parts = new Intl.DateTimeFormat('en-PH', {
@@ -28,6 +31,35 @@ function formatTimeRange(start, end) {
     hour12: true,
   });
   return `${fmt.format(start)} - ${fmt.format(end)}`;
+}
+
+async function hasAcademicTermIdColumn(poolOrConn) {
+  if (typeof hasAcademicTermIdColumnCache === 'boolean') return hasAcademicTermIdColumnCache;
+  if (hasAcademicTermIdColumnPromise) return hasAcademicTermIdColumnPromise;
+  hasAcademicTermIdColumnPromise = (async () => {
+    try {
+      const [cols] = await poolOrConn.query('SHOW COLUMNS FROM consultations LIKE "academic_term_id"');
+      hasAcademicTermIdColumnCache = !!(cols && cols.length);
+    } catch (_) {
+      hasAcademicTermIdColumnCache = false;
+    }
+    return hasAcademicTermIdColumnCache;
+  })();
+  try {
+    return await hasAcademicTermIdColumnPromise;
+  } finally {
+    hasAcademicTermIdColumnPromise = null;
+  }
+}
+
+function runInBackground(task, label) {
+  setImmediate(() => {
+    Promise.resolve()
+      .then(task)
+      .catch((err) => {
+        console.error(label, err);
+      });
+  });
 }
 
 // Load notification settings for a user, with safe defaults
@@ -151,13 +183,7 @@ router.post('/consultations', async (req, res) => {
     const durationMin = Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000));
 
     // Insert consultation
-    let hasTermCol = false;
-    try {
-      const [cols] = await pool.query('SHOW COLUMNS FROM consultations LIKE "academic_term_id"');
-      hasTermCol = !!(cols && cols.length);
-    } catch (_) {
-      hasTermCol = false;
-    }
+    const hasTermCol = await hasAcademicTermIdColumn(pool);
     let insertSql;
     let insertParams;
     if (hasTermCol) {
@@ -206,14 +232,16 @@ router.post('/consultations', async (req, res) => {
         'SELECT guideline_text FROM advisor_guidelines WHERE advisor_user_id = ?',
         [advisorId]
       );
-      for (const g of glRows) {
-        const txt = String(g.guideline_text || '').trim();
-        if (txt) {
-          await conn.query(
-            'INSERT INTO consultation_guidelines (consultation_id, guideline_text) VALUES (?, ?)',
-            [newId, txt]
-          );
-        }
+      const guidelineValues = glRows
+        .map((g) => String(g.guideline_text || '').trim())
+        .filter(Boolean)
+        .map((txt) => [newId, txt]);
+      if (guidelineValues.length) {
+        const placeholders = guidelineValues.map(() => '(?, ?)').join(', ');
+        await conn.query(
+          `INSERT INTO consultation_guidelines (consultation_id, guideline_text) VALUES ${placeholders}`,
+          guidelineValues.flat()
+        );
       }
     } catch (e) {
       // Non-fatal: if guidelines copy fails, proceed with booking
@@ -255,47 +283,13 @@ router.post('/consultations', async (req, res) => {
     const date = formatDate(startDt);
     const time = formatTimeRange(startDt, endDt);
 
-    // Create notification for advisor: new consultation request
-    try {
-      const [[stu]] = await pool.query('SELECT full_name FROM users WHERE id = ?', [studentId]);
-      const studentName = stu?.full_name || 'Student';
-      const title = `New consultation request from ${studentName}`;
-      const message = `${studentName} requested a consultation for '${topic}' on ${date} at ${time}.`;
-      await notify(pool, advisorId, 'consultation_request', title, message, {
-        consultation_id: newId,
-        date,
-        time,
-        topic,
-        mode: modeNorm,
-      });
-    } catch (err) {
-      console.error('Advisor request notification error', err);
-    }
-
-    // Create notification for student: request submitted and awaiting approval
-    try {
-      const titleStu = `Consultation request submitted`;
-      const guidance = modeNorm === 'online'
-        ? `Await advisor approval. A meeting link will be provided once approved.`
-        : `Await advisor approval. Location details will be confirmed upon approval.`;
-      const messageStu = `Your request for '${topic}' on ${date} at ${time} has been submitted. ${guidance}`;
-      await notify(pool, studentId, 'consultation_request_submitted', titleStu, messageStu, {
-        consultation_id: newId,
-        date,
-        time,
-        topic,
-        mode: modeNorm,
-      });
-    } catch (err) {
-      console.error('Student request notification error', err);
-    }
     // Load any copied guidelines to include in the response shape
     const [cgRows] = await pool.query(
       'SELECT guideline_text FROM consultation_guidelines WHERE consultation_id = ?',
       [r.id]
     );
 
-    return res.status(201).json({
+    const responseBody = {
       id: r.id,
       date,
       time,
@@ -312,7 +306,42 @@ router.post('/consultations', async (req, res) => {
       duration: r.duration_minutes || 30,
       bookingDate: r.booking_date,
       guidelines: cgRows.map(g => g.guideline_text),
-    });
+    };
+
+    res.status(201).json(responseBody);
+
+    runInBackground(async () => {
+      const [[stu]] = await pool.query('SELECT full_name FROM users WHERE id = ?', [studentId]);
+      const studentName = stu?.full_name || 'Student';
+      const advisorTitle = `New consultation request from ${studentName}`;
+      const advisorMessage = `${studentName} requested a consultation for '${topic}' on ${date} at ${time}.`;
+      const studentTitle = 'Consultation request submitted';
+      const guidance = modeNorm === 'online'
+        ? 'Await advisor approval. A meeting link will be provided once approved.'
+        : 'Await advisor approval. Location details will be confirmed upon approval.';
+      const studentMessage = `Your request for '${topic}' on ${date} at ${time} has been submitted. ${guidance}`;
+      const data = {
+        consultation_id: newId,
+        date,
+        time,
+        topic,
+        mode: modeNorm,
+      };
+
+      const results = await Promise.allSettled([
+        notify(pool, advisorId, 'consultation_request', advisorTitle, advisorMessage, data),
+        notify(pool, studentId, 'consultation_request_submitted', studentTitle, studentMessage, data),
+      ]);
+
+      results.forEach((result, index) => {
+        if (result.status === 'rejected') {
+          const label = index === 0 ? 'Advisor request notification error' : 'Student request notification error';
+          console.error(label, result.reason);
+        }
+      });
+    }, 'Create consultation notifications');
+
+    return;
   } catch (err) {
     console.error('Create consultation error', err);
     try { await conn.rollback(); } catch (_) {}
@@ -572,7 +601,6 @@ router.patch('/consultations/:id/status', async (req, res) => {
       fields.push('incomplete_reason = NULL');
       fields.push('incomplete_notes = NULL');
     }
-    values.push(id);
     // If completing/incompleting, stamp actual_end_datetime now
     let now = null;
     if (status === 'completed' || status === 'incomplete') {
@@ -584,6 +612,7 @@ router.patch('/consultations/:id/status', async (req, res) => {
     if (status === 'approved') {
       fields.push('actual_end_datetime = NULL');
     }
+    values.push(id);
     const [result] = await pool.query(`UPDATE consultations SET ${fields.join(', ')} WHERE id = ?`, values);
     if (result.affectedRows === 0) {
       return res.status(404).json({ error: 'Consultation not found' });

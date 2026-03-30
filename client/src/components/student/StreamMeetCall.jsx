@@ -668,7 +668,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           <StreamVideo client={client}>
             <StreamCall call={call}>
               <StreamTheme className={`smc-theme ${activePanel ? 'smc-theme--panel-open' : ''}`}>
-                <MeetingHeader
+                <section className="smc-workspace">
+                  <MeetingHeader
                   consultationData={consultationData}
                   countdownText={countdownText}
                   recordingStatus={recordingStatus}
@@ -677,9 +678,9 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   onTogglePanel={(panelName) => setActivePanel((current) => current === panelName ? null : panelName)}
                   onToggleLayout={() => setLayoutName((current) => current === 'PaginatedGrid' ? 'Speaker' : 'PaginatedGrid')}
                   onToggleStats={() => setStatsOpen((current) => !current)}
-                />
+                  />
 
-                <div className={`smc-room-shell ${activePanel ? 'smc-room-shell--panel-open' : ''}`}>
+                  <div className={`smc-room-shell ${activePanel ? 'smc-room-shell--panel-open' : ''}`}>
                   <div className="smc-stage-shell">
                     <div className="smc-layout-frame">
                       {isGridLayout ? (
@@ -739,7 +740,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                       )}
                     </aside>
                   ) : null}
-                </div>
+                  </div>
+                </section>
 
                 <div className="smc-controls">
                   <ToggleAudioPublishingButton />
