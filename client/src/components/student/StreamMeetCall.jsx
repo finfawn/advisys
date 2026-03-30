@@ -18,7 +18,6 @@ const MeetingHeader = ({
   layoutName,
   onTogglePanel,
   onToggleLayout,
-  onToggleStats,
 }) => {
   const { useParticipants, useCallStatsReport } = useCallStateHooks();
   const participants = useParticipants ? useParticipants() : [];
@@ -57,8 +56,8 @@ const MeetingHeader = ({
         {typeof latency === 'number' && Number.isFinite(latency) ? (
           <button
             type="button"
-            className="smc-header-chip smc-header-chip--latency"
-            onClick={onToggleStats}
+            className={`smc-header-chip smc-header-chip--latency ${activePanel === 'details' ? 'is-active' : ''}`}
+            onClick={() => onTogglePanel('details')}
           >
             <BsBroadcastPin />
             <span>{Math.round(latency)} ms</span>
@@ -122,8 +121,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [recordingError, setRecordingError] = useState('');
   const [chatClient, setChatClient] = useState(null);
   const [chatChannel, setChatChannel] = useState(null);
+  const [chatMessageCount, setChatMessageCount] = useState(0);
   const [activePanel, setActivePanel] = useState(null);
-  const [statsOpen, setStatsOpen] = useState(false);
   const [isAdvisor, setIsAdvisor] = useState(false);
   const endedForAllRef = useRef(false);
   const advisorOutcomeHandledRef = useRef(false);
@@ -225,6 +224,15 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           if (aid && !members.includes(String(aid))) members.push(String(aid));
           const ch = sc.channel('livestream', channelId, { name: `Consultation ${consultationData?.id || ''}`, members });
           await ch.watch();
+          const syncChatCount = () => {
+            const messages = Array.isArray(ch.state?.messages) ? ch.state.messages : [];
+            setChatMessageCount(messages.filter((message) => !message?.deleted_at).length);
+          };
+          syncChatCount();
+          ch.on('message.new', syncChatCount);
+          ch.on('message.deleted', syncChatCount);
+          ch.on('message.updated', syncChatCount);
+          ch.on('channel.truncated', syncChatCount);
           setChatClient(sc);
           setChatChannel(ch);
         } catch (e) {
@@ -242,6 +250,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       finalizeTranscript();
       setChatChannel(null);
       setChatClient(null);
+      setChatMessageCount(0);
       if (chatInstance) {
         chatInstance.disconnectUser().catch(() => {});
       }
@@ -602,8 +611,11 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
   const [layoutName, setLayoutName] = useState('Speaker');
   const isGridLayout = layoutName === 'PaginatedGrid';
+  const togglePanel = (panelName) => {
+    setActivePanel((current) => current === panelName ? null : panelName);
+  };
 
-  const StatsOverlay = ({ onClose }) => {
+  const MeetingDetailsPanel = ({ onClose }) => {
     const { useParticipants, useHasOngoingScreenShare, useMicrophoneState, useCameraState } = useCallStateHooks();
     const participants = useParticipants ? useParticipants() : [];
     const hasScreenShare = useHasOngoingScreenShare ? useHasOngoingScreenShare() : false;
@@ -611,14 +623,103 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     const { isMute: camMuted } = useCameraState ? useCameraState() : { isMute: false };
     const duration = joinedAt ? Math.max(0, Math.round((Date.now() - joinedAt.getTime())/1000)) + 's' : '—';
     return (
-      <div className="smc-stats-panel" role="dialog" aria-label="Call stats">
-        <div className="row"><span className="k">Participants</span><span className="v">{participants?.length || 0}</span></div>
-        <div className="row"><span className="k">Screenshare</span><span className="v">{hasScreenShare ? 'On' : 'Off'}</span></div>
-        <div className="row"><span className="k">Mic</span><span className="v">{micMuted ? 'Muted' : 'On'}</span></div>
-        <div className="row"><span className="k">Camera</span><span className="v">{camMuted ? 'Off' : 'On'}</span></div>
-        <div className="row"><span className="k">Duration</span><span className="v">{duration}</span></div>
-        <button className="smc-stats-close" onClick={onClose}>Close</button>
-      </div>
+      <>
+        <div className="smc-chat-header smc-chat-header--panel">
+          <div className="smc-panel-title">
+            <BsInfoCircle />
+            <span>Details</span>
+          </div>
+          <button className="smc-panel-close" onClick={onClose}>Close</button>
+        </div>
+        <div className="smc-side-panel__body smc-side-panel__body--details" role="dialog" aria-label="Call details">
+          <section className="smc-detail-section">
+            <span className="smc-detail-label">Participants</span>
+            <strong className="smc-detail-value">{participants?.length || 0}</strong>
+          </section>
+          <section className="smc-detail-section">
+            <span className="smc-detail-label">Consultation</span>
+            <strong className="smc-detail-value">{consultationData?.category || consultationData?.consultationCategory || consultationData?.mode || 'Meeting'}</strong>
+          </section>
+          <section className="smc-detail-grid">
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Screenshare</span>
+              <strong className="smc-detail-card__value">{hasScreenShare ? 'On' : 'Off'}</strong>
+            </div>
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Mic</span>
+              <strong className="smc-detail-card__value">{micMuted ? 'Muted' : 'On'}</strong>
+            </div>
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Camera</span>
+              <strong className="smc-detail-card__value">{camMuted ? 'Off' : 'On'}</strong>
+            </div>
+            <div className="smc-detail-card">
+              <span className="smc-detail-card__label">Duration</span>
+              <strong className="smc-detail-card__value">{duration}</strong>
+            </div>
+          </section>
+        </div>
+      </>
+    );
+  };
+
+  const renderSidePanel = () => {
+    if (!activePanel) return null;
+
+    if (activePanel === 'people') {
+      return (
+        <aside className="smc-side-panel smc-side-panel--people" role="complementary">
+          <CallParticipantsList onClose={() => setActivePanel(null)} />
+        </aside>
+      );
+    }
+
+    if (activePanel === 'details') {
+      return (
+        <aside className="smc-side-panel" role="complementary">
+          <MeetingDetailsPanel onClose={() => setActivePanel(null)} />
+        </aside>
+      );
+    }
+
+    return (
+      <aside className="smc-side-panel" role="complementary">
+        <div className="smc-chat-header smc-chat-header--panel">
+          <div className="smc-panel-title">
+            <BsChatDots />
+            <span>Chat</span>
+          </div>
+          <button className="smc-panel-close" onClick={() => setActivePanel(null)}>Close</button>
+        </div>
+        <div className="smc-chat-shell">
+          {chatClient && chatChannel ? (
+            <div className={`smc-stream-chat ${chatMessageCount === 0 ? 'is-empty' : ''}`}>
+              {chatMessageCount === 0 ? (
+                <div className="smc-chat-empty" aria-hidden="true">
+                  <div className="smc-chat-empty__icon">
+                    <BsChatDots />
+                  </div>
+                  <strong>Start chatting</strong>
+                  <span>Share updates, links, or quick notes for this consultation.</span>
+                </div>
+              ) : null}
+              <Chat client={chatClient}>
+                <Channel channel={chatChannel}>
+                  <Window>
+                    <MessageList />
+                    <MessageInput />
+                  </Window>
+                </Channel>
+              </Chat>
+            </div>
+          ) : (
+            <div className="smc-chat-placeholder">
+              <strong>Preparing chat</strong>
+              <span>Messages will appear here once the consultation channel is ready.</span>
+            </div>
+          )}
+        </div>
+      </aside>
     );
   };
 
@@ -646,9 +747,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   recordingStatus={recordingStatus}
                   activePanel={activePanel}
                   layoutName={layoutName}
-                  onTogglePanel={(panelName) => setActivePanel((current) => current === panelName ? null : panelName)}
+                  onTogglePanel={togglePanel}
                   onToggleLayout={() => setLayoutName((current) => current === 'PaginatedGrid' ? 'Speaker' : 'PaginatedGrid')}
-                  onToggleStats={() => setStatsOpen((current) => !current)}
                   />
 
                   <div className={`smc-room-shell ${activePanel ? 'smc-room-shell--panel-open' : ''}`}>
@@ -662,42 +762,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     </div>
                   </div>
 
-                  {activePanel ? (
-                    <aside className="smc-side-panel" role="complementary">
-                      {activePanel === 'people' ? (
-                        <CallParticipantsList onClose={() => setActivePanel(null)} />
-                      ) : (
-                        <>
-                          <div className="smc-chat-header">
-                            <div className="smc-panel-title">
-                              <BsChatDots />
-                              <span>Chat</span>
-                            </div>
-                            <button className="smc-panel-close" onClick={() => setActivePanel(null)}>Close</button>
-                          </div>
-                          <div className="smc-chat-shell">
-                            {chatClient && chatChannel ? (
-                              <div className="smc-stream-chat">
-                                <Chat client={chatClient}>
-                                  <Channel channel={chatChannel}>
-                                    <Window>
-                                      <MessageList />
-                                      <MessageInput />
-                                    </Window>
-                                  </Channel>
-                                </Chat>
-                              </div>
-                            ) : (
-                              <div className="smc-chat-placeholder">
-                                <strong>Preparing chat</strong>
-                                <span>Messages will appear here once the consultation channel is ready.</span>
-                              </div>
-                            )}
-                          </div>
-                        </>
-                      )}
-                    </aside>
-                  ) : null}
+                  {renderSidePanel()}
                   </div>
                 </section>
 
@@ -714,7 +779,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   </button>
                   <button
                     className={`smc-utility-btn ${activePanel === 'people' ? 'is-active' : ''}`}
-                    onClick={() => setActivePanel((current) => current === 'people' ? null : 'people')}
+                    onClick={() => togglePanel('people')}
                     title="Participants"
                     type="button"
                   >
@@ -722,16 +787,16 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   </button>
                   <button
                     className={`smc-utility-btn ${activePanel === 'chat' ? 'is-active' : ''}`}
-                    onClick={() => setActivePanel((current) => current === 'chat' ? null : 'chat')}
+                    onClick={() => togglePanel('chat')}
                     title="Chat"
                     type="button"
                   >
                     <BsChatDots />
                   </button>
                   <button
-                    className={`smc-utility-btn ${statsOpen ? 'is-active' : ''}`}
-                    onClick={() => setStatsOpen((current) => !current)}
-                    title="Connection details"
+                    className={`smc-utility-btn ${activePanel === 'details' ? 'is-active' : ''}`}
+                    onClick={() => togglePanel('details')}
+                    title="Meeting details"
                     type="button"
                   >
                     <BsInfoCircle />
@@ -741,7 +806,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   </button>
                 </div>
 
-                {statsOpen ? <StatsOverlay onClose={() => setStatsOpen(false)} /> : null}
               </StreamTheme>
             </StreamCall>
           </StreamVideo>
