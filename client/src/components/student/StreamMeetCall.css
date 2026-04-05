@@ -2278,3 +2278,96 @@ button.smc-header-chip:active {
     border-radius: 18px;
   }
 }
+
+/* Final visual pass: darker canvas and always-visible toolbar icons. */
+.smc-root {
+  background:
+    radial-gradient(circle at top right, rgba(137, 170, 244, 0.14), transparent 20%),
+    radial-gradient(circle at bottom left, rgba(111, 145, 224, 0.12), transparent 28%),
+    linear-gradient(180deg, #1f3760 0%, #1a2f53 36%, #162847 100%);
+}
+
+.smc-root::before {
+  opacity: 0.03;
+}
+
+.smc-root::after {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+}
+
+.smc-brand-eyebrow {
+  color: #b9caea;
+}
+
+.smc-brand-title {
+  color: #f3f7ff;
+}
+
+.smc-header-chip {
+  background: rgba(13, 24, 46, 0.48);
+  color: #e2ebff;
+}
+
+.smc-header-chip.is-active {
+  background: rgba(96, 127, 211, 0.28);
+  color: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 32, 67, 0.24);
+}
+
+.smc-header-chip--timer {
+  background: rgba(61, 137, 103, 0.22);
+}
+
+.smc-header-chip--recording {
+  background: rgba(160, 53, 49, 0.28);
+}
+
+.smc-layout-frame {
+  background: #243c66;
+}
+
+.smc-controls {
+  background: rgba(11, 18, 31, 0.94);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+
+.smc-controls-divider {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.smc-controls .str-video__call-controls__button,
+.smc-controls .str-video__composite-button__button,
+.smc-controls .str-video__menu-toggle-button,
+.smc-utility-btn,
+.smc-end-btn {
+  background: rgba(255, 255, 255, 0.09);
+  color: #f4f8ff !important;
+}
+
+.smc-controls .str-video__call-controls__button:hover,
+.smc-controls .str-video__composite-button__button:hover,
+.smc-controls .str-video__menu-toggle-button:hover,
+.smc-utility-btn:hover {
+  background: rgba(118, 149, 227, 0.22);
+  color: #ffffff !important;
+}
+
+.smc-controls .str-video__call-controls__button--active,
+.smc-controls .str-video__call-controls__button[data-device-state="enabled"],
+.smc-controls .str-video__composite-button__button[aria-pressed="true"],
+.smc-controls .str-video__composite-button--active .str-video__composite-button__button,
+.smc-utility-btn.is-active {
+  background: rgba(118, 149, 227, 0.28);
+  color: #ffffff !important;
+}
+
+.smc-controls .str-video__call-controls__button svg,
+.smc-controls .str-video__composite-button__button svg,
+.smc-controls .str-video__menu-toggle-button svg,
+.smc-utility-btn svg,
+.smc-end-btn svg {
+  color: inherit !important;
+  opacity: 1;
+}

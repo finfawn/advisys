@@ -174,3 +174,12 @@ select:not(.line-form .form-select):not(.info-input) {
     -webkit-appearance: none !important;
     -moz-appearance: none !important;
 }
+
+/* Hide browser-provided password reveal controls when the UI renders its own toggle. */
+input[type="password"]::-ms-reveal,
+input[type="password"]::-ms-clear,
+input[type="password"]::-webkit-credentials-auto-fill-button {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+}

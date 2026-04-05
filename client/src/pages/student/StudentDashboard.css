@@ -1822,6 +1822,42 @@
 @media (min-width: 768px) {
   .student-dashboard-bento-grid { gap: 18px; }
 }
+
+/* Match the advisor dashboard behavior when the desktop sidebar is hidden. */
+@media (min-width: 577px) and (max-width: 1279.98px) {
+  .student-dash-wrap {
+    height: auto;
+    min-height: 100vh;
+    overflow: visible;
+  }
+
+  .student-dash-body,
+  .student-dash-body.collapsed {
+    grid-template-columns: 1fr;
+    gap: 0;
+    height: auto;
+    overflow-x: hidden;
+    overflow-y: visible;
+  }
+
+  .student-dash-main {
+    padding: 18px;
+    padding-top: 0;
+    padding-left: 18px;
+    height: auto;
+    overflow-y: visible;
+  }
+
+  .student-dashboard-bento-grid {
+    height: auto;
+    padding-top: 18px;
+  }
+
+  .bento-grid-main,
+  .bento-grid-stats {
+    height: auto;
+  }
+}
 /* === Student Desktop Layout (mirrors advisor) === */
 
 /* --- Mobile overrides to prevent tall columns and enforce single-column stats --- */

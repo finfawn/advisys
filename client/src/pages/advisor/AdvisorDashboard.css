@@ -67,9 +67,10 @@
   grid-template-columns: repeat(4, 1fr);
   grid-template-rows: repeat(3, minmax(0, 1fr));
   gap: 14px;
-  height: calc(100vh - 104px);
+  flex: 1;
+  min-height: 0;
+  height: 100%;
   width: 100%;
-  padding-bottom: 20px;
 }
 
 /* Bento Grid Items */

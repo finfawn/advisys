@@ -51,12 +51,13 @@
     width: 34px;
     height: 34px;
     border-radius: 8px;
+    object-fit: contain;
 }
 
 .dash-topbar .brand-title {
     font-weight: 700;
     font-size: 1.125rem;
-    font-family: 'IM Fell DW Pica SC', serif;
+    color: #111827;
 }
 
 .dash-topbar .brand-sys {
