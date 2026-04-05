@@ -2426,3 +2426,79 @@ button.smc-header-chip:active {
   font-size: 0.95rem;
   letter-spacing: 0.01em;
 }
+
+.smc-controls {
+  gap: 4px;
+  padding: 4px 8px;
+}
+
+.smc-controls-divider {
+  height: 12px;
+}
+
+.smc-controls .str-video__composite-button {
+  padding: 0 1px;
+  gap: 2px;
+}
+
+.smc-controls .str-video__call-controls__button,
+.smc-controls .str-video__menu-toggle-button,
+.smc-utility-btn,
+.smc-end-btn {
+  width: 34px;
+  height: 34px;
+  min-width: 34px;
+  min-height: 34px;
+}
+
+.smc-controls .str-video__composite-button__button {
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.smc-controls .str-video__composite-button .str-video__menu-toggle-button {
+  width: 22px;
+  height: 32px;
+  min-width: 22px;
+  min-height: 32px;
+  border-radius: 999px;
+}
+
+.smc-controls .str-video__call-controls__button svg,
+.smc-controls .str-video__composite-button__button svg,
+.smc-controls .str-video__menu-toggle-button svg,
+.smc-utility-btn svg,
+.smc-end-btn svg {
+  width: 15px;
+  height: 15px;
+}
+
+.smc-utility-icon {
+  width: 17px;
+  height: 17px;
+}
+
+.smc-layout-frame {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.smc-stream-chat .str-chat__message-input-flat-wrapper {
+  width: 100%;
+}
+
+.smc-stream-chat .str-chat__message-input-inner,
+.smc-stream-chat .str-chat__message-textarea-container,
+.smc-stream-chat .str-chat__message-input-flat-wrapper > :not(.str-chat__file-input-container):not(.str-chat__send-button) {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.smc-stream-chat .str-chat__message-input textarea,
+.smc-stream-chat .str-chat__message-input input,
+.smc-stream-chat .str-chat__textarea,
+.smc-stream-chat textarea {
+  width: 100%;
+}

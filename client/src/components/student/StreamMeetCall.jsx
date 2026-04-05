@@ -4,10 +4,10 @@ import { StreamChat } from 'stream-chat';
 import { Chat, Channel, Window, MessageList, MessageInput } from 'stream-chat-react';
 import '@stream-io/video-react-sdk/dist/css/styles.css';
 import 'stream-chat-react/dist/css/v2/index.css';
-import { BsTelephoneX, BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle } from 'react-icons/bs';
+import { BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle } from 'react-icons/bs';
 import { toast } from '../hooks/use-toast';
 import Logo from '../../assets/logo.png';
-import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon } from '../icons/Heroicons';
+import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon, XCircleIcon } from '../icons/Heroicons';
 
 import './StreamMeetCall.css';
 
@@ -856,7 +856,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     <DocumentTextIcon className="smc-utility-icon" />
                   </button>
                   <button className="smc-end-btn" onClick={()=> setEndOptionsOpen(true)} title="End call" type="button">
-                    <BsTelephoneX />
+                    <XCircleIcon className="smc-utility-icon" />
                   </button>
                 </div>
 
