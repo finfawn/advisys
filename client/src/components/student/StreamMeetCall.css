@@ -2325,7 +2325,9 @@ button.smc-header-chip:active {
 }
 
 .smc-layout-frame {
-  background: #243c66;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  backdrop-filter: blur(4px);
 }
 
 .smc-controls {
@@ -2335,6 +2337,18 @@ button.smc-header-chip:active {
 
 .smc-controls-divider {
   background: rgba(255, 255, 255, 0.16);
+}
+
+.smc-controls .str-video__call-controls,
+.smc-controls .str-video__composite-button,
+.smc-controls .str-video__composite-button__button-group {
+  gap: 4px;
+}
+
+.smc-controls .str-video__composite-button {
+  border-radius: 999px;
+  padding: 0 2px;
+  background: rgba(255, 255, 255, 0.04);
 }
 
 .smc-controls .str-video__call-controls__button,
@@ -2370,4 +2384,45 @@ button.smc-header-chip:active {
 .smc-end-btn svg {
   color: inherit !important;
   opacity: 1;
+}
+
+.smc-utility-icon {
+  width: 20px;
+  height: 20px;
+  display: block;
+  flex-shrink: 0;
+  stroke-width: 2;
+}
+
+.smc-room-shell--panel-open {
+  grid-template-columns: minmax(0, 1fr) 380px;
+}
+
+.smc-side-panel {
+  width: 100%;
+  min-width: 360px;
+}
+
+.smc-chat-shell,
+.smc-side-panel__body {
+  padding: 0 16px 16px;
+}
+
+.smc-stream-chat .str-chat__message-input-flat-wrapper {
+  gap: 10px;
+}
+
+.smc-stream-chat .str-chat__message-input textarea,
+.smc-stream-chat .str-chat__message-input input,
+.smc-stream-chat .str-chat__textarea,
+.smc-stream-chat textarea {
+  padding: 10px 16px;
+}
+
+.smc-stream-chat .str-chat__message-input textarea::placeholder,
+.smc-stream-chat .str-chat__message-input input::placeholder,
+.smc-stream-chat .str-chat__textarea::placeholder,
+.smc-stream-chat textarea::placeholder {
+  font-size: 0.95rem;
+  letter-spacing: 0.01em;
 }

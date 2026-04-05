@@ -7,6 +7,7 @@ import 'stream-chat-react/dist/css/v2/index.css';
 import { BsTelephoneX, BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle } from 'react-icons/bs';
 import { toast } from '../hooks/use-toast';
 import Logo from '../../assets/logo.png';
+import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon } from '../icons/Heroicons';
 
 import './StreamMeetCall.css';
 
@@ -828,7 +829,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     title={layoutName === 'PaginatedGrid' ? 'Switch to focus layout' : 'Switch to grid layout'}
                     type="button"
                   >
-                    <BsGrid1X2 />
+                    <Squares2X2Icon className="smc-utility-icon" />
                   </button>
                   <button
                     className={`smc-utility-btn ${activePanel === 'people' ? 'is-active' : ''}`}
@@ -836,7 +837,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     title="Participants"
                     type="button"
                   >
-                    <BsPeople />
+                    <UsersIcon className="smc-utility-icon" />
                   </button>
                   <button
                     className={`smc-utility-btn ${activePanel === 'chat' ? 'is-active' : ''}`}
@@ -844,7 +845,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     title="Chat"
                     type="button"
                   >
-                    <BsChatDots />
+                    <ChatBubbleLeftRightIcon className="smc-utility-icon" />
                   </button>
                   <button
                     className={`smc-utility-btn ${activePanel === 'details' ? 'is-active' : ''}`}
@@ -852,7 +853,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     title="Meeting details"
                     type="button"
                   >
-                    <BsInfoCircle />
+                    <DocumentTextIcon className="smc-utility-icon" />
                   </button>
                   <button className="smc-end-btn" onClick={()=> setEndOptionsOpen(true)} title="End call" type="button">
                     <BsTelephoneX />
