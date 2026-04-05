@@ -2452,16 +2452,16 @@ button.smc-header-chip:active {
 }
 
 .smc-controls .str-video__composite-button__button {
-  width: 32px;
+  width: 28px;
   height: 32px;
-  min-width: 32px;
+  min-width: 28px;
   min-height: 32px;
 }
 
 .smc-controls .str-video__composite-button .str-video__menu-toggle-button {
-  width: 22px;
+  width: 18px;
   height: 32px;
-  min-width: 22px;
+  min-width: 18px;
   min-height: 32px;
   border-radius: 999px;
 }
@@ -2496,9 +2496,52 @@ button.smc-header-chip:active {
   min-width: 0;
 }
 
+.smc-stream-chat .str-chat__message-textarea-container {
+  overflow: visible;
+  border-radius: 14px;
+  background: rgba(9, 13, 20, 0.96);
+}
+
 .smc-stream-chat .str-chat__message-input textarea,
 .smc-stream-chat .str-chat__message-input input,
 .smc-stream-chat .str-chat__textarea,
 .smc-stream-chat textarea {
   width: 100%;
+  min-height: 40px;
+  padding: 10px 16px;
+  border-radius: 14px;
+  line-height: 1.35;
+  background: transparent;
+}
+
+/* Refine composite mic/camera controls so hover/active states feel intentional. */
+.smc-controls .str-video__composite-button,
+.smc-controls .str-video__composite-button__button-group {
+  gap: 0;
+  background: transparent;
+}
+
+.smc-controls .str-video__composite-button {
+  padding: 0;
+  border-radius: 999px;
+}
+
+.smc-controls .str-video__composite-button__button {
+  border-radius: 999px 0 0 999px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.smc-controls .str-video__composite-button .str-video__menu-toggle-button {
+  border-radius: 0 999px 999px 0;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.smc-controls .str-video__composite-button__button:hover,
+.smc-controls .str-video__composite-button .str-video__menu-toggle-button:hover {
+  background: rgba(118, 149, 227, 0.18);
+}
+
+.smc-controls .str-video__composite-button__button[aria-pressed="true"],
+.smc-controls .str-video__composite-button--active .str-video__composite-button__button {
+  background: rgba(118, 149, 227, 0.28);
 }
