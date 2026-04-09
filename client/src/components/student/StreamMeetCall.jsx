@@ -199,6 +199,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const audioContextRef = useRef(null);
   const destinationNodeRef = useRef(null);
   const recordingChunksRef = useRef([]);
+  const finalizeRecordingAfterStopRef = useRef(false);
 
   const [client, setClient] = useState(null);
   const [call, setCall] = useState(null);
@@ -212,7 +213,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const endActionGuardRef = useRef(false);
   const [countdownText, setCountdownText] = useState('');
   const [rejoinSeed, setRejoinSeed] = useState(0);
-  const [recordingStatus, setRecordingStatus] = useState('idle'); // idle|recording|uploading|transcribing|done|error
+  const [recordingStatus, setRecordingStatus] = useState('idle'); // idle|recording|uploading|error
   const [recordingError, setRecordingError] = useState('');
   const [chatClient, setChatClient] = useState(null);
   const [chatChannel, setChatChannel] = useState(null);
@@ -266,9 +267,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         setJoinedAt(new Date());
         setInMeeting(true);
         setIsLoading(false);
-
-        // Start local audio capture for transcription pipeline
-        await startCombinedAudioCapture();
 
         // Notify backend of started event
         if (consultationData?.id) {
@@ -330,9 +328,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     })();
     return () => {
       mounted = false;
-      // Stop capture on unmount for safety
-      stopCombinedAudioCapture();
-      finalizeTranscript();
+      stopCombinedAudioCapture({ finalizeAfterStop: true });
       setChatChannel(null);
       setChatClient(null);
       if (chatInstance) {
@@ -383,7 +379,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     if (!inMeeting || rejoinSeed === 0) return;
     (async () => {
       try { await call?.join?.({ create: false }); } catch (_) {}
-      try { await startCombinedAudioCapture(); } catch (_) {}
     })();
   }, [rejoinSeed, inMeeting, call]);
 
@@ -405,10 +400,17 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   }, [consultationData?.id]);
 
   
+  function buildRecordingFileName() {
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return `consultation-${consultationData?.id || 'meeting'}-${stamp}.webm`;
+  }
 
   async function startCombinedAudioCapture() {
     try {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') return;
+      if (!consultationData?.id) throw new Error('Missing consultation ID');
       setRecordingError('');
+      finalizeRecordingAfterStopRef.current = false;
       // Decide capture path based on configuration
       let mr;
       let chosenType = '';
@@ -476,28 +478,55 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       mr.onstop = async () => {
         try {
           const blob = new Blob(recordingChunksRef.current, { type: chosenType || 'audio/webm' });
+          mediaRecorderRef.current = null;
           recordingChunksRef.current = [];
-          setRecordingStatus('uploading');
+          if (!blob.size) {
+            finalizeRecordingAfterStopRef.current = false;
+            setRecordingStatus('idle');
+            toast.warning({
+              title: 'Recording empty',
+              description: 'No audio was captured for this recording.',
+            });
+            return;
+          }
           await uploadAudioBlob(blob);
+          if (finalizeRecordingAfterStopRef.current) {
+            finalizeRecordingAfterStopRef.current = false;
+            finalizeTranscript();
+          }
         } catch (err) {
           console.error('Recorder stop/upload error', err);
+          finalizeRecordingAfterStopRef.current = false;
           setRecordingError(err?.message || String(err));
           setRecordingStatus('error');
         }
       };
       mr.start();
       setRecordingStatus('recording');
+      toast.info({
+        title: 'Recording started',
+        description: 'The meeting will keep recording until you press the record button again.',
+      });
     } catch (err) {
       console.error('Failed to start tab audio capture:', err);
       setRecordingError(err?.message || String(err));
       setRecordingStatus('error');
+      toast.destructive({
+        title: 'Recording failed',
+        description: err?.message || 'Unable to start recording.',
+      });
     }
   }
 
-  async function stopCombinedAudioCapture() {
+  async function stopCombinedAudioCapture({ finalizeAfterStop = false } = {}) {
     try {
-      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') {
-        mediaRecorderRef.current.stop();
+      const recorder = mediaRecorderRef.current;
+      if (recorder && recorder.state !== 'inactive') {
+        finalizeRecordingAfterStopRef.current = finalizeAfterStop;
+        setRecordingStatus('uploading');
+        recorder.stop();
+      } else if (finalizeAfterStop) {
+        finalizeRecordingAfterStopRef.current = false;
       }
       const ds = captureStreamRef.current;
       if (ds) {
@@ -525,7 +554,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       if (!consultationData?.id) throw new Error('Missing consultation ID');
       setRecordingStatus('uploading');
       const fd = new FormData();
-      fd.append('file', blob, `consultation-${consultationData.id}.webm`);
+      fd.append('file', blob, buildRecordingFileName());
       fd.append('consultationId', String(consultationData.id));
       // Do not use keepalive for large audio uploads; browsers may drop bodies >64KB
       const res = await fetch(`${API_BASE_URL}/api/transcriptions/upload`, { method: 'POST', body: fd });
@@ -533,11 +562,21 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       if (!res.ok) {
         throw new Error(data?.error || 'Upload/transcription failed');
       }
-      setRecordingStatus('done');
+      setRecordingStatus('idle');
+      toast.success({
+        title: 'Recording saved',
+        description: data?.recordingUri
+          ? `Saved to ${data.recordingUri}`
+          : 'The recording has been uploaded successfully.',
+      });
     } catch (err) {
       console.error('Upload error:', err);
       setRecordingError(err?.message || String(err));
       setRecordingStatus('error');
+      toast.destructive({
+        title: 'Recording upload failed',
+        description: err?.message || 'Unable to save the recording.',
+      });
     }
   }
 
@@ -568,9 +607,9 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   }
 
   function handleLeave() {
-    // Stop capture to trigger upload
-    stopCombinedAudioCapture();
-    finalizeTranscript();
+    if (recordingStatus === 'recording') {
+      stopCombinedAudioCapture({ finalizeAfterStop: true });
+    }
     // Notify parent window (details page) to refresh this consultation
     try {
       if (typeof window !== 'undefined' && window.opener) {
@@ -635,6 +674,26 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     }
     return `${totalMinutes} minute${totalMinutes === 1 ? '' : 's'}`;
   };
+
+  const isRecordingActive = recordingStatus === 'recording';
+  const isRecordingBusy = recordingStatus === 'uploading';
+
+  const handleRecordingToggle = async () => {
+    if (isRecordingBusy) return;
+
+    if (isRecordingActive) {
+      await stopCombinedAudioCapture({ finalizeAfterStop: true });
+      return;
+    }
+
+    await startCombinedAudioCapture();
+  };
+
+  const recordingButtonTitle = isRecordingBusy
+    ? 'Saving recording'
+    : isRecordingActive
+      ? 'Stop and save recording'
+      : 'Start recording';
 
   const performAdvisorOutcomeSubmit = async () => {
     if (!consultationData?.id || submittingAdvisorOutcome) return;
@@ -858,14 +917,33 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       {isLoading ? (
         <div className="smc-loading-screen" aria-live="polite">
           <div className="smc-loading-brand" role="status" aria-label="Preparing your meeting">
-            <span className="smc-loading-brand__glow" aria-hidden="true" />
-            <span className="smc-loading-brand__ring" aria-hidden="true" />
-            <img
-              src="/logo-large-transparent.png"
-              alt="AdviSys"
-              className="smc-loading-brand__logo"
-            />
-            <span className="smc-loading-brand__copy">Preparing your meeting</span>
+            <span className="smc-loading-brand__backdrop" aria-hidden="true" />
+            <div className="smc-loading-brand__stage" aria-hidden="true">
+              <span className="smc-loading-brand__halo" />
+              <span className="smc-loading-brand__orbit smc-loading-brand__orbit--outer" />
+              <span className="smc-loading-brand__orbit smc-loading-brand__orbit--inner" />
+              <span className="smc-loading-brand__logo-shell">
+                <img
+                  src="/logo-large-transparent.png"
+                  alt="AdviSys"
+                  className="smc-loading-brand__logo"
+                />
+              </span>
+            </div>
+            <div className="smc-loading-brand__text">
+              <span className="smc-loading-brand__eyebrow">AdviSys</span>
+              <span className="smc-loading-brand__copy">
+                Preparing your meeting
+                <span className="smc-loading-brand__ellipsis" aria-hidden="true">
+                  <span />
+                  <span />
+                  <span />
+                </span>
+              </span>
+              <span className="smc-loading-brand__subcopy">
+                Joining the room and checking your audio and video
+              </span>
+            </div>
           </div>
         </div>
       ) : null}
@@ -910,6 +988,17 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                 <div className="smc-controls">
                   <CallControls />
                   <div className="smc-controls-divider" />
+                  <button
+                    className={`smc-utility-btn smc-record-btn ${isRecordingActive ? 'is-recording' : ''} ${isRecordingBusy ? 'is-saving' : ''}`}
+                    onClick={handleRecordingToggle}
+                    title={recordingButtonTitle}
+                    type="button"
+                    aria-label={recordingButtonTitle}
+                    aria-pressed={isRecordingActive}
+                    disabled={isRecordingBusy}
+                  >
+                    <RecordCircleIcon className="smc-utility-icon" />
+                  </button>
                   <button
                     className={`smc-utility-btn ${layoutName === 'PaginatedGrid' ? 'is-active' : ''}`}
                     onClick={() => setLayoutName((current) => current === 'PaginatedGrid' ? 'Speaker' : 'PaginatedGrid')}
@@ -1032,15 +1121,22 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
               {advisorOutcome === 'incomplete' ? (
                 <div className="smc-modal-field-stack">
-                  <select className="smc-modal-field" value={advisorOutcomeReason} onChange={(e)=> setAdvisorOutcomeReason(e.target.value)}>
-                    <option value="student_left_early">Student left early</option>
-                    <option value="advisor_ended_early">Advisor ended early</option>
-                    <option value="technical_issue">Technical issue</option>
-                    <option value="connectivity_problem">Connectivity problem</option>
-                    <option value="time_ran_out">Time ran out</option>
-                    <option value="emergency">Emergency</option>
-                    <option value="other">Other</option>
-                  </select>
+                  <label className="smc-modal-field-group">
+                    <span className="smc-modal-field-label">Reason</span>
+                    <select
+                      className="smc-modal-field smc-modal-field--select"
+                      value={advisorOutcomeReason}
+                      onChange={(e)=> setAdvisorOutcomeReason(e.target.value)}
+                    >
+                      <option value="student_left_early">Student left early</option>
+                      <option value="advisor_ended_early">Advisor ended early</option>
+                      <option value="technical_issue">Technical issue</option>
+                      <option value="connectivity_problem">Connectivity problem</option>
+                      <option value="time_ran_out">Time ran out</option>
+                      <option value="emergency">Emergency</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </label>
                   <textarea
                     className="smc-modal-field smc-modal-field--textarea"
                     value={advisorOutcomeNotes}

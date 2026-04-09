@@ -437,6 +437,7 @@ router.get('/consultations/students/:studentId/consultations', authMiddleware, a
         summaryNotes: r.summary_notes || undefined,
         finalTranscript: r.final_transcript || undefined,
         aiSummary: r.ai_summary || undefined,
+        recordingUri: r.recording_uri || undefined,
         // Standardized reasons for student consumption
         decline_reason: r.decline_reason || null,
         cancel_reason: r.cancel_reason || null,
@@ -530,6 +531,7 @@ router.get('/consultations/advisors/:advisorId/consultations', async (req, res) 
       summaryNotes: r.summary_notes || undefined,
       finalTranscript: r.final_transcript || undefined,
       aiSummary: r.ai_summary || undefined,
+      recordingUri: r.recording_uri || undefined,
       summaryEditApprovedAt: r.summary_edit_approved_at || undefined,
       student: {
         name: r.student_name,
@@ -1151,6 +1153,7 @@ router.patch('/consultations/:id', async (req, res) => {
       studentNotes: r.student_notes || undefined,
       studentPrivateNotes: r.student_private_notes || undefined,
       summaryNotes: r.summary_notes || undefined,
+      recordingUri: r.recording_uri || undefined,
       duration: (r.actual_start_datetime && r.actual_end_datetime)
         ? Math.max(0, Math.round((new Date(r.actual_end_datetime).getTime() - new Date(r.actual_start_datetime).getTime()) / 60000))
         : (Number(r.duration_minutes || 0) || Math.max(0, Math.round((end.getTime() - start.getTime()) / 60000))),
