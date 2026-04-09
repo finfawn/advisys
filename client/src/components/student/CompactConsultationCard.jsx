@@ -1,6 +1,5 @@
 import React from "react";
-import { BsPersonCircle, BsCameraVideo, BsGeoAlt, BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle } from "react-icons/bs";
-import { Avatar, AvatarImage, AvatarFallback } from "../../lightswind/avatar";
+import { BsChevronRight, BsCheckCircle, BsClockHistory, BsXCircle } from "react-icons/bs";
 import "./CompactConsultationCard.css";
 
 function CompactConsultationCard({ consultation, onActionClick, onDelete, onCancel, onReschedule }) {
@@ -87,14 +86,7 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
   return (
     <div className="compact-consultation-card">
       <div className="compact-date-section">
-        <Avatar className="h-10 w-10 border border-gray-100 shadow-sm flex-shrink-0">
-          <AvatarImage 
-            src={consultation?.advisor?.avatar || consultation?.faculty?.avatar} 
-            alt={consultation?.advisor?.name || consultation?.faculty?.name} 
-          />
-          <AvatarFallback name={consultation?.advisor?.name || consultation?.faculty?.name} />
-        </Avatar>
-        <div className="compact-date ml-3">
+        <div className="compact-date">
           {(() => { const p = formatParts(); return (
             <>
               <div className="compact-dow">{p.dow}</div>

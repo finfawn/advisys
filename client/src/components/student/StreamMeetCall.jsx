@@ -886,18 +886,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     return `${totalMinutes} minute${totalMinutes === 1 ? '' : 's'}`;
   };
 
-  const scheduledDurationMs = getScheduledDurationMs();
-  const hasSessionTimer = typeof remainingSessionMs === 'number' || overtimeMs > 0;
-  const sessionBannerLabel = overtimeMs > 0 ? 'Overtime' : 'Time remaining';
-  const sessionBannerValue = overtimeMs > 0
-    ? formatSessionClock(overtimeMs)
-    : (typeof remainingSessionMs === 'number' ? formatSessionClock(remainingSessionMs) : countdownText);
-  const sessionProgressPercent = overtimeMs > 0
-    ? 100
-    : (scheduledDurationMs > 0 && typeof remainingSessionMs === 'number'
-      ? Math.max(8, Math.min(100, Math.round((remainingSessionMs / scheduledDurationMs) * 100)))
-      : 100);
-
   const isRecordingActive = recordingStatus === 'recording';
   const isRecordingBusy = recordingStatus === 'uploading';
 
@@ -1307,26 +1295,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     className={`smc-room-shell ${activePanel ? 'smc-room-shell--panel-open' : ''}`}
                   >
                   <motion.div layout transition={roomLayoutTransition} className="smc-stage-shell">
-                    <div className="smc-stage-overlays">
-                      {hasSessionTimer ? (
-                        <div className={`smc-runtime-banner ${overtimeMs > 0 ? 'is-overtime' : ''}`} role="status" aria-live="polite">
-                          <div className="smc-runtime-banner__header">
-                            <div className="smc-runtime-banner__title-row">
-                              <ClockIcon className="smc-runtime-banner__icon" />
-                              <span>{sessionBannerLabel}</span>
-                            </div>
-                            <strong className="smc-runtime-banner__value">{sessionBannerValue}</strong>
-                          </div>
-                          <div className="smc-runtime-banner__meter" aria-hidden="true">
-                            <span
-                              className={`smc-runtime-banner__fill ${overtimeMs > 0 ? 'is-overtime' : ''}`}
-                              style={{ width: `${sessionProgressPercent}%` }}
-                            />
-                          </div>
-                        </div>
-                      ) : null}
-
-                    </div>
                     <div className="smc-layout-frame">
                       {isGridLayout ? (
                         <PaginatedGridLayout />
@@ -1334,17 +1302,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                         <SpeakerLayout participantsBarPosition="bottom" />
                       )}
                     </div>
-                    <a
-                      className="smc-powered-by-stream"
-                      href="https://getstream.io/video/"
-                      target="_blank"
-                      rel="noreferrer"
-                      aria-label="Powered by Stream Video via getstream.io"
-                    >
-                      <VideoCameraIcon className="smc-powered-by-stream__icon" />
-                      <span>Powered by Stream Video</span>
-                      <small>getstream.io</small>
-                    </a>
                   </motion.div>
 
                   <AnimatePresence mode="popLayout" initial={false}>
@@ -1352,6 +1309,18 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   </AnimatePresence>
                   </motion.div>
                 </section>
+
+                <a
+                  className="smc-powered-by-stream"
+                  href="https://getstream.io/video/"
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label="Powered by Stream Video via getstream.io"
+                >
+                  <VideoCameraIcon className="smc-powered-by-stream__icon" />
+                  <span>Powered by Stream Video</span>
+                  <small>getstream.io</small>
+                </a>
 
                 <div className="smc-controls">
                   <CallControls />

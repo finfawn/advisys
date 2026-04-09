@@ -1,7 +1,7 @@
 /* CompactConsultationCard.css - Much smaller, list-like design */
 .compact-consultation-card {
   display: grid;
-  grid-template-columns: 70px 1fr 80px;
+  grid-template-columns: 60px minmax(0, 1fr) 88px;
   align-items: center;
   gap: 10px;
   padding: 10px 12px;
@@ -24,14 +24,14 @@
 
 .compact-date-section {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
 }
 
 .compact-date {
   display: grid;
   place-items: center;
-  width: 60px;
-  height: 60px;
+  width: 52px;
+  height: 52px;
   border-radius: 12px;
   background: #eef7ff;
   color: #3360c2;
@@ -340,15 +340,15 @@
 /* Responsive Design */
 @media (max-width: 768px) {
   .compact-consultation-card {
-    grid-template-columns: 60px 1fr 70px;
+    grid-template-columns: 52px minmax(0, 1fr) 68px;
     gap: 8px;
     padding: 8px 10px;
     min-height: 50px;
   }
   
   .compact-date {
-    width: 50px;
-    height: 50px;
+    width: 46px;
+    height: 46px;
   }
   
   .compact-dow {
@@ -398,15 +398,15 @@
 
 @media (max-width: 480px) {
   .compact-consultation-card {
-    grid-template-columns: 50px 1fr 60px;
+    grid-template-columns: 46px minmax(0, 1fr) 58px;
     gap: 6px;
     padding: 6px 8px;
     min-height: 45px;
   }
   
   .compact-date {
-    width: 42px;
-    height: 42px;
+    width: 40px;
+    height: 40px;
   }
   
   .compact-dow {
