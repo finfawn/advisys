@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { StreamVideoClient, StreamVideo, StreamCall, StreamTheme, SpeakerLayout, PaginatedGridLayout, CallParticipantsList, CallControls, useCallStateHooks } from '@stream-io/video-react-sdk';
 import { StreamChat } from 'stream-chat';
 import { Chat, Channel, Window, MessageList, MessageInput } from 'stream-chat-react';
@@ -7,9 +8,66 @@ import 'stream-chat-react/dist/css/v2/index.css';
 import { BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle } from 'react-icons/bs';
 import { toast } from '../hooks/use-toast';
 import Logo from '../../assets/logo.png';
-import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon, XCircleIcon } from '../icons/Heroicons';
+import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon, XCircleIcon, RecordCircleIcon } from '../icons/Heroicons';
 
 import './StreamMeetCall.css';
+
+const sidePanelTransition = {
+  duration: 0.3,
+  ease: [0.22, 1, 0.36, 1],
+};
+
+const sidePanelVariants = {
+  hidden: {
+    opacity: 0,
+    x: 26,
+    scale: 0.985,
+    filter: 'blur(10px)',
+  },
+  visible: {
+    opacity: 1,
+    x: 0,
+    scale: 1,
+    filter: 'blur(0px)',
+  },
+  exit: {
+    opacity: 0,
+    x: 18,
+    scale: 0.985,
+    filter: 'blur(8px)',
+  },
+};
+
+const sidePanelContentVariants = {
+  hidden: {
+    opacity: 0,
+    y: 10,
+  },
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      delay: 0.06,
+      duration: 0.24,
+      ease: [0.22, 1, 0.36, 1],
+    },
+  },
+  exit: {
+    opacity: 0,
+    y: 6,
+    transition: {
+      duration: 0.18,
+      ease: [0.4, 0, 1, 1],
+    },
+  },
+};
+
+const roomLayoutTransition = {
+  layout: {
+    duration: 0.34,
+    ease: [0.22, 1, 0.36, 1],
+  },
+};
 
 const formatElapsedDuration = (joinedAt) => {
   if (!joinedAt) return 'Not started';
@@ -100,10 +158,10 @@ const MeetingHeader = ({
             <span>{Math.round(latency)} ms</span>
           </button>
         ) : null}
-        {recordingStatus === 'recording' ? (
-          <div className="smc-header-chip smc-header-chip--recording">
+        {recordingStatus === 'recording' || recordingStatus === 'uploading' ? (
+          <div className={`smc-header-chip ${recordingStatus === 'uploading' ? 'smc-header-chip--saving' : 'smc-header-chip--recording'}`}>
             <span className="smc-recording-pip" />
-            <span>Recording</span>
+            <span>{recordingStatus === 'uploading' ? 'Saving recording' : 'Recording'}</span>
           </div>
         ) : null}
         <button
@@ -734,26 +792,44 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const renderSidePanel = () => {
     if (!activePanel) return null;
 
+    const panelProps = {
+      key: activePanel,
+      layout: true,
+      initial: 'hidden',
+      animate: 'visible',
+      exit: 'exit',
+      variants: sidePanelVariants,
+      transition: sidePanelTransition,
+      className: `smc-side-panel smc-side-panel--${activePanel}`,
+      role: 'complementary',
+    };
+
     if (activePanel === 'people') {
       return (
-        <aside className="smc-side-panel smc-side-panel--people" role="complementary">
+        <motion.aside {...panelProps}>
           <CallParticipantsList onClose={closePanel} />
-        </aside>
+        </motion.aside>
       );
     }
 
     if (activePanel === 'details') {
       return (
-        <aside className="smc-side-panel smc-side-panel--details" role="complementary">
+        <motion.aside {...panelProps}>
           <MeetingDetailsPanelV2 onClose={closePanel} />
-        </aside>
+        </motion.aside>
       );
     }
 
     return (
-      <aside className="smc-side-panel smc-side-panel--chat" role="complementary">
+      <motion.aside {...panelProps}>
         <MeetingPanelFrame icon={BsChatDots} title="Chat" onClose={closePanel}>
-          <div className="smc-chat-shell">
+          <motion.div
+            className="smc-chat-shell"
+            variants={sidePanelContentVariants}
+            initial="hidden"
+            animate="visible"
+            exit="exit"
+          >
           {chatClient && chatChannel ? (
             <div className="smc-stream-chat">
               <Chat client={chatClient}>
@@ -771,20 +847,25 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
               <span>Messages will appear here once the consultation channel is ready.</span>
             </div>
           )}
-          </div>
+          </motion.div>
         </MeetingPanelFrame>
-      </aside>
+      </motion.aside>
     );
   };
 
   return (
     <div className="smc-root">
       {isLoading ? (
-        <div className="smc-loading-screen">
-          <div className="smc-loading-card">
-            <div className="smc-loading-spinner" />
-            <h2>Preparing your meeting</h2>
-            <p>Connecting to the consultation room and setting up your audio and video.</p>
+        <div className="smc-loading-screen" aria-live="polite">
+          <div className="smc-loading-brand" role="status" aria-label="Preparing your meeting">
+            <span className="smc-loading-brand__glow" aria-hidden="true" />
+            <span className="smc-loading-brand__ring" aria-hidden="true" />
+            <img
+              src="/logo-large-transparent.png"
+              alt="AdviSys"
+              className="smc-loading-brand__logo"
+            />
+            <span className="smc-loading-brand__copy">Preparing your meeting</span>
           </div>
         </div>
       ) : null}
@@ -805,8 +886,12 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   onToggleLayout={() => setLayoutName((current) => current === 'PaginatedGrid' ? 'Speaker' : 'PaginatedGrid')}
                   />
 
-                  <div className={`smc-room-shell ${activePanel ? 'smc-room-shell--panel-open' : ''}`}>
-                  <div className="smc-stage-shell">
+                  <motion.div
+                    layout
+                    transition={roomLayoutTransition}
+                    className={`smc-room-shell ${activePanel ? 'smc-room-shell--panel-open' : ''}`}
+                  >
+                  <motion.div layout transition={roomLayoutTransition} className="smc-stage-shell">
                     <div className="smc-layout-frame">
                       {isGridLayout ? (
                         <PaginatedGridLayout />
@@ -814,10 +899,12 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                         <SpeakerLayout participantsBarPosition="bottom" />
                       )}
                     </div>
-                  </div>
+                  </motion.div>
 
-                  {renderSidePanel()}
-                  </div>
+                  <AnimatePresence mode="popLayout" initial={false}>
+                    {renderSidePanel()}
+                  </AnimatePresence>
+                  </motion.div>
                 </section>
 
                 <div className="smc-controls">

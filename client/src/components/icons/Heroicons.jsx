@@ -286,6 +286,15 @@ export function PlayCircleIcon({ className = "w-5 h-5" }) {
   );
 }
 
+export function RecordCircleIcon({ className = "w-5 h-5" }) {
+  return (
+    <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <circle cx="12" cy="12" r="8.5" />
+      <circle cx="12" cy="12" r="3.25" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
 export function LightBulbIcon({ className = "w-5 h-5" }) {
   return (
     <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

@@ -1,5 +1,7 @@
 const express = require('express');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 const { getPool } = require('../db/pool');
 // AI summarization removed
 
@@ -24,6 +26,30 @@ const DISABLE_STT_UPLOAD = String(process.env.DISABLE_STT_UPLOAD || '').toLowerC
 // Optional: retain uploaded audio in cloud storage (default: delete after STT completes)
 const KEEP_RECORDINGS_AT_REST = String(process.env.KEEP_RECORDINGS_AT_REST || '').toLowerCase() === 'true';
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } }); // 100MB cap
+const UPLOADS_DIR = path.join(__dirname, '..', 'uploads');
+const RECORDINGS_DIR = path.join(UPLOADS_DIR, 'recordings');
+
+function ensureRecordingDirs() {
+  try {
+    if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR);
+    if (!fs.existsSync(RECORDINGS_DIR)) fs.mkdirSync(RECORDINGS_DIR);
+  } catch (err) {
+    console.error('Failed to ensure recording directories:', err);
+  }
+}
+
+function recordingExtensionForUpload(file) {
+  const originalExt = String(path.extname(file?.originalname || '')).trim().toLowerCase();
+  const allowedExts = new Set(['.webm', '.ogg', '.mp3', '.wav', '.m4a', '.mp4']);
+  if (allowedExts.has(originalExt)) return originalExt;
+
+  const mime = String(file?.mimetype || '').toLowerCase();
+  if (mime.includes('ogg')) return '.ogg';
+  if (mime.includes('mpeg') || mime.includes('mp3')) return '.mp3';
+  if (mime.includes('wav')) return '.wav';
+  if (mime.includes('mp4') || mime.includes('m4a')) return '.m4a';
+  return '.webm';
+}
 
 async function ensureConsultationTranscriptColumns(pool) {
   try {
@@ -125,7 +151,57 @@ router.post('/transcriptions', async (req, res) => {
 
 // POST /api/transcriptions/upload
 router.post('/transcriptions/upload', upload.single('file'), async (req, res) => {
-  return res.status(501).json({ error: 'Speech-to-text upload disabled' });
+  const pool = getPool();
+  try {
+    const consultationId = Number(req.body?.consultationId || 0);
+
+    if (!consultationId) {
+      return res.status(400).json({ error: 'consultationId is required' });
+    }
+
+    if (!req.file || !req.file.buffer || req.file.buffer.length === 0) {
+      return res.status(400).json({ error: 'No recording file uploaded' });
+    }
+
+    await ensureConsultationTranscriptColumns(pool);
+    ensureRecordingDirs();
+
+    const [[consultation]] = await pool.query(
+      'SELECT id, recording_uri FROM consultations WHERE id = ? LIMIT 1',
+      [consultationId]
+    );
+
+    if (!consultation) {
+      return res.status(404).json({ error: 'Consultation not found' });
+    }
+
+    const ext = recordingExtensionForUpload(req.file);
+    const fileName = `consultation_${consultationId}_${Date.now()}${ext}`;
+    const localPath = path.join(RECORDINGS_DIR, fileName);
+    const publicPath = `/uploads/recordings/${fileName}`;
+
+    fs.writeFileSync(localPath, req.file.buffer);
+
+    await pool.query(
+      'UPDATE consultations SET recording_uri = ? WHERE id = ?',
+      [publicPath, consultationId]
+    );
+
+    const previousUrl = String(consultation.recording_uri || '').trim();
+    if (previousUrl && previousUrl !== publicPath && previousUrl.startsWith('/uploads/recordings/')) {
+      const previousPath = path.join(RECORDINGS_DIR, path.basename(previousUrl));
+      try {
+        if (fs.existsSync(previousPath)) fs.unlinkSync(previousPath);
+      } catch (cleanupErr) {
+        console.warn('Failed to remove previous recording:', cleanupErr);
+      }
+    }
+
+    return res.json({ success: true, recordingUri: publicPath });
+  } catch (err) {
+    console.error('Transcriptions upload error:', err);
+    return res.status(500).json({ error: 'Failed to save recording' });
+  }
 });
 
 router.post('/transcriptions/reprocess/:id', async (req, res) => {
