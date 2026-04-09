@@ -19,8 +19,8 @@ const {
 
 const CONSULTATION_CALL_TYPE = 'consultation';
 const DEFAULT_CALL_TYPE = 'default';
-const CALL_MEMBER_ROLE = 'call-member';
-const LEGACY_CALL_MEMBER_ROLE = 'call_member';
+const CALL_MEMBER_ROLE = 'call_member';
+const LEGACY_CALL_MEMBER_ROLE = 'call-member';
 const REQUIRED_CALL_MEMBER_CAPABILITIES = [
   'join-call',
   'read-call',
