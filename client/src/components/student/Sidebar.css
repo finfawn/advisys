@@ -14,7 +14,7 @@
   --sb-bg: #ffffff;
   background: #ffffff;
   border-right: 1px solid rgba(0,0,0,0.06);
-  padding: 12px 10px; /* match advisor inner padding */
+  padding: calc(var(--dash-sidebar-top) + 12px) 10px 12px; /* add internal clearance so nav items start below the navbar */
   min-width: var(--dash-sidebar-width);
   overflow-y: auto;
   overflow-x: hidden;

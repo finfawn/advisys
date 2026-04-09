@@ -19,6 +19,7 @@ const {
 const CONSULTATION_CALL_TYPE = 'consultation';
 const DEFAULT_CALL_TYPE = 'default';
 const CALL_MEMBER_ROLE = 'call-member';
+const LEGACY_CALL_MEMBER_ROLE = 'call_member';
 const REQUIRED_CALL_MEMBER_CAPABILITIES = [
   'join-call',
   'read-call',
@@ -58,6 +59,7 @@ function grantsEqual(left = {}, right = {}) {
 
 function buildConsultationGrants(sourceGrants = {}) {
   const nextGrants = { ...(sourceGrants || {}) };
+  delete nextGrants[LEGACY_CALL_MEMBER_ROLE];
   nextGrants.user = unique((nextGrants.user || []).filter((capability) => capability !== 'join-call'));
   nextGrants[CALL_MEMBER_ROLE] = unique([
     ...(nextGrants[CALL_MEMBER_ROLE] || []),
@@ -253,7 +255,7 @@ router.post('/token', authMiddleware, async (req, res) => {
       consultationId: req?.body?.consultationId,
     });
     if (err?.stack) console.error(err.stack);
-    return res.status(500).json({ error: 'Failed to mint Stream token' });
+    return res.status(500).json({ error: msg || 'Failed to mint Stream token' });
   }
 });
 
