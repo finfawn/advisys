@@ -3043,7 +3043,7 @@ button.smc-header-chip:active {
   display: flex;
   align-items: stretch;
   min-height: 46px;
-  padding-left: 2px;
+  padding-left: 6px;
   overflow: hidden;
   border-radius: 16px;
   background: rgba(9, 13, 20, 0.96);
@@ -3057,7 +3057,7 @@ button.smc-header-chip:active {
   width: 100%;
   display: block;
   min-height: 46px;
-  padding: 11px 16px 11px 18px;
+  padding: 11px 16px 11px 22px;
   border-radius: 16px;
   font-size: 0.94rem;
   line-height: 1.5;

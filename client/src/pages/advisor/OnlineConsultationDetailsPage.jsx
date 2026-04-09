@@ -766,18 +766,6 @@ export default function AdvisorOnlineConsultationDetailsPage() {
           />
         </div>
       </AdminConfirmModal>
-
-      {(() => {
-        // Auto-trigger reschedule when viewing a missed or expired consultation
-        const s = String(consultationData?.status || '').toLowerCase();
-        if (s === 'expired' || s === 'missed') {
-          // Defer navigation slightly to avoid interfering with initial mount
-          setTimeout(() => {
-            navigate('/advisor-dashboard/consultations', { state: { triggerRescheduleById: consultationData.id } });
-          }, 0);
-        }
-        return null;
-      })()}
     </div>
   );
 }
