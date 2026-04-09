@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useNavigate, useLocation } from "react-router-dom";
 import { BsCalendar, BsClockHistory, BsListCheck } from "react-icons/bs";
@@ -67,19 +67,24 @@ export default function AdvisorConsultations() {
   };
 
   // Helper to refresh list after actions
-  const reloadConsultations = async () => {
+  const reloadConsultations = useCallback(async ({ showLoader = false } = {}) => {
     try {
+      if (showLoader) setIsLoading(true);
       const storedUser = localStorage.getItem('advisys_user');
       const parsed = storedUser ? JSON.parse(storedUser) : null;
       const advisorId = parsed?.id || 1;
-      const res = await fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, { headers: { ...authHeader } });
+      const res = await fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, {
+        headers: storedToken ? { Authorization: `Bearer ${storedToken}` } : {},
+      });
       const data = await res.json();
       const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
       setAllConsultations(shaped);
     } catch (err) {
       console.error('Reload consultations failed', err);
+    } finally {
+      if (showLoader) setIsLoading(false);
     }
-  };
+  }, [base, storedToken]);
 
   const [collapsed, setCollapsed] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
@@ -185,29 +190,28 @@ export default function AdvisorConsultations() {
       } catch (_) {}
     })();
 
-    const fetchConsultations = async () => {
-      try {
-        setIsLoading(true);
-        const storedUser = localStorage.getItem('advisys_user');
-        const parsed = storedUser ? JSON.parse(storedUser) : null;
-        const advisorId = parsed?.id || 1;
-        const res = await fetch(`${base}/api/consultations/advisors/${advisorId}/consultations`, {
-          headers: { ...authHeader },
-        });
-        const data = await res.json();
-        const shaped = Array.isArray(data) ? data.map(shapeConsultation) : [];
-        setAllConsultations(shaped);
-      } catch (err) {
-        console.error('Failed to load consultations', err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchConsultations();
+    reloadConsultations({ showLoader: true });
     (async()=>{
       try { const r = await fetch(`${base}/api/settings/academic/terms`); const d = await r.json(); if (Array.isArray(d)) setTerms(d); } catch(_){}
     })();
-  }, []);
+  }, [base, reloadConsultations]);
+
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      reloadConsultations();
+    };
+
+    const intervalId = window.setInterval(refreshIfVisible, 10000);
+    window.addEventListener('focus', refreshIfVisible);
+    document.addEventListener('visibilitychange', refreshIfVisible);
+
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('focus', refreshIfVisible);
+      document.removeEventListener('visibilitychange', refreshIfVisible);
+    };
+  }, [reloadConsultations]);
   // Removed in-page Students tab; use sidebar Students page instead
 
   useEffect(() => {

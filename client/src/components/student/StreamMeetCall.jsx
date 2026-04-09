@@ -8,7 +8,7 @@ import 'stream-chat-react/dist/css/v2/index.css';
 import { BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle } from 'react-icons/bs';
 import { toast } from '../hooks/use-toast';
 import Logo from '../../assets/logo.png';
-import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon, XCircleIcon, RecordCircleIcon } from '../icons/Heroicons';
+import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon, XCircleIcon, RecordCircleIcon, ChartBarIcon, CalendarDaysIcon, ClockIcon, PersonCircleIcon, TagIcon, ListBulletIcon, VideoCameraIcon } from '../icons/Heroicons';
 import EntryTransition from '../shared/EntryTransition';
 import { publishSessionActivity } from '../../lib/sessionSync';
 
@@ -82,6 +82,20 @@ const formatElapsedDuration = (joinedAt) => {
   if (hours > 0) return `${hours}h ${String(minutes).padStart(2, '0')}m`;
   if (minutes > 0) return `${minutes}m ${String(seconds).padStart(2, '0')}s`;
   return `${seconds}s`;
+};
+
+const formatSessionClock = (totalMs) => {
+  const safeMs = Math.max(0, Number(totalMs) || 0);
+  const totalSeconds = Math.floor(safeMs / 1000);
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, '0')}`;
 };
 
 const MeetingPanelFrame = ({ icon: Icon, title, onClose, children }) => (
@@ -232,7 +246,11 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [advisorOutcomeError, setAdvisorOutcomeError] = useState('');
   const [earlyFinalizeWarningOpen, setEarlyFinalizeWarningOpen] = useState(false);
   const [minuteWarnOpen, setMinuteWarnOpen] = useState(false);
+  const [sessionExpiredPromptOpen, setSessionExpiredPromptOpen] = useState(false);
+  const [remainingSessionMs, setRemainingSessionMs] = useState(null);
+  const [overtimeMs, setOvertimeMs] = useState(0);
   const minuteWarnShownRef = useRef(false);
+  const sessionExpiredPromptShownRef = useRef(false);
 
   // Generate a stable call ID based on consultation ID
   const callId = `advisys-${consultationData?.id || roomName}`;
@@ -348,22 +366,26 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   useEffect(() => {
     const status = String(consultationData?.status || '').toLowerCase();
     const end = scheduledEnd();
-    if (!inMeeting || !end || status === 'completed' || status === 'cancelled' || status === 'canceled' || status === 'missed' || status === 'incomplete') { setCountdownText(''); return; }
+    if (!inMeeting || !end || status === 'completed' || status === 'cancelled' || status === 'canceled' || status === 'missed' || status === 'incomplete') {
+      setCountdownText('');
+      setRemainingSessionMs(null);
+      setOvertimeMs(0);
+      setSessionExpiredPromptOpen(false);
+      return;
+    }
     const tick = () => {
       const diff = end.getTime() - Date.now();
       if (diff <= 0) {
-        if (!endActionGuardRef.current) {
-          endActionGuardRef.current = true;
-          (async () => {
-            try { if (isAdvisor) { await call?.endCall?.(); } } catch (_) {}
-            try { await call?.leave?.(); } catch (_) {}
-            endedForAllRef.current = true;
-            handleLeave();
-            setTimeout(()=>{ endActionGuardRef.current = false; }, 1200);
-          })();
+        setRemainingSessionMs(0);
+        setOvertimeMs(Math.abs(diff));
+        setCountdownText(`Overtime ${formatSessionClock(Math.abs(diff))}`);
+        if (!sessionExpiredPromptShownRef.current) {
+          sessionExpiredPromptShownRef.current = true;
+          setSessionExpiredPromptOpen(true);
         }
-        setCountdownText('Ended');
       } else {
+        setRemainingSessionMs(diff);
+        setOvertimeMs(0);
         const mins = Math.floor(diff / 60000);
         const secs = Math.floor((diff % 60000) / 1000);
         setCountdownText(`${mins}:${String(secs).padStart(2, '0')}`);
@@ -377,7 +399,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, [inMeeting, joinedAt, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, isAdvisor, call, participants?.length, consultationData?.status]);
+  }, [inMeeting, joinedAt, consultationData?.end_datetime, consultationData?.duration, consultationData?.duration_minutes, consultationData?.status]);
 
   useEffect(() => {
     if (!inMeeting || rejoinSeed === 0) return;
@@ -761,6 +783,19 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     return Math.max(0, end.getTime() - Date.now());
   };
 
+  const getScheduledDurationMs = () => {
+    const endIso = consultationData?.end_datetime;
+    const startIso = consultationData?.start_datetime;
+    if (endIso && startIso) {
+      const start = new Date(startIso).getTime();
+      const end = new Date(endIso).getTime();
+      if (Number.isFinite(start) && Number.isFinite(end) && end > start) return end - start;
+    }
+    const durMin = Number(consultationData?.duration || consultationData?.duration_minutes || 0) || 0;
+    if (durMin > 0) return durMin * 60000;
+    return 0;
+  };
+
   const formatRemainingSession = (ms) => {
     const totalMinutes = Math.max(1, Math.ceil(ms / 60000));
     if (totalMinutes >= 60) {
@@ -771,6 +806,18 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     }
     return `${totalMinutes} minute${totalMinutes === 1 ? '' : 's'}`;
   };
+
+  const scheduledDurationMs = getScheduledDurationMs();
+  const hasSessionTimer = typeof remainingSessionMs === 'number' || overtimeMs > 0;
+  const sessionBannerLabel = overtimeMs > 0 ? 'Overtime' : 'Time remaining';
+  const sessionBannerValue = overtimeMs > 0
+    ? formatSessionClock(overtimeMs)
+    : (typeof remainingSessionMs === 'number' ? formatSessionClock(remainingSessionMs) : countdownText);
+  const sessionProgressPercent = overtimeMs > 0
+    ? 100
+    : (scheduledDurationMs > 0 && typeof remainingSessionMs === 'number'
+      ? Math.max(8, Math.min(100, Math.round((remainingSessionMs / scheduledDurationMs) * 100)))
+      : 100);
 
   const isRecordingActive = recordingStatus === 'recording';
   const isRecordingBusy = recordingStatus === 'uploading';
@@ -858,41 +905,195 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   };
   const closePanel = () => setActivePanel(null);
   const MeetingDetailsPanelV2 = ({ onClose }) => {
-    const { useParticipants, useHasOngoingScreenShare, useMicrophoneState, useCameraState } = useCallStateHooks();
+    const { useParticipants, useHasOngoingScreenShare, useMicrophoneState, useCameraState, useCallStatsReport } = useCallStateHooks();
     const participants = useParticipants ? useParticipants() : [];
     const hasScreenShare = useHasOngoingScreenShare ? useHasOngoingScreenShare() : false;
     const { isMute: micMuted } = useMicrophoneState ? useMicrophoneState() : { isMute: false };
     const { isMute: camMuted } = useCameraState ? useCameraState() : { isMute: false };
+    const stats = useCallStatsReport ? useCallStatsReport() : null;
     const duration = formatElapsedDuration(joinedAt);
+    const latency = stats?.publisherStats?.averageRoundTripTimeInMs;
+    const currentUserRaw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+    const currentUser = currentUserRaw ? JSON.parse(currentUserRaw) : null;
+    const viewerName = currentUser?.full_name || displayName || 'Participant';
+    const consultationTitle = consultationData?.title || consultationData?.topic || 'Consultation meeting';
+    const consultationDescription = consultationData?.studentNotes || consultationData?.description || consultationData?.student_notes || 'No consultation description was provided for this meeting yet.';
+    const consultationCategory = consultationData?.category || consultationData?.consultationCategory || 'General consultation';
+    const advisorName = consultationData?.advisor?.name || consultationData?.faculty?.name || (isAdvisor ? viewerName : 'Advisor');
+    const studentName = consultationData?.student?.name || (!isAdvisor ? viewerName : 'Student');
+    const dateLabel = consultationData?.date
+      || (consultationData?.start_datetime
+        ? new Intl.DateTimeFormat('en-PH', {
+            month: 'long',
+            day: 'numeric',
+            year: 'numeric',
+            timeZone: 'Asia/Manila',
+          }).format(new Date(consultationData.start_datetime))
+        : 'Today');
+    const timeLabel = consultationData?.time
+      || (consultationData?.start_datetime
+        ? new Intl.DateTimeFormat('en-PH', {
+            hour: 'numeric',
+            minute: '2-digit',
+            timeZone: 'Asia/Manila',
+          }).format(new Date(consultationData.start_datetime))
+        : 'Live now');
+    const networkLabel = typeof latency === 'number' && Number.isFinite(latency)
+      ? `${Math.round(latency)} ms`
+      : 'Stable';
+    const metricCards = [
+      {
+        key: 'participants',
+        icon: UsersIcon,
+        label: 'Participants',
+        value: String(participants?.length || 0),
+        tone: 'brand',
+      },
+      {
+        key: 'duration',
+        icon: ClockIcon,
+        label: 'Duration',
+        value: duration,
+        tone: 'neutral',
+      },
+      {
+        key: 'network',
+        icon: ChartBarIcon,
+        label: 'Connection',
+        value: networkLabel,
+        tone: typeof latency === 'number' && latency > 180 ? 'warning' : 'success',
+      },
+      {
+        key: 'mode',
+        icon: VideoCameraIcon,
+        label: 'Mode',
+        value: consultationData?.mode || 'Online',
+        tone: 'neutral',
+      },
+    ];
+    const statusCards = [
+      {
+        key: 'share',
+        label: 'Screenshare',
+        value: hasScreenShare ? 'Live' : 'Off',
+        fill: hasScreenShare ? 100 : 14,
+        tone: hasScreenShare ? 'success' : 'muted',
+      },
+      {
+        key: 'mic',
+        label: 'Mic',
+        value: micMuted ? 'Muted' : 'On',
+        fill: micMuted ? 22 : 92,
+        tone: micMuted ? 'warning' : 'brand',
+      },
+      {
+        key: 'camera',
+        label: 'Camera',
+        value: camMuted ? 'Off' : 'On',
+        fill: camMuted ? 18 : 88,
+        tone: camMuted ? 'muted' : 'brand',
+      },
+      {
+        key: 'network',
+        label: 'Network',
+        value: networkLabel,
+        fill: typeof latency === 'number'
+          ? Math.max(20, Math.min(100, Math.round(100 - (latency / 4))))
+          : 84,
+        tone: typeof latency === 'number' && latency > 180 ? 'warning' : 'success',
+      },
+    ];
 
     return (
       <MeetingPanelFrame icon={BsInfoCircle} title="Details" onClose={onClose}>
         <div className="smc-side-panel__body smc-side-panel__body--details" role="dialog" aria-label="Call details">
-          <section className="smc-detail-section">
-            <span className="smc-detail-label">Participants</span>
-            <strong className="smc-detail-value">{participants?.length || 0}</strong>
+          <section className="smc-detail-hero">
+            <div className="smc-detail-hero__eyebrow">
+              <VideoCameraIcon className="smc-detail-hero__eyebrow-icon" />
+              <span>Live consultation</span>
+            </div>
+            <h3 className="smc-detail-hero__title">{consultationTitle}</h3>
+            <p className="smc-detail-hero__description">{consultationDescription}</p>
+            <div className="smc-detail-chip-row">
+              <span className="smc-detail-chip">
+                <TagIcon className="smc-detail-chip__icon" />
+                <span>{consultationCategory}</span>
+              </span>
+              <span className="smc-detail-chip">
+                <CalendarDaysIcon className="smc-detail-chip__icon" />
+                <span>{dateLabel}</span>
+              </span>
+              <span className="smc-detail-chip">
+                <BsClock />
+                <span>{timeLabel}</span>
+              </span>
+            </div>
           </section>
-          <section className="smc-detail-section">
-            <span className="smc-detail-label">Consultation</span>
-            <strong className="smc-detail-value">{consultationData?.category || consultationData?.consultationCategory || consultationData?.mode || 'Meeting'}</strong>
+
+          <section className="smc-detail-people-grid">
+            <article className="smc-detail-person-card">
+              <div className="smc-detail-person-card__icon">
+                <PersonCircleIcon className="smc-detail-person-card__icon-svg" />
+              </div>
+              <div className="smc-detail-person-card__body">
+                <span className="smc-detail-person-card__label">Advisor</span>
+                <strong className="smc-detail-person-card__name">{advisorName}</strong>
+              </div>
+            </article>
+            <article className="smc-detail-person-card">
+              <div className="smc-detail-person-card__icon">
+                <UsersIcon className="smc-detail-person-card__icon-svg" />
+              </div>
+              <div className="smc-detail-person-card__body">
+                <span className="smc-detail-person-card__label">Student</span>
+                <strong className="smc-detail-person-card__name">{studentName}</strong>
+              </div>
+            </article>
           </section>
-          <section className="smc-detail-grid">
-            <div className="smc-detail-card">
-              <span className="smc-detail-card__label">Screenshare</span>
-              <strong className="smc-detail-card__value">{hasScreenShare ? 'On' : 'Off'}</strong>
+
+          <section className="smc-detail-metric-grid">
+            {metricCards.map(({ key, icon: Icon, label, value, tone }) => (
+              <article key={key} className={`smc-detail-metric-card tone-${tone}`}>
+                <div className="smc-detail-metric-card__icon">
+                  <Icon className="smc-detail-metric-card__icon-svg" />
+                </div>
+                <div className="smc-detail-metric-card__body">
+                  <span className="smc-detail-metric-card__label">{label}</span>
+                  <strong className="smc-detail-metric-card__value">{value}</strong>
+                </div>
+              </article>
+            ))}
+          </section>
+
+          <section className="smc-detail-status-panel">
+            <div className="smc-detail-status-panel__header">
+              <div>
+                <span className="smc-detail-status-panel__eyebrow">Session health</span>
+                <strong className="smc-detail-status-panel__title">Call signals</strong>
+              </div>
+              <ChartBarIcon className="smc-detail-status-panel__header-icon" />
             </div>
-            <div className="smc-detail-card">
-              <span className="smc-detail-card__label">Mic</span>
-              <strong className="smc-detail-card__value">{micMuted ? 'Muted' : 'On'}</strong>
+            <div className="smc-detail-status-list">
+              {statusCards.map((item) => (
+                <div key={item.key} className="smc-detail-status-item">
+                  <div className="smc-detail-status-item__copy">
+                    <span className="smc-detail-status-item__label">{item.label}</span>
+                    <strong className="smc-detail-status-item__value">{item.value}</strong>
+                  </div>
+                  <div className="smc-detail-status-item__meter" aria-hidden="true">
+                    <span className={`smc-detail-status-item__fill tone-${item.tone}`} style={{ width: `${item.fill}%` }} />
+                  </div>
+                </div>
+              ))}
             </div>
-            <div className="smc-detail-card">
-              <span className="smc-detail-card__label">Camera</span>
-              <strong className="smc-detail-card__value">{camMuted ? 'Off' : 'On'}</strong>
+          </section>
+
+          <section className="smc-detail-note-card">
+            <div className="smc-detail-note-card__header">
+              <ListBulletIcon className="smc-detail-note-card__icon" />
+              <span>Consultation note</span>
             </div>
-            <div className="smc-detail-card">
-              <span className="smc-detail-card__label">Duration</span>
-              <strong className="smc-detail-card__value">{duration}</strong>
-            </div>
+            <p className="smc-detail-note-card__body">{consultationDescription}</p>
           </section>
         </div>
       </MeetingPanelFrame>
@@ -1037,6 +1238,39 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                     className={`smc-room-shell ${activePanel ? 'smc-room-shell--panel-open' : ''}`}
                   >
                   <motion.div layout transition={roomLayoutTransition} className="smc-stage-shell">
+                    <div className="smc-stage-overlays">
+                      {hasSessionTimer ? (
+                        <div className={`smc-runtime-banner ${overtimeMs > 0 ? 'is-overtime' : ''}`} role="status" aria-live="polite">
+                          <div className="smc-runtime-banner__header">
+                            <div className="smc-runtime-banner__title-row">
+                              <ClockIcon className="smc-runtime-banner__icon" />
+                              <span>{sessionBannerLabel}</span>
+                            </div>
+                            <strong className="smc-runtime-banner__value">{sessionBannerValue}</strong>
+                          </div>
+                          <div className="smc-runtime-banner__meter" aria-hidden="true">
+                            <span
+                              className={`smc-runtime-banner__fill ${overtimeMs > 0 ? 'is-overtime' : ''}`}
+                              style={{ width: `${sessionProgressPercent}%` }}
+                            />
+                          </div>
+                        </div>
+                      ) : null}
+
+                      <a
+                        className="smc-powered-by-stream"
+                        href="https://getstream.io/video/"
+                        target="_blank"
+                        rel="noreferrer"
+                        aria-label="Powered by Stream Video via getstream.io"
+                      >
+                        <VideoCameraIcon className="smc-powered-by-stream__icon" />
+                        <div className="smc-powered-by-stream__copy">
+                          <span>Powered by Stream Video</span>
+                          <small>getstream.io</small>
+                        </div>
+                      </a>
+                    </div>
                     <div className="smc-layout-frame">
                       {isGridLayout ? (
                         <PaginatedGridLayout />
@@ -1111,6 +1345,51 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
       {inMeeting && minuteWarnOpen && (
         <div className="smc-minute-warn" role="alert">Only 1 minute left in this session.</div>
+      )}
+
+      {inMeeting && sessionExpiredPromptOpen && (
+        <div className="smc-modal-backdrop">
+          <div className="smc-modal smc-modal--compact">
+            <h3 className="smc-modal-title">Scheduled time is up</h3>
+            <p className="smc-modal-text">
+              {isAdvisor
+                ? 'The scheduled consultation window has ended. You can continue a little longer, or end the meeting for everyone and finalize the consultation outcome.'
+                : 'The scheduled consultation window has ended. You can stay in the room a bit longer, or leave the call now.'}
+            </p>
+            <div className="smc-modal-actions">
+              <button
+                className="smc-modal-btn smc-modal-btn--secondary"
+                onClick={() => setSessionExpiredPromptOpen(false)}
+              >
+                {isAdvisor ? 'Continue meeting' : 'Stay in call'}
+              </button>
+              {isAdvisor ? (
+                <button
+                  className="smc-modal-btn smc-modal-btn--danger"
+                  onClick={() => {
+                    setSessionExpiredPromptOpen(false);
+                    setAdvisorDecisionOpen(true);
+                    setAdvisorOutcome('completed');
+                    setAdvisorOutcomeReason('time_ran_out');
+                    setAdvisorOutcomeNotes('');
+                  }}
+                >
+                  End for everyone
+                </button>
+              ) : (
+                <button
+                  className="smc-modal-btn smc-modal-btn--danger"
+                  onClick={() => {
+                    setSessionExpiredPromptOpen(false);
+                    confirmAndHangup();
+                  }}
+                >
+                  Leave call
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Early leave confirm modal (used for programmatic hangup only) */}
