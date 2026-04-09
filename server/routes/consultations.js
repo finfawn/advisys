@@ -1,4 +1,5 @@
 const express = require('express');
+const crypto = require('crypto');
 const { getPool } = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 
@@ -1206,9 +1207,12 @@ router.post('/consultations/:id/room-ready', authMiddleware, async (req, res) =>
 
     // meeting_link deprecated; ignore any provided meetingLink
 
-    // Persist room_name using the standard pattern advisys-<id> when missing
-    const roomName = c.room_name || `advisys-${c.id}`;
-    if (!c.room_name) {
+    // Persist a non-guessable room_name when missing
+    const hasOpaqueRoomName = c.room_name && !/^advisys-\d+$/i.test(String(c.room_name));
+    const roomName = hasOpaqueRoomName
+      ? c.room_name
+      : `consult-${(typeof crypto.randomUUID === 'function' ? crypto.randomUUID().replace(/-/g, '') : crypto.randomBytes(16).toString('hex'))}`;
+    if (!hasOpaqueRoomName) {
       await pool.query('UPDATE consultations SET room_name = ? WHERE id = ?', [roomName, id]);
       c.room_name = roomName;
     }

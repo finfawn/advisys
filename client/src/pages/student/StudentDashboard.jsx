@@ -575,7 +575,7 @@ export default function StudentDashboard() {
 
           {/* Available Today - adapted from homepage */}
             <div className="section-block">
-              <div className="section-panel">
+              <div className="section-panel section-panel-plain">
                 <div className="section-head">
                   <div className="section-title mb-0">Available Today</div>
                   <button 

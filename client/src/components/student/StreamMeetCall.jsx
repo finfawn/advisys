@@ -256,8 +256,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const minuteWarnShownRef = useRef(false);
   const sessionExpiredPromptShownRef = useRef(false);
 
-  // Generate a stable call ID based on consultation ID
-  const callId = `advisys-${consultationData?.id || roomName}`;
+  const fallbackCallId = String(consultationData?.room_name || roomName || `advisys-${consultationData?.id || 'room'}`);
+  const activeCallIdRef = useRef(fallbackCallId);
 
   const getAuthHeaders = () => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
@@ -289,7 +289,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
             'Content-Type': 'application/json',
             Authorization: `Bearer ${authToken}`,
           },
-          body: JSON.stringify({ consultationId: consultationData.id, callId }),
+          body: JSON.stringify({ consultationId: consultationData.id }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Failed to obtain Stream token');
@@ -302,7 +302,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         });
         setClient(c);
         const securedCallType = data.callType || callType;
-        const securedCallId = data.callId || callId;
+        const securedCallId = data.callId || activeCallIdRef.current || fallbackCallId;
+        activeCallIdRef.current = securedCallId;
         const callObj = c.call(securedCallType, securedCallId);
         setCall(callObj);
         // Join the server-created consultation room only.
@@ -358,7 +359,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           const sc = StreamChat.getInstance(data.apiKey);
           await sc.connectUser({ id: userId, name: fullName }, data.token);
           chatInstance = sc;
-          const channelId = `advisys-${consultationData?.id || callId}`;
+          const channelId = securedCallId;
           const members = [userId].filter(Boolean);
           // Attempt to include advisor/student IDs if present in consultationData
           const sid = consultationData?.student_user_id || consultationData?.studentId || consultationData?.student?.id;
@@ -388,7 +389,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [API_BASE_URL, callId, callType, displayName, consultationData?.id]);
+  }, [API_BASE_URL, callType, displayName, consultationData?.id, consultationData?.room_name, roomName]);
 
   const { useParticipants } = useCallStateHooks ? useCallStateHooks() : { useParticipants: null };
   const participants = useParticipants ? useParticipants() : [];
@@ -797,7 +798,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       fetch(`${API_BASE_URL}/api/transcriptions/finalize`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ meetingId: callId }),
+        body: JSON.stringify({ meetingId: activeCallIdRef.current || fallbackCallId }),
         keepalive: true,
       }).catch(() => {});
     } catch (_) {}

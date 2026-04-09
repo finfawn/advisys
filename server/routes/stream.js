@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const { getPool } = require('../db/pool');
 const { authMiddleware } = require('../middleware/auth');
 
@@ -127,6 +128,7 @@ async function getAuthorizedConsultation(pool, consultationId, user) {
             c.category,
             c.mode,
             c.status,
+            c.room_name,
             c.student_user_id,
             c.advisor_user_id,
             su.full_name AS student_name,
@@ -160,6 +162,35 @@ async function getAuthorizedConsultation(pool, consultationId, user) {
   }
 
   return { consultation, isAdvisor };
+}
+
+function buildOpaqueRoomName() {
+  if (typeof crypto.randomUUID === 'function') {
+    return `consult-${crypto.randomUUID().replace(/-/g, '')}`;
+  }
+  return `consult-${crypto.randomBytes(16).toString('hex')}`;
+}
+
+async function ensureConsultationRoomName(pool, consultation) {
+  const existing = String(consultation?.room_name || '').trim();
+  if (existing && !/^advisys-\d+$/i.test(existing)) return existing;
+
+  const roomName = buildOpaqueRoomName();
+  await pool.query('UPDATE consultations SET room_name = ? WHERE id = ?', [roomName, consultation.id]);
+  consultation.room_name = roomName;
+  return roomName;
+}
+
+async function resolveConsultationCallType(client) {
+  try {
+    await ensureConsultationCallType(client);
+    await client.video.getCallType({ name: CONSULTATION_CALL_TYPE });
+    return CONSULTATION_CALL_TYPE;
+  } catch (error) {
+    console.warn('[Stream] consultation call type unavailable, falling back to default:', error?.message || error);
+    await client.video.getCallType({ name: DEFAULT_CALL_TYPE });
+    return DEFAULT_CALL_TYPE;
+  }
 }
 
 // GET /api/stream/debug
@@ -201,10 +232,9 @@ router.post('/token', authMiddleware, async (req, res) => {
       authUser.email ||
       userId
     ).trim();
-    const ensuredCallId = `advisys-${parsedConsultationId}`;
-
     const client = getStreamClient();
-    const callType = await ensureConsultationCallType(client);
+    const callType = await resolveConsultationCallType(client);
+    const ensuredCallId = await ensureConsultationRoomName(pool, consultation);
 
     const memberUsers = [
       { id: String(consultation.student_user_id), name: consultation.student_name || `Student ${consultation.student_user_id}` },

@@ -686,10 +686,21 @@
     box-sizing: border-box;
 }
 
+.section-panel-plain {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    padding: 0;
+}
+
 @media (max-width: 767.98px) {
     .section-panel {
         padding: 16px;
         border-radius: 16px;
+    }
+
+    .section-panel-plain {
+        padding: 0;
     }
 }
 
@@ -851,11 +862,18 @@
 /* Available Today (fixed 4-slot grid) */
 .available-fixed-grid {
     display: grid;
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(auto-fit, minmax(260px, 320px));
+    justify-content: flex-start;
     gap: 16px;
     width: 100%;
     max-width: 100%;
     box-sizing: border-box;
+}
+
+.available-fixed-grid > .no-availability {
+    grid-column: 1 / -1;
+    max-width: 420px;
+    justify-self: flex-start;
 }
 
 /* Ensure cards in available grid don't overflow */
@@ -872,13 +890,13 @@
 }
 @media (max-width: 1200px) {
     .available-fixed-grid {
-        grid-template-columns: repeat(3, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
         gap: 16px;
     }
 }
 @media (max-width: 991.98px) {
     .available-fixed-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 12px;
     }
 }
@@ -975,13 +993,13 @@
     max-width: 100%;
     box-sizing: border-box;
     overflow: hidden;
-    padding: 0 0 75px 0;
+    padding: 0;
 }
 }
 
 .modern-date-grid {
     display: grid;
-    align-items: stretch;
+    align-items: start;
     grid-template-columns: 1fr;
     gap: 20px;
     margin-bottom: 0; /* Remove extra bottom gap on desktop */
@@ -1002,7 +1020,6 @@
         grid-template-columns: 2.2fr 0.8fr;
         gap: 24px;
         margin-bottom: 0; /* Ensure no extra space at bottom */
-        min-height: 720px;
     }
 }
 
@@ -1512,9 +1529,9 @@
 
 .availability-content {
     padding: 24px;
-    flex: 1;
     display: flex;
     flex-direction: column;
+    align-items: stretch;
 }
 
 /* Faculty List */
@@ -1599,10 +1616,10 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
+    justify-content: flex-start;
     text-align: center;
-    padding: 40px 20px;
-    flex: 1;
+    padding: 32px 20px;
+    width: 100%;
 }
 
 .no-availability-icon {
@@ -1815,7 +1832,8 @@
   display: grid;
   grid-template-columns: 1fr;
   gap: 16px;
-  height: calc(100vh - 64px); /* viewport minus navbar */
+  height: auto;
+  min-height: 0;
   width: 100%;
   padding: 25px 0 0 0 ;
 }
