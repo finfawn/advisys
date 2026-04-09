@@ -1,7 +1,13 @@
 import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-export default function EntryTransition({ show = true, onDone }) {
+export default function EntryTransition({
+  show = true,
+  onDone,
+  persistent = false,
+  background = "linear-gradient(180deg, #e9ecf4 0%, #e4e9f4 100%)",
+  zIndex = 100000,
+}) {
   const LOGO_SIZE = 168;
   const [vw, setVw] = React.useState(typeof window !== "undefined" ? window.innerWidth : 1280);
   const [vh, setVh] = React.useState(typeof window !== "undefined" ? window.innerHeight : 720);
@@ -23,29 +29,37 @@ export default function EntryTransition({ show = true, onDone }) {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
+  React.useEffect(() => {
+    if (show) setFading(false);
+  }, [show]);
+
   return (
     <AnimatePresence>
       {show && (
-        <div
+        <motion.div
+          initial={{ opacity: 1 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: FADE_MS / 1000, ease: "easeInOut" }}
           style={{
             position: "fixed",
             inset: 0,
-            zIndex: 100000,
+            zIndex,
             pointerEvents: "none"
           }}
         >
           {/* Base cover keeps page hidden until fade phase */}
           <motion.div
             initial={{ opacity: 1 }}
-            animate={{ opacity: fading ? 0 : 1 }}
+            animate={{ opacity: !persistent && fading ? 0 : 1 }}
             transition={{ duration: FADE_MS / 1000, ease: "easeInOut" }}
             onAnimationComplete={() => {
-              if (fading) onDone && onDone();
+              if (!persistent && fading) onDone && onDone();
             }}
             style={{
               position: "absolute",
               inset: 0,
-              background: "linear-gradient(180deg, #e9ecf4 0%, #e4e9f4 100%)"
+              background
             }}
           />
           <svg
@@ -65,7 +79,9 @@ export default function EntryTransition({ show = true, onDone }) {
                   transition={{ duration: SCALE_MS / 1000, ease: "easeInOut" }}
                   style={{ transformOrigin: "50% 50%" }}
                   onAnimationComplete={() => {
-                    setTimeout(() => setFading(true), HOLD_MS);
+                    if (!persistent) {
+                      setTimeout(() => setFading(true), HOLD_MS);
+                    }
                   }}
                 >
                   {/* Center the logo image */}
@@ -97,7 +113,7 @@ export default function EntryTransition({ show = true, onDone }) {
               fill="url(#adviAccent)"
               mask="url(#adviLogoMask)"
               initial={{ opacity: 1 }}
-              animate={{ opacity: fading ? 0 : 1 }}
+              animate={{ opacity: !persistent && fading ? 0 : 1 }}
               transition={{ duration: FADE_MS / 1000, ease: "easeInOut" }}
             />
           </svg>
@@ -136,7 +152,7 @@ export default function EntryTransition({ show = true, onDone }) {
               height={LOGO_SIZE}
               mask="url(#logoRevealMask)"
               initial={{ opacity: 1 }}
-              animate={{ opacity: fading ? 0 : 1 }}
+              animate={{ opacity: !persistent && fading ? 0 : 1 }}
               transition={{ duration: FADE_MS / 1000, ease: "easeInOut", delay: SCALE_MS / 1000 + HOLD_MS / 1000 }}
               style={{ imageRendering: "optimizeQuality" }}
             />
@@ -152,7 +168,7 @@ export default function EntryTransition({ show = true, onDone }) {
               animate={{
                 strokeDashoffset: 0,
                 strokeWidth: 6,
-                opacity: fading ? 0 : 1
+                opacity: !persistent && fading ? 0 : 1
               }}
               transition={{
                 duration: SCALE_MS / 1000,
@@ -160,7 +176,7 @@ export default function EntryTransition({ show = true, onDone }) {
               }}
             />
           </svg>
-        </div>
+        </motion.div>
       )}
     </AnimatePresence>
   );

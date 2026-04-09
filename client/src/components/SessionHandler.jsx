@@ -10,19 +10,26 @@ import {
   AlertDialogAction,
   AlertDialogCancel,
 } from "../lightswind/alert-dialog";
+import {
+  ADVISYS_SESSION_ACTIVITY_KEY,
+  ADVISYS_SESSION_LOGOUT_KEY,
+  publishSessionActivity,
+  publishSessionLogout,
+} from "../lib/sessionSync";
 
 export default function SessionHandler() {
   const navigate = useNavigate();
   const [showExpiredModal, setShowExpiredModal] = useState(false);
   const isLogoutProcessing = useRef(false);
   const idleTimer = useRef(null);
+  const lastActivityBroadcastRef = useRef(0);
   const idleMs = (Number(import.meta.env.VITE_SESSION_IDLE_MINUTES || 20) || 20) * 60 * 1000;
   
   useEffect(() => {
     let tokenTimer;
 
     // Define handleLogout inside useEffect to avoid closure/dependency issues
-    const handleLogout = (isExpiry) => {
+    const handleLogout = (isExpiry, origin = "local") => {
       if (isLogoutProcessing.current) return;
       
       const token = localStorage.getItem('advisys_token');
@@ -31,6 +38,9 @@ export default function SessionHandler() {
         isLogoutProcessing.current = true;
         localStorage.removeItem('advisys_token');
         localStorage.removeItem('advisys_user');
+        if (origin !== "remote") {
+          publishSessionLogout(isExpiry ? "expiry" : "auth-failure");
+        }
         
         // Show the persistent modal instead of toast
         setShowExpiredModal(true);
@@ -38,9 +48,16 @@ export default function SessionHandler() {
       }
     };
     
-    const resetIdle = () => {
+    const resetIdle = (shouldBroadcast = true) => {
       if (idleTimer.current) clearTimeout(idleTimer.current);
       idleTimer.current = setTimeout(() => handleLogout(true), idleMs);
+      if (shouldBroadcast) {
+        const now = Date.now();
+        if (now - lastActivityBroadcastRef.current > 15000) {
+          lastActivityBroadcastRef.current = now;
+          publishSessionActivity("interaction");
+        }
+      }
     };
 
     const checkToken = () => {
@@ -86,13 +103,29 @@ export default function SessionHandler() {
     };
 
     const events = ['mousemove','mousedown','keydown','touchstart','scroll'];
-    events.forEach((ev) => window.addEventListener(ev, resetIdle, { passive: true }));
+    const handleLocalActivity = () => resetIdle(true);
+    events.forEach((ev) => window.addEventListener(ev, handleLocalActivity, { passive: true }));
+
+    const handleStorage = (event) => {
+      if (event.key === ADVISYS_SESSION_ACTIVITY_KEY && event.newValue) {
+        resetIdle(false);
+      }
+      if (
+        (event.key === ADVISYS_SESSION_LOGOUT_KEY && event.newValue) ||
+        (event.key === "advisys_token" && event.newValue === null)
+      ) {
+        handleLogout(true, "remote");
+      }
+    };
+
+    window.addEventListener("storage", handleStorage);
 
     return () => {
       window.fetch = originalFetch;
       if (tokenTimer) clearTimeout(tokenTimer);
       if (idleTimer.current) clearTimeout(idleTimer.current);
-      events.forEach((ev) => window.removeEventListener(ev, resetIdle));
+      events.forEach((ev) => window.removeEventListener(ev, handleLocalActivity));
+      window.removeEventListener("storage", handleStorage);
     };
   }, [navigate, idleMs]);
 

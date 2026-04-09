@@ -2719,7 +2719,10 @@ button.smc-header-chip:active {
 
 .smc-stream-chat .str-chat__message-input-flat-wrapper {
   width: 100%;
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) 40px;
   align-items: stretch;
+  gap: 10px;
 }
 
 .smc-stream-chat .str-chat__message-input-inner,
@@ -2729,14 +2732,45 @@ button.smc-header-chip:active {
   min-width: 0;
 }
 
+.smc-stream-chat .str-chat__file-input-container {
+  position: relative;
+  width: 40px;
+  min-width: 40px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.smc-stream-chat .str-chat__file-input-container input[type="file"],
+.smc-stream-chat .str-chat__file-input-container .str-chat__file-input {
+  position: absolute;
+  inset: 0;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.smc-stream-chat .str-chat__file-input-label,
+.smc-stream-chat .str-chat__send-button {
+  width: 40px;
+  min-width: 40px;
+  height: 40px;
+  min-height: 40px;
+  align-self: center;
+  border-radius: 14px;
+}
+
 .smc-stream-chat .str-chat__message-textarea-container {
   display: flex;
   align-items: center;
-  min-height: 44px;
+  min-height: 48px;
   overflow: hidden;
-  border-radius: 14px;
+  border-radius: 16px;
   background: rgba(9, 13, 20, 0.96);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
 }
 
 .smc-stream-chat .str-chat__message-input textarea,
@@ -2745,9 +2779,9 @@ button.smc-header-chip:active {
 .smc-stream-chat textarea {
   width: 100%;
   display: block;
-  min-height: 44px;
-  padding: 11px 18px;
-  border-radius: 14px;
+  min-height: 48px;
+  padding: 13px 18px;
+  border-radius: 16px;
   font-size: 0.96rem;
   line-height: 1.45;
   text-indent: 0;

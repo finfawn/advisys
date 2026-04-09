@@ -9,6 +9,8 @@ import { BsChatDots, BsClock, BsGrid1X2, BsPeople, BsBroadcastPin, BsInfoCircle 
 import { toast } from '../hooks/use-toast';
 import Logo from '../../assets/logo.png';
 import { UsersIcon, Squares2X2Icon, ChatBubbleLeftRightIcon, DocumentTextIcon, XCircleIcon, RecordCircleIcon } from '../icons/Heroicons';
+import EntryTransition from '../shared/EntryTransition';
+import { publishSessionActivity } from '../../lib/sessionSync';
 
 import './StreamMeetCall.css';
 
@@ -200,6 +202,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const destinationNodeRef = useRef(null);
   const recordingChunksRef = useRef([]);
   const finalizeRecordingAfterStopRef = useRef(false);
+  const recordingSaveHandleRef = useRef(null);
+  const recordingFileNameRef = useRef('');
 
   const [client, setClient] = useState(null);
   const [call, setCall] = useState(null);
@@ -382,6 +386,17 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     })();
   }, [rejoinSeed, inMeeting, call]);
 
+  useEffect(() => {
+    if (!inMeeting) return;
+
+    publishSessionActivity('meeting-open');
+    const intervalId = window.setInterval(() => {
+      publishSessionActivity('meeting-heartbeat');
+    }, 45000);
+
+    return () => window.clearInterval(intervalId);
+  }, [inMeeting]);
+
   // countdown is handled in the main timer effect above
 
   // Listen for parent tab messages to trigger a graceful leave
@@ -400,9 +415,87 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   }, [consultationData?.id]);
 
   
-  function buildRecordingFileName() {
+  function getRecordingExtension(typeOrName = '') {
+    const value = String(typeOrName || '').toLowerCase();
+    if (value.includes('.wav') || value.includes('audio/wav')) return '.wav';
+    if (value.includes('.mp3') || value.includes('audio/mpeg')) return '.mp3';
+    if (value.includes('.m4a') || value.includes('audio/mp4') || value.includes('audio/x-m4a')) return '.m4a';
+    if (value.includes('.ogg') || value.includes('audio/ogg')) return '.ogg';
+    return '.webm';
+  }
+
+  function buildRecordingFileName(typeOrName = 'audio/webm') {
     const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `consultation-${consultationData?.id || 'meeting'}-${stamp}.webm`;
+    return `consultation-${consultationData?.id || 'meeting'}-${stamp}${getRecordingExtension(typeOrName)}`;
+  }
+
+  function clearPendingRecordingSaveTarget() {
+    recordingSaveHandleRef.current = null;
+    recordingFileNameRef.current = '';
+  }
+
+  async function prepareRecordingSaveTarget() {
+    const suggestedName = buildRecordingFileName(mediaRecorderRef.current?.mimeType || 'audio/webm');
+    recordingFileNameRef.current = suggestedName;
+    recordingSaveHandleRef.current = null;
+
+    if (typeof window === 'undefined' || typeof window.showSaveFilePicker !== 'function') {
+      return { fileName: suggestedName, mode: 'download' };
+    }
+
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName,
+        types: [
+          {
+            description: 'Audio recordings',
+            accept: {
+              'audio/webm': ['.webm'],
+              'audio/ogg': ['.ogg'],
+              'audio/wav': ['.wav'],
+              'audio/mpeg': ['.mp3'],
+              'audio/mp4': ['.m4a'],
+            },
+          },
+        ],
+      });
+      recordingSaveHandleRef.current = handle;
+      recordingFileNameRef.current = handle?.name || suggestedName;
+      return { fileName: recordingFileNameRef.current, mode: 'picker' };
+    } catch (err) {
+      if (err?.name === 'AbortError') {
+        return { cancelled: true };
+      }
+      console.warn('Unable to open save picker, falling back to browser download:', err);
+      return { fileName: suggestedName, mode: 'download' };
+    }
+  }
+
+  async function saveRecordingLocally(blob) {
+    const fileName = recordingFileNameRef.current || buildRecordingFileName(blob?.type || 'audio/webm');
+    const fileHandle = recordingSaveHandleRef.current;
+
+    try {
+      if (fileHandle) {
+        const writable = await fileHandle.createWritable();
+        await writable.write(blob);
+        await writable.close();
+        return { label: fileHandle.name || fileName, usedPicker: true };
+      }
+
+      const downloadUrl = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = downloadUrl;
+      anchor.download = fileName;
+      anchor.style.display = 'none';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      setTimeout(() => URL.revokeObjectURL(downloadUrl), 1200);
+      return { label: fileName, usedPicker: false };
+    } finally {
+      clearPendingRecordingSaveTarget();
+    }
   }
 
   async function startCombinedAudioCapture() {
@@ -482,6 +575,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           recordingChunksRef.current = [];
           if (!blob.size) {
             finalizeRecordingAfterStopRef.current = false;
+            clearPendingRecordingSaveTarget();
             setRecordingStatus('idle');
             toast.warning({
               title: 'Recording empty',
@@ -489,7 +583,14 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
             });
             return;
           }
-          await uploadAudioBlob(blob);
+          const localSave = await saveRecordingLocally(blob);
+          const uploadResult = await uploadAudioBlob(blob);
+          toast.success({
+            title: 'Recording saved',
+            description: localSave.usedPicker
+              ? `Saved to ${localSave.label}${uploadResult?.recordingUri ? ' and backed up to the consultation.' : '.'}`
+              : `Saved as ${localSave.label}${uploadResult?.recordingUri ? ' and backed up to the consultation.' : '.'}`,
+          });
           if (finalizeRecordingAfterStopRef.current) {
             finalizeRecordingAfterStopRef.current = false;
             finalizeTranscript();
@@ -505,7 +606,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       setRecordingStatus('recording');
       toast.info({
         title: 'Recording started',
-        description: 'The meeting will keep recording until you press the record button again.',
+        description: 'Press the record button again to save a copy to your device.',
       });
     } catch (err) {
       console.error('Failed to start tab audio capture:', err);
@@ -554,7 +655,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       if (!consultationData?.id) throw new Error('Missing consultation ID');
       setRecordingStatus('uploading');
       const fd = new FormData();
-      fd.append('file', blob, buildRecordingFileName());
+      fd.append('file', blob, buildRecordingFileName(blob?.type || 'audio/webm'));
       fd.append('consultationId', String(consultationData.id));
       // Do not use keepalive for large audio uploads; browsers may drop bodies >64KB
       const res = await fetch(`${API_BASE_URL}/api/transcriptions/upload`, { method: 'POST', body: fd });
@@ -563,20 +664,16 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         throw new Error(data?.error || 'Upload/transcription failed');
       }
       setRecordingStatus('idle');
-      toast.success({
-        title: 'Recording saved',
-        description: data?.recordingUri
-          ? `Saved to ${data.recordingUri}`
-          : 'The recording has been uploaded successfully.',
-      });
+      return data;
     } catch (err) {
       console.error('Upload error:', err);
       setRecordingError(err?.message || String(err));
-      setRecordingStatus('error');
-      toast.destructive({
-        title: 'Recording upload failed',
-        description: err?.message || 'Unable to save the recording.',
+      setRecordingStatus('idle');
+      toast.warning({
+        title: 'Saved on this device',
+        description: 'The local recording was saved, but the consultation backup upload failed.',
       });
+      return null;
     }
   }
 
@@ -682,6 +779,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     if (isRecordingBusy) return;
 
     if (isRecordingActive) {
+      const saveTarget = await prepareRecordingSaveTarget();
+      if (saveTarget?.cancelled) return;
       await stopCombinedAudioCapture({ finalizeAfterStop: true });
       return;
     }
@@ -914,39 +1013,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
 
   return (
     <div className="smc-root">
-      {isLoading ? (
-        <div className="smc-loading-screen" aria-live="polite">
-          <div className="smc-loading-brand" role="status" aria-label="Preparing your meeting">
-            <span className="smc-loading-brand__backdrop" aria-hidden="true" />
-            <div className="smc-loading-brand__stage" aria-hidden="true">
-              <span className="smc-loading-brand__halo" />
-              <span className="smc-loading-brand__orbit smc-loading-brand__orbit--outer" />
-              <span className="smc-loading-brand__orbit smc-loading-brand__orbit--inner" />
-              <span className="smc-loading-brand__logo-shell">
-                <img
-                  src="/logo-large-transparent.png"
-                  alt="AdviSys"
-                  className="smc-loading-brand__logo"
-                />
-              </span>
-            </div>
-            <div className="smc-loading-brand__text">
-              <span className="smc-loading-brand__eyebrow">AdviSys</span>
-              <span className="smc-loading-brand__copy">
-                Preparing your meeting
-                <span className="smc-loading-brand__ellipsis" aria-hidden="true">
-                  <span />
-                  <span />
-                  <span />
-                </span>
-              </span>
-              <span className="smc-loading-brand__subcopy">
-                Joining the room and checking your audio and video
-              </span>
-            </div>
-          </div>
-        </div>
-      ) : null}
+      <EntryTransition show={isLoading} persistent zIndex={30} />
 
       <div className="smc-stage-canvas">
         {client && call && inMeeting ? (
