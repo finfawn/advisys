@@ -723,10 +723,25 @@ router.patch('/consultations/:id/status', async (req, res) => {
 
 // Mark consultation as started (records actual_start_datetime)
 // POST /api/consultations/:id/started
-router.post('/consultations/:id/started', async (req, res) => {
+router.post('/consultations/:id/started', authMiddleware, async (req, res) => {
   const pool = getPool();
   const id = req.params.id;
   try {
+    const user = req.user || {};
+    const [[consultation]] = await pool.query(
+      'SELECT advisor_user_id, student_user_id FROM consultations WHERE id = ? LIMIT 1',
+      [id]
+    );
+    if (!consultation) {
+      return res.status(404).json({ error: 'Consultation not found' });
+    }
+
+    const isAdvisor = String(user.role || '').toLowerCase() === 'advisor' && Number(user.id) === Number(consultation.advisor_user_id);
+    const isStudent = String(user.role || '').toLowerCase() === 'student' && Number(user.id) === Number(consultation.student_user_id);
+    if (!isAdvisor && !isStudent) {
+      return res.status(403).json({ error: 'Only the assigned advisor or student can start this consultation room' });
+    }
+
     const now = new Date();
     const [result] = await pool.query('UPDATE consultations SET actual_start_datetime = ? WHERE id = ?', [now, id]);
     if (result.affectedRows === 0) {
@@ -1171,11 +1186,12 @@ router.patch('/consultations/:id', async (req, res) => {
 
 // Advisor starts online call or meeting link becomes available
 // POST /api/consultations/:id/room-ready
-router.post('/consultations/:id/room-ready', async (req, res) => {
+router.post('/consultations/:id/room-ready', authMiddleware, async (req, res) => {
   const pool = getPool();
   const id = req.params.id;
   const { meetingLink } = req.body || {};
   try {
+    const user = req.user || {};
     const [[c]] = await pool.query(
       `SELECT c.*, s.full_name AS student_name, a.full_name AS advisor_name
        FROM consultations c
@@ -1184,6 +1200,9 @@ router.post('/consultations/:id/room-ready', async (req, res) => {
        WHERE c.id = ?`, [id]
     );
     if (!c) return res.status(404).json({ error: 'Consultation not found' });
+    if (String(user.role || '').toLowerCase() !== 'advisor' || Number(user.id) !== Number(c.advisor_user_id)) {
+      return res.status(403).json({ error: 'Only the assigned advisor can open this consultation room' });
+    }
 
     // meeting_link deprecated; ignore any provided meetingLink
 

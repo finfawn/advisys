@@ -206,7 +206,7 @@ const MeetingHeader = ({
  */
 const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) => {
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-  const callType = 'default';
+  const callType = 'consultation';
   const CAPTURE_TAB_AUDIO = String(import.meta.env.VITE_CAPTURE_TAB_AUDIO || 'false').toLowerCase() === 'true';
 
   const mediaRecorderRef = useRef(null);
@@ -218,10 +218,12 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const finalizeRecordingAfterStopRef = useRef(false);
   const recordingSaveHandleRef = useRef(null);
   const recordingFileNameRef = useRef('');
+  const activeRecordingModeRef = useRef('audio');
 
   const [client, setClient] = useState(null);
   const [call, setCall] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [initializationError, setInitializationError] = useState('');
   const [joinedAt, setJoinedAt] = useState(null);
   const [inMeeting, setInMeeting] = useState(true);
   const [confirmLeaveOpen, setConfirmLeaveOpen] = useState(false);
@@ -233,6 +235,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   const [rejoinSeed, setRejoinSeed] = useState(0);
   const [recordingStatus, setRecordingStatus] = useState('idle'); // idle|recording|uploading|error
   const [recordingError, setRecordingError] = useState('');
+  const [recordingModePromptOpen, setRecordingModePromptOpen] = useState(false);
+  const [activeRecordingMode, setActiveRecordingMode] = useState('audio');
   const [chatClient, setChatClient] = useState(null);
   const [chatChannel, setChatChannel] = useState(null);
   const [activePanel, setActivePanel] = useState(null);
@@ -255,20 +259,37 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
   // Generate a stable call ID based on consultation ID
   const callId = `advisys-${consultationData?.id || roomName}`;
 
+  const getAuthHeaders = () => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
+    return token ? { Authorization: `Bearer ${token}` } : {};
+  };
+
   useEffect(() => {
     let mounted = true;
     let chatInstance = null;
     (async () => {
       try {
         const userRaw = typeof window !== 'undefined' ? localStorage.getItem('advisys_user') : null;
+        const authToken = typeof window !== 'undefined' ? localStorage.getItem('advisys_token') : null;
         const parsedUser = userRaw ? JSON.parse(userRaw) : null;
         const userId = String(parsedUser?.id || 'user');
         const fullName = parsedUser?.full_name || displayName || 'User';
+        if (!authToken) {
+          throw new Error('Please sign in again to join this consultation room.');
+        }
+        if (!consultationData?.id) {
+          throw new Error('This consultation room is missing its booking details.');
+        }
+
+        setInitializationError('');
         // Ask backend for Stream token + apiKey
         const res = await fetch(`${API_BASE_URL}/api/stream/token`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ userId, name: fullName, callId, type: callType }),
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${authToken}`,
+          },
+          body: JSON.stringify({ consultationId: consultationData.id, callId }),
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data?.error || 'Failed to obtain Stream token');
@@ -280,10 +301,12 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           token: data.token,
         });
         setClient(c);
-        const callObj = c.call(callType, callId);
+        const securedCallType = data.callType || callType;
+        const securedCallId = data.callId || callId;
+        const callObj = c.call(securedCallType, securedCallId);
         setCall(callObj);
-        // Join and create if missing
-        await callObj.join({ create: true });
+        // Join the server-created consultation room only.
+        await callObj.join({ create: false });
 
         // Mark joined state
         setJoinedAt(new Date());
@@ -295,7 +318,10 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           try {
             fetch(`${API_BASE_URL}/api/consultations/${consultationData.id}/started`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+              },
             }).catch(()=>{});
           } catch (_) {}
         }
@@ -305,11 +331,14 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         const isAdvisorLocal = roleVal === 'advisor';
         setIsAdvisor(isAdvisorLocal);
         if (isAdvisorLocal) {
-          const link = `stream:${callType}/${callId}`;
+          const link = `stream:${securedCallType}/${securedCallId}`;
           try {
             fetch(`${API_BASE_URL}/api/consultations/${consultationData?.id}/room-ready`, {
               method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
+              headers: {
+                'Content-Type': 'application/json',
+                ...getAuthHeaders(),
+              },
               body: JSON.stringify({ meetingLink: link }),
             }).catch(()=>{});
           } catch (_) {}
@@ -345,6 +374,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         }
       } catch (err) {
         console.error('Stream init error:', err);
+        setInitializationError(err?.message || 'Unable to open this consultation room.');
         setIsLoading(false);
       }
     })();
@@ -451,6 +481,10 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     return `consultation-${consultationData?.id || 'meeting'}-${stamp}${getRecordingExtension(typeOrName)}`;
   }
 
+  function getRecordingModeLabel(mode = activeRecordingModeRef.current) {
+    return mode === 'video' ? 'audio + video' : 'audio only';
+  }
+
   function clearPendingRecordingSaveTarget() {
     recordingSaveHandleRef.current = null;
     recordingFileNameRef.current = '';
@@ -470,8 +504,9 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         suggestedName,
         types: [
           {
-            description: 'Audio recordings',
+            description: 'Meeting recordings',
             accept: {
+              'video/webm': ['.webm'],
               'audio/webm': ['.webm'],
               'audio/ogg': ['.ogg'],
               'audio/wav': ['.wav'],
@@ -520,20 +555,62 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
     }
   }
 
-  async function startCombinedAudioCapture() {
+  async function startCombinedAudioCapture(mode = 'audio') {
     try {
       if (mediaRecorderRef.current && mediaRecorderRef.current.state !== 'inactive') return;
       if (!consultationData?.id) throw new Error('Missing consultation ID');
       setRecordingError('');
       finalizeRecordingAfterStopRef.current = false;
-      // Decide capture path based on configuration
+      activeRecordingModeRef.current = mode;
+      setActiveRecordingMode(mode);
       let mr;
       let chosenType = '';
-      const preferredTypes = ['audio/webm;codecs=opus','audio/webm','audio/ogg;codecs=opus'];
+      const preferredTypes = mode === 'video'
+        ? ['video/webm;codecs=vp9,opus', 'video/webm;codecs=vp8,opus', 'video/webm']
+        : ['audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
       for (const t of preferredTypes) { if (MediaRecorder.isTypeSupported(t)) { chosenType = t; break; } }
 
-      if (CAPTURE_TAB_AUDIO) {
-        // Try to capture tab/system audio. Some browsers require video: true.
+      if (mode === 'video') {
+        const displayStream = await navigator.mediaDevices.getDisplayMedia({
+          video: {
+            frameRate: 30,
+          },
+          audio: true,
+        });
+        const displayVideoTracks = displayStream.getVideoTracks();
+        if (!displayVideoTracks.length) {
+          throw new Error('Screen or tab video capture is required for audio + video recording.');
+        }
+        captureStreamRef.current = displayStream;
+
+        const displayAudioTracks = displayStream.getAudioTracks();
+        const micStream = await navigator.mediaDevices.getUserMedia({
+          audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+          video: false,
+        });
+        micStreamRef.current = micStream;
+
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        audioContextRef.current = ctx;
+        const destination = ctx.createMediaStreamDestination();
+        destinationNodeRef.current = destination;
+
+        if (displayAudioTracks.length > 0) {
+          const systemSource = ctx.createMediaStreamSource(new MediaStream(displayAudioTracks));
+          const systemGain = ctx.createGain(); systemGain.gain.value = 1.0;
+          systemSource.connect(systemGain).connect(destination);
+        }
+        if (micStream) {
+          const micSource = ctx.createMediaStreamSource(micStream);
+          const micGain = ctx.createGain(); micGain.gain.value = 1.0;
+          micSource.connect(micGain).connect(destination);
+        }
+
+        const composedStream = new MediaStream();
+        displayVideoTracks.forEach((track) => composedStream.addTrack(track));
+        destination.stream.getAudioTracks().forEach((track) => composedStream.addTrack(track));
+        mr = new MediaRecorder(composedStream, chosenType ? { mimeType: chosenType } : undefined);
+      } else if (CAPTURE_TAB_AUDIO) {
         let displayStream = null;
         let audioTracks = [];
         try {
@@ -592,7 +669,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       mr.ondataavailable = (e) => { if (e.data && e.data.size > 0) recordingChunksRef.current.push(e.data); };
       mr.onstop = async () => {
         try {
-          const blob = new Blob(recordingChunksRef.current, { type: chosenType || 'audio/webm' });
+          const fallbackType = activeRecordingModeRef.current === 'video' ? 'video/webm' : 'audio/webm';
+          const blob = new Blob(recordingChunksRef.current, { type: chosenType || fallbackType });
           mediaRecorderRef.current = null;
           recordingChunksRef.current = [];
           if (!blob.size) {
@@ -610,8 +688,8 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
           toast.success({
             title: 'Recording saved',
             description: localSave.usedPicker
-              ? `Saved to ${localSave.label}${uploadResult?.recordingUri ? ' and backed up to the consultation.' : '.'}`
-              : `Saved as ${localSave.label}${uploadResult?.recordingUri ? ' and backed up to the consultation.' : '.'}`,
+              ? `${getRecordingModeLabel()} saved to ${localSave.label}${uploadResult?.recordingUri ? ' and backed up to the consultation.' : '.'}`
+              : `${getRecordingModeLabel()} saved as ${localSave.label}${uploadResult?.recordingUri ? ' and backed up to the consultation.' : '.'}`,
           });
           if (finalizeRecordingAfterStopRef.current) {
             finalizeRecordingAfterStopRef.current = false;
@@ -628,7 +706,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       setRecordingStatus('recording');
       toast.info({
         title: 'Recording started',
-        description: 'Press the record button again to save a copy to your device.',
+        description: `Recording ${getRecordingModeLabel(mode)}. Press the record button again to save a copy to your device.`,
       });
     } catch (err) {
       console.error('Failed to start tab audio capture:', err);
@@ -832,14 +910,19 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       return;
     }
 
-    await startCombinedAudioCapture();
+    setRecordingModePromptOpen(true);
   };
 
   const recordingButtonTitle = isRecordingBusy
     ? 'Saving recording'
     : isRecordingActive
-      ? 'Stop and save recording'
+      ? `Stop and save ${getRecordingModeLabel(activeRecordingMode)} recording`
       : 'Start recording';
+
+  const startRecordingWithMode = async (mode) => {
+    setRecordingModePromptOpen(false);
+    await startCombinedAudioCapture(mode);
+  };
 
   const performAdvisorOutcomeSubmit = async () => {
     if (!consultationData?.id || submittingAdvisorOutcome) return;
@@ -971,36 +1054,26 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         tone: 'neutral',
       },
     ];
-    const statusCards = [
+    const signalCards = [
       {
         key: 'share',
         label: 'Screenshare',
         value: hasScreenShare ? 'Live' : 'Off',
-        fill: hasScreenShare ? 100 : 14,
-        tone: hasScreenShare ? 'success' : 'muted',
       },
       {
         key: 'mic',
         label: 'Mic',
         value: micMuted ? 'Muted' : 'On',
-        fill: micMuted ? 22 : 92,
-        tone: micMuted ? 'warning' : 'brand',
       },
       {
         key: 'camera',
         label: 'Camera',
         value: camMuted ? 'Off' : 'On',
-        fill: camMuted ? 18 : 88,
-        tone: camMuted ? 'muted' : 'brand',
       },
       {
         key: 'network',
-        label: 'Network',
+        label: 'Connection',
         value: networkLabel,
-        fill: typeof latency === 'number'
-          ? Math.max(20, Math.min(100, Math.round(100 - (latency / 4))))
-          : 84,
-        tone: typeof latency === 'number' && latency > 180 ? 'warning' : 'success',
       },
     ];
 
@@ -1008,10 +1081,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       <MeetingPanelFrame icon={BsInfoCircle} title="Details" onClose={onClose}>
         <div className="smc-side-panel__body smc-side-panel__body--details" role="dialog" aria-label="Call details">
           <section className="smc-detail-hero">
-            <div className="smc-detail-hero__eyebrow">
-              <VideoCameraIcon className="smc-detail-hero__eyebrow-icon" />
-              <span>Live consultation</span>
-            </div>
+            <div className="smc-detail-hero__eyebrow">Live consultation</div>
             <h3 className="smc-detail-hero__title">{consultationTitle}</h3>
             <p className="smc-detail-hero__description">{consultationDescription}</p>
             <div className="smc-detail-chip-row">
@@ -1065,27 +1135,13 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
             ))}
           </section>
 
-          <section className="smc-detail-status-panel">
-            <div className="smc-detail-status-panel__header">
-              <div>
-                <span className="smc-detail-status-panel__eyebrow">Session health</span>
-                <strong className="smc-detail-status-panel__title">Call signals</strong>
-              </div>
-              <ChartBarIcon className="smc-detail-status-panel__header-icon" />
-            </div>
-            <div className="smc-detail-status-list">
-              {statusCards.map((item) => (
-                <div key={item.key} className="smc-detail-status-item">
-                  <div className="smc-detail-status-item__copy">
-                    <span className="smc-detail-status-item__label">{item.label}</span>
-                    <strong className="smc-detail-status-item__value">{item.value}</strong>
-                  </div>
-                  <div className="smc-detail-status-item__meter" aria-hidden="true">
-                    <span className={`smc-detail-status-item__fill tone-${item.tone}`} style={{ width: `${item.fill}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
+          <section className="smc-detail-status-grid">
+            {signalCards.map((item) => (
+              <article key={item.key} className="smc-detail-status-card">
+                <span className="smc-detail-status-card__label">{item.label}</span>
+                <strong className="smc-detail-status-card__value">{item.value}</strong>
+              </article>
+            ))}
           </section>
 
           <section className="smc-detail-note-card">
@@ -1217,6 +1273,18 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
       <EntryTransition show={isLoading} persistent zIndex={30} />
 
       <div className="smc-stage-canvas">
+        {!isLoading && initializationError && !client ? (
+          <div className="smc-error-state" role="alert">
+            <div className="smc-error-state__panel">
+              <strong>Unable to join consultation</strong>
+              <p>{initializationError}</p>
+              <button type="button" className="smc-error-state__button" onClick={onClose}>
+                Close
+              </button>
+            </div>
+          </div>
+        ) : null}
+
         {client && call && inMeeting ? (
           <StreamVideo client={client}>
             <StreamCall call={call}>
@@ -1257,19 +1325,6 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                         </div>
                       ) : null}
 
-                      <a
-                        className="smc-powered-by-stream"
-                        href="https://getstream.io/video/"
-                        target="_blank"
-                        rel="noreferrer"
-                        aria-label="Powered by Stream Video via getstream.io"
-                      >
-                        <VideoCameraIcon className="smc-powered-by-stream__icon" />
-                        <div className="smc-powered-by-stream__copy">
-                          <span>Powered by Stream Video</span>
-                          <small>getstream.io</small>
-                        </div>
-                      </a>
                     </div>
                     <div className="smc-layout-frame">
                       {isGridLayout ? (
@@ -1278,6 +1333,17 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                         <SpeakerLayout participantsBarPosition="bottom" />
                       )}
                     </div>
+                    <a
+                      className="smc-powered-by-stream"
+                      href="https://getstream.io/video/"
+                      target="_blank"
+                      rel="noreferrer"
+                      aria-label="Powered by Stream Video via getstream.io"
+                    >
+                      <VideoCameraIcon className="smc-powered-by-stream__icon" />
+                      <span>Powered by Stream Video</span>
+                      <small>getstream.io</small>
+                    </a>
                   </motion.div>
 
                   <AnimatePresence mode="popLayout" initial={false}>
@@ -1387,6 +1453,44 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
                   Leave call
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {recordingModePromptOpen && (
+        <div className="smc-modal-backdrop">
+          <div className="smc-modal smc-modal--compact">
+            <h3 className="smc-modal-title">Choose recording type</h3>
+            <p className="smc-modal-text">
+              Pick what you want to save for this consultation.
+            </p>
+            <div className="smc-recording-mode-grid">
+              <button
+                type="button"
+                className="smc-recording-mode-card"
+                onClick={() => startRecordingWithMode('audio')}
+              >
+                <strong>Audio only</strong>
+                <span>Smaller file, faster save, records the conversation audio.</span>
+              </button>
+              <button
+                type="button"
+                className="smc-recording-mode-card"
+                onClick={() => startRecordingWithMode('video')}
+              >
+                <strong>Audio + video</strong>
+                <span>Records the call visuals too. Your browser will ask you to share the tab or screen.</span>
+              </button>
+            </div>
+            <div className="smc-modal-actions">
+              <button
+                className="smc-modal-btn smc-modal-btn--ghost"
+                type="button"
+                onClick={() => setRecordingModePromptOpen(false)}
+              >
+                Cancel
+              </button>
             </div>
           </div>
         </div>
