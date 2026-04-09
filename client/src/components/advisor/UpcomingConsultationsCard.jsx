@@ -1,5 +1,5 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { ClockIcon, ChevronRightIcon, CalendarDaysIcon } from "../icons/Heroicons";
+import React, { useEffect, useState } from "react";
+import { ChevronRightIcon, CalendarDaysIcon } from "../icons/Heroicons";
 import "./UpcomingConsultationsCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../lightswind/card";
 import { useNavigate } from "react-router-dom";
@@ -22,6 +22,14 @@ const formatDate = (dateString) => {
     month: 'short', 
     day: 'numeric' 
   }).format(toDateUtc(dateString));
+};
+
+const formatDateTimeLabel = (consultation) => {
+  const dateLabel = consultation?.start_datetime
+    ? formatDate(consultation.start_datetime)
+    : (consultation?.date || '');
+  const timeLabel = consultation?.time || '';
+  return [dateLabel, timeLabel].filter(Boolean).join(' • ');
 };
 
 export default function UpcomingConsultationsCard() {
@@ -139,25 +147,33 @@ export default function UpcomingConsultationsCard() {
           )}
           {!loading && consultations.slice(0, 5).map((consultation, index) => (
             <div key={consultation.id} className="compact-consultation-card">
-            <div className="compact-date-section">
-              <Avatar className="h-10 w-10 border border-gray-100 shadow-sm flex-shrink-0">
-                <AvatarImage src={consultation.student?.avatar} alt={consultation.student?.name} />
+            <div className="compact-avatar-section">
+              <Avatar className="compact-avatar">
+                <AvatarImage src={consultation.student?.avatar_url} alt={consultation.student?.name} />
                 <AvatarFallback name={consultation.student?.name} />
               </Avatar>
-              <div className="compact-date ml-3">
-                <div className="compact-dow">{formatDate(consultation.date).split(' ')[0]}</div>
-                <div className="compact-dom">{formatDate(consultation.date).split(' ')[2]}</div>
-              </div>
             </div>
             
             <div className="compact-content">
+              <div className="compact-title-row">
+                <div className="compact-consultation-title">
+                  {consultation.topic || consultation.category || 'Consultation'}
+                </div>
+                {consultation.category ? (
+                  <span className="compact-topic-chip">{consultation.category}</span>
+                ) : null}
+              </div>
+
               <div className="compact-faculty-info">
-                <div className="compact-faculty-name">{consultation.student.name}</div>
-                <div className="compact-faculty-title">{consultation.student.course}</div>
+                <div className="compact-faculty-name">{consultation.student?.name || 'Student'}</div>
+                {consultation.student?.course ? (
+                  <div className="compact-faculty-title">{consultation.student.course}</div>
+                ) : null}
               </div>
               
               <div className="compact-time-info">
-                <span className="time-text">{consultation.time}</span>
+                <CalendarDaysIcon className="time-icon" />
+                <span className="time-text">{formatDateTimeLabel(consultation)}</span>
               </div>
               
               <div className="compact-badges">
@@ -172,7 +188,7 @@ export default function UpcomingConsultationsCard() {
             
             <div className="compact-action">
               <button className={getActionButtonClass(index)} onClick={() => handleActionClick(consultation, index)}>
-                {getActionButtonText(index)}
+                <span>{getActionButtonText(index)}</span>
                 <ChevronRightIcon className="action-icon" />
               </button>
             </div>

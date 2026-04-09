@@ -18,8 +18,7 @@ const {
 
 const CONSULTATION_CALL_TYPE = 'consultation';
 const DEFAULT_CALL_TYPE = 'default';
-const CALL_MEMBER_ROLE = 'call_member';
-const ADVISOR_CALL_ROLE = 'admin';
+const CALL_MEMBER_ROLE = 'call-member';
 const REQUIRED_CALL_MEMBER_CAPABILITIES = [
   'join-call',
   'read-call',
@@ -224,8 +223,8 @@ router.post('/token', authMiddleware, async (req, res) => {
       data: {
         created_by_id: userId,
         members: [
-          { user_id: String(consultation.student_user_id) },
-          { user_id: String(consultation.advisor_user_id), role: ADVISOR_CALL_ROLE },
+          { user_id: String(consultation.student_user_id), role: CALL_MEMBER_ROLE },
+          { user_id: String(consultation.advisor_user_id), role: CALL_MEMBER_ROLE },
         ],
         custom: {
           consultation_id: parsedConsultationId,

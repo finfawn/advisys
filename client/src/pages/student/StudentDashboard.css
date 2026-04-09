@@ -205,6 +205,7 @@
 .bento-grid-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
+    align-items: start;
     gap: 12px;
     margin-bottom: 16px;
     width: 100%;
@@ -338,17 +339,17 @@
 
 /* Stat Bento - Small */
 .bento-stat {
-    min-height: 100px;
+    min-height: 0;
 }
 
 @media (min-width: 768px) {
     .bento-stat {
-        min-height: 120px;
+        min-height: 0;
     }
 }
 
 .bento-stat .stat-card {
-    height: 100%;
+    height: auto;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
 }
@@ -716,22 +717,22 @@
     grid-template-columns: 44px 1fr;
     align-items: center;
     gap: 10px;
-    padding: 14px;
+    padding: 13px 14px;
     border-radius: 14px;
     background: #fff;
     border: 1px solid rgba(0, 0, 0, 0.08);
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     transition: all 0.3s ease;
-    min-height: 100px;
+    min-height: 84px;
 }
 
 @media (min-width: 768px) {
     .stat-card {
         grid-template-columns: 48px 1fr;
         gap: 12px;
-        padding: 20px;
+        padding: 16px 18px;
         border-radius: 16px;
-        min-height: 120px;
+        min-height: 96px;
     }
 }
 
@@ -741,7 +742,7 @@
         gap: 8px;
         padding: 12px;
         border-radius: 12px;
-        min-height: 90px;
+        min-height: 78px;
     }
 }
 .stat-card:hover {
@@ -787,7 +788,7 @@
     text-transform: uppercase;
     letter-spacing: 0.3px;
     color: #6b7280;
-    margin-bottom: 3px;
+    margin-bottom: 2px;
 }
 
 @media (min-width: 768px) {
@@ -809,7 +810,7 @@
     font-size: 1.5rem;
     color: #1f2937;
     line-height: 1.1;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
     word-break: break-word;
 }
 
@@ -831,7 +832,7 @@
 .stat-body .stat-sub {
     color: #6b7280;
     font-size: 0.75rem;
-    line-height: 1.2;
+    line-height: 1.25;
 }
 
 @media (min-width: 768px) {

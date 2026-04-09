@@ -1,17 +1,26 @@
 /* Sidebar Component Styles */
 
 .dash-sidebar {
-  position: sticky;
-  top: 64px; /* match student topbar height */
+  --dash-sidebar-top: 64px;
+  --dash-sidebar-width: 240px;
+  --dash-sidebar-width-collapsed: 76px;
+  position: fixed;
+  top: var(--dash-sidebar-top); /* match topbar height */
+  left: 0;
   align-self: start;
-  height: calc(100vh - 64px); /* align with student topbar */
+  width: var(--dash-sidebar-width);
+  height: calc(100vh - var(--dash-sidebar-top));
   /* Ensure white background even when shared CSS sets var(--sb-bg) */
   --sb-bg: #ffffff;
   background: #ffffff;
   border-right: 1px solid rgba(0,0,0,0.06);
   padding: 12px 10px; /* match advisor inner padding */
-  min-width: 200px; /* ensure sidebar is wide enough for text */
-  transition: min-width 240ms ease;
+  min-width: var(--dash-sidebar-width);
+  overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: contain;
+  transition: width 240ms ease, min-width 240ms ease;
+  z-index: 40;
   /* unified sizes for active icon background */
   --sb-ico-bg: 2rem;
   --sb-ico-radius: 10px;
@@ -23,6 +32,7 @@
 @media (min-width: 768px) and (max-width: 1180px) {
   .admin-dash-wrap .dash-sidebar {
     min-width: 160px;
+    width: 160px;
   }
 }
 
@@ -33,7 +43,8 @@
 }
 
 .sidebar-collapsed {
-  min-width: 60px; /* narrow width when collapsed */
+  width: var(--dash-sidebar-width-collapsed);
+  min-width: var(--dash-sidebar-width-collapsed); /* narrow width when collapsed */
 }
 
 .sb-list { 
@@ -190,6 +201,7 @@
     position: fixed;
     top: 56px; /* Mobile topbar height */
     left: 0;
+    width: 240px;
     height: calc(100vh - 56px);
     z-index: 1000;
     transform: translateX(-100%);
