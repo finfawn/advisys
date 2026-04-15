@@ -10,7 +10,7 @@ import AdvisorConsultationCard from "../../components/advisor/my_consultation/Ad
 import DeclineConsultationModal from "../../components/advisor/DeclineConsultationModal";
 import { toast } from "../../components/hooks/use-toast";
 import { Button } from "../../lightswind/button";
-import { Skeleton } from "../../lightswind/skeleton";
+import { ConsultationCardSkeleton, CounterpartRowSkeleton } from "../../lightswind/skeleton";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import "./AdvisorDashboard.css";
 import "./AdvisorConsultations.css";
@@ -699,28 +699,7 @@ export default function AdvisorConsultations() {
                   {isLoading ? (
                     <div className="consultations-grid">
                       {Array.from({ length: 3 }).map((_, idx) => (
-                        <div key={idx} className="rounded-lg border bg-white p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
-                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
-                          </div>
-                          <Skeleton className="h-5 w-3/4" shimmer />
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
-                            <Skeleton className="h-4 w-40" shimmer />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                            <div className="flex-1 space-y-1">
-                              <Skeleton className="h-4 w-48" shimmer />
-                              <Skeleton className="h-3 w-40" shimmer />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 pt-2">
-                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
-                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                          </div>
-                        </div>
+                        <ConsultationCardSkeleton key={idx} footer="single" />
                       ))}
                     </div>
                   ) : (
@@ -794,28 +773,7 @@ export default function AdvisorConsultations() {
                   {isLoading ? (
                     <div className="consultations-grid">
                       {Array.from({ length: 3 }).map((_, idx) => (
-                        <div key={idx} className="rounded-lg border bg-white p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
-                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
-                          </div>
-                          <Skeleton className="h-5 w-3/4" shimmer />
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
-                            <Skeleton className="h-4 w-40" shimmer />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                            <div className="flex-1 space-y-1">
-                              <Skeleton className="h-4 w-48" shimmer />
-                              <Skeleton className="h-3 w-40" shimmer />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 pt-2">
-                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
-                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                          </div>
-                        </div>
+                        <ConsultationCardSkeleton key={idx} footer="double" />
                       ))}
                     </div>
                   ) : (
@@ -920,38 +878,11 @@ export default function AdvisorConsultations() {
                     <div className="consultations-grid">
                       {historyView === 'consultations' ? (
                         Array.from({ length: 3 }).map((_, idx) => (
-                          <div key={idx} className="rounded-lg border bg-white p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <Skeleton className="h-6 w-28 rounded-md" shimmer />
-                              <Skeleton className="h-6 w-24 rounded-full" shimmer />
-                            </div>
-                            <Skeleton className="h-5 w-3/4" shimmer />
-                            <div className="flex items-center gap-2">
-                              <Skeleton className="h-4 w-4 rounded-md" shimmer />
-                              <Skeleton className="h-4 w-40" shimmer />
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                              <div className="flex-1 space-y-1">
-                                <Skeleton className="h-4 w-48" shimmer />
-                                <Skeleton className="h-3 w-40" shimmer />
-                              </div>
-                            </div>
-                            <div className="flex gap-2 pt-2">
-                              <Skeleton className="h-9 w-32 rounded-md" shimmer />
-                              <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                            </div>
-                          </div>
+                          <ConsultationCardSkeleton key={idx} footer="single" />
                         ))
                       ) : (
                         Array.from({ length: 5 }).map((_, idx) => (
-                          <div key={idx} className="p-4 bg-white rounded-lg border flex items-center gap-3">
-                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                            <div className="flex-1 space-y-1">
-                              <Skeleton className="h-4 w-40" shimmer />
-                              <Skeleton className="h-3 w-56" shimmer />
-                            </div>
-                          </div>
+                          <CounterpartRowSkeleton key={idx} />
                         ))
                       )}
                     </div>

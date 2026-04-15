@@ -7,7 +7,7 @@ import { Card, CardContent } from '../../lightswind/card';
 import { Badge } from '../../lightswind/badge';
 import { Button } from '../../lightswind/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../../lightswind/select';
-import { Skeleton, TemplateCardSkeleton } from '../../lightswind/skeleton';
+import { Skeleton, ConsultationCardSkeleton, CounterpartRowSkeleton } from '../../lightswind/skeleton';
 import ConsultationCard from "../../components/student/ConsultationCard";
 import ConsultationModal from "../../components/student/ConsultationModal";
 import CancelConsultationModal from "../../components/student/CancelConsultationModal";
@@ -947,30 +947,7 @@ export default function MyConsultationsPage() {
                 {isLoading ? (
                   <div className="consultations-grid">
                     {Array.from({ length: 3 }).map((_, idx) => (
-                      <Card key={idx} className="advisor-card">
-                        <CardContent className="p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
-                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
-                          </div>
-                          <Skeleton className="h-5 w-3/4" shimmer />
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
-                            <Skeleton className="h-4 w-40" shimmer />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                            <div className="flex-1 space-y-1">
-                              <Skeleton className="h-4 w-48" shimmer />
-                              <Skeleton className="h-3 w-40" shimmer />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 pt-2">
-                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
-                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <ConsultationCardSkeleton key={idx} footer="primary-with-icon" profileLines={3} />
                     ))}
                     <Card className="add-consultation-card-new">
                       <CardContent className="flex flex-col items-center justify-center h-full space-y-3 p-8">
@@ -1039,30 +1016,7 @@ export default function MyConsultationsPage() {
                 {isLoading ? (
                   <div className="consultations-grid">
                     {Array.from({ length: 3 }).map((_, idx) => (
-                      <Card key={idx} className="advisor-card">
-                        <CardContent className="p-4 space-y-3">
-                          <div className="flex items-center justify-between">
-                            <Skeleton className="h-6 w-28 rounded-md" shimmer />
-                            <Skeleton className="h-6 w-24 rounded-full" shimmer />
-                          </div>
-                          <Skeleton className="h-5 w-3/4" shimmer />
-                          <div className="flex items-center gap-2">
-                            <Skeleton className="h-4 w-4 rounded-md" shimmer />
-                            <Skeleton className="h-4 w-40" shimmer />
-                          </div>
-                          <div className="flex items-center gap-3">
-                            <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                            <div className="flex-1 space-y-1">
-                              <Skeleton className="h-4 w-48" shimmer />
-                              <Skeleton className="h-3 w-40" shimmer />
-                            </div>
-                          </div>
-                          <div className="flex gap-2 pt-2">
-                            <Skeleton className="h-9 w-32 rounded-md" shimmer />
-                            <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                          </div>
-                        </CardContent>
-                      </Card>
+                      <ConsultationCardSkeleton key={idx} footer="single" profileLines={3} />
                     ))}
                   </div>
                 ) : (
@@ -1148,41 +1102,11 @@ export default function MyConsultationsPage() {
                   <div className="consultations-grid">
                     {historyView === 'consultations' ? (
                       Array.from({ length: 3 }).map((_, idx) => (
-                        <Card key={idx} className="advisor-card">
-                          <CardContent className="p-4 space-y-3">
-                            <div className="flex items-center justify-between">
-                              <Skeleton className="h-6 w-28 rounded-md" shimmer />
-                              <Skeleton className="h-6 w-24 rounded-full" shimmer />
-                            </div>
-                            <Skeleton className="h-5 w-3/4" shimmer />
-                            <div className="flex items-center gap-2">
-                              <Skeleton className="h-4 w-4 rounded-md" shimmer />
-                              <Skeleton className="h-4 w-40" shimmer />
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                              <div className="flex-1 space-y-1">
-                                <Skeleton className="h-4 w-48" shimmer />
-                                <Skeleton className="h-3 w-40" shimmer />
-                              </div>
-                            </div>
-                            <div className="flex gap-2 pt-2">
-                              <Skeleton className="h-9 w-32 rounded-md" shimmer />
-                              <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                            </div>
-                          </CardContent>
-                        </Card>
+                        <ConsultationCardSkeleton key={idx} footer="single" profileLines={3} />
                       ))
                     ) : (
                       Array.from({ length: 5 }).map((_, idx) => (
-                        <div key={idx} className="p-4 bg-white rounded-lg border flex items-center gap-3">
-                          <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                          <div className="flex-1 space-y-1">
-                            <Skeleton className="h-4 w-40" shimmer />
-                            <Skeleton className="h-3 w-56" shimmer />
-                          </div>
-                          <Skeleton className="h-4 w-4 rounded-md" shimmer />
-                        </div>
+                        <CounterpartRowSkeleton key={idx} />
                       ))
                     )}
                   </div>

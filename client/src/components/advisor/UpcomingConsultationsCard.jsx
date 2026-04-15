@@ -3,7 +3,7 @@ import { ChevronRightIcon, CalendarDaysIcon } from "../icons/Heroicons";
 import "./UpcomingConsultationsCard.css";
 import { Card, CardHeader, CardTitle, CardContent } from "../../lightswind/card";
 import { useNavigate } from "react-router-dom";
-import { Skeleton } from "../../lightswind/skeleton";
+import { CompactConsultationSkeleton } from "../../lightswind/skeleton";
 import { Avatar, AvatarImage, AvatarFallback } from "../../lightswind/avatar";
 
 const toDateUtc = (val) => {
@@ -113,19 +113,7 @@ export default function UpcomingConsultationsCard() {
           {loading && (
             <>
               {Array.from({ length: 3 }).map((_, idx) => (
-                <div key={`skeleton-${idx}`} className="compact-consultation-card">
-                  <div className="compact-date-section">
-                    <Skeleton className="h-12 w-12 rounded-lg" shimmer />
-                  </div>
-                  <div className="compact-content w-full">
-                    <Skeleton className="h-5 w-2/3 mb-2" shimmer />
-                    <Skeleton className="h-4 w-1/2 mb-2" shimmer />
-                    <Skeleton className="h-4 w-24" shimmer />
-                  </div>
-                  <div className="compact-action">
-                    <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                  </div>
-                </div>
+                <CompactConsultationSkeleton key={`skeleton-${idx}`} variant="avatar" />
               ))}
             </>
           )}
