@@ -4,14 +4,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 2rem;
+  padding: 1.5rem;
   text-align: center;
   background: #f8fafc;
   border-radius: 12px;
   border: 2px dashed #cbd5e1;
-  margin: 2rem 0;
-  grid-column: 1 / -1;
-  width: 100%;
+  margin: 0;
+  min-height: 280px;
 }
 
 .no-consultations-icon {
@@ -30,7 +29,7 @@
 .no-consultations p {
   color: #6b7280;
   margin: 0 0 1.5rem 0;
-  max-width: 480px;
+  font-size: 0.9rem;
 }
 
 .add-consultation-btn {
@@ -56,14 +55,13 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 2rem;
+  padding: 1.5rem;
   text-align: center;
   background: #f8fafc;
   border-radius: 12px;
   border: 2px dashed #cbd5e1;
-  margin: 2rem 0;
-  grid-column: 1 / -1;
-  width: 100%;
+  margin: 0;
+  min-height: 280px;
 }
 
 .no-history-icon {
