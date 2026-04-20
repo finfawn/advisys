@@ -236,17 +236,17 @@ export default function StudentThreadPage() {
         <main className="admin-dash-main student-thread-main">
           <div className="consultations-container student-thread">
             <div className="consultations-header">
-              <div className="flex items-center gap-2 mb-4">
-                <Link
-                  to="/student-dashboard/consultations"
-                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <BsChevronLeft className="w-4 h-4" />
-                  Back to Consultations
-                </Link>
-              </div>
               <div className="header-bar">
-                <h1 className="consultations-title">Consultation Thread</h1>
+                <div className="flex items-center gap-3">
+                  <Link
+                    to="/student-dashboard/consultations"
+                    className="p-1 -ml-1 flex items-center justify-center rounded-lg hover:bg-slate-200/50 text-slate-500 hover:text-slate-900 transition-all"
+                    title="Back to Consultations"
+                  >
+                    <BsChevronLeft className="w-5 h-5 stroke-[0.3]" />
+                  </Link>
+                  <h1 className="consultations-title">Consultation Thread</h1>
+                </div>
                 <div className="header-actions">
                   <Select value={termId} onValueChange={setTermId}>
                     <SelectTrigger className="filter-dropdown">

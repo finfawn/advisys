@@ -240,17 +240,17 @@ export default function AdvisorThreadPage() {
         <main className="advisor-dash-main">
           <div className="consultations-container">
             <div className="consultations-header">
-              <div className="flex items-center gap-2 mb-4">
-                <button
-                  onClick={() => navigate('/advisor-dashboard/students')}
-                  className="flex items-center gap-1 text-sm text-gray-600 hover:text-gray-900 transition-colors"
-                >
-                  <BsChevronLeft className="w-4 h-4" />
-                  Back to Students
-                </button>
-              </div>
               <div className="header-bar">
-                <h1 className="consultations-title">Consultation Thread</h1>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => navigate('/advisor-dashboard/students')}
+                    className="p-1 -ml-1 flex items-center justify-center rounded-lg hover:bg-slate-200/50 text-slate-500 hover:text-slate-900 transition-all"
+                    title="Back to Students"
+                  >
+                    <BsChevronLeft className="w-5 h-5 stroke-[0.3]" />
+                  </button>
+                  <h1 className="consultations-title">Consultation Thread</h1>
+                </div>
                 <div className="header-actions">
                 <Select value={termId} onValueChange={setTermId}>
                   <SelectTrigger className="filter-dropdown">

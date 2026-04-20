@@ -159,6 +159,8 @@
     border-radius: 12px;
     border: 2px dashed #cbd5e1;
     margin: 2rem 0;
+    grid-column: 1 / -1;
+    width: 100%;
 }
 
 .no-consultations-icon {
@@ -209,6 +211,8 @@
     border-radius: 12px;
     border: 2px dashed #cbd5e1;
     margin: 2rem 0;
+    grid-column: 1 / -1;
+    width: 100%;
 }
 
 .no-history-icon {
@@ -544,8 +548,10 @@
     background: #f8f9fa;
     border-radius: 8px;
     border: 2px dashed #dee2e6;
-    max-width: 400px;
-    margin: 0 auto;
+    max-width: none;
+    margin: 0;
+    grid-column: 1 / -1;
+    width: 100%;
 }
 
 .student-my-consultations .no-consultations-icon {
@@ -677,6 +683,8 @@
     background: #f8f9fa;
     border-radius: 12px;
     border: 2px dashed #dee2e6;
+    grid-column: 1 / -1;
+    width: 100%;
 }
 
 .student-my-consultations .no-history-icon {
