@@ -1,5 +1,4 @@
 import React from "react";
-import logoLargeTransparent from "/logo-large-transparent.png";
 import { useNavigate, useSearchParams } from "react-router-dom";
 
 export default function ResetPassword() {
@@ -59,7 +58,7 @@ export default function ResetPassword() {
           }}
         />
         <img
-          src={logoLargeTransparent}
+          src="/logo-large-transparent.png"
           alt=""
           aria-hidden="true"
           className="absolute select-none"

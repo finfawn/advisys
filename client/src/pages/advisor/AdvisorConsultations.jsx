@@ -649,7 +649,7 @@ export default function AdvisorConsultations() {
                   const i = activeTab === 'upcoming' ? 0 : activeTab === 'requests' ? 1 : 2;
                   return (
                     <motion.div
-                      className="tab-underline"
+                      className="tab-underline hidden xl:block"
                       initial={false}
                       animate={{ x: `${i * 100}%` }}
                       transition={{ type: 'spring', stiffness: 300, damping: 30 }}

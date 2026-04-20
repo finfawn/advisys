@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import logoLargeTransparent from "/logo-large-transparent.png";
 import { useNavigate } from "react-router-dom";
 import RippleButton from "../lightswind/ripple-button";
 import { Select, SelectTrigger, SelectContent, SelectItem, SelectValue } from "../lightswind/select";
@@ -247,7 +246,7 @@ function AuthPage({ embedded = false }) {
         />
         {/* Large semi-transparent logo watermark */}
         <img
-          src={logoLargeTransparent}
+          src="/logo-large-transparent.png"
           alt=""
           aria-hidden="true"
           className="absolute select-none"
@@ -336,7 +335,7 @@ function AuthPage({ embedded = false }) {
                   <motion.div layout className="mb-5 sm:mb-8 text-center select-none pointer-events-none">
                     <div className="flex flex-col items-center gap-2 mb-2">
                       <img 
-                        src={logoLargeTransparent} 
+                        src="/logo-large-transparent.png" 
                         alt="AdviSys" 
                         className="h-14 w-14 rounded-sm mx-auto drop-shadow-sm"
                         style={{ transform: "translateZ(0)" }}

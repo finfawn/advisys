@@ -143,15 +143,6 @@ export default function UpcomingConsultationsCard() {
             </div>
             
             <div className="compact-content">
-              <div className="compact-title-row">
-                <div className="compact-consultation-title">
-                  {consultation.topic || consultation.category || 'Consultation'}
-                </div>
-                {consultation.category ? (
-                  <span className="compact-topic-chip">{consultation.category}</span>
-                ) : null}
-              </div>
-
               <div className="compact-faculty-info">
                 <div className="compact-faculty-name">{consultation.student?.name || 'Student'}</div>
                 {consultation.student?.course ? (
