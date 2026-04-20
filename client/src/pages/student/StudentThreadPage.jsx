@@ -205,11 +205,13 @@ export default function StudentThreadPage() {
       const location = c.location || "";
       const summary = c.summary_notes || c.ai_summary || "";
       const cancelReason = c.cancel_reason || "";
+      const duration = c.duration_minutes || 30;
 
       lines.push(`Consultation ${idx + 1}`);
       if (advisorMeta?.name) lines.push(`  Advisor: ${advisorMeta.name}`);
       lines.push(`  Topic: ${topic}`);
       lines.push(`  Date/Time: ${dateStr}`);
+      lines.push(`  Duration: ${duration} minutes`);
       lines.push(`  Mode: ${modeStr}`);
       lines.push(`  Status: ${statusStr}`);
       if (location) lines.push(`  Location: ${location}`);
@@ -372,6 +374,12 @@ export default function StudentThreadPage() {
                         const yearStr = dateObj.getFullYear();
                         const timeStr = dateObj.toLocaleString("en-US", { hour: "numeric", minute: "2-digit" });
                         const statusKey = String(c.status || "scheduled").toLowerCase();
+                        
+                        const title = c.topic || c.category || "Consultation";
+                        const desc = c.student_notes || c.summary_notes || c.category || "";
+                        const duration = c.duration_minutes || 30;
+                        const advisorName = c.advisor_name || "Your Advisor";
+
                         return (
                           <Card key={c.id} className={`thread-grid-card border-status-${statusKey}`}>
                             <span className={`thread-grid-badge badge-${statusKey}`}>{c.status || "Scheduled"}</span>
@@ -384,12 +392,14 @@ export default function StudentThreadPage() {
                                   </div>
                                 </div>
                                 <div className="thread-grid-details">
-                                  <h3 className="thread-grid-title">{c.category || c.topic || "No Topic"}</h3>
+                                  <h3 className="thread-grid-title">{title}</h3>
+                                  {desc && desc !== title && <div className="thread-grid-desc">{desc}</div>}
                                   <div className="thread-grid-meta">
-                                    <span className="meta-time">{timeStr}</span> &bull; 
+                                    <span className="meta-time">{timeStr} ({duration} mins)</span> &bull; 
                                     <span className="meta-mode">
                                       {c.mode === "online" ? " Online" : " In-Person"}
-                                    </span>
+                                    </span> &bull; 
+                                    <span className="meta-advisor font-medium text-gray-500"> {advisorName}</span>
                                   </div>
                                 </div>
                               </div>

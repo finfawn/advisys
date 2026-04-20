@@ -215,11 +215,23 @@
 }
 
 .thread-grid-title {
-  margin: 0 0 6px 0;
+  margin: 0 0 2px 0;
   font-size: 1rem;
   font-weight: 700;
   color: #1e293b;
   line-height: 1.3;
+}
+
+.thread-grid-desc {
+  font-size: 0.8rem;
+  color: #64748b;
+  margin-bottom: 6px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 
 .thread-grid-meta {
