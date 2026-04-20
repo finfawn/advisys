@@ -52,14 +52,14 @@
 .compact-content {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   min-width: 0;
 }
 
 .compact-faculty-info {
   display: flex;
   flex-direction: column;
-  gap: 1px;
+  gap: 0;
 }
 
 .compact-faculty-name {
@@ -79,24 +79,28 @@
   text-overflow: ellipsis;
 }
 
+/* Hide category tag to keep card slim */
 .compact-category-tag {
-  display: inline-block;
-  padding: 0.15rem 0.4rem;
-  background: #e5e7eb;
-  color: #374151;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  margin-top: 0.2rem;
-  width: fit-content;
+  display: none;
+}
+
+/* Secondary row: time + mode on one line */
+.compact-secondary-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  flex-wrap: nowrap;
 }
 
 .compact-time-info {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  color: #666;
-  font-size: 0.75rem;
+  color: #888;
+  font-size: 0.72rem;
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .time-icon {
@@ -111,7 +115,7 @@
 .compact-badges {
   display: flex;
   gap: 4px;
-  margin-top: 1px;
+  align-items: center;
 }
 
 .compact-status-badge {

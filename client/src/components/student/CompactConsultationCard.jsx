@@ -105,22 +105,23 @@ function CompactConsultationCard({ consultation, onActionClick, onDelete, onCanc
           )}
         </div>
         
-        <div className="compact-time-info">
-          <span className="time-text">{consultation.time}</span>
-        </div>
-        
-        <div className="compact-badges">
-          {consultation.status !== 'approved' && (
-            <span className={`compact-status-badge ${statusInfo.class}`}>
-              {statusInfo.icon}
-              <span className="status-text">{statusInfo.text}</span>
-            </span>
-          )}
-          <div className={`compact-mode-indicator ${consultation.mode}`}>
-            <span className="mode-dot"></span>
-            <span className="mode-text">
-              {consultation.mode === 'online' ? 'Online' : 'In-Person'}
-            </span>
+        <div className="compact-secondary-row">
+          <div className="compact-time-info">
+            <span className="time-text">{consultation.time}</span>
+          </div>
+          <div className="compact-badges">
+            {consultation.status !== 'approved' && (
+              <span className={`compact-status-badge ${statusInfo.class}`}>
+                {statusInfo.icon}
+                <span className="status-text">{statusInfo.text}</span>
+              </span>
+            )}
+            <div className={`compact-mode-indicator ${consultation.mode}`}>
+              <span className="mode-dot"></span>
+              <span className="mode-text">
+                {consultation.mode === 'online' ? 'Online' : 'In-Person'}
+              </span>
+            </div>
           </div>
         </div>
       </div>
