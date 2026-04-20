@@ -296,7 +296,7 @@ export function SidebarContent({
       )}
       {...props}
     >
-      <div ref={scrollRef} className="h-full pb-12 overflow-auto  ">
+      <div ref={scrollRef} className="h-full pb-12 overflow-y-auto overflow-x-hidden">
         {children}
       </div>
     </div>

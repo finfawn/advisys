@@ -213,13 +213,13 @@ export default function AdvisorThreadPage() {
   };
 
   return (
-    <div className="admin-dash-wrap">
+    <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
-      <div className={`admin-dash-body ${collapsed ? "collapsed" : ""}`}>
+      <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
         <div className="hidden xl:block">
           <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={(path) => navigate(path)} />
         </div>
-        <main className="admin-dash-main">
+        <main className="advisor-dash-main">
           <div className="consultations-container">
             <div className="consultations-header">
               <h1 className="consultations-title">Consultation Thread</h1>

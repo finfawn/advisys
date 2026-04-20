@@ -204,6 +204,8 @@
 
 .empty-icon {
   font-size: 48px;
+  width: 64px;
+  height: 64px;
   margin-bottom: 16px;
   opacity: 0.5;
 }
