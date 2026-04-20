@@ -297,7 +297,7 @@ export default function AdvisorAvailability() {
     const byBucket = { morning: [], afternoon: [], evening: [] };
     for (const slot of slotsForSelected) {
       const hour = getPHHour24(slot.start);
-      const bucket = hour < 12 ? 'morning' : (hour < 16 ? 'afternoon' : 'evening');
+      const bucket = hour < 12 ? 'morning' : (hour < 18 ? 'afternoon' : 'evening');
       byBucket[bucket].push(slot);
     }
     function mergeByTime(arr) {
@@ -450,45 +450,6 @@ export default function AdvisorAvailability() {
   return (
     <div className="advisor-dash-wrap">
       <AdvisorTopNavbar />
-
-      {/* Hamburger Menu Overlay - Mobile & Tablet */}
-      <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
-        <style>{`
-          .square-hamburger-btn {
-            border-radius: 8px !important;
-            pointer-events: auto !important;
-          }
-          .square-hamburger-btn * {
-            pointer-events: auto !important;
-          }
-          .hamburger-overlay-9999 {
-            pointer-events: auto !important;
-          }
-          .hamburger-button-9999 {
-            pointer-events: auto !important;
-          }
-        `}</style>
-        <HamburgerMenuOverlay
-          items={menuItems}
-          buttonTop="12px"
-          buttonLeft="16px"
-          buttonSize="md"
-          buttonColor="#111827"
-          buttonColorMobile="#111827"
-          overlayBackground="#111827"
-          overlayBackgroundMobile="#111827"
-          textColor="#ffffff"
-          fontSize="md"
-          fontWeight="normal"
-          animationDuration={0.5}
-          staggerDelay={0.08}
-          menuAlignment="left"
-          enableBlur={false}
-          zIndex={9999}
-          buttonSizeMobile="md"
-          buttonClassName="square-hamburger-btn"
-        />
-      </div>
 
       {/* Body */}
       <div className={`advisor-dash-body ${collapsed ? "collapsed" : ""}`}>
