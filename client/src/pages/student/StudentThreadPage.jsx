@@ -375,7 +375,7 @@ export default function StudentThreadPage() {
                         return (
                           <Card key={c.id} className={`thread-grid-card border-status-${statusKey}`}>
                             <span className={`thread-grid-badge badge-${statusKey}`}>{c.status || "Scheduled"}</span>
-                            <CardContent className="thread-grid-card-body">
+                            <div className="thread-grid-card-body">
                               <div className="thread-grid-main">
                                 <div className="thread-grid-date-block">
                                   <div className="date-day">{day}</div>
@@ -393,7 +393,7 @@ export default function StudentThreadPage() {
                                   </div>
                                 </div>
                               </div>
-                            </CardContent>
+                            </div>
                           </Card>
                         );
                       })}

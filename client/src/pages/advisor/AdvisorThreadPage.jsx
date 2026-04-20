@@ -371,7 +371,7 @@ export default function AdvisorThreadPage() {
                         return (
                           <Card key={c.id} className={`thread-grid-card border-status-${statusKey}`}>
                             <span className={`thread-grid-badge badge-${statusKey}`}>{c.status || "Scheduled"}</span>
-                            <CardContent className="thread-grid-card-body">
+                            <div className="thread-grid-card-body">
                               <div className="thread-grid-main">
                                 <div className="thread-grid-date-block">
                                   <div className="date-day">{day}</div>
@@ -389,7 +389,7 @@ export default function AdvisorThreadPage() {
                                   </div>
                                 </div>
                               </div>
-                            </CardContent>
+                            </div>
                           </Card>
                         );
                       })}
