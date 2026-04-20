@@ -29,11 +29,6 @@ export default function StudentThreadPage() {
   const [timeFilter, setTimeFilter] = useState("all");
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
-  const [expandedCards, setExpandedCards] = useState({});
-
-  const toggleCard = (id) => {
-    setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
-  };
 
   useEffect(() => {
     try {
@@ -377,15 +372,10 @@ export default function StudentThreadPage() {
                         const yearStr = dateObj.getFullYear();
                         const timeStr = dateObj.toLocaleString("en-US", { hour: "numeric", minute: "2-digit" });
                         const statusKey = String(c.status || "scheduled").toLowerCase();
-                        const rawSummary = c.summary_notes || (AI_ENABLED && !c.summary_notes ? c.ai_summary : "");
-                        const isExpanded = !!expandedCards[c.id];
-
                         return (
                           <Card key={c.id} className={`thread-grid-card border-status-${statusKey}`}>
+                            <span className={`thread-grid-badge badge-${statusKey}`}>{c.status || "Scheduled"}</span>
                             <CardContent className="thread-grid-card-body">
-                              <div className="thread-grid-header">
-                                <span className={`thread-grid-badge badge-${statusKey}`}>{c.status || "Scheduled"}</span>
-                              </div>
                               <div className="thread-grid-main">
                                 <div className="thread-grid-date-block">
                                   <div className="date-day">{day}</div>
@@ -403,21 +393,6 @@ export default function StudentThreadPage() {
                                   </div>
                                 </div>
                               </div>
-                              <div className="thread-grid-actions">
-                                <button className="thread-grid-expand-btn" onClick={() => toggleCard(c.id)}>
-                                  {isExpanded ? (
-                                    <>Hide Summary <BsChevronUp className="w-3 h-3 ml-1" /></>
-                                  ) : (
-                                    <>View Summary <BsChevronDown className="w-3 h-3 ml-1" /></>
-                                  )}
-                                </button>
-                              </div>
-                              {isExpanded && (
-                                <div className="thread-grid-summary-panel">
-                                  <div className="summary-label">{c.summary_notes ? "Summary Notes" : "AI Summary"}</div>
-                                  <div className="summary-content">{rawSummary || "No summary provided."}</div>
-                                </div>
-                              )}
                             </CardContent>
                           </Card>
                         );

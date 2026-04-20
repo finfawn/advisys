@@ -146,13 +146,10 @@
   flex: 1;
 }
 
-.thread-grid-header {
-  display: flex;
-  justify-content: flex-end;
-  margin-bottom: 8px;
-}
-
 .thread-grid-badge {
+  position: absolute;
+  top: 14px;
+  right: 14px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -236,63 +233,6 @@
 }
 
 .meta-time { font-weight: 600; color: #475569; }
-
-.thread-grid-actions {
-  margin-top: auto;
-  border-top: 1px solid #f1f5f9;
-  padding-top: 12px;
-}
-
-.thread-grid-expand-btn {
-  width: 100%;
-  background: none;
-  border: none;
-  font-size: 0.75rem;
-  font-weight: 600;
-  color: #3b82f6;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 6px;
-  border-radius: 6px;
-  transition: background 150ms ease, color 150ms ease;
-}
-
-.thread-grid-expand-btn:hover {
-  background: #eff6ff;
-  color: #2563eb;
-}
-
-.thread-grid-summary-panel {
-  margin-top: 12px;
-  padding: 12px;
-  background: #f8fafc;
-  border-radius: 6px;
-  border: 1px solid #e2e8f0;
-  animation: summaryFadeIn 200ms ease-out forwards;
-}
-
-@keyframes summaryFadeIn {
-  from { opacity: 0; transform: translateY(-4px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-.summary-label {
-  font-size: 0.65rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: #64748b;
-  margin-bottom: 6px;
-}
-
-.summary-content {
-  font-size: 0.85rem;
-  line-height: 1.5;
-  color: #334155;
-  white-space: pre-wrap;
-}
 
 /* Place vertical scrollbar at the viewport edge on small screens */
 @media (max-width: 768px) {
