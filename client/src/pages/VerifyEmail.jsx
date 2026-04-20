@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import logoLargeTransparent from "/logo-large-transparent.png";
 
 function useQuery() {
   const { search } = useLocation();

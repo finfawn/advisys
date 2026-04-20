@@ -7,6 +7,8 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
+  flex: 1;
+  min-height: 0;
 }
 
 /* Removed extra bottom padding when banner is present */
@@ -68,6 +70,9 @@
   grid-template-rows: 1fr 1fr auto;
   gap: 14px;
   width: 100%;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
 }
 
 /* Bento Grid Items */
