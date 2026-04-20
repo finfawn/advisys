@@ -42,6 +42,8 @@
   color: #1f2937;
   overflow: hidden;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Body layout with animated sidebar width */
@@ -52,7 +54,8 @@
   /* sidebar + main */
   transition: grid-template-columns 240ms ease;
   position: relative;
-  height: calc(100vh - 64px); /* Subtract navbar height */
+  flex: 1;
+  min-height: 0;
   overflow: hidden;
 }
 
