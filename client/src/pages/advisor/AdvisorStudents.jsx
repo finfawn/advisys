@@ -123,14 +123,22 @@ export default function AdvisorStudents() {
               <div className="advisor-grid">
               {loading ? (
                 Array.from({ length: 6 }).map((_,i)=>(
-                    <div key={i} className="p-4 bg-white rounded-lg border flex items-center gap-3">
-                    <Skeleton className="w-10 h-10 rounded-full" shimmer />
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <Skeleton className="h-4 w-1/2" shimmer />
-                      <Skeleton className="h-3 w-1/3" shimmer />
+                    <div key={i} className="advisor-card-new bg-white border border-gray-200" style={{ padding: 0, overflow: 'hidden', minHeight: 10, borderRadius: '16px' }}>
+                      <div style={{ padding: '1rem 1rem 0.25rem 1rem', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <Skeleton className="rounded-full" style={{ width: 48, height: 48, minWidth: 48 }} shimmer />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <Skeleton className="rounded h-5 w-3/4" shimmer />
+                        </div>
+                      </div>
+                      <div style={{ padding: '0 1rem 0.75rem', display: 'flex', gap: '6px', paddingLeft: '76px' }}>
+                        <Skeleton className="h-4 w-12 rounded" shimmer />
+                        <Skeleton className="h-4 w-16 rounded" shimmer />
+                      </div>
+                      <div style={{ padding: '0.75rem 1rem', display: 'flex', gap: '8px', borderTop: '1px solid #f3f4f6', marginTop: '4px' }}>
+                        <Skeleton className="h-8 flex-1 rounded-md" shimmer />
+                        <Skeleton className="h-8 flex-1 rounded-md" shimmer />
+                      </div>
                     </div>
-                    <Skeleton className="h-9 w-24 rounded-md" shimmer />
-                  </div>
                 ))
               ) : filtered.length === 0 ? (
                 <div className="no-history">
