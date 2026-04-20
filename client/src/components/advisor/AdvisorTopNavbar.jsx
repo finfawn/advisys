@@ -9,7 +9,7 @@ import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, A
 import InitialsAvatar from "../common/InitialsAvatar";
 import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 
-function AdvisorTopNavbar() {
+function AdvisorTopNavbar({ collapsed }) {
   const navigate = useNavigate();
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [isNotificationOpen, setIsNotificationOpen] = useState(false);
@@ -140,10 +140,8 @@ function AdvisorTopNavbar() {
         <div className="hamburger-spacer xl:hidden" style={{ width: '48px', height: '48px', display: 'flex' }}></div>
         
         {/* Logo - Desktop only */}
-        <div className="advisor-brand hidden md:flex">
-          <div className="advisor-logo-wrapper">
-            <img src={Logo} alt="AdviSys" className="advisor-logo" />
-          </div>
+        <div className={`advisor-brand hidden md:flex ${collapsed ? 'collapsed' : ''}`}>
+          <img src={Logo} alt="AdviSys" className="advisor-logo" />
           <div className="advisor-brand-title">advi<span className="advisor-brand-sys">Sys</span></div>
         </div>
         

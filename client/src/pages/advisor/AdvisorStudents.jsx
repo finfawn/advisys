@@ -6,6 +6,8 @@ import { useSidebar } from "../../contexts/SidebarContext";
 import { Button } from "../../lightswind/button";
 import { Skeleton } from "../../lightswind/skeleton";
 import AssignSlotModal from "../../components/advisor/students/AssignSlotModal";
+/* Layout standardization - AdvisorDashboard.css contains the dashboard core layout */
+import "./AdvisorDashboard.css";
 import "../student/AdvisorListPage.css";
 import { motion, AnimatePresence } from "framer-motion";
 import StudentCard from "../../components/advisor/students/StudentCard";
@@ -92,13 +94,13 @@ export default function AdvisorStudents() {
   };
 
   return (
-    <div className="dash-wrap advisor-list-wrap">
+    <div className="advisor-dash-wrap advisor-list-wrap">
       <AdvisorTopNavbar />
-      <div className={`dash-body ${collapsed ? 'collapsed' : ''}`}>
+      <div className={`advisor-dash-body ${collapsed ? 'collapsed' : ''}`}>
         <div className="hidden xl:block">
           <AdvisorSidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={(p)=>handleNavigation(p)} />
         </div>
-        <main className="dash-main">
+        <main className="advisor-dash-main">
           <div className="advisor-list-container">
             <div className="page-header">
               <div className="page-title-section">

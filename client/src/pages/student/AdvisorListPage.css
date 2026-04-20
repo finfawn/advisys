@@ -8,50 +8,11 @@
     overflow-x: hidden;
 }
 
-/* Ensure the page uses the fixed sidebar + scrollable main pattern */
-.advisor-list-wrap .dash-body {
-  display: grid;
-  grid-template-columns: 240px 1fr;
-  gap: 20px;
-  transition: grid-template-columns 240ms ease;
-  position: relative;
-  height: calc(100vh - 64px);
-  min-height: 0; /* allow children to scroll */
-  overflow: hidden;
-}
-.advisor-list-wrap .dash-body.collapsed {
-  grid-template-columns: 76px 1fr;
-}
-.advisor-list-wrap .dash-main {
-  height: 100%;
-  min-height: 0; /* enable overflow scroll inside grid child */
-  overflow-y: auto;
-  overflow-x: hidden;
-  box-sizing: border-box;
-  display: flex;
-  flex-direction: column;
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior: contain;
-}
-
-/* Mobile & tablet: match My Consultations page behavior */
-@media (max-width: 768px) {
-  .advisor-list-wrap .dash-body {
-    display: block !important;
-    height: auto !important;
-    min-height: calc(100vh - 56px) !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    padding-top: 56px; /* account for mobile navbar */
-  }
-  .advisor-list-wrap .dash-main {
-    height: auto !important;
-    min-height: calc(100vh - 56px) !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    -webkit-overflow-scrolling: touch;
-  }
-}
+/* 
+   We now use standardized .advisor-dash-wrap, .advisor-dash-body, and .advisor-dash-main 
+   from AdvisorDashboard.css to ensure consistent fixed-header behavior across all 
+   advisor pages. Most layout-level styles here have been offloaded to the dashboard core.
+*/
 
 /* Ensure no horizontal scrollbar on desktop */
 @media (min-width: 769px) {
@@ -76,25 +37,7 @@
     }
 }
 
-/* Mid-width laptops and high-zoom: collapse to single column */
-@media (min-width: 768px) and (max-width: 1366px) {
-  .advisor-list-wrap .dash-body,
-  .advisor-list-wrap .dash-body.collapsed {
-    grid-template-columns: 1fr !important;
-    gap: 0 !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-    min-height: 0 !important;
-  }
-  .advisor-list-wrap .dash-main {
-    padding: 18px !important;
-    overflow-y: auto !important;
-    overflow-x: hidden !important;
-  }
-  /* Ensure mobile header menu is visible and sidebar hidden at mid widths */
-  .advisor-list-wrap .xl\:block { display: none !important; }
-  .advisor-list-wrap .xl\:hidden { display: block !important; }
-}
+/* Tablet & mid-width optimizations are now handled globally in AdvisorDashboard.css or index.css */
 
 /* Page Header */
 .page-header {

@@ -214,7 +214,7 @@ export default function AdvisorDashboard() {
   return (
     <>
     <div className="advisor-dash-wrap">
-      <AdvisorTopNavbar />
+      <AdvisorTopNavbar collapsed={collapsed} />
 
       {/* Hamburger Menu Overlay - Mobile & Tablet */}
       <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
