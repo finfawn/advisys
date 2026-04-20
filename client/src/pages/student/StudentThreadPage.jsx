@@ -6,7 +6,7 @@ import { useSidebar } from "../../contexts/SidebarContext";
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from "../../lightswind/select";
 import { Card, CardContent } from "../../lightswind/card";
 import { Button } from "../../lightswind/button";
-import { BsCameraVideo, BsGeoAlt, BsDownload, BsChevronLeft } from "react-icons/bs";
+import { BsCameraVideo, BsGeoAlt, BsDownload, BsChevronLeft, BsChevronDown, BsChevronUp } from "react-icons/bs";
 import "./StudentThreadPage.css";
 import InitialsAvatar from "../../components/common/InitialsAvatar";
 import { downloadLinesAsPdf } from "../../lib/pdfExport";
@@ -29,6 +29,11 @@ export default function StudentThreadPage() {
   const [timeFilter, setTimeFilter] = useState("all");
   const [statusMenuOpen, setStatusMenuOpen] = useState(false);
   const [selectedStatuses, setSelectedStatuses] = useState([]);
+  const [expandedCards, setExpandedCards] = useState({});
+
+  const toggleCard = (id) => {
+    setExpandedCards((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   useEffect(() => {
     try {
@@ -122,6 +127,11 @@ export default function StudentThreadPage() {
 
   const filteredThread = useMemo(() => {
     let items = Array.isArray(thread) ? thread : [];
+    // Only show history statuses
+    items = items.filter((c) => {
+      const status = String(c?.status || "").toLowerCase();
+      return !["approved", "pending", "room_ready", "scheduled"].includes(status);
+    });
     if (modeFilter !== "all") {
       items = items.filter((c) => String(c?.mode || "").toLowerCase() === (modeFilter === "online" ? "online" : "in-person"));
     }
@@ -141,6 +151,17 @@ export default function StudentThreadPage() {
     }
     return items;
   }, [thread, modeFilter, timeFilter, isWithinTimeFilter, selectedStatuses, getStartDate]);
+
+  const groupedThread = useMemo(() => {
+    const groups = {};
+    filteredThread.forEach((c) => {
+      const date = new Date(c.start_datetime);
+      const key = date.toLocaleString("en-US", { month: "long", year: "numeric" });
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(c);
+    });
+    return groups;
+  }, [filteredThread]);
 
   const advisorMeta = useMemo(() => {
     const first = thread[0];
@@ -251,13 +272,12 @@ export default function StudentThreadPage() {
                     {statusMenuOpen && (
                       <div className="absolute mt-2 w-52 bg-white border border-gray-200 rounded-md shadow-sm p-2 z-20">
                         {[
-                          { k: "approved", label: "Approved" },
-                          { k: "pending", label: "Pending" },
                           { k: "declined", label: "Declined" },
                           { k: "expired", label: "Expired" },
                           { k: "completed", label: "Completed" },
                           { k: "cancelled", label: "Cancelled" },
                           { k: "missed", label: "Missed" },
+                          { k: "incomplete", label: "Incomplete" },
                         ].map((opt) => {
                           const checked = selectedStatuses.includes(opt.k);
                           return (
@@ -345,51 +365,66 @@ export default function StudentThreadPage() {
             ) : filteredThread.length === 0 ? (
               <div className="text-sm text-gray-600">No consultations for this selection.</div>
             ) : (
-              <div className="thread-list">
-                {filteredThread.map((c) => {
-                  const dateStr = new Date(c.start_datetime).toLocaleString("en-PH", {
-                    timeZone: "Asia/Manila",
-                    dateStyle: "medium",
-                    timeStyle: "short",
-                  });
-                  const statusKey = String(c.status || "scheduled").toLowerCase();
-                  const summaryText = c.summary_notes || (AI_ENABLED && !c.summary_notes ? c.ai_summary : "");
+              <div className="thread-grouped-list">
+                {Object.entries(groupedThread).map(([monthYear, items]) => (
+                  <div key={monthYear} className="thread-month-group">
+                    <h2 className="thread-month-header">{monthYear}</h2>
+                    <div className="thread-grid">
+                      {items.map((c) => {
+                        const dateObj = new Date(c.start_datetime);
+                        const day = dateObj.getDate();
+                        const monthStr = dateObj.toLocaleString("en-US", { month: "short" });
+                        const yearStr = dateObj.getFullYear();
+                        const timeStr = dateObj.toLocaleString("en-US", { hour: "numeric", minute: "2-digit" });
+                        const statusKey = String(c.status || "scheduled").toLowerCase();
+                        const rawSummary = c.summary_notes || (AI_ENABLED && !c.summary_notes ? c.ai_summary : "");
+                        const isExpanded = !!expandedCards[c.id];
 
-                  return (
-                    <Card key={c.id} className="thread-card">
-                      <CardContent className="thread-card-body">
-                        <div className="thread-card-main">
-                          <div className="thread-card-title-row">
-                            <h3 className="thread-card-title">{c.category || c.topic || "No Topic"}</h3>
-                            <span className={`thread-status-badge ${statusKey}`}>{c.status || "Scheduled"}</span>
-                          </div>
-                          <div className="thread-meta-row">
-                            <span className="thread-meta-pill">{dateStr}</span>
-                            <span className="thread-meta-pill">
-                              {c.mode === "online" ? (
-                                <>
-                                  <BsCameraVideo />
-                                  Online
-                                </>
-                              ) : (
-                                <>
-                                  <BsGeoAlt />
-                                  In-Person
-                                </>
+                        return (
+                          <Card key={c.id} className={`thread-grid-card border-status-${statusKey}`}>
+                            <CardContent className="thread-grid-card-body">
+                              <div className="thread-grid-header">
+                                <span className={`thread-grid-badge badge-${statusKey}`}>{c.status || "Scheduled"}</span>
+                              </div>
+                              <div className="thread-grid-main">
+                                <div className="thread-grid-date-block">
+                                  <div className="date-day">{day}</div>
+                                  <div className="date-month-year">
+                                    {monthStr} {yearStr}
+                                  </div>
+                                </div>
+                                <div className="thread-grid-details">
+                                  <h3 className="thread-grid-title">{c.category || c.topic || "No Topic"}</h3>
+                                  <div className="thread-grid-meta">
+                                    <span className="meta-time">{timeStr}</span> &bull; 
+                                    <span className="meta-mode">
+                                      {c.mode === "online" ? " Online" : " In-Person"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                              <div className="thread-grid-actions">
+                                <button className="thread-grid-expand-btn" onClick={() => toggleCard(c.id)}>
+                                  {isExpanded ? (
+                                    <>Hide Summary <BsChevronUp className="w-3 h-3 ml-1" /></>
+                                  ) : (
+                                    <>View Summary <BsChevronDown className="w-3 h-3 ml-1" /></>
+                                  )}
+                                </button>
+                              </div>
+                              {isExpanded && (
+                                <div className="thread-grid-summary-panel">
+                                  <div className="summary-label">{c.summary_notes ? "Summary Notes" : "AI Summary"}</div>
+                                  <div className="summary-content">{rawSummary || "No summary provided."}</div>
+                                </div>
                               )}
-                            </span>
-                          </div>
-                          {summaryText && (
-                            <div className="thread-summary">
-                              <div className="thread-summary-label">{c.summary_notes ? "Summary" : "AI Summary"}</div>
-                              <div className="thread-summary-text">{summaryText}</div>
-                            </div>
-                          )}
-                        </div>
-                      </CardContent>
-                    </Card>
-                  );
-                })}
+                            </CardContent>
+                          </Card>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
               </div>
             )}
           </div>
