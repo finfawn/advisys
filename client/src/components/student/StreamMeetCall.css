@@ -934,6 +934,7 @@ button.smc-header-chip:active {
 .smc-stream-chat .str-chat__textarea,
 .smc-stream-chat textarea {
   min-height: 44px;
+  padding: 10px 44px;
   border: none;
   border-radius: 14px;
   background: rgba(255, 255, 255, 0.48);
@@ -1716,6 +1717,7 @@ button.smc-header-chip:active {
 .smc-stream-chat .str-chat__textarea,
 .smc-stream-chat textarea {
   min-height: 38px;
+  padding: 10px 44px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 999px;
   background: rgba(8, 12, 18, 0.96);
@@ -1856,11 +1858,16 @@ button.smc-header-chip:active {
   border-radius: 18px;
   background: #1b2330;
   border: none;
+  flex-shrink: 0;
+  height: max-content;
+  box-sizing: border-box;
 }
 
 .smc-detail-hero {
   padding: 20px;
   background: #202a3a;
+  display: flex;
+  flex-direction: column;
 }
 
 .smc-detail-hero__eyebrow {

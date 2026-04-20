@@ -1028,13 +1028,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         value: duration,
         tone: 'neutral',
       },
-      {
-        key: 'network',
-        icon: ChartBarIcon,
-        label: 'Connection',
-        value: networkLabel,
-        tone: typeof latency === 'number' && latency > 180 ? 'warning' : 'success',
-      },
+
       {
         key: 'mode',
         icon: VideoCameraIcon,
@@ -1059,11 +1053,7 @@ const StreamMeetCall = ({ roomName, displayName, onClose, consultationData }) =>
         label: 'Camera',
         value: camMuted ? 'Off' : 'On',
       },
-      {
-        key: 'network',
-        label: 'Connection',
-        value: networkLabel,
-      },
+
     ];
 
     return (

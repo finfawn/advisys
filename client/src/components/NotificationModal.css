@@ -412,6 +412,7 @@
   padding: 8px 12px;
   border-radius: 8px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .notification-mark-all-btn:hover {
@@ -421,6 +422,8 @@
 
 .check-icon {
   font-size: 14px;
+  width: 16px;
+  height: 16px;
   color: #10b981;
 }
 
@@ -437,6 +440,7 @@
   padding: 8px 12px;
   border-radius: 8px;
   transition: all 0.2s ease;
+  white-space: nowrap;
 }
 
 .notification-delete-all-btn:hover {
@@ -446,6 +450,8 @@
 
 .trash-icon {
   font-size: 14px;
+  width: 16px;
+  height: 16px;
   color: #ef4444;
 }
 
