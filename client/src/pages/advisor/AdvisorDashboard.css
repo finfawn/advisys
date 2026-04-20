@@ -1,7 +1,5 @@
 .advisor-dash-main {
-  padding: 16px;
-  padding-left: 0;
-  padding-bottom: 16px;
+  padding: 16px 16px 16px 16px;
   height: 100%;
   overflow-y: auto;
   overflow-x: hidden;
@@ -14,8 +12,7 @@
 
 @media (min-width: 768px) {
   .advisor-dash-main {
-    padding: 20px;
-    padding-left: 0;
+    padding: 20px 20px 20px 0;
     padding-bottom: 20px;
   }
   

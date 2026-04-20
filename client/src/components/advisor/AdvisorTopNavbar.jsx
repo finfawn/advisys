@@ -141,7 +141,9 @@ function AdvisorTopNavbar() {
         
         {/* Logo - Desktop only */}
         <div className="advisor-brand hidden md:flex">
-          <img src={Logo} alt="AdviSys" className="advisor-logo" />
+          <div className="advisor-logo-wrapper">
+            <img src={Logo} alt="AdviSys" className="advisor-logo" />
+          </div>
           <div className="advisor-brand-title">advi<span className="advisor-brand-sys">Sys</span></div>
         </div>
         
