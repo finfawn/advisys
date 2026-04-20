@@ -7,6 +7,7 @@ import { useNotifications } from "../../contexts/NotificationContext";
 import "./AdvisorTopNavbar.css";
 import { AlertDialog, AlertDialogContent, AlertDialogHeader, AlertDialogTitle, AlertDialogDescription, AlertDialogFooter, AlertDialogCancel, AlertDialogAction } from "../../lightswind/alert-dialog";
 import InitialsAvatar from "../common/InitialsAvatar";
+import HamburgerMenuOverlay from "../../lightswind/hamburger-menu-overlay";
 
 function AdvisorTopNavbar() {
   const navigate = useNavigate();
@@ -64,6 +65,23 @@ function AdvisorTopNavbar() {
     setIsDropdownOpen(false); // Close user dropdown if open
   };
 
+  const handleNavigation = (page) => {
+    if (page === 'dashboard') navigate('/advisor-dashboard');
+    else if (page === 'consultations') navigate('/advisor-dashboard/consultations');
+    else if (page === 'students') navigate('/advisor-dashboard/students');
+    else if (page === 'availability') navigate('/advisor-dashboard/availability');
+    else if (page === 'profile') navigate('/advisor-dashboard/profile');
+  };
+
+  const menuItems = [
+    { label: 'Dashboard', onClick: () => handleNavigation('dashboard') },
+    { label: 'Consultation History', onClick: () => handleNavigation('consultations') },
+    { label: 'Students List', onClick: () => handleNavigation('students') },
+    { label: 'Availability Details', onClick: () => handleNavigation('availability') },
+    { label: 'Settings', onClick: () => handleNavigation('profile') },
+    { label: 'Logout', onClick: () => handleLogout() },
+  ];
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -81,8 +99,45 @@ function AdvisorTopNavbar() {
   return (
     <header className="advisor-topbar advisor-top-nav">
       <div className="advisor-topbar-left">
-        {/* Space for hamburger menu on mobile & tablet */}
-      <div className="hamburger-spacer xl:hidden"></div>
+        {/* Hamburger Menu Overlay - Mobile & Tablet */}
+        <div className="xl:hidden" style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100vh', zIndex: 9999, pointerEvents: 'none' }}>
+          <style>{`
+            .square-hamburger-btn {
+              border-radius: 8px !important;
+              pointer-events: auto !important;
+            }
+            .square-hamburger-btn * {
+              pointer-events: auto !important;
+            }
+            .hamburger-overlay-9999 {
+              pointer-events: auto !important;
+            }
+            .hamburger-button-9999 {
+              pointer-events: auto !important;
+            }
+          `}</style>
+          <HamburgerMenuOverlay
+            items={menuItems}
+            buttonTop="12px"
+            buttonLeft="16px"
+            buttonSize="md"
+            buttonColor="#111827"
+            buttonColorMobile="#111827"
+            overlayBackground="#111827"
+            overlayBackgroundMobile="#111827"
+            textColor="#ffffff"
+            fontSize="md"
+            fontWeight="normal"
+            animationDuration={0.5}
+            staggerDelay={0.08}
+            menuAlignment="left"
+            enableBlur={false}
+            buttonClassName="square-hamburger-btn"
+          />
+        </div>
+        
+        {/* Space for hamburger menu on mobile & tablet inline element */}
+        <div className="hamburger-spacer xl:hidden" style={{ width: '48px', height: '48px', display: 'flex' }}></div>
         
         {/* Logo - Desktop only */}
         <div className="advisor-brand hidden md:flex">

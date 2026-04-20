@@ -229,7 +229,7 @@ function AuthPage({ embedded = false }) {
   };
 
   return (
-    <div className={`${embedded ? "w-full min-h-[80vh]" : "min-h-screen"} relative flex items-center justify-center px-5 py-10`}>
+    <div className={`${embedded ? "w-full min-h-[80vh]" : "min-h-screen"} relative flex items-center justify-center px-4 sm:px-5 py-6 sm:py-10`}>
       {/* Academic background with logo watermark */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none bg-[#e9ecf4]">
         {/* Graph paper grid (fine + coarse) */}
@@ -315,9 +315,9 @@ function AuthPage({ embedded = false }) {
             transition={{
               layout: { duration: 0.45, ease: [0.25, 0.1, 0.25, 1] },
             }}
-            className="flex items-center justify-center min-h-[560px] px-8 py-10 sm:px-10 sm:py-12 lg:px-16 lg:py-16 lg:border-l border-gray-200"
+            className="flex items-center justify-center min-h-[auto] sm:min-h-[560px] px-5 py-8 sm:px-10 sm:py-12 lg:px-16 lg:py-16 lg:border-l border-gray-200"
           >
-            <form onSubmit={onSubmit} className="w-full max-w-xl space-y-8" autoComplete="off">
+            <form onSubmit={onSubmit} className="w-full max-w-xl space-y-4 sm:space-y-8" autoComplete="off">
               <AnimatePresence mode="popLayout" initial={false}>
                 <motion.div
                   key={mode} 
@@ -333,7 +333,7 @@ function AuthPage({ embedded = false }) {
                   }}
                 >
                   {/* Centered header section */}
-                  <motion.div layout className="mb-8 text-center select-none pointer-events-none">
+                  <motion.div layout className="mb-5 sm:mb-8 text-center select-none pointer-events-none">
                     <div className="flex flex-col items-center gap-2 mb-2">
                       <img 
                         src={logoLargeTransparent} 
@@ -343,7 +343,7 @@ function AuthPage({ embedded = false }) {
                       />
                       <motion.div 
                         layoutId="authBrand" 
-                        className="text-4xl font-extrabold tracking-tight text-gray-900"
+                        className="text-3xl sm:text-4xl font-extrabold tracking-tight text-gray-900"
                         transition={{ duration: 0.3, ease: "easeOut" }}
                       >
                         Advi<span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-indigo-600">Sys</span>
@@ -351,7 +351,7 @@ function AuthPage({ embedded = false }) {
                     </div>
                     <motion.h2 
                       layoutId="authHeadline" 
-                      className="text-2xl font-bold text-gray-800 tracking-tight"
+                      className="text-xl sm:text-2xl font-bold text-gray-800 tracking-tight"
                       transition={{ duration: 0.3, ease: "easeOut" }}
                     >
                       {mode === "login" ? "Welcome Back!" : mode === "register" ? "Join AdviSys" : mode === "forgot" ? "Reset Your Password" : "Check Your Inbox"}
@@ -420,7 +420,7 @@ function AuthPage({ embedded = false }) {
                   )}
 
                   {(mode === "login" || mode === "register" || mode === "forgot") && (
-                    <motion.div layout className={`relative ${mode === "register" ? "mt-6" : "mt-4"}`}>
+                    <motion.div layout className={`relative ${mode === "register" ? "mt-4" : "mt-3"}`}>
                       <div className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.8} stroke="currentColor" className="w-5 h-5">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
@@ -448,7 +448,7 @@ function AuthPage({ embedded = false }) {
                       animate={{ opacity: 1, height: "auto" }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.3 }}
-                      className="relative mt-4"
+                      className="relative mt-3"
                     >
                       <svg aria-hidden="true" className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" viewBox="0 0 24 24" fill="currentColor"><path d="M12 1a5 5 0 00-5 5v3H6a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2v-8a2 2 0 00-2-2h-1V6a5 5 0 00-5-5zm-3 8V6a3 3 0 116 0v3H9z"/></svg>
                       <input
@@ -583,7 +583,7 @@ function AuthPage({ embedded = false }) {
                     </motion.div>
                   )}
 
-                  <motion.div layout className="pt-3">
+                  <motion.div layout className="pt-2">
                     <RippleButton 
                       onClick={mode === "forgot" ? onForgot : onSubmit} 
                       text={primaryActionText}

@@ -65,7 +65,7 @@
 .dashboard-bento-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  grid-template-rows: auto auto auto;
+  grid-template-rows: 1fr 1fr auto;
   gap: 14px;
   width: 100%;
 }
@@ -100,10 +100,13 @@
 .dashboard-bento-grid > div {
   min-height: 0;
   min-width: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .dashboard-bento-grid > div > * {
-  height: 100%;
+  flex: 1;
   display: flex;
   flex-direction: column;
 }

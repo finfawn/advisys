@@ -205,7 +205,7 @@
 .bento-grid-stats {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
-    align-items: start;
+    align-items: stretch;
     gap: 12px;
     margin-bottom: 16px;
     width: 100%;
@@ -340,16 +340,14 @@
 /* Stat Bento - Small */
 .bento-stat {
     min-height: 0;
-}
-
-@media (min-width: 768px) {
-    .bento-stat {
-        min-height: 0;
-    }
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .bento-stat .stat-card {
-    height: auto;
+    height: 100%;
+    flex: 1;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
 }

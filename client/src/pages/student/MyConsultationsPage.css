@@ -58,10 +58,61 @@
     min-height: 0 !important;
   }
 
-  /* Ensure empty state doesn’t add extra spacing at the end */
+  /* Ensure empty state doesn't add extra spacing at the end */
   .student-my-consultations .no-consultations:last-child,
   .student-my-consultations .no-history:last-child {
     margin-bottom: 0 !important;
+  }
+
+  /* ── Mobile Tab Bar Fix ──────────────────────────────────────────── */
+  /* Switch from horizontal pill row → vertical list to prevent the
+     box-shadow / border from bleeding to the container bottom. */
+  .student-my-consultations .consultations-tabs {
+    flex-direction: column;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    margin-bottom: 1.25rem;
+  }
+
+  .student-my-consultations .tab-button {
+    justify-content: flex-start;
+    padding: 13px 16px;
+    border-radius: 0;
+    border-bottom: 1px solid #f1f5f9;
+    gap: 10px;
+    box-shadow: none !important;          /* kill the mis-placed underline */
+    border-left: 3px solid transparent;   /* slot for active indicator */
+  }
+
+  .student-my-consultations .tab-button:last-child {
+    border-bottom: none;
+  }
+
+  .student-my-consultations .tab-button:hover {
+    background: #f8fafc;
+    color: #475569;
+  }
+
+  .student-my-consultations .tab-button.active {
+    background: #f0f5ff;
+    color: #1e293b;
+    font-weight: 600;
+    box-shadow: none !important;
+    border-left: 3px solid #3360c2;      /* ← left accent, not bottom */
+  }
+
+  .student-my-consultations .tab-icon {
+    font-size: 1rem;
+  }
+
+  .student-my-consultations .tab-label {
+    font-size: 0.92rem;
+    flex: 1;
+    text-align: left;
   }
 }
 
