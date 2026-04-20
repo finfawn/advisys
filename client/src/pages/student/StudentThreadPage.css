@@ -4,21 +4,36 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+  flex-wrap: wrap;
 }
 
 .consultations-header .header-actions {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
 }
 
 @media (max-width: 768px) {
   .consultations-header .header-bar {
     flex-direction: column;
     align-items: flex-start;
+    gap: 10px;
   }
   .consultations-header .header-actions {
     width: 100%;
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  /* Each filter dropdown takes at most half the row, so two fit per line */
+  .consultations-header .header-actions .filter-dropdown,
+  .consultations-header .header-actions [data-radix-select-trigger],
+  .consultations-header .header-actions > div > button,
+  .consultations-header .header-actions > button {
+    flex: 1 1 calc(50% - 6px);
+    min-width: 120px;
+    max-width: 100%;
+    font-size: 0.82rem;
   }
 }
 
